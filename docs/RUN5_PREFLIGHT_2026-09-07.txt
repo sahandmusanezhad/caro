@@ -1,0 +1,129 @@
+RUN 5 PRE-FLIGHT — bama.ir, 2026-09-07
+==============================================================================
+Registered in RUN5_SPEC.md §13 before running. Budget 40 requests, drawn from
+the 576 cap. Spent: 39.
+
+Network note: the sandbox egress proxy still refuses bama.ir (403 on CONNECT).
+Not routed around. Collected through the browser, as Run 3 was.
+
+OUTCOME:  ENVELOPE WRONG
+          The shape is reachable. The registered 576-request cap will not buy
+          it. Run 5 proper does not start on the current registration.
+
+
+Q1 — ENUMERATION.  Answered: one request.
+------------------------------------------------------------------------------
+  /sitemap/car                 5,587 URLs, of which 1,599 are trim pages
+  distinct model families      136; 50 of them carry 8 or more trim slugs
+
+  Discovery is not a per-trim cost. ~3 requests enumerate every trim the site
+  publishes, so the ~62 trims §2 asks for can be selected before any
+  collection begins. This was the cheapest of the four questions and the one
+  most likely to have made the plan impossible.
+
+
+Q2 — SHALLOW YIELD.  Answered, and it corrected a measurement error first.
+------------------------------------------------------------------------------
+  The JSON-LD ItemList on a trim page is CAPPED AT 5.
+
+  This was caught by testing it against slugs that cannot possibly hold five:
+
+      /car/pride         →  ItemList reports 5     (the entire Pride inventory)
+      /car/peugeot       →  ItemList reports 5
+      /car/pride-131     →  ItemList reports 5
+
+  Eight trim pages had already been read this way, and five of them "had
+  exactly 5 listings". That number was the cap. Reading trim sizes from it
+  would have put a structural artefact of the page into the corpus as a fact
+  about the market — the same error class as Run 1's /car/saipa and D31's
+  -page-N redirect, now on a third route.
+
+  Corrected method: count distinct detail slugs in the rendered HTML.
+
+      trim slug                  listings    note
+      -------------------------------------------------------------
+      pride-131-tl                      1
+      tiba-hatchback-plus               3
+      saina-manuals-mtcng               8
+      tiba-sedan-sxcng                  9
+      quick-manualrplus-at             10
+      pride-141-basic                  30    page cap
+      pride-151-gx                     30    page cap
+      quick-gx-lmt                     30    page cap
+      dena-plus                        30    page cap
+      peugeot-206sd-v8                 30    page cap
+
+  A trim page returns at most 30, so 30 means "at least 30". That is
+  sufficient — the shape needs well-observed trims at 5 or more, not at 30.
+
+
+Q4 — SHAPE REACHABILITY.  Answered: yes, the tail is real.
+------------------------------------------------------------------------------
+  Trims holding 1, 3, 8, 9 and 10 listings were all found in a sample of 12.
+  D37's mixed shape needs roughly 15 trims under the floor to supply 58 thin
+  rows; trims of that size exist and are enumerable in advance.
+
+  BUT — 2 of the 12 sampled slugs served a GENERIC FEED, not the trim:
+
+      tara-v1          32 listings, 0 on-trim, first item a Hyundai Santa Fe
+      renault-l90-e2   32 listings, 0 on-trim, first item the same car
+
+  17% of sampled trim slugs (2/12; the interval on that is wide, roughly
+  5-45%). A collector that trusted the slug would have entered 64 unrelated
+  cars as Tara V1 and Renault L90 E2 observations — corrupting precisely the
+  trim conditioning the whole experiment exists to test, in a way no error
+  metric would show, because the corrupted rows sit on both sides of the
+  split.
+
+  It is cleanly detectable: on a real trim page every detail slug contains the
+  trim slug; on a contaminated one, none do. Run 5's collector MUST carry that
+  check, and must count a contaminated page as a dead slug rather than as a
+  trim with 32 listings.
+
+
+Q3 — TAIL CONVERSION.  Answered weakly, and stated weakly.
+------------------------------------------------------------------------------
+  7 detail pages from one thin trim (saina-manuals-mtcng):
+  6 carried price, odometer and year; 1 carried none of the three.
+
+  6/7 is not evidence that the tail converts better than Run 3's 0.701. At
+  n=7 the interval spans roughly half the possible range, and one trim is one
+  trim. The only defensible reading is the negative one: nothing here suggests
+  the tail converts WORSE, so 0.701 is not knowingly optimistic. It is not
+  refined, and §10 keeps it.
+
+  One observation, recorded and NOT acted on: a listing showed 1 km on a 1403
+  car. classify_mileage only applies its rate check from three years old, so
+  that row is PLAUSIBLE today. It may be a real gap. Changing eligibility now
+  is a §4 change that would end Run 5, so it is written down and left alone.
+
+
+WHY THE ENVELOPE IS WRONG
+------------------------------------------------------------------------------
+  §1 recorded that the derivation landed at exactly 576 with no slack. The
+  contamination rate consumes more than the slack that does not exist.
+
+      detail fetches for 312 eligible at 0.701     445
+      trim pages for ~62 trims                      62
+      contaminated slugs to replace (17%)          ~11
+      ---------------------------------------------------
+      subtotal                                     518
+      x1.15 duplicates and dead slugs              596
+
+  Reading it the other way — treating contaminated slugs as exactly what the
+  15% headroom was for, rather than as an additional cost — gives 583. Both
+  readings exceed 576, because there was nothing to absorb them.
+
+      required   ~583 to ~596
+      registered  576
+      spent        39   (this pre-flight)
+      remaining   537
+
+  Under §4 this is NOT a licence to raise the cap. It is a new registration,
+  argued on its own, with the pre-flight's measurements in hand.
+
+
+WHAT THIS PRE-FLIGHT DID NOT DO
+------------------------------------------------------------------------------
+  It contains no estimator and no gate. It cannot pass or fail Run 5, and
+  none of the numbers above are appraisal results. It measured a route.
