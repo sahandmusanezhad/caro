@@ -44,6 +44,33 @@ GREEN, RED, DIM, BOLD, OFF = (
     else ("", "", "", "", ""))
 
 
+def provenance() -> str:
+    """Which commit this output came from, printed in the header.
+
+    Added after three consecutive reviews were carried out against an export
+    that was one or two commits behind, each concluding the implementation
+    was missing work that had already landed. Nothing was wrong with the
+    code and a lot of attention was spent finding that out.
+
+    A pasted transcript should be able to answer "which version is this?" on
+    its own. `+dirty` marks uncommitted changes, so a run against a working
+    tree is never mistaken for a run against a commit. Outside a git
+    checkout this returns nothing rather than failing — the suite must stay
+    runnable from a tarball.
+    """
+    try:
+        p = subprocess.run(["git", "log", "-1", "--format=%h %cs"],
+                           cwd=ROOT, capture_output=True, text=True,
+                           timeout=5)
+        if p.returncode != 0:
+            return ""
+        d = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
+                           capture_output=True, text=True, timeout=5)
+        return p.stdout.strip() + ("+dirty" if d.stdout.strip() else "")
+    except Exception:
+        return ""
+
+
 def run(path: str) -> tuple[bool, int, float, str]:
     env = {**os.environ, "PYTHONPATH": str(ROOT), "NO_COLOR": "1"}
     t0 = time.time()
@@ -63,7 +90,7 @@ def main(argv: list[str]) -> int:
         return 2
 
     print(f"\n{BOLD}CARO test suite{OFF}  {DIM}python "
-          f"{sys.version.split()[0]}{OFF}\n")
+          f"{sys.version.split()[0]}  {provenance()}{OFF}\n")
     total = failed = 0
     outputs: list[tuple[str, str]] = []
     headline = ""
