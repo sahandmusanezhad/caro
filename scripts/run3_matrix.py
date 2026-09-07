@@ -79,25 +79,64 @@ from caro.ingest.quality import eligibility                        # noqa: E402
 # one, and the sick one is where the question actually lives.
 TARGETS = ("pride", "tiba", "saina", "quick")
 
+# ---------------------------------------------------------------------------
+# Pre-flight, run live 2026-09-07. Two of three candidate routes were wrong.
+# ---------------------------------------------------------------------------
+#
+# `?page=N`  — INVALID. Answers 200, redirects to page 1, returns the identical
+#   ten listings. The `finalUrl` is the tell; the status code is not. Fetching
+#   four "pages" this way yields forty rows that dedupe to ten, and reporting
+#   the result as homogeneous would have blamed the market for a crawler bug.
+#   This is the exact failure the pre-flight exists to catch, and it fired.
+#
+# `/car/<slug>-page-N` — VALID BUT SATURATING. Page 2 is genuinely new (zero
+#   overlap with page 1), then it runs out. Measured new-listings-per-page:
+#
+#       pride    10, 10, 3, 1, 0, 0   → 24 distinct across six pages
+#       peugeot  10,  8, 0, 0, 0, 0   → 18 distinct
+#       tiba     10, 10, 0, 0, 0      → 20 distinct
+#
+#   Pride is the most common car in Iran. Twenty-four is not its inventory —
+#   it is this route's ceiling. So the depth arm CANNOT reach 30 eligible
+#   listings for any model, and that is a fact about the access route, not
+#   about the market. It is reported as INVALID_ACQUISITION, never as
+#   INSUFFICIENT_VARIATION.
+#
+# `/car/<model>-<trim>` — THE REAL VOCABULARY. The sitemap publishes 1,862
+#   plain category pages and they are trim-level, each its own slice with its
+#   own ceiling: 34 under pride, 61 under peugeot, 16 under quick. Plus a
+#   published `?mileage=0|1` split of every one.
+#
+#   This is the site's own faceted browse rather than a workaround, and it is
+#   varied BY CONSTRUCTION — different trims are different cars — which is
+#   also why it must not be mistaken for evidence of a varied *market*. The
+#   degeneracy gate still has to pass on the pooled result.
+
+SITEMAP = "https://bama.ir/sitemap/car"
+
+
+def trim_slugs(all_slugs: list[str], family: str) -> list[str]:
+    """Every published category page under one model family."""
+    return [s for s in all_slugs if s == family or s.startswith(family + "-")]
+
+
 ARMS = {
     "depth": {
-        "what": "pages 1..4 of the plain model query",
+        "what": "/car/<slug>-page-N, pages 1..6",
         "tests": "whether volume alone brings variation",
-        "urls": lambda slug, n=4: [f"https://bama.ir/car/{slug}"
-                                   + ("" if p == 1 else f"?page={p}")
-                                   for p in range(1, n + 1)],
+        "expect": "saturates at ~20 distinct — measured, not assumed",
+        "urls": lambda slug, n=6: [f"https://bama.ir/car/{slug}"] +
+                [f"https://bama.ir/car/{slug}-page-{p}"
+                 for p in range(2, n + 1)],
     },
     "variation": {
-        "what": "the same model sliced by year band",
+        "what": "every trim-level category page under the model",
         "tests": "whether a differently-shaped query reaches other cars",
-        # Year is the predictor most collapsed in Run 2's slices, so it is
-        # the sharpest probe available. The parameter names must be
-        # confirmed against the live filter UI before the run — guessing
-        # them would silently return the unfiltered feed, which is exactly
-        # the mistake the first run made with /car/saipa.
-        "urls": lambda slug, *_: [
-            f"https://bama.ir/car/{slug}?year={lo}-{hi}"
-            for lo, hi in ((1380, 1392), (1393, 1399), (1400, 1405))],
+        "expect": "more distinct cars, and a wider spread of trim and year",
+        # Resolved from the sitemap at run time rather than hard-coded: a
+        # guessed slug is how the first run silently collected the generic
+        # feed while believing it had sampled two manufacturers.
+        "urls": lambda slug, *_: [f"https://bama.ir/car/{slug}"],
     },
 }
 
@@ -111,7 +150,26 @@ def plan() -> str:
               f"    tests: {arm['tests']}",
               f"    e.g.   {arm['urls'](TARGETS[1])[0]}",
               f"           {arm['urls'](TARGETS[1])[-1]}", ""]
-    L += ["success criteria, fixed in advance:",
+    L += ["PRE-FLIGHT RESULT — run live 2026-09-07, before any collection",
+          "-" * 62,
+          "  ?page=N          INVALID. Answers 200, redirects to page 1,",
+          "                   returns the identical ten listings. Four",
+          "                   'pages' would dedupe to ten, and calling that",
+          "                   homogeneous would blame the market for a",
+          "                   crawler bug. Caught, not assumed.",
+          "  <slug>-page-N    Valid, then saturates. New listings per page:",
+          "                     pride    10, 10, 3, 1, 0, 0  → 24 distinct",
+          "                     peugeot  10,  8, 0, 0, 0, 0  → 18 distinct",
+          "                   Pride is the most common car in Iran; 24 is",
+          "                   this route's ceiling, not its inventory. The",
+          "                   depth arm therefore CANNOT reach 30 — a fact",
+          "                   about the route, reported as",
+          "                   INVALID_ACQUISITION, never as low variation.",
+          "  <model>-<trim>   1,862 published category pages, trim-level:",
+          "                   34 under pride, 61 under peugeot, 16 under",
+          "                   quick. The real variation vocabulary.",
+          "",
+          "success criteria, fixed in advance:",
           f"  · ≥{cov_mod.MIN_ELIGIBLE} appraisal-eligible listings for at "
           "least one target model, AND",
           f"  · no more than {cov_mod.MAX_LEVEL_SHARE:.0%} sharing one model "
@@ -121,14 +179,16 @@ def plan() -> str:
           "Anything short of all three is a failed run, and the response is",
           "another sampling strategy — never a lowered threshold.",
           "",
-          "PRE-FLIGHT (both are ways the last two runs actually went wrong):",
-          "  · confirm the year-filter parameter against the live UI; a",
-          "    guessed name returns the unfiltered feed while looking fine,",
-          "    exactly as /car/saipa silently did.",
-          "  · confirm ?page=N paginates rather than redirecting to page 1.",
+          "STANDING RULES:",
+          "  · resolve trim slugs from the sitemap at run time. A guessed",
+          "    slug returns the generic feed while looking fine, exactly as",
+          "    /car/saipa silently did on run 1.",
           "  · dedupe by listing id ACROSS arms before counting anything —",
           "    the same car reached two ways is one observation, and",
-          "    counting it twice would manufacture the diversity under test."]
+          "    counting it twice would manufacture the diversity under test.",
+          "  · the variation arm is varied BY CONSTRUCTION: different trims",
+          "    are different cars. That is not evidence of a varied market,",
+          "    so the degeneracy gate still has to pass on the pooled result."]
     return "\n".join(L)
 
 

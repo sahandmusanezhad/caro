@@ -502,3 +502,47 @@ what it would learn is badge-availability rather than anything about cars.
 A guard in code rather than a paragraph in a design doc, for the same reason
 `NotBenchmarked` is an exception rather than a README promise (D11): the
 boundary that matters is the one that fails loudly.
+
+## D28 — The pre-flight fired, and it changed the experiment
+
+Run 3's pre-flight ran against the live site before any collection. Two of
+three candidate retrieval routes were wrong, and one was wrong in the exact
+way the check was written to catch.
+
+**`?page=N` — invalid.** It answers `200`, redirects to page 1, and returns
+the identical ten listings. The tell is `finalUrl`; the status code says
+nothing. Four "pages" fetched this way yield forty rows that dedupe to ten —
+and a run that then reported *"enough listings, too homogeneous"* would have
+blamed the Iranian used-car market for a bug in our crawler. This is the
+laundering that the `INVALID_ACQUISITION` outcome exists to prevent, and it
+was a live hazard, not a hypothetical one.
+
+**`/car/<slug>-page-N` — valid, then saturates.** Page 2 is genuinely new
+(zero overlap with page 1), then it runs out. New listings per page:
+
+    pride     10, 10, 3, 1, 0, 0    →  24 distinct across six pages
+    peugeot   10,  8, 0, 0, 0, 0    →  18 distinct
+    tiba      10, 10, 0, 0, 0       →  20 distinct
+
+Pride is the most common car in Iran. Twenty-four is not its inventory; it is
+this route's ceiling. **The depth arm therefore cannot reach 30 eligible
+listings for any model** — which answers the arm's question, but with a fact
+about the access route rather than about the market. It is reported as
+`INVALID_ACQUISITION`.
+
+That distinction is the whole value of having run the pre-flight first. Had
+the depth arm simply been executed, it would have produced ~20 rows per
+model, failed the count gate, and invited the conclusion that Iranian
+used-car supply is thin. It is not; our route is.
+
+**`/car/<model>-<trim>` — the real vocabulary.** The sitemap publishes 1,862
+plain category pages, and they are trim-level: 34 under `pride`, 61 under
+`peugeot`, 16 under `quick`, each its own page with its own ceiling, plus a
+published `?mileage=0|1` split of every one.
+
+So the variation arm uses the site's own faceted browse rather than a guessed
+filter parameter. One caveat is recorded with it, because it is the obvious
+way to fool ourselves next: that arm is varied **by construction** — different
+trims are different cars — so its diversity is a property of the query, not
+evidence of a varied market. The degeneracy gate still has to pass on the
+pooled, deduplicated result.
