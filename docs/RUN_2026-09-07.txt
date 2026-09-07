@@ -1,0 +1,77 @@
+BAMA · live collection 2026-09-07 · 100 detail pages fetched, 100 parsed
+10 model categories, first page of each, all HTTP 200
+
+CORPUS INVENTORY  (100 listings)
+==============================================================
+
+field                filled  garbage   usable
+--------------------------------------------------------------
+price_irr              86%       0%      86%
+year_jalali           100%       0%     100%
+mileage_km             73%       4%      69%
+make                   98%       0%      98%
+model                  98%       0%      98%
+trim                   98%       0%      98%
+gearbox               100%       0%     100%
+fuel                  100%       0%     100%
+color                  97%       0%      97%
+body_condition        100%      29%      71%
+
+MODEL COVERAGE  (a tier needs ~30+ to price against)
+--------------------------------------------------------------
+  Saipa Pride             10  ##########
+  Saipa Tiba              10  ##########
+  IKCO Samand             10  ##########
+  Saipa Shahin            10  ##########
+  IKCO Tara               10  ##########
+  IKCO Runna              10  ##########
+  Saipa Saina             10  ##########
+  Saipa Quik              10  ##########
+  IKCO Dena                8  ########
+  Peugeot 207              6  ######
+  Peugeot 206 SD           2  ##
+  Peugeot 206              2  ##
+  12 models, 12 of them under 30 listings
+
+BODY CONDITION  (the field no filter exposes)
+--------------------------------------------------------------
+  intact              42    42%  ##############################
+  minor_paint         11    11%  ###########
+  multi_paint          8     8%  ########
+  replaced_part        9     9%  #########
+  accident             1     1%  #
+  unknown             29    29%  #############################
+
+PRICE DISTRIBUTION (toman)
+--------------------------------------------------------------
+  min   0.18B   p25   1.00B   median   1.48B   p75   2.10B   max   4.18B
+
+EXTRACTION PROVENANCE  (how the fields were obtained)
+--------------------------------------------------------------
+  pages with a schema.org Car block    100   100%
+  price       jsonld+text:66  jsonld:20  none:14
+  mileage     jsonld:73  none:27
+  condition   field:73  none:27
+      no price — no offers block: 13
+      no price — structured and displayed prices disagree (580000000 vs 400000000): 1
+  price cross-check  agree:66  ld_only:20  none:13  unexplained_disagreement:1
+  ⚠ 1 page(s) gave two prices that differ by something other than a factor of ten. Those rows carry NO price rather than a chosen one — read a couple by hand before fitting.
+
+VERDICT
+--------------------------------------------------------------
+  NOT READY for appraisal — no model has 30+ listings. Collect more, or narrow to fewer models.
+
+
+PRICE SANITY (the reason the currency was cross-checked)
+--------------------------------------------------------------
+  cheapest Saipa Pride 1375       180M toman    122,222 km
+  cheapest Saipa Pride 1385       310M toman      6,000 km
+  cheapest Saipa Pride 1384       315M toman    999,990 km
+  dearest  Peugeot 207 1405     4,180M toman         no km
+  dearest  Peugeot 207 1405     3,780M toman         no km
+  dearest  IKCO Dena 1404     3,300M toman      3,200 km
+
+  Read these as a human would: an Iranian used car is priced in
+  hundreds of millions to a few billion toman. Divide by ten and
+  the whole table becomes absurd — which is the check that caught
+  the site's currency label.
