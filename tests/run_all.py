@@ -32,6 +32,8 @@ SUITES = [
      "persian intent, relaxation ladder, win-rate vs price sort"),
     ("W2  agents", "tests/test_agents.py",
      "evidence ledger, adversarial review, judge"),
+    ("W1+ pooling", "tests/test_hierarchical.py",
+     "empirical-bayes shrinkage, visible extrapolation, held-out trims"),
 ]
 
 TTY = sys.stdout.isatty() and not os.environ.get("NO_COLOR")

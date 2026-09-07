@@ -774,3 +774,66 @@ when the data cannot support the granularity the estimand assumed.
 
 `docs/DATA_CONTRACT.md` gains the measured ceiling so a later reader does not
 re-run this experiment hoping for a different answer.
+
+## D32 — Partial pooling that shows its work
+
+D31 closed acquisition: the trim tail is the market's shape, and no crawling
+fixes it. The remaining honest option is to keep trim-level conditioning and
+make the borrowing across trims **explicit, measured and visible**, instead of
+implicit and unmeasurable as pooling already is.
+
+The trap is specific and worth naming, because the fix looks like the
+failure. A hierarchical model trained only on this corpus can learn
+
+    thin trim → parent mean
+
+and then present exactly the extrapolation the pooled estimator was already
+doing, in Bayesian clothing, with a better-looking average error. Three
+structural defences:
+
+**1. Shrinkage is computed, not chosen.** `λ_t = τ²/(τ² + σ²/n_t)` —
+empirical Bayes, where the between-trim and within-trim variances decide how
+much a trim speaks for itself. Nothing is hand-tuned toward a nicer answer,
+and when the trims are statistically indistinguishable `τ² = 0` sets λ to
+zero everywhere, which is the correct refusal.
+
+**2. Every prediction carries a `PoolingTrace`** — the trim's observation
+count, how much of the estimate came from the trim versus the parent, and
+whether that is material extrapolation. A thin-trim estimate and a
+well-observed one are different claims, and the difference is not visible in
+the number.
+
+**3. The gate stresses the tail separately.** `held_out_trim_split` holds out
+**entire trims**, not rows: a trim the model has never seen must be priced
+from its parent alone and must admit it. A row-level split cannot ask that
+question, because every trim appears on both sides. Mean error over a corpus
+dominated by fat trims cannot see a model that is useless on 45% of it.
+
+### What the tests forced
+
+The first version flagged extrapolation on λ alone, and a **one-listing trim
+came out at λ = 0.58** — above the threshold, so it passed as a normal
+conditional estimate. Empirical Bayes was not wrong: when between-trim
+variance is genuinely large, one observation *is* informative. But λ measures
+how much the model should weight the trim; it does not measure whether a
+buyer should be told the number rests on a single advert.
+
+So the flag now fires on either trigger, and the observation floor is
+literally the same constant the data contract uses — `MIN_PER_TRIM_FLOOR`,
+moved into `quality.py` and imported by both. Two constants meaning "too few
+to speak for itself" would have drifted, and the drift would have surfaced as
+a confident estimate the contract says is out of scope.
+
+### Borrowing strength is not a sampling weight
+
+The distinction that makes this legitimate where D29's weighting was not:
+using Pride to inform `Pride 131 EX` claims that **Prides are informative
+about Prides**. It never claims to know 131 EX's share of the market. That is
+why partial pooling is available here and `1/P(inclusion)` weighting is not —
+the first is a statement about similarity, the second about composition, and
+only the second needs a quantity we do not have.
+
+W1 stays locked. D32 supplies the estimator; it does not benchmark it on the
+real corpus, and until `AcceptanceGate` is run with the thin-trim and
+held-out-trim slices reported alongside the aggregate, nothing here is
+evidence that the approach works on Bama data rather than on a fixture.

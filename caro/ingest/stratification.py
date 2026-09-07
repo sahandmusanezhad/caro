@@ -198,8 +198,9 @@ def sensitivity(rows, q: float = 0.5) -> dict:
 
 # Below this, a trim's own estimate is being carried by the pooled
 # distribution rather than by its own observations, which is precisely the
-# extrapolation the conditional argument assumes is not happening.
-MIN_PER_TRIM = 5
+# extrapolation the conditional argument assumes is not happening. Shared
+# with the hierarchical estimator (D32) so the two cannot drift apart.
+from caro.ingest.quality import MIN_PER_TRIM_FLOOR as MIN_PER_TRIM
 
 
 @dataclass(frozen=True)

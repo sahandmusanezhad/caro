@@ -191,6 +191,14 @@ def assert_not_features(names) -> None:
             "an inference that is not. They belong to caro.ingest.coverage.")
 
 
+# The floor for "this stratum has too few observations to speak for itself".
+# Lives here because two modules need it — stratification's conditional-scope
+# check (D30) and the hierarchical estimator's extrapolation flag (D32) — and
+# two constants meaning the same thing would drift, surfacing as a confident
+# estimate the contract says is out of scope.
+MIN_PER_TRIM_FLOOR = 5
+
+
 # What W1 needs before a listing can inform an estimate. Deliberately narrow:
 # these are the terms that appear in the appraisal itself, so a row missing
 # any of them cannot contribute a comparable, only noise.
