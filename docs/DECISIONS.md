@@ -166,3 +166,71 @@ recomputable client-side when a user drags a weight.
 Two rules the parser holds regardless of implementation: every inference goes
 into `assumptions` so the user can correct it, and text it could not map goes
 into `unparsed` rather than being silently dropped.
+
+## D15 — Three sources, each with a role
+
+Bama `primary_offers`, Divar `breadth`, Sheypoor `corroboration`. Specs and
+price-guide sites are `taxonomy_only` and never enter the corpus as offers —
+a price-guide page is not something anyone is asking, and letting one in
+teaches the appraiser from a number that does not exist in the market.
+
+Three, not ten. The claim worth making is "I reconciled independent sources
+into one canonical market", and a fourth site does not strengthen it.
+
+## D16 — robots.txt was read, not assumed
+
+Fetched 2026-09-07.
+
+**Divar** allows category browsing (`/s/{city}/light`) and listing pages
+(`/v/...`), and **disallows search urls** (`/s/*/*?*q=*`). So "just search for
+پژو ۲۰۶" is not available; we browse categories and filter locally.
+`assert_allowed()` raises on a violating url at the call site, because a rule
+that lives only in a comment gets violated the first time someone adds a
+feature.
+
+**Bama** publishes a car **sitemap** and disallows nothing relevant. That
+changed the design rather than merely permitting the old one: sitemap
+discovery means coverage is knowable instead of estimated, needs far fewer
+requests for the same result, and needs no browser. Crawling search pages
+when the site hands you an index is both ruder and worse.
+
+One consequence worth naming: a 404 on a sitemap-advertised url is the one
+place an `ABSENT` is genuinely earned. The listing was there when the index
+was built and is gone now — that is an observation, not an inference.
+
+## D17 — Cross-source matching is a different problem, and needs a different matcher
+
+`repost_match_score` leans on `seller_fingerprint` for 0.35 of its score.
+That signal is worthless across sites, because a seller has a different
+account and therefore a different salted hash on each. Reusing it would have
+pushed nearly every genuine cross-site pair below threshold and silently
+found nothing.
+
+So `cross_source_match_score` reweights: images dominate at 0.50, because
+photos are the one artefact copied verbatim between sites. **Price is not
+scored at all** — across sites, price differing is expected of the *same*
+car, so using it as identity evidence would systematically reject exactly the
+clusters worth finding.
+
+The threshold is higher (0.80 vs 0.70), and the direction is deliberate. A
+false same-source merge fabricates one car's history; a false cross-source
+merge destroys a genuine independent market observation and shrinks the
+sample the appraiser learns from. The second error costs more.
+
+## D18 — Several sites listing one car is not corroboration
+
+The tempting UI copy is "confirmed by 3 sources". It is wrong, and
+`claim_fa()` is tested to never say «تأیید».
+
+Corroboration needs independent *observers* of one fact. Here there is one
+observer — the seller — publishing to several places. When the prices differ,
+which they usually do, the finding is the opposite of confirmation: it is
+inconsistency. Three things follow, all more useful than agreement would be:
+
+1. **A negotiation floor.** The lowest public ask is a price the seller has
+   already accepted; they cannot credibly refuse it elsewhere.
+2. **A supply correction.** Counting listings without cross-source dedup
+   overstates how many cars are for sale, and liquidity feeds the ranker — so
+   an uncorrected count does not merely look wrong, it moves recommendations.
+3. **A seller-behaviour signal.** Systematic cross-site price gaps say
+   something about who you are dealing with.

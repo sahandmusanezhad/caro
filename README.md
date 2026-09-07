@@ -8,7 +8,7 @@ CARO estimates a market range for a listing, then tries to prove itself wrong.
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 pip install numpy scikit-learn
 
-python3 tests/run_all.py            # 314 assertions, no API key, no network
+python3 tests/run_all.py            # 349 assertions, no API key, no network
 python3 tests/run_all.py ranking    # just the win-rate benchmark
 python3 demo/export_demo.py         # regenerate demo/index.html from live output
 ```
@@ -125,7 +125,8 @@ These bands are calibrated by judgement, not fitted to data. That is stated in t
 | Demo page, fed from live pipeline output | ✅ built |
 | Source adapter contract + CSV adapter | ✅ built |
 | Intent parsing + ranking, beating sort-by-price | ✅ built, benchmarked |
-| Divar car adapter — parsing, politeness, stop-on-block | ✅ built, tested offline |
+| Divar + Bama adapters, robots-verified | ✅ built, tested offline |
+| Cross-source identity and supply correction | ✅ built, tested |
 | **Live collection run against Divar** | ❌ the network path is unexercised here |
 | **Real corpus** | ❌ every number here comes from a synthetic corpus |
 
@@ -135,10 +136,44 @@ These bands are calibrated by judgement, not fitted to data. That is stated in t
 
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · ranking (W3) · agents (W2)
-tests/           314 assertions across the five layers
+tests/           349 assertions across the five layers
 demo/            export_demo.py regenerates index.html from real output
 docs/            architecture, decisions, evaluation, roadmap
 ```
+
+## Sources, and what each is for
+
+Three offer sources, each with a role — not ten sites for volume.
+
+| Source | Role | Access, verified 2026-09-07 |
+|---|---|---|
+| **Bama** | `primary_offers` — richest structured fields, sets the canonical schema | Publishes a **car sitemap**; nothing relevant disallowed. So discovery is sitemap-first: coverage is knowable rather than estimated, and it needs far fewer requests than crawling search pages. |
+| **Divar** | `breadth` — largest volume, private sellers the specialist sites never see | Category browsing and listing pages allowed; **search urls (`?q=`) disallowed**. `assert_allowed()` raises on a violating url rather than trusting a comment. |
+| **Sheypoor** | `corroboration` — its value is the cross-source clusters it creates, not the listings it adds | Not yet verified. |
+
+Specs and price-guide sites are `taxonomy_only`: useful for normalising model
+names, never ingested as offers. A price-guide page is not a price anyone is
+asking, and letting one into the corpus teaches the appraiser from a number
+that does not exist in the market.
+
+### Several sites listing one car is not corroboration
+
+It is tempting to render a cross-source cluster as "confirmed by 3 sources".
+A test asserts the UI never says «تأیید», because corroboration needs
+independent *observers* of one fact — and here there is one observer, the
+seller, publishing in several places. When the prices differ, which they
+usually do, the finding is the opposite of confirmation:
+
+```
+همین خودرو در ۳ سایت آگهی شده، با ۳۰ میلیون اختلاف قیمت —
+کمترین قیمت اعلام‌شده ۱.۴۲ میلیارد است
+
+فروشنده خودش این خودرو را جایی ۱.۴۲ میلیارد گذاشته؛
+بالاتر از این عدد جای چانه‌زنی دارد.
+```
+
+The lowest public ask is a number the seller has already accepted. That is
+worth more than agreement would have been.
 
 ## Collection, and what was deliberately not built
 

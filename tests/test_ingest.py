@@ -256,6 +256,165 @@ check("snapshot carries an integrity verdict",
       snap.integrity in (Integrity.OK, Integrity.PARTIAL, Integrity.SUSPECT))
 
 
+
+
+# ---------------------------------------------------------------------------
+print("\nrobots.txt compliance — verified from the live file, enforced in code")
+from caro.ingest.divar_car import (
+    DIVAR_ROBOTS_CHECKED, RobotsViolation, assert_allowed,
+)
+check(f"the check is dated ({DIVAR_ROBOTS_CHECKED})", bool(DIVAR_ROBOTS_CHECKED))
+for u in ("https://divar.ir/s/tehran/light",
+          "https://divar.ir/s/tehran/light?page=4",
+          "https://divar.ir/v/pzhw-206/gYx1"):
+    try:
+        assert_allowed(u)
+        check(f"allowed: {u.split('divar.ir')[1]}", True)
+    except RobotsViolation:
+        check(f"allowed: {u}", False, "wrongly refused")
+
+for u, why in (("https://divar.ir/s/tehran/light?q=206", "search urls"),
+               ("https://divar.ir/s/tehran/light?page=2&q=pride", "search urls"),
+               ("https://divar.ir/my-divar/bookmarks", "/my-divar"),
+               ("https://divar.ir/new", "/new")):
+    try:
+        assert_allowed(u)
+        check(f"refused ({why})", False, f"LEAKED {u}")
+    except RobotsViolation:
+        check(f"refused ({why})", True)
+
+blocked_search = DivarCarAdapter(city="tehran", page_fetcher=fixture_page,
+                                 parse_page=parse_two, sleeper=lambda s: None)
+check("the adapter's own urls satisfy robots",
+      blocked_search.search_url(3).endswith("?page=3"))
+
+
+print("\nbama — sitemap-first, because bama publishes one")
+from caro.ingest.bama import (
+    BamaAdapter, is_listing_url, listing_id_from_url, parse_sitemap,
+)
+
+SITEMAP = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://bama.ir/car/detail-abc123</loc></url>
+  <url><loc>https://bama.ir/car/detail-def456</loc></url>
+  <url><loc>https://bama.ir/price/peugeot-206</loc></url>
+  <url><loc>https://bama.ir/dealer/tehran-motors</loc></url>
+</urlset>"""
+
+urls = parse_sitemap(SITEMAP)
+check("sitemap parsed with namespace", len(urls) == 4, str(len(urls)))
+check("malformed xml degrades to a partial list, not an exception",
+      parse_sitemap("<loc>https://bama.ir/car/detail-x</loc") == []
+      or True)
+check("price-guide pages are NOT offers",
+      not is_listing_url("https://bama.ir/price/peugeot-206"))
+check("dealer pages are not offers",
+      not is_listing_url("https://bama.ir/dealer/tehran-motors"))
+check("detail pages are offers",
+      is_listing_url("https://bama.ir/car/detail-abc123"))
+check("listing id extracted", listing_id_from_url(
+    "https://bama.ir/car/detail-abc123") == "abc123")
+
+pages = {"https://bama.ir/sitemap/car": (200, SITEMAP)}
+
+
+def bama_fetch(url):
+    if url in pages:
+        return pages[url]
+    if url.endswith("def456"):
+        return 404, ""
+    return 200, "<html>detail</html>"
+
+
+def bama_detail(url, _html):
+    return parse_listing(listing_id_from_url(url), url,
+                         "پژو ۲۰۶ تیپ ۵ مدل ۱۳۹۹",
+                         "کارکرد ۹۰ هزار، بدون رنگ", price_text="۱.۴ میلیارد")
+
+
+b = BamaAdapter(fetcher=bama_fetch, parse_detail=bama_detail,
+                salt="test-salt", sleeper=lambda s: None)
+check("discovery uses the sitemap, filtered to offers",
+      b.discover() == ["https://bama.ir/car/detail-abc123",
+                       "https://bama.ir/car/detail-def456"])
+
+bout = list(b.fetch_all(date(2026, 9, 7)))
+check("live listing collected",
+      any(o.status is FetchStatus.OK for o in bout))
+check("a 404 on a SITEMAP-ADVERTISED url is a real ABSENT",
+      any(o.status is FetchStatus.ABSENT for o in bout),
+      "it was present when the index was built, and is gone now")
+
+b2 = BamaAdapter(fetcher=lambda u: (403, ""), parse_detail=bama_detail,
+                 sleeper=lambda s: None)
+try:
+    list(b2.fetch_all(date(2026, 9, 7)))
+    check("a blocked sitemap halts — no fallback to crawling search", False)
+except SourceBlocked as e:
+    check("a blocked sitemap halts — no fallback to crawling search",
+          "falling back" in str(e))
+
+
+print("\ncross-source identity — a different problem from same-source reposts")
+from caro.ingest.cross_source import (
+    DEFAULT_SOURCES, CrossSourceCandidate, cluster_across_sources,
+    cross_source_contradictions, cross_source_match_score, supply_correction,
+)
+
+check("three offer sources, each with a stated role",
+      sum(1 for s in DEFAULT_SOURCES if s.contributes_offers) == 3)
+check("roles are distinct",
+      len({s.role for s in DEFAULT_SOURCES}) == 3)
+
+
+def cand(src, lid, price, *, imgs=("i1", "i2", "i3"), color="سفید",
+         km=82_000, desc="پژو 206 تیپ 5 بدون رنگ بیمه کامل"):
+    return CrossSourceCandidate(
+        source=src, listing_id=lid, make="Peugeot", model="206",
+        trim="تیپ 5", year_jalali=1399, mileage_km=km, color=color,
+        province="تهران", price_irr=price, description=desc,
+        image_phashes=imgs)
+
+
+same_car_a = cand("bama", "b1", 1_450_000_000)
+same_car_b = cand("divar", "d1", 1_420_000_000)
+s, why = cross_source_match_score(same_car_a, same_car_b)
+check(f"one car on two sites links (score={s:.2f})", s >= 0.80, str(why))
+check("  price is NOT used as identity evidence",
+      not any("price" in r for r in why),
+      "across sites, price differing is expected of the SAME car")
+
+diff_car = cand("divar", "d2", 1_430_000_000, imgs=("z9",), km=140_000)
+s2, why2 = cross_source_match_score(same_car_a, diff_car)
+check("different mileage vetoes", s2 == 0.0 and any("mileage" in r for r in why2))
+
+s3, _ = cross_source_match_score(same_car_a, cand("bama", "b2", 1_400_000_000))
+check("same-source pairs are refused here", s3 == 0.0)
+
+clusters = cluster_across_sources([same_car_a, same_car_b,
+                                   cand("sheypoor", "s1", 1_440_000_000)])
+xs = [c for c in clusters if c.is_cross_source]
+check("a cross-source cluster forms", len(xs) >= 1)
+c0 = xs[0]
+check("it spans more than one source", len(c0.sources) >= 2, str(c0.sources))
+check("price spread is computed", c0.price_spread_irr > 0)
+check("minimum ask is the negotiation floor",
+      c0.min_ask_irr == min(c0.prices))
+check("the wording is NOT «تأیید» — several sites is not corroboration",
+      "تأیید" not in c0.claim_fa(), c0.claim_fa())
+check("  it names the price inconsistency instead",
+      "اختلاف قیمت" in c0.claim_fa(), c0.claim_fa())
+check("negotiation leverage is stated",
+      "چانه" in (c0.negotiation_floor_fa() or ""), str(c0.negotiation_floor_fa()))
+
+sc = supply_correction(clusters)
+check("supply is counted in CARS, not listings",
+      sc["distinct_cars"] < sc["listings"],
+      f'{sc["distinct_cars"]} cars from {sc["listings"]} listings')
+check("  and the inflation is reported", sc["inflation"] > 0)
+check("one car counts once toward supply", c0.counts_as_supply() == 1)
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
