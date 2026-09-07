@@ -63,6 +63,7 @@ inside quotation marks?" is not.
 from __future__ import annotations
 
 import io
+import os
 import re
 import tokenize
 from pathlib import Path
@@ -362,13 +363,31 @@ def code_and_prose(src: str) -> tuple[str, str] | None:
 
 
 def hits_in(rel: str, text: str, pattern: str) -> list[str]:
-    """Own-voice occurrences in one surface, with Python treated as code."""
+    """Own-voice occurrences in one surface, with Python treated as code.
+
+    An untokenizable Python file is reported as an offender rather than
+    scanned by the prose rule or skipped.
+
+    Both alternatives were considered and both misrepresent something.
+    Falling back to `unquoted_hits` presents a weaker rule's verdict as if
+    the surface had been scanned under policy. Returning `[]` makes the file
+    read as clean in the per-pattern output, and leaves the whole guard for
+    that surface resting on one summary assertion — remove or weaken that
+    assertion later and the hole is silent, which is the failure shape this
+    suite is built against.
+
+    Failing the pattern outright misrepresents nothing: the honest verdict
+    on a surface the scanner cannot read is not "clean", it is "unknown",
+    and unknown must be as loud as a hit. `TOKENIZE_FAILURES` still collects
+    the names so the summary can say which files and why.
+    """
     if not rel.endswith(".py"):
         return unquoted_hits(text, pattern)
     split = code_and_prose(text)
     if split is None:
         TOKENIZE_FAILURES.add(rel)
-        return unquoted_hits(text, pattern)
+        return ["[UNSCANNED — this file does not tokenize, so it was "
+                "neither checked nor cleared]"]
     code, prose = split
     out = unquoted_hits(prose, pattern)
     flat = normalise(code)
@@ -510,8 +529,36 @@ check("  but the same words in a code string are NOT",
       len(hits_in("probe.py", _PY_PROBE, RETIRED[0]["pattern"])) == 1,
       "a quoted string in code is output, not a citation")
 check("  every Python surface was actually tokenized",
-      not TOKENIZE_FAILURES, f"fell back to the prose rule: "
-      f"{TOKENIZE_FAILURES}")
+      not TOKENIZE_FAILURES,
+      f"unscanned, and reported as offenders above: "
+      f"{sorted(TOKENIZE_FAILURES)}")
+check("  an unreadable surface fails rather than reading clean",
+      hits_in("broken.py", "def f(:\n", RETIRED[0]["pattern"]) != [],
+      "unknown must be as loud as a hit")
+# That probe registers a failure for a file that does not exist. Undo it, so
+# the assertion above cannot start depending on running before this line.
+TOKENIZE_FAILURES.discard("broken.py")
+
+# ---------------------------------------------------------------------------
+# The scan set says `caro/**/*.py`. Does it mean it?
+# ---------------------------------------------------------------------------
+#
+# `Path.glob` semantics are easy to get subtly wrong, and a scope declared in
+# a docstring is worth exactly as much as the glob under it. So the recursive
+# claim is verified against an independent enumeration — os.walk, which knows
+# nothing about the pattern that produced SURFACES. Two ways of listing the
+# same files, compared, rather than one way trusted.
+
+print()
+_walked = {str(Path(dp, f).relative_to(ROOT))
+           for dp, _, fs in os.walk(ROOT / "caro")
+           for f in fs if f.endswith(".py") and "__pycache__" not in dp}
+_nested = {p for p in _walked if p.count("/") > 1}
+check(f"caro/ has nested python to find ({len(_nested)} below the top level)",
+      _nested)
+check("  and the recursive glob reaches every file os.walk sees",
+      _walked <= set(SURFACES),
+      f"declared caro/**/*.py but missed: {sorted(_walked - set(SURFACES))}")
 
 # ---------------------------------------------------------------------------
 # Runtime semantic guardrails — NOT the D36 catalogue

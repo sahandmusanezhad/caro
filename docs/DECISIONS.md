@@ -1225,6 +1225,22 @@ term as (4) in the same file rather than a new claim. It is recorded here
 because of what found it: not review, not the catalogue, but narrowing an
 exemption and re-running.
 
+**Unknown is as loud as a hit.** A Python file the scanner cannot tokenize
+fails the pattern it was being checked for, rather than falling back to the
+prose rule or returning no hits. Both of those misrepresent something: the
+fallback presents a weaker rule's verdict as a policy scan, and an empty
+result makes the file read as *clean* while leaving the whole surface
+resting on one summary assertion — weaken that later and the hole is silent.
+The honest verdict on a surface that could not be read is not "clean", it is
+"unknown", and this suite treats the two differently on purpose.
+
+**The scan set is verified, not declared.** The suite says it covers
+`caro/**/*.py`; an independent `os.walk` enumeration is compared against
+what the glob actually produced, so the scope in the docstring and the
+scope in the code cannot drift apart. Two ways of listing the same files,
+compared — the same move as reading the instance numbers out of this file
+rather than copying them.
+
 The shipped demo is checked separately and differently. `demo/index.html`
 and `demo/demo_data.json` are *generated* — written once and committed, so
 `tests/test_agents.py`, which guards live orchestrator output, cannot see
