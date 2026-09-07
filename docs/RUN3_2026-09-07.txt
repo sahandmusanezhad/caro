@@ -1,0 +1,67 @@
+RUN 3 — bama.ir, collected 2026-09-07
+==============================================================================
+Design frozen before collection. The gates are inputs, not outputs.
+
+  detail pages fetched   221
+  parsed                 221
+  depth arm              41
+  variation arm          214
+
+RUN 3 RESULT — the ladder, per model per arm
+==============================================================================
+
+  model   arm        fetch  unique  usable  eligible  variation   outcome
+  --------------------------------------------------------------------------
+  BMW 2seriesactivetoure depth          41       1       1         0       pass   INVALID_ACQUISITION
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  BMW 3seriessedan       depth          41       1       0         0       pass   INVALID_ACQUISITION
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  Hyundai azera          depth          41       1       1         1       FAIL   INVALID_ACQUISITION
+        ⚠ 100% of listings are model year 1386 — the year coefficient would be fitted on almost no contrast
+        ⚠ 100% share one body condition (replaced_part) — the risk layer has nothing to discriminate on
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  MVM x22pro             depth          41       1       1         1       FAIL   INVALID_ACQUISITION
+        ⚠ 100% of listings are model year 1401 — the year coefficient would be fitted on almost no contrast
+        ⚠ 100% share one body condition (intact) — the risk layer has nothing to discriminate on
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  MVM x77                depth          41       1       0         0       pass   INVALID_ACQUISITION
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  Saipa Pride            depth          41      10       7         7       pass   INVALID_ACQUISITION
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  Saipa Pride            variation     214      64      52        48       pass   APPRAISAL_READY
+  Saipa Quik             depth          41       5       3         3       pass   INVALID_ACQUISITION
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  Saipa Quik             variation     214      56      40        38       pass   APPRAISAL_READY
+  Saipa Saina            depth          41       9       4         4       FAIL   INVALID_ACQUISITION
+        ⚠ 100% share one body condition (intact) — the risk layer has nothing to discriminate on
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  Saipa Saina            variation     214      46      30        29       pass   INSUFFICIENT_OBSERVATIONS
+  Saipa Tiba             depth          41      10       9         7       pass   INVALID_ACQUISITION
+        ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
+  Saipa Tiba             variation     214      48      43        38       pass   APPRAISAL_READY
+
+  outcome key
+  --------------------------------------------------------------------------
+    INVALID_ACQUISITION       the acquisition did not do what it claims — NOT a statement about the market
+    INSUFFICIENT_OBSERVATIONS not enough appraisal-eligible observations
+    INSUFFICIENT_VARIATION    enough observations, but they are too alike to fit
+    APPRAISAL_READY           count and variation both cleared
+
+ARM INDEPENDENCE
+--------------------------------------------------------------
+  34 of 221 distinct listings appear in more than one arm (15% overlap).
+
+VERDICT (pooled across VALID arms, deduplicated)
+--------------------------------------------------------------
+  arm(s) excluded from pooling as INVALID_ACQUISITION: depth — their question is unanswerable by this route, which is a fact about the route and not about the market.
+  APPRAISAL_READY: Saipa Pride, Saipa Quik, Saipa Tiba — count AND variation. W1 may be unlocked for those models only.
+
+
+WHAT THE SAMPLE IS MADE OF
+--------------------------------------------------------------
+  seller signal        {'dealer': 19, 'unknown': 202}   (diagnostic only — D27)
+  off-target listings  7  ['BMW 2seriesactivetourer', 'BMW 3seriessedan', 'Hyundai azera', 'MVM x22pro', 'MVM x77', 'None None']
+    Category pages carry promoted cars from other models. They are
+    parsed correctly and grouped under their own make, so they
+    dilute nothing — but they inflate raw discovery counts, which
+    is why the per-model ladder is the number that matters.

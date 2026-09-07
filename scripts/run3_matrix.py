@@ -246,8 +246,8 @@ class ArmResult:
         return READY
 
     def line(self) -> str:
-        return (f"  {self.model:<8}{self.arm:<11}"
-                f"{self.fetched:>5}{self.unique:>8}{self.usable:>8}"
+        return (f"  {self.model[:22]:<23}{self.arm:<11}"
+                f"{self.fetched:>6}{self.unique:>8}{self.usable:>8}"
                 f"{self.eligible:>10}"
                 f"{'pass' if not self.cov.degenerate else 'FAIL':>11}"
                 f"   {self.outcome}")
@@ -299,16 +299,27 @@ def compare(arms: dict[str, list], fetched: dict[str, int] | None = None,
             L.append("  ⚠ the arms are largely the SAME QUERY wearing two "
                      "names. Whatever they agree on is not a comparison.")
 
-    merged = {x.listing_id: x for ls in arms.values() for x in ls}
+    # Pool only arms whose acquisition is valid. Data from an arm we have
+    # declared invalid cannot be laundered into the pooled answer by mixing
+    # it with good data — but neither may one invalid arm veto a valid one,
+    # which an earlier version of this function did.
+    valid_arms = {a: ls for a, ls in arms.items()
+                  if acquisition.get(a, (True, ""))[0]}
+    merged = {x.listing_id: x for ls in valid_arms.values() for x in ls}
     covs = cov_mod.assess(list(merged.values()))
     ready = sorted(k for k, c in covs.items() if c.sufficient)
-    invalid = [r for r in results if not r.acquisition_ok]
+    invalid_arms = [a for a in arms if a not in valid_arms]
 
-    L += ["", "VERDICT (pooled across arms, deduplicated)", "-" * 62]
-    if invalid:
-        L.append(f"  {INVALID} — {len(invalid)} arm/model cell(s) did not "
-                 "acquire what they claim to. Fix acquisition and re-run; "
-                 "this run is not evidence about the market either way.")
+    L += ["", "VERDICT (pooled across VALID arms, deduplicated)", "-" * 62]
+    if invalid_arms:
+        L.append(f"  arm(s) excluded from pooling as {INVALID}: "
+                 f"{', '.join(sorted(invalid_arms))} — their question is "
+                 "unanswerable by this route, which is a fact about the "
+                 "route and not about the market.")
+    if not valid_arms:
+        L.append(f"  {INVALID} — no arm acquired what it claims to. Fix "
+                 "acquisition and re-run; this run is not evidence about "
+                 "the market either way.")
     elif ready:
         L.append(f"  {READY}: {', '.join(ready)} — count AND variation. "
                  "W1 may be unlocked for those models only.")
