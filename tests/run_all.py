@@ -22,6 +22,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 SUITES = [
+    ("W4  ingest", "tests/test_ingest.py",
+     "persian parsing, car fields, politeness enforcement"),
     ("W0  tracking", "tests/test_tracking.py",
      "observation integrity, repost identity, censoring"),
     ("W1  appraisal", "tests/test_appraisal.py",
