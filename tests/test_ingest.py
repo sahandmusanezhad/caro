@@ -11,6 +11,7 @@ contradicts the body.
 Run: PYTHONPATH=. python3 tests/test_ingest.py
 """
 
+import json
 import os
 from datetime import date
 
@@ -372,6 +373,118 @@ check("MASKED PHONE IS NEVER READ",
       and "۰۹۳۶" not in (D.description or ""))
 check("description is the seller's text only",
       D.description == "فروش 206 مدل 96 صندوق عقب رنگ", D.description)
+
+# ---------------------------------------------------------------------------
+print("\nbama json-ld — the structured spine, observed live 2026-09-07")
+from caro.ingest.bama import (                                    # noqa: E402
+    ParseTrace, jsonld_car, ld_mileage_km, ld_price_toman, ld_year_jalali,
+)
+
+# The field names and nesting below are verbatim from a live detail page.
+def ld_page(price="850000000", currency="IRR", km=43000, year=1398,
+            body="<p>وضعیت بدنه</p><p>دور رنگ</p>"):
+    car = {
+        "@context": "https://schema.org", "@type": ["Product", "Car"],
+        "name": "پراید،  131", "identifier": "ki4vo2q1",
+        "brand": {"@type": "Brand", "name": "پراید"},
+        "color": "سفید", "vehicleTransmission": "دنده ای",
+        "fuelType": "بنزینی", "productionDate": year, "vehicleModelDate": year,
+        "mileageFromOdometer": {"@type": "QuantitativeValue",
+                                "value": km, "unitCode": "KMT"},
+        "offers": {"@type": "Offer", "price": price,
+                   "priceCurrency": currency},
+    }
+    # Navigation renders ABOVE the article, exactly as the live page does.
+    return ("<html><body><nav><p>خودرو</p><p>قیمت روز خودرو</p>"
+            "<p>1,234,567,890</p><p>تومان</p></nav>"
+            '<script type="application/ld+json">' + json.dumps(car)
+            + "</script><article><p>کارکرد 43,000 کیلومتر</p>"
+            + body + "</article></body></html>")
+
+LU = "https://bama.ir/car/detail-ki4vo2q1-pride-131-se-1398"
+
+check("the Product/Car node is found", jsonld_car(ld_page()) is not None)
+check("  and nested inside @graph too",
+      jsonld_car('<script type="application/ld+json">'
+                 '{"@context":"x","@graph":[{"@type":["Product","Car"],'
+                 '"name":"y"}]}</script>') is not None,
+      "pages routinely nest the payload one level down")
+
+check("IRR is converted to toman", ld_price_toman(
+    {"price": "850000000", "priceCurrency": "IRR"})[0] == 85_000_000)
+check("toman is left alone", ld_price_toman(
+    {"price": "850000000", "priceCurrency": "IRT"})[0] == 850_000_000)
+
+# The single most destructive parse error in the codebase.
+bad, why = ld_price_toman({"price": "850000000", "priceCurrency": "XYZ"})
+check("an UNRECOGNISED currency yields None, never a coerced number",
+      bad is None, "a 10x price error poisons every estimate silently")
+check("  and says which currency it did not recognise", "XYZ" in (why or ""))
+
+nego, why2 = ld_price_toman({"price": "0", "priceCurrency": "IRR"})
+check("«توافقی» stays missing rather than becoming zero", nego is None)
+check("  and is distinguished from an absent block",
+      why2 != ld_price_toman(None)[1], f"{why2!r} vs {ld_price_toman(None)[1]!r}")
+
+check("mileage comes from mileageFromOdometer",
+      ld_mileage_km({"mileageFromOdometer":
+                     {"value": 43000, "unitCode": "KMT"}}) == 43_000)
+check("  and miles are converted, not assumed to be km",
+      ld_mileage_km({"mileageFromOdometer":
+                     {"value": 1000, "unitCode": "SMI"}}) == 1609)
+check("gregorian model years convert to jalali",
+      ld_year_jalali({"vehicleModelDate": 2018}) == 1397)
+check("  while jalali years pass through",
+      ld_year_jalali({"vehicleModelDate": 1398}) == 1398)
+
+tr = ParseTrace()
+J = parse_detail_page(LU, ld_page(), trace=tr)
+check("THE NAVIGATION PRICE IS NOT THIS CAR'S PRICE",
+      J.price_irr == 85_000_000,
+      f"got {J.price_irr}; the menu above the article carries 1,234,567,890")
+check("  and the run records that the structured block supplied it",
+      tr.price_source == "jsonld", tr.price_source)
+check("mileage from the structured block", J.mileage_km == 43_000)
+check("identifier is taken from the page, not guessed from the url",
+      J.listing_id == "ki4vo2q1")
+
+check("BODY CONDITION still comes from the spec table",
+      J.body_condition == "multi_paint", J.body_condition)
+check("  because itemCondition:UsedCondition is true of every car on the site",
+      tr.condition_source == "field", tr.condition_source)
+
+# If the site drops its structured block, the fill rate must not stay
+# healthy-looking while the quality collapses. The trace is what shows it.
+tr2 = ParseTrace()
+parse_detail_page(RU, REAL_DETAIL, trace=tr2)
+check("a page with no structured block is recorded as text-parsed",
+      tr2.used_jsonld is False and tr2.price_source == "text",
+      f"{tr2.used_jsonld} / {tr2.price_source}")
+
+tr3 = ParseTrace()
+N = parse_detail_page(LU, ld_page(currency="XYZ"), trace=tr3)
+check("an unparseable price is MISSING, not the navigation's number",
+      N.price_irr is None, str(N.price_irr))
+check("  which the inventory can then count and exclude from fitting",
+      tr3.price_source == "none")
+check("  and the reason names the currency, so a site change is visible",
+      "XYZ" in (tr3.price_reason or ""), str(tr3.price_reason))
+
+# The text path is what runs if bama ever drops its structured block, so the
+# navigation hazard has to be handled there too — not only routed around.
+NAV_ONLY = ("<div><p>خودرو</p><p>قیمت روز خودرو</p>"
+            "<p>1,234,567,890</p><p>تومان</p>"
+            "<p>کارکرد 146,000 کیلومتر</p>"
+            "<p>1,180,000,000</p><p>تومان</p>"
+            "<p>وضعیت بدنه</p><p>سالم</p></div>")
+tr4 = ParseTrace()
+V = parse_detail_page(RU, NAV_ONLY, trace=tr4)
+check("with NO structured block, the text price is still the car's",
+      V.price_irr == 1_180_000_000,
+      f"got {V.price_irr}; the menu price 1,234,567,890 sits above it")
+check("  because the scan is anchored at the article, not the page top",
+      tr4.price_source == "text")
+check("mileage is read from the anchor line itself", V.mileage_km == 146_000)
 
 pages = {"https://bama.ir/sitemap/car": (200, SITEMAP),
          "https://bama.ir/car/peugeot": (200, CATEGORY),

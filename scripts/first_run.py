@@ -70,7 +70,40 @@ def _garbage(field: str, value) -> bool:
     return isinstance(value, str) and not value.strip()
 
 
-def inventory(listings: list) -> str:
+def provenance(traces: list) -> list[str]:
+    """Which extraction path filled each field, and why the rest are empty.
+
+    A fill rate alone cannot distinguish "the site publishes this as
+    structured data" from "a text heuristic guessed it". Those two corpora
+    look identical in the inventory and are not remotely equally
+    trustworthy, so the run reports the split. If the structured share ever
+    falls, that is the signal the site changed — visible on the run it
+    happens rather than a month later in the estimates.
+    """
+    if not traces:
+        return []
+    n = len(traces)
+    L = ["", "EXTRACTION PROVENANCE  (how the fields were obtained)", "-" * 62]
+    ld = sum(1 for t in traces if t.used_jsonld)
+    L.append(f"  pages with a schema.org Car block   {ld:>4}{ld / n:>7.0%}")
+    for label, attr in (("price", "price_source"),
+                        ("mileage", "mileage_source"),
+                        ("condition", "condition_source")):
+        c = Counter(getattr(t, attr) for t in traces)
+        parts = "  ".join(f"{k}:{v}" for k, v in c.most_common())
+        L.append(f"  {label:<12}{parts}")
+    why = Counter(t.price_reason for t in traces
+                  if t.price_source == "none" and t.price_reason)
+    for reason, c in why.most_common(5):
+        L.append(f"      no price — {reason}: {c}")
+    if ld < n * 0.9:
+        L.append("  ⚠ the structured block is missing on some pages. The text "
+                 "fallback is anchored but weaker; treat those rows as lower "
+                 "confidence rather than equal evidence.")
+    return L
+
+
+def inventory(listings: list, traces: list | None = None) -> str:
     n = len(listings)
     if not n:
         return "no listings parsed — nothing to report"
@@ -120,6 +153,8 @@ def inventory(listings: list) -> str:
               f"median {q(.5)/1e9:>6.2f}B   p75 {q(.75)/1e9:>6.2f}B   "
               f"max {q(1)/1e9:>6.2f}B"]
 
+    L += provenance(traces or [])
+
     L += ["", "VERDICT", "-" * 62]
     ok_price = sum(1 for x in listings if x.price_irr
                    and not _garbage("price_irr", x.price_irr)) / n
@@ -154,6 +189,7 @@ def main() -> int:
         return 2
 
     listings: list = []
+    traces: list = []
     if args.replay:
         raw = json.loads(args.replay.read_text(encoding="utf-8"))
         for r in raw.get("listings", []):
@@ -167,7 +203,7 @@ def main() -> int:
         print(f"collecting from {args.source} — politely, and stopping if "
               f"asked to.\n")
         try:
-            listings = collect(args)
+            listings = collect(args, traces)
         except DiscoveryUnavailable as e:
             # We could not look. That is emphatically not "there is nothing".
             print(f"\nDISCOVERY UNAVAILABLE: {e}\n"
@@ -189,11 +225,11 @@ def main() -> int:
                   file=sys.stderr)
             return 2
 
-    print(inventory(listings))
+    print(inventory(listings, traces))
     return 0
 
 
-def collect(args) -> list:
+def collect(args, traces: list | None = None) -> list:
     """Live collection. Kept separate so main() stays readable."""
     out: list = []
 
@@ -220,6 +256,8 @@ def collect(args) -> list:
                      on_listing=out.append)
 
     records = list(ad.fetch_all(date.today()))
+    if traces is not None:
+        traces.extend(ad.traces)
     print(ad.stats.report())
     print()
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)

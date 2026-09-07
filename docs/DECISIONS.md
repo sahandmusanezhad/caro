@@ -227,10 +227,48 @@ observer — the seller — publishing to several places. When the prices differ
 which they usually do, the finding is the opposite of confirmation: it is
 inconsistency. Three things follow, all more useful than agreement would be:
 
-1. **A negotiation floor.** The lowest public ask is a price the seller has
-   already accepted; they cannot credibly refuse it elsewhere.
+1. **A price gap, stated as an observation.** The lowest public ask is the
+   least the seller is *advertising* — not a price they have accepted. An
+   earlier draft of this file said they "cannot credibly refuse it
+   elsewhere", and that was an overclaim: a published price can be stale,
+   specific to one channel, or already raised. `price_gap_fa()` reports the
+   spread and lets the buyer draw the inference; it is tested to never say
+   the seller would accept the lower number.
 2. **A supply correction.** Counting listings without cross-source dedup
    overstates how many cars are for sale, and liquidity feeds the ranker — so
    an uncorrected count does not merely look wrong, it moves recommendations.
 3. **A seller-behaviour signal.** Systematic cross-site price gaps say
    something about who you are dealing with.
+
+## D19 — Extraction reads the site's structured data, not its rendered text
+
+Bama publishes a schema.org `["Product", "Car"]` block on every detail page:
+identifier, brand, model year, odometer with a unit code, colour,
+transmission, fuel, and an offer with a price and a currency. CARO parses
+that block and treats it as authoritative.
+
+The switch was forced by a live failure. The site's navigation renders above
+the article and contains real prices («قیمت روز خودرو»). The previous
+heuristic — find «تومان», take the preceding line — cannot distinguish that
+block from the car, and a mis-anchored price is undetectable downstream:
+every comparable, estimate and «ارزش» claim inherits it silently.
+
+Three properties follow, and each is tested:
+
+1. **A currency the parser does not recognise yields `None`.** It is never
+   coerced. A price off by a factor of ten is the most destructive error this
+   codebase can make, and it is invisible; a missing price is visible in the
+   inventory and excluded from fitting.
+2. **When the structured block exists, its verdict is final** — including its
+   verdict that there is no usable price. Letting the text heuristic overrule
+   the authority is precisely how the navigation number gets in.
+3. **The extraction path is recorded per page.** `ParseTrace` counts how many
+   rows came from the structured block versus the text fallback, and the run
+   report prints the split. Without it, the site dropping its JSON-LD would
+   leave fill rates looking healthy while quality collapsed.
+
+`وضعیت بدنه` — body condition — is deliberately *not* taken from JSON-LD.
+The block's `itemCondition` is `UsedCondition` on every car on the site and
+says nothing about paint, replacement or accident history. The field the
+risk layer actually needs lives in the spec table, so the parser stays
+hybrid: structured for the spine, text for the condition.

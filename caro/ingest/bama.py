@@ -14,6 +14,33 @@ first run collected zero listings while reporting success, which is exactly
 the failure mode `first_run.py` exists to surface. Verified 2026-09-07 by
 fetching the sitemap and a brand page.
 
+Also corrected: `/car/saipa` and `/car/ikco` **redirect to `/car`** and
+return generic inventory. They are not brand slugs. The real category slugs
+are model-level — `pride`, `peugeot`, `dena`, `tiba`, `samand`, `shahin`,
+`tara`, `runna`, `saina` — which matters because a run that follows the
+manufacturer slugs collects the general listing feed while believing it has
+sampled two manufacturers.
+
+What the second live run corrected
+----------------------------------
+Extraction was rebuilt on **structured data**. Bama is a Nuxt application
+and every detail page carries a schema.org `["Product", "Car"]` block, which
+supplies identifier, brand, model year, odometer, colour, transmission, fuel
+and the offer price — typed, from the site itself.
+
+The reason for the switch was a live failure, not a preference. The site's
+global navigation renders *above* the article and contains real prices
+(«قیمت روز خودرو»). The old text heuristic — find «تومان», take the line
+before — has no way to tell that block from the car, so a mis-anchored parse
+attributes a navigation number to a vehicle and nothing downstream can
+detect it. The structured block is one object about one vehicle and cannot
+be mis-anchored.
+
+The text path survives as a fallback for pages without the block, but it is
+now anchored at the article and records that it was used, because a corpus
+where the fill rate holds up while the extraction quality collapses is the
+specific way this layer would fail quietly.
+
 What Bama gives that Divar does not
 -----------------------------------
 Body condition as a **structured field**:
@@ -56,7 +83,7 @@ from caro.ingest.divar_car import (
     has_document_issue,
 )
 from caro.ingest.persian import (
-    normalize, parse_mileage_km, parse_price, parse_year_jalali,
+    digits_only, normalize, parse_mileage_km, parse_price, parse_year_jalali,
 )
 from caro.tracking import FetchOutcome, FetchStatus, classify_http
 
@@ -165,8 +192,140 @@ def parse_slug(url: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Detail page
+# Detail page — structured first
 # ---------------------------------------------------------------------------
+#
+# Bama is a Nuxt application, and every detail page carries a schema.org
+# `["Product", "Car"]` block in <script type="application/ld+json">. Verified
+# 2026-09-07 against a live page; it contains:
+#
+#     identifier, name, brand, productionDate, vehicleModelDate,
+#     mileageFromOdometer{value,unitCode}, color, vehicleTransmission,
+#     fuelType, bodyType, offers{price,priceCurrency,availability}
+#
+# That is the whole spine of the record, typed, from the site itself. The
+# second live run replaced text scraping with this for one reason: the text
+# path had to *infer* the price by finding «تومان» and taking the previous
+# line, and the page's global navigation sits above the article, so any
+# mis-anchoring silently attributed a nav number to a car. The JSON-LD block
+# cannot be mis-anchored — it is one object about one vehicle.
+#
+# What JSON-LD does NOT carry is `وضعیت بدنه` — body condition. That is the
+# field the whole risk layer rests on, so the parser stays hybrid on purpose:
+# structured for the spine, text for the condition. See parse_detail_page.
+
+_LD_BLOCK = re.compile(
+    r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
+    re.S | re.I)
+
+# Bama has emitted IRR; the others are here so a change of unit is caught
+# rather than silently absorbed. A price in the wrong unit is the single most
+# destructive parse error in this codebase — every estimate, every ranking,
+# every «ارزش» claim inherits it — so an unrecognised currency yields None
+# and is counted, never coerced.
+_TO_TOMAN = {"IRR": 0.1, "IRT": 1.0, "TOMAN": 1.0, "IRT-TOMAN": 1.0}
+
+# UN/CEFACT codes. KMT = kilometre, SMI = statute mile.
+_TO_KM = {"KMT": 1.0, "KM": 1.0, "SMI": 1.609344}
+
+
+def jsonld_blocks(html: str) -> list[dict]:
+    out = []
+    for raw in _LD_BLOCK.findall(html or ""):
+        try:
+            parsed = json.loads(raw.strip())
+        except (json.JSONDecodeError, ValueError):
+            continue
+        out.extend(parsed if isinstance(parsed, list) else [parsed])
+    return out
+
+
+def _is_car(node) -> bool:
+    if not isinstance(node, dict):
+        return False
+    t = node.get("@type")
+    types = t if isinstance(t, list) else [t]
+    return any(str(x).lower() == "car" for x in types)
+
+
+def jsonld_car(html: str) -> dict | None:
+    """The one node describing *this* vehicle, or None.
+
+    Searches @graph too: pages routinely nest their real payload one level
+    down, and a parser that only reads top level reports "no structured data"
+    on a page that is full of it.
+    """
+    for node in jsonld_blocks(html):
+        if _is_car(node):
+            return node
+        graph = node.get("@graph")
+        if isinstance(graph, list):
+            for sub in graph:
+                if _is_car(sub):
+                    return sub
+    return None
+
+
+def _num(v):
+    """A number from a JSON-LD scalar or QuantitativeValue."""
+    if isinstance(v, dict):
+        v = v.get("value")
+    if isinstance(v, bool) or v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = digits_only(str(v))
+    return float(s) if s.isdigit() else None
+
+
+def ld_price_toman(offers) -> tuple[int | None, str | None]:
+    """(toman, reason-it-is-missing).
+
+    Returns the reason as well as the value because "no price" has three
+    different meanings here — negotiable, absent, and a currency we do not
+    recognise — and collapsing them into None loses the only signal that
+    would tell us the site changed.
+    """
+    if isinstance(offers, list):
+        offers = offers[0] if offers else None
+    if not isinstance(offers, dict):
+        return None, "no offers block"
+    raw = _num(offers.get("price"))
+    if raw is None or raw <= 0:
+        return None, "negotiable or unpriced"
+    cur = str(offers.get("priceCurrency") or "").upper().strip()
+    factor = _TO_TOMAN.get(cur)
+    if factor is None:
+        return None, f"unrecognised currency {cur!r}"
+    return int(round(raw * factor)), None
+
+
+def ld_mileage_km(node: dict) -> int | None:
+    m = node.get("mileageFromOdometer")
+    v = _num(m)
+    if v is None or v < 0:
+        return None
+    unit = str((m or {}).get("unitCode") or "KMT").upper() \
+        if isinstance(m, dict) else "KMT"
+    factor = _TO_KM.get(unit)
+    if factor is None:
+        return None
+    return int(round(v * factor))
+
+
+def ld_year_jalali(node: dict) -> int | None:
+    """Jalali year, converting the Gregorian years imported cars carry."""
+    for key in ("vehicleModelDate", "productionDate", "modelDate"):
+        v = _num(node.get(key))
+        if v is None:
+            continue
+        y = int(v)
+        if 1300 <= y <= 1450:
+            return y
+        if 1900 <= y <= 2100:
+            return y - 621
+    return None
+
 
 def _text(html: str) -> list[str]:
     """Tag-stripped lines. Robust to markup changes in a way selectors are not."""
@@ -186,14 +345,43 @@ def _labelled(lines: Sequence[str], label: str) -> str | None:
     return None
 
 
-def parse_detail_page(url: str, html: str) -> CarListing | None:
-    """Parse ONE listing, truncated before the related-listings block.
+@dataclass
+class ParseTrace:
+    """Where each field came from, and why the missing ones are missing.
 
-    That truncation is not tidiness. Each detail page carries five other
-    cars with their own prices and mileages; without the cut, the first
-    price the parser meets after this car's might belong to a different
-    vehicle — and nothing downstream could tell.
+    A field inventory that says "price 85% filled" is only half the story;
+    what changes the design is *which* path filled it. If the structured
+    block silently disappears one day, the text fallback keeps the fill rate
+    looking healthy while the quality quietly collapses. Counting the source
+    is how that gets noticed on the run it happens, not a month later.
     """
+    used_jsonld: bool = False
+    price_source: str = "none"        # jsonld | text | none
+    price_reason: str | None = None
+    mileage_source: str = "none"
+    condition_source: str = "none"    # field | description | none
+
+
+def parse_detail_page(url: str, html: str,
+                      trace: ParseTrace | None = None) -> CarListing | None:
+    """Parse ONE listing: structured block for the spine, text for condition.
+
+    Two independent hazards on this page, handled separately.
+
+    *Related listings.* Every detail page carries five other cars under
+    «آگهی های مرتبط», each with its own price and mileage, so the text half
+    is truncated there. Without the cut the first price after this car's
+    might belong to a different vehicle and nothing downstream could tell.
+
+    *Global navigation.* The site's menu renders **above** the article, so
+    the text half's first lines are chrome, not the car. That is what made
+    the price heuristic ("find تومان, take the line before") unsafe, and it
+    is why price and mileage now come from the JSON-LD block, which is one
+    object about one vehicle and cannot be mis-anchored. The text path
+    remains only as a fallback, and records that it was used.
+    """
+    tr = trace if trace is not None else ParseTrace()
+
     lines = _text(html)
     for i, ln in enumerate(lines):
         if RELATED_MARKER in normalize(ln):
@@ -204,50 +392,90 @@ def parse_detail_page(url: str, html: str) -> CarListing | None:
 
     slug = parse_slug(url)
     blob = " ".join(lines)
+    ld = jsonld_car(html) or {}
+    tr.used_jsonld = bool(ld)
 
-    price = None
-    for i, ln in enumerate(lines):
-        if normalize(ln) in ("تومان", "تومن") and i:
-            price = parse_price(lines[i - 1])
-            if price:
-                break
-    if price is None:
-        price = parse_price(blob)
+    # The article begins at this car's own mileage line. Everything above it
+    # is site navigation, which on the live page includes «قیمت روز خودرو»
+    # and real prices — none of them this car's. Any text-based number must
+    # be taken from below this anchor or not at all.
+    body_from = next((i for i, ln in enumerate(lines)
+                      if "کارکرد" in normalize(ln)), None)
 
-    mileage = None
-    for ln in lines:
-        if "کارکرد" in normalize(ln):
-            mileage = parse_mileage_km(ln)
-            break
+    # ---- price ------------------------------------------------------------
+    # When the structured block exists, its verdict is FINAL — including its
+    # verdict that there is no usable price. Falling back to text there would
+    # let a heuristic overrule an authority, which is exactly how a
+    # navigation number becomes a car's asking price.
+    price, reason = (None, "no structured block")
+    if ld:
+        price, reason = ld_price_toman(ld.get("offers"))
+        tr.price_source = "jsonld" if price is not None else "none"
+    elif body_from is not None:
+        for i in range(body_from, len(lines)):
+            if normalize(lines[i]) in ("تومان", "تومن") and i:
+                price = parse_price(lines[i - 1])
+                if price:
+                    tr.price_source = "text"
+                    reason = None
+                    break
+        else:
+            reason = "no price line below the article anchor"
+    else:
+        reason = "no article anchor found"
+    tr.price_reason = reason
+    # There is deliberately no page-wide `parse_price(blob)` fallback. A
+    # wrong price is worse than a missing one: the missing one shows up in
+    # the inventory and is excluded from fitting; the wrong one is neither.
 
-    # Bama publishes body condition structurally. Prefer it; fall back to the
-    # description only when the field is absent.
+    # ---- mileage ----------------------------------------------------------
+    mileage = ld_mileage_km(ld) if ld else None
+    if mileage is not None:
+        tr.mileage_source = "jsonld"
+    elif body_from is not None:
+        mileage = parse_mileage_km(lines[body_from])
+        if mileage is not None:
+            tr.mileage_source = "text"
+
+    # ---- body condition: text only; JSON-LD does not carry it -------------
+    # `itemCondition: UsedCondition` is true of every car on the site and
+    # says nothing about paint, replacement or accident history. The field
+    # CARO actually needs is «وضعیت بدنه», which lives in the spec table.
     body_field = _labelled(lines, "وضعیت بدنه")
     desc = _labelled(lines, "توضیحات") or ""
-    condition = (extract_body_condition(body_field) if body_field
-                 else extract_body_condition(desc))
-    if body_field and condition == "unknown":
-        # A stated value we do not recognise is not "unknown" in the same
-        # sense as silence — record it so the lexicon can be extended.
-        condition = "unknown"
+    if body_field:
+        condition = extract_body_condition(body_field)
+        tr.condition_source = "field"
+    else:
+        condition = extract_body_condition(desc)
+        tr.condition_source = "description" if desc else "none"
 
-    color = _labelled(lines, "رنگ بدنه") or ""
-    gearbox_field = _labelled(lines, "گیربکس") or ""
+    ld_color = ld.get("color") if isinstance(ld.get("color"), str) else ""
+    ld_gear = (ld.get("vehicleTransmission")
+               if isinstance(ld.get("vehicleTransmission"), str) else "")
+    ld_fuel = ld.get("fuelType") if isinstance(ld.get("fuelType"), str) else ""
 
     return CarListing(
-        listing_id=slug.get("listing_id") or url.rsplit("-", 1)[-1],
+        listing_id=(ld.get("identifier") or slug.get("listing_id")
+                    or url.rsplit("-", 1)[-1]),
         url=url,
-        title=" ".join(lines[:4]),
-        description=desc,
+        title=str(ld.get("name") or " ".join(lines[:4])),
+        description=desc or str(ld.get("description") or ""),
         price_irr=price,
         make=slug.get("make"),
         model=slug.get("model"),
         trim=slug.get("trim"),
-        year_jalali=slug.get("year_jalali") or parse_year_jalali(blob),
+        # The slug is the identity of record — it is what comparables and
+        # repost matching key on — so JSON-LD fills the year only when the
+        # slug carried none, rather than competing with it.
+        year_jalali=(slug.get("year_jalali") or ld_year_jalali(ld)
+                     or parse_year_jalali(blob)),
         mileage_km=mileage,
-        gearbox=extract_gearbox(gearbox_field) or extract_gearbox(blob),
-        fuel=extract_fuel(blob),
-        color=extract_color(color) or extract_color(blob),
+        gearbox=(extract_gearbox(ld_gear)
+                 or extract_gearbox(_labelled(lines, "گیربکس") or "")),
+        fuel=extract_fuel(ld_fuel) or extract_fuel(blob),
+        color=(extract_color(ld_color)
+               or extract_color(_labelled(lines, "رنگ بدنه") or "")),
         body_condition=condition,
         document_issue=has_document_issue(desc),
         city=_labelled(lines, "موقعیت") or None,
@@ -374,6 +602,7 @@ class BamaAdapter:
     only_makes: tuple[str, ...] = ()
     on_listing: Callable[[CarListing], None] | None = None
     stats: DiscoveryStats = field(default_factory=DiscoveryStats)
+    traces: list = field(default_factory=list)
 
     def _get(self, url: str) -> tuple[int, str]:
         if self.fetcher is None:
@@ -433,7 +662,15 @@ class BamaAdapter:
 
             if fs is FetchStatus.OK and html:
                 consecutive = 0
-                listing = self.parse_detail(url, html)
+                # The trace is per-page and kept even when the parse yields
+                # nothing, because "20 pages fetched, 3 parsed" is a fact the
+                # inventory must be able to state.
+                tr = ParseTrace()
+                try:
+                    listing = self.parse_detail(url, html, trace=tr)
+                except TypeError:            # a parser that takes no trace
+                    listing = self.parse_detail(url, html)
+                self.traces.append(tr)
                 if listing is not None:
                     if self.on_listing:
                         self.on_listing(listing)
