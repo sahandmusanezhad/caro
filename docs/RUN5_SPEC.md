@@ -280,7 +280,54 @@ finding was that the caveat and the claim get separated.
 PASS in particular does not license serving. D30's preconditions sit above
 this gate and are evaluated on their own.
 
+## 13. Pre-flight — registered 2026-09-07, runs first
+
+**Budget: 40 requests, drawn from the 576 in §1.** Run 5 proper therefore has
+536 left, and the pre-flight's spend is not additional.
+
+D28's standing rule is to measure a route's own ceiling before concluding
+anything from a shortfall, and it applies here with more force than usual.
+The 0.701 eligible-per-fetch rate in §10 was measured on Run 3's mix, which
+was four models collected deep. §2 asks for something the project has never
+run: ~62 trims collected **shallow**, across several models, with a
+deliberate tail of trims holding one to four listings. That route's yield is
+unmeasured, and a rate that transfers badly would burn most of 576 before
+anyone noticed.
+
+Four questions, answerable in 40 requests:
+
+1. **Enumeration.** Can ~62 trims be discovered without a request per trim —
+   from the sitemap or a model's trim index — or does discovery itself cost
+   as much as collection?
+2. **Shallow yield.** How many listings does a *thin* trim page actually
+   carry? Run 3 saw 8–10 on popular trims; the mixed shape needs trims with
+   one to four, and a page that returns zero or redirects to a generic feed
+   is not a thin trim, it is the Run 1 bug (D31 found `-page-N` doing exactly
+   this).
+3. **Conversion.** Does 0.701 hold on this mix, or does the tail convert
+   worse — fewer prices, more «توافقی», more missing odometers?
+4. **Shape reachability.** Do enough trims with 1–4 listings exist to supply
+   58 thin rows, or does the source's tail vanish below the level D31 already
+   measured a 63% ceiling in?
+
+**Stopping:** 40 requests, or an answer to all four, whichever comes first.
+
+**Outcomes.** The pre-flight cannot pass or fail Run 5 — it has no estimator
+in it. It reports one of:
+
+    ROUTE VIABLE      the shape is reachable; §10's envelope stands or is
+                      re-derived, and Run 5 proper may be authorised
+    ENVELOPE WRONG    the shape is reachable but 536 requests will not buy
+                      it. Report the real number. Under §4 that is a new
+                      registration, argued on its own — not a raised cap
+    ROUTE CANNOT      the source does not carry the tail the shape needs.
+                      Run 5 does not start, and the finding is about the
+                      source, in the words of §12's third outcome
+
+The third is a real possibility, not a formality. D31 measured a 63% ceiling
+on a route that looked adequate until it was measured.
+
 ---
 
-**Not started.** Nothing here executes until there is an explicit decision to
-run it.
+**Run 5 proper: not started.** The pre-flight in §13 is authorised; nothing
+in §1–§12 executes until there is a separate explicit decision.
