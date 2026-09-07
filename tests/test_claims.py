@@ -15,10 +15,17 @@ fewer regexes here than numbered entries in D36, permanently and by
 construction.
 
 Neither number is written down twice. The header prints both from the
-catalogue below, and `check_catalogue_covers_d36()` reads the instance
-numbers straight out of `docs/DECISIONS.md` and fails if the two files stop
-agreeing — because a hand-copied count going stale is how five of the nine
-instances got written in the first place.
+catalogue below, and `d36_instance_numbers()` reads the instance numbers
+straight out of `docs/DECISIONS.md` so the two files can be asserted to
+agree in both directions — because a hand-copied count going stale is how
+several of the instances got written in the first place.
+
+**Two things are retired, and they mean different things.** A `claim` entry
+approximates one sentence, so a hit is that sentence returning. A
+`vocabulary` entry retires a TERM from own-voice copy in every sentence it
+could appear in, including a denial. A vocabulary hit is a policy violation,
+not a finding that the surrounding sentence is an overclaim — the regex does
+not read sentences and this file does not pretend otherwise.
 
 **What it is.** A regression test over every surface a reader sees — the
 README, the design record, the data contract, the package, the scripts, the
@@ -27,10 +34,13 @@ asserts none of them returns.
 
 **What it is not.** A lint for overclaiming in general. It cannot recognise
 the next claim phrased in new words; that judgement is semantic and belongs
-to whoever writes the sentence, using D36's five-tier vocabulary. Instance
-(9) is the standing proof — a reader found it, and no catalogue could have.
-Saying this plainly matters more here than anywhere else in the project: a
-test that claimed to prevent overclaiming would itself be an overclaim.
+to whoever writes the sentence, using D36's five-tier vocabulary — which
+this file records the existence of and does not validate, because
+classifying a sentence into a tier is exactly the semantic judgement it
+disclaims. Instance (9) is the standing proof: a reader found it, and no
+catalogue could have. Saying this plainly matters more here than anywhere
+else in the project — a test that claimed to prevent overclaiming would
+itself be an overclaim.
 
 **The rule it enforces.** A retired claim may appear only *in quotation
 marks*. Every one of these sentences has to stay quotable — D18 and D36 both
@@ -76,10 +86,27 @@ def check(name, cond, detail=""):
 # `instances` is the machine-readable version of `where`: the D36 entry
 # numbers this pattern covers. It is what lets the two files be checked
 # against each other instead of trusted to match.
+#
+# `kind` says what a match MEANS, because two different things are being
+# retired here and they need different reactions:
+#
+#   claim       a specific sentence came back. The regex approximates one
+#               claim, and a hit is almost certainly that claim returning.
+#
+#   vocabulary  a TERM is retired from own-voice copy, whatever sentence it
+#               sits in. A hit is a policy violation, not proof that the
+#               surrounding sentence is an overclaim — the regex does not
+#               read sentences and is not pretending to. "CARO does not
+#               infer a negotiation floor" would match, and should: the
+#               phrase belongs in quotation marks or not at all, because a
+#               reader skimming past the "not" sees the term either way.
+
+CLAIM, VOCABULARY = "claim", "vocabulary"
 
 RETIRED = [
     dict(
         id="accepted",
+        kind=CLAIM,
         instances=(1, 3),
         pattern=r"the seller has already accepted",
         where="D36 #1 — price_gap_fa(), and again #3 in the README",
@@ -92,6 +119,7 @@ RETIRED = [
     ),
     dict(
         id="refuse",
+        kind=CLAIM,
         instances=(2,),
         pattern=r"cannot credibly refuse it elsewhere",
         where="D36 #2 — D18",
@@ -101,6 +129,7 @@ RETIRED = [
     ),
     dict(
         id="cheapest",
+        kind=CLAIM,
         instances=(3, 8),
         pattern=r"cheapest listing is (usually|typically|often) the most "
                 r"damaged",
@@ -112,15 +141,22 @@ RETIRED = [
     ),
     dict(
         id="floor",
+        kind=VOCABULARY,
         instances=(4,),
         pattern=r"negotiation floor",
         where="D36 #4 — a label in tests/test_ingest.py",
-        why="min(prices) is the lowest price the seller has published. "
-            "Calling it a floor asserts they will not go below it.",
+        why="RETIRED VOCABULARY, not a retired sentence. min(prices) is the "
+            "lowest price the seller has published; every use of 'floor' "
+            "for it asserts they will not go below, and CARO has no "
+            "transaction evidence that could support that. The regex does "
+            "not judge the sentence it lands in — it does not read "
+            "sentences. The rule is that the term stays in quotation marks "
+            "or stays out.",
         instead="the lowest PUBLISHED price",
     ),
     dict(
         id="usually-differ",
+        kind=CLAIM,
         instances=(5, 6),
         pattern=r"prices differ, which they usually do",
         where="D36 #5 — D18, and #6 — the same sentence copied into the "
@@ -132,18 +168,21 @@ RETIRED = [
     ),
     dict(
         id="oracle-ceiling",
+        kind=VOCABULARY,
         instances=(9,),
         pattern=r"(the )?upper bound on performance",
         where="D36 #9 — the Oracle's docstring in tests/test_appraisal.py",
-        why="the Oracle reads quantiles out of the fixture's own generating "
-            "formula. It is a ceiling for that formula and those three "
-            "features, not for performance. Unscoped, it invites putting "
-            "D34's real MAE beside a synthetic number and calling the gap "
-            "headroom — a comparison with no meaning.",
+        why="RETIRED VOCABULARY. The Oracle reads quantiles out of the "
+            "fixture's own generating formula, so it is a ceiling for that "
+            "formula and those three features. The phrase is retired in "
+            "every sentence, including a denial, because unscoped it "
+            "invites putting D34's real MAE beside a synthetic number and "
+            "calling the gap headroom — a comparison with no meaning.",
         instead="a reference ceiling for THIS synthetic benchmark",
     ),
     dict(
         id="fa-negotiate-above",
+        kind=CLAIM,
         instances=(7,),
         pattern=r"جای چانه‌?زنی دارد|فروشنده خودش این خودرو",
         where="D36 #7 — the retired Persian copy, still printed in the "
@@ -187,7 +226,18 @@ SURFACES = [
                          if p.suffix in {".py", ".html", ".json", ".md"}))
     if s != SELF]
 
-_QUOTED = re.compile(r'"[^"]*"' r"|«[^»]*»" r"|'[^'\n]{12,}'")
+# Straight double quotes and Persian guillemets. Nothing else.
+#
+# An earlier version also exempted single-quoted runs of twelve characters or
+# more, on the theory that some citation somewhere would need it. That is the
+# wrong shape for an exemption: `'a long ordinary python string'` would have
+# counted as a citation, and the whole guard rests on the exemption staying
+# small. Removing it was checked rather than argued — across all 40 surfaces
+# and every pattern, the narrow and wide versions return identical verdicts,
+# so the rule bought nothing and could only ever have hidden something.
+#
+# If a real citation someday needs single quotes, quote it with double ones.
+_QUOTED = re.compile(r'"[^"]*"' r"|«[^»]*»")
 
 
 def normalise(text: str) -> str:
@@ -213,8 +263,13 @@ def normalise(text: str) -> str:
 def quoted_spans(text: str) -> list[tuple[int, int]]:
     """Character ranges that are inside quotation marks.
 
-    Straight double quotes, Persian guillemets, and long single-quoted runs.
     Pairing is non-greedy and left-to-right, which is what a reader does.
+
+    This is a heuristic, not a parser, and it is meant to stay one. It does
+    not understand escaping or nesting. The safe direction for a heuristic
+    here is *under*-exempting: a missed exemption is a false alarm someone
+    fixes in a minute, while an over-broad exemption silently retires the
+    whole guard. So when in doubt, this matches less.
     """
     return [(m.start(), m.end()) for m in _QUOTED.finditer(text)]
 
@@ -282,7 +337,8 @@ for claim in RETIRED:
         for hit in unquoted_hits(p.read_text(encoding="utf-8"),
                                  claim["pattern"]):
             offenders.append(f"{rel}: {hit}")
-    check(f"{claim['id']:<16} not asserted anywhere  ({claim['where']})",
+    check(f"{claim['id']:<16} [{claim['kind']:<10}] not in own voice  "
+          f"({claim['where']})",
           not offenders,
           "\n      " + "\n      ".join(offenders) + f"\n      why: "
           f"{claim['why']}\n      instead: {claim['instead']}")
@@ -332,12 +388,22 @@ check("  a blockquote marker does not hide it",
                         RETIRED[0]["pattern"])) == 1)
 
 # ---------------------------------------------------------------------------
-# The runtime copy, generated rather than grepped
+# Runtime semantic guardrails — NOT the D36 catalogue
 # ---------------------------------------------------------------------------
 #
-# The catalogue above reads files. That cannot see a sentence assembled at
-# run time from fragments, which is exactly what W2's Persian copy is — and
-# instance #1 lived in precisely that kind of string. So the shipped
+# Everything above this line is D36: specific claims, historically made,
+# mechanically prevented from returning. Everything below is a different and
+# weaker thing — a standing wordlist for Persian copy, enforcing the same
+# claim boundary without any of it being a retired instance.
+#
+# The distinction is kept sharp on purpose. These words carry no `instances`,
+# take no part in the pattern/instance accounting, and must never be cited as
+# D36 entries. A decision that starts absorbing every adjacent good idea ends
+# up asserting nothing, and this one earns its keep by being narrow.
+#
+# Why they exist here at all: the catalogue reads files, and a file cannot
+# show a sentence assembled at run time from fragments — which is exactly
+# what W2's Persian copy is, and where instance #1 lived. So the shipped
 # functions are called and their output inspected.
 
 print()
@@ -358,14 +424,14 @@ check("fixture builds a cross-source cluster to read copy from", len(_xs) == 1)
 
 if _xs:
     _copy = " ".join(filter(None, [_xs[0].claim_fa(), _xs[0].price_gap_fa()]))
-    # The Persian shape of instance #1: any wording that puts the seller in
-    # agreement with the lowest published number.
-    _banned = {"پذیرفته": "says the seller accepted it",
-               "قبول کرده": "says the seller accepted it",
-               "تأیید": "calls one seller in several places corroboration",
-               "قطعاً": "certainty CARO does not have",
-               "حتماً": "certainty CARO does not have"}
-    for word, why in _banned.items():
+    # Words that would push a sentence across the tier boundary, whatever
+    # sentence it is. Not retired claims — a guardrail on live copy.
+    _RED_FLAGS = {"پذیرفته": "says the seller accepted it",
+                  "قبول کرده": "says the seller accepted it",
+                  "تأیید": "calls one seller in several places corroboration",
+                  "قطعاً": "certainty CARO does not have",
+                  "حتماً": "certainty CARO does not have"}
+    for word, why in _RED_FLAGS.items():
         check(f"  runtime copy never says «{word}»  — {why}",
               word not in _copy, _copy)
     check("  and it does state what was observed",

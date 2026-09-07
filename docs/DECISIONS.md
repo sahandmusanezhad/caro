@@ -1190,6 +1190,24 @@ because it reads as coverage. This project has lost that bet before —
 `MIN_PER_TRIM_FLOOR` was two constants meaning one thing, and a renamed
 field survived in EVAL.md for a week.
 
+**Two things are retired, and a hit means different things.** A `claim`
+entry approximates one sentence: a match is that sentence returning. A
+`vocabulary` entry retires a *term* from own-voice copy in every sentence,
+denials included — "negotiation floor", "upper bound on performance". A
+vocabulary hit is a policy violation, not a finding that the surrounding
+sentence overclaims. The regex does not read sentences and the catalogue
+says so per entry, because a guard that quietly implies more precision than
+it has is the failure this whole entry is about.
+
+The quotation exemption was narrowed for the same reason. It once also
+covered long single-quoted runs, so `'an ordinary python string'` counted as
+a citation. Removing that was measured rather than argued: across all forty
+surfaces and every pattern, the narrow and wide rules return identical
+verdicts, so it bought nothing and could only ever have hidden something.
+The safe direction for a heuristic here is to exempt *less* — a missed
+exemption is a false alarm someone clears in a minute, an over-broad one
+retires the guard silently.
+
 The shipped demo is checked separately and differently. `demo/index.html`
 and `demo/demo_data.json` are *generated* — written once and committed, so
 `tests/test_agents.py`, which guards live orchestrator output, cannot see
@@ -1198,6 +1216,15 @@ words while every test still passes. They are therefore scanned as files,
 against the tiers rather than the catalogue: «قیمت واقعی», «ارزش واقعی»,
 «کف بازار», «فروخته», «قبول می‌کند», «می‌ارزد», «قطعاً». All clean today;
 the point is that this is now checked rather than believed.
+
+Those words are **not** D36 entries and must never be cited as such. They
+carry no instance numbers and take no part in the pattern/instance
+accounting — they are a standing wordlist enforcing the same boundary, kept
+in the same file for convenience and labelled apart from the catalogue on
+purpose. This decision is worth something because it is narrow. A decision
+that absorbs every adjacent good idea ends up asserting nothing, and the
+temptation to grow this one will be constant, since almost any careless
+sentence in the project is *adjacent* to it.
 
 Its limits, stated here rather than discovered later: it is a regression
 test, not a lint. It knows the nine claims that have already been caught.
