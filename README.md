@@ -5,12 +5,17 @@
 CARO estimates a market range for a listing, then tries to prove itself wrong.
 
 ```
-python3 -m pip install -e .
-make test        # 241 assertions, no API key, no network
-make winrate     # the number that decides whether this product should exist
-make demo        # regenerate demo/index.html from live pipeline output
-make policy      # print the confidence rulebook
+git clone https://github.com/sahandmusanezhad/caro && cd caro
+pip install numpy scikit-learn
+
+python3 tests/run_all.py            # 241 assertions, no API key, no network
+python3 tests/run_all.py ranking    # just the win-rate benchmark
+python3 demo/export_demo.py         # regenerate demo/index.html from live output
 ```
+
+No build tool required — the suites are plain scripts. A `Makefile` is there
+as a convenience (`make test`, `make winrate`, `make policy`) but nothing
+depends on it.
 
 ---
 
