@@ -1308,3 +1308,42 @@ govern what CARO says to a buyer — `EvidenceLedger` does, and the section
 above explains why both are needed. Reading D36 as "overclaiming is now
 handled" would be a mechanism restated as a guarantee, which is the pattern
 this entry is about, applied to the entry itself.
+
+### D36 — frozen
+
+Reviewed and closed at `4d95b7d`. Nine instances, seven patterns, 47
+assertions inside a 603-assertion suite. Reopen it for a real recurrence, a
+real bug, or a genuinely new surface — not to improve it. Its value now is
+that it is finite, and every addition costs some of that.
+
+Three standing rules, written here because they are the ways it will
+plausibly be widened by someone acting in good faith:
+
+1. **A new claim earns one pattern, not a category.** Semantic review
+   decides it is a retired claim; then one explicit pattern, one instance
+   mapping, one test. Adding synonyms to future-proof a pattern is how a
+   regression guard becomes a vocabulary lint, and no synonym goes in until
+   a recurrence has actually used it.
+2. **`NEVER_IN_OUTPUT` is not D36.** A phrase added to the demo wordlist is
+   an output policy, not a historical instance. The three lists stay three.
+3. **D36 is not a reason to collect data.** D35 is unchanged: bounded
+   acquisition → required eligible corpus → the SAME frozen estimator → the
+   SAME frozen gate → judge thin and held-out. Claim discipline improving
+   does not make the corpus more able to answer, and no acquisition starts
+   without an explicit decision to run that experiment.
+
+The reason it belongs in this record at all is that it turned out to be the
+same decision the rest of the project keeps making, one level up:
+
+    D1    a failed fetch is not an absence
+    D3    a disappearance is not a sale
+    D8    confidence is not completeness
+    D11   insufficient evidence is a product state, not a silent guess
+    D22   suspicious is not deleted
+    D30   an unsupported aggregate is out of scope, not approximated
+    D34   uncalibrated is UNJUDGEABLE, not passable
+    D36   an unscanned surface is not a clean one
+
+Every one refuses the same move: turning *we do not know* into *it is
+fine*. D36 applies it to the project's own prose, which was the last place
+still doing it.
