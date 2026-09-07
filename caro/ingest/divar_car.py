@@ -302,7 +302,9 @@ class DivarCarAdapter:
 
     def search_url(self, page: int = 1) -> str:
         base = CATEGORIES[self.category].format(city=self.city)
-        return base if page <= 1 else f"{base}?page={page}"
+        url = base if page <= 1 else f"{base}?page={page}"
+        assert_allowed(url)
+        return url
 
     def fetch_all(self, on: date) -> Iterator[FetchOutcome]:
         if self.page_fetcher is None or self.parse_page is None:
@@ -313,7 +315,7 @@ class DivarCarAdapter:
 
         consecutive = 0
         for page in range(1, self.max_pages + 1):
-            url = self.search_url(page)
+            url = self.search_url(page)          # raises on a robots violation
             try:
                 status, html = self.page_fetcher(url)
             except Exception:
@@ -369,3 +371,52 @@ def playwright_fetcher(policy: PolitenessPolicy | None = None):
                 browser.close()
 
     return fetch
+
+
+# ---------------------------------------------------------------------------
+# robots.txt compliance, verified rather than assumed
+#
+# Fetched from https://divar.ir/robots.txt on 2026-09-07:
+#
+#     User-agent: *
+#     Disallow: /my-divar/*
+#     Disallow: /new
+#     Disallow: /s/*/*?*q=*
+#     Disallow: /adminbot
+#
+# Two things follow, and the second is the one that would have been easy to
+# get wrong:
+#
+#   · Category browsing (/s/{city}/light) is ALLOWED, as are individual
+#     listing pages (/v/...). That is exactly the surface this adapter uses.
+#   · Free-text SEARCH urls are DISALLOWED. Any url carrying `q=` is off
+#     limits, so "just search for پژو 206" is not available to us — we browse
+#     categories and filter locally instead.
+#
+# No Crawl-delay is published, which is not permission to go fast. The
+# politeness floor in PolitenessPolicy stands on its own.
+# ---------------------------------------------------------------------------
+
+DIVAR_ROBOTS_CHECKED = "2026-09-07"
+DIVAR_DISALLOWED = ("/my-divar/", "/new", "/adminbot")
+
+
+class RobotsViolation(RuntimeError):
+    """Raised before a request that robots.txt forbids."""
+
+
+def assert_allowed(url: str) -> None:
+    """Refuse a disallowed url at the call site, not in a code review.
+
+    A rule that lives only in a comment gets violated the first time someone
+    adds a feature. This one raises.
+    """
+    u = url.split("#", 1)[0]
+    path = re.sub(r"^https?://[^/]+", "", u)
+    if re.search(r"[?&]q=", path):
+        raise RobotsViolation(
+            f"divar robots.txt disallows search urls (/s/*/*?*q=*): {url}. "
+            "Browse the category and filter locally instead.")
+    for bad in DIVAR_DISALLOWED:
+        if path.startswith(bad):
+            raise RobotsViolation(f"divar robots.txt disallows {bad}: {url}")
