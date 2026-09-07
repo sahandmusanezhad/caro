@@ -200,6 +200,15 @@ Stated plainly, because an unstated limit reads as a covered one.
   reweighting sensitivity span. Per-vehicle conditional estimates are in
   scope; market-level aggregates across trims are not, unless they carry that
   span.
+- **Trim-level conditional coverage above 63% (Pride).** Measured directly
+  from all 34 published Pride trim pages on 2026-09-07: 135 listings, 22 of
+  34 trims holding fewer than five. With *complete* acquisition of everything
+  the source publishes, at most 63% of listings sit in trims with 5+
+  observations — below the 70% the conditional estimand requires, and an
+  upper bound before eligibility is applied. The market's trim distribution
+  is long-tailed; no acquisition strategy changes that (D31). Trim-level
+  pagination does not exist and its URLs silently serve the generic feed, so
+  it is not a route to more depth either.
 - **Geographic representativeness.** Not measured at all yet.
 - **Truthfulness.** A plausible odometer is not a verified one. Every claim
   in the corpus is the seller's, and the system's job is to say so.

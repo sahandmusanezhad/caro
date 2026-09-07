@@ -714,3 +714,63 @@ The standing rule from D28 carries over: the route's own ceiling is measured
 before anything is concluded from a shortfall. A trim page that saturates at
 twenty listings cannot supply thirty, and reporting that as market thinness
 would repeat the mistake the pre-flight exists to prevent.
+
+## D31 (result) — the ceiling is the market's shape, not our route
+
+Run 4's pre-flight answered D31 without needing the collection, and the
+answer is stronger than a shortfall: the ceiling is provable.
+
+**Trim-level pagination does not exist, and pretending it does is dangerous.**
+`/car/pride-131-se-page-2` answers 200, redirects to page 1, and returns the
+identical ten listings. `/car/quick-manualr-page-2` is worse: it answers 200,
+redirects to `/car/quick-manualr-page`, and serves **Tara, Dignity, Renault
+and Toyota** — the generic feed. Nine of its listings looked "new". None was
+that trim.
+
+That is `/car/saipa` from Run 1, exactly, third occurrence. Without the
+pre-flight those nine would have been collected as trim depth, and the run
+would have reported *higher* conditional coverage manufactured entirely by a
+crawler bug — an acquisition failure dressed as progress on the precise
+metric the experiment exists to move.
+
+**The real ceiling, measured directly.** Because conditional coverage is a
+function of listing counts per trim, it can be measured without fetching a
+single detail page. All 34 published `pride` trim pages, on-target slugs
+only:
+
+    11, 10, 9, 8, 8, 7, 6, 6, 5, 5, 5, 5,
+     4,  4, 4, 4, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 0
+
+    135 listings · 22 of 34 trims hold fewer than 5
+    MAXIMUM ACHIEVABLE COVERAGE = 63%
+
+That is with **complete** acquisition of everything Bama publishes for Pride.
+63% < 70%, and it is an upper bound: eligibility ran ~85% in Run 3, so the
+attainable figure is lower still.
+
+So D31's answer is **no**, and for the most useful possible reason. The
+shortfall is not our sampling and not the route — it is the shape of the
+market. Pride's inventory is long-tailed across trims, and no acquisition
+strategy makes `pride-151-sl` have more than the two cars that are listed.
+
+### What follows, per the options fixed in advance
+
+Option (3) — change the estimator or the estimand — is now the only live one,
+and the choice between them is a real design decision rather than a
+formality:
+
+- **A hierarchical / shrinkage estimator** that borrows strength across trims
+  and benchmarks the extrapolation it performs. This keeps trim-level
+  conditioning and makes the borrowing explicit and measurable, which is what
+  the current design does implicitly and unmeasurably.
+- **A coarser conditioning level** — model plus body style, say, rather than
+  full trim — chosen so the coverage condition is met, with its own
+  benchmark. Cheaper, and it gives up genuine resolution: `pride-131-se` and
+  `pride-131-sl` are not the same car to a buyer.
+
+Neither is a threshold change, and the 70% is not revisited. What is revised
+is what the estimator claims to condition on — which is the honest response
+when the data cannot support the granularity the estimand assumed.
+
+`docs/DATA_CONTRACT.md` gains the measured ceiling so a later reader does not
+re-run this experiment hoping for a different answer.
