@@ -6,16 +6,46 @@ CARO estimates a market range for a listing, then tries to prove itself wrong.
 
 ```
 git clone https://github.com/sahandmusanezhad/caro && cd caro
-pip install numpy scikit-learn
+./scripts/setup.sh                  # creates .venv, installs numpy
+source .venv/bin/activate
 
-python3 tests/run_all.py            # 349 assertions, no API key, no network
-python3 tests/run_all.py ranking    # just the win-rate benchmark
-python3 demo/export_demo.py         # regenerate demo/index.html from live output
+python tests/run_all.py             # 349 assertions, no API key, no network
+python tests/run_all.py ranking     # just the win-rate benchmark
+python demo/export_demo.py          # regenerate demo/index.html from live output
 ```
 
-No build tool required — the suites are plain scripts. A `Makefile` is there
-as a convenience (`make test`, `make winrate`, `make policy`) but nothing
-depends on it.
+**numpy is the only hard dependency.** Ridge regression is written out in
+four lines of linear algebra rather than imported, because depending on
+scikit-learn for it costs a heavyweight install that lags new Python
+releases by months — the kind of friction that stops a reviewer before they
+see a test pass. The closed-form solution is asserted to match `sklearn.Ridge`
+to 1e-9 where sklearn happens to be available.
+
+No build tool either — the suites are plain scripts. A `Makefile` exists as a
+convenience but nothing depends on it. On Debian, Ubuntu and Fedora the
+system Python is externally managed (PEP 668), which is why `setup.sh` makes
+a venv rather than reaching for `--break-system-packages`.
+
+### First live collection
+
+```
+pip install playwright && playwright install chromium
+export CARO_SELLER_SALT="$(head -c 24 /dev/urandom | base64)"
+python scripts/first_run.py --source bama --limit 50
+```
+
+Deliberately small. The point of a first run is not volume — it is the
+inventory it prints: fill and garbage rate per field, model coverage, and the
+condition distribution. Those numbers decide whether the corpus can support
+an estimate at all, and the script says so outright:
+
+```
+VERDICT
+  NOT READY — under 80% usable prices. Fix extraction before fitting anything.
+```
+
+Raw responses land in `data/snapshots/`, so `--replay` re-parses offline and
+asks the site for nothing.
 
 ---
 
