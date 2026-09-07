@@ -25,8 +25,28 @@ Same estimator. Same gate. Same frozen constants — `MIN_SLICE_N=58`,
 is the corpus, and the second one is larger, was collected against a
 specification written before the first request, and **rejected the model**.
 
+**And then the rejection failed its own significance test.** A paired
+bootstrap over trims puts the 95% interval on that +15.3% at **[−324M,
++436M]** — straddling zero. The probability the model is worse by more than
+the 10% the gate rejects on is **58%**, barely a coin flip. So:
+
+> The frozen gate returned REJECTED under its registered criterion. That
+> criterion has no uncertainty control, and the difference it rejected on
+> cannot be distinguished from sampling noise on this corpus. The estimator
+> is not shown to be better than its baseline; it is also not shown to be
+> worse.
+
+Both halves are load-bearing. The verdict is not edited after the fact —
+that would be D35's tuning loop run backwards — but D39 records that
+`mae_tolerance` is a bare `>` on a point estimate, sitting one field away
+from a calibration criterion that D33 hardened to 2.5 SE. The fourth
+appearance of the same error in this project, and the first three are in the
+entry I wrote about it.
+
 So the decision is D12's, and D12 was written long before the number that
-triggered it: *if the baseline wins, ship the baseline and say so.*
+triggered it: *if the baseline wins, ship the baseline and say so.* On this
+corpus nothing beat the baseline, and that is the shipping rule's answer even
+when the margin is unmeasurable.
 
 **Why they disagree, and why that is the interesting part.** Run 3 was four
 Saipa models. Run 5 spans 44 makes and a **143× price range** (350M to 50B

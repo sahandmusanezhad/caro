@@ -1490,3 +1490,64 @@ this question. D35 is unchanged and now bites in the other direction: after
 an estimator loses, changing the corpus and re-running is the single most
 natural way to manufacture a win, and it is the loop this project exists to
 refuse.
+
+## D39 — The REJECT does not survive its own uncertainty
+
+Raised in review, measured immediately, and it changes what Run 5 is allowed
+to claim.
+
+`HierarchicalGate` rejects when model MAE exceeds baseline MAE by more than
+10%. Run 5 tripped it at +15.3% and the gate returned REJECTED. **That
+criterion is a bare comparison of two point estimates.** A paired bootstrap,
+resampling *trims* rather than rows because rows inside a trim share a price
+level and a parent:
+
+    model MAE               606,996,397
+    baseline MAE            526,344,633
+    observed                +80,651,765   (+15.3%)
+
+    95% CI on the difference   [-323,924,724, +435,581,962]
+    95% CI on the ratio        [0.59x, 2.18x]
+    P(model worse)                  68.0%
+    P(worse by more than 10%)       58.1%
+
+The interval straddles zero by a wide margin. At 177 rows in 75 trims across
+a 143× price range, a handful of expensive cars moves the mean absolute error
+further than the effect being measured. **58% is barely distinguishable from
+a coin flip**, and that is the probability attached to the exact statement
+the gate rejected on.
+
+**This is the fourth time this project has met this error, and the first
+three are in D33.** A max over 48 noisy slice estimates rejected a perfect
+Oracle; `MIN_SLICE_N` rose to 58 so a coverage deviation counts only past 2.5
+binomial SE. Both fixes put significance testing on the **calibration**
+criterion. Neither was applied to the **MAE** criterion — one field away, in
+the same gate, in the same dataclass, with a bare `>`. I wrote the second fix
+and did not look sideways.
+
+**What Run 5 may now say, in full:**
+
+> The frozen gate returned REJECTED under its registered criterion. That
+> criterion has no uncertainty control, and the difference it rejected on
+> cannot be distinguished from sampling noise on this corpus. The estimator
+> is not shown to be better than its baseline; it is also not shown to be
+> worse.
+
+Both halves are required. Quoting the first alone overstates the finding in
+exactly the direction D36 is about; quoting the second alone would be reading
+a failed rejection as support, which is worse.
+
+**The verdict is not retroactively changed.** The gate ran as registered and
+returned what it returned; editing that after seeing this would be the tuning
+D35 forbids, run backwards. `mae_tolerance` stays as it is. The next
+registration decides whether a criterion without an interval belongs in a
+gate at all — and the honest answer is probably not, which makes this a
+finding against my own design rather than against Run 5.
+
+**One thing the MAE comparison structurally cannot see.** The baseline emits
+a point; the estimator emits a distribution with a traced shrinkage. Leading
+on Q50 MAE compares them only where they overlap and silently discards the
+interval — the part D8 and D32 exist for. A comparison that judged both on
+what each is *for* would need pinball loss and interval width beside it, and
+the baseline would have to forfeit those columns rather than win them. That
+is a gap in how this benchmark reports, not a result.

@@ -1,0 +1,29 @@
+RUN 5 — how much confidence does the REJECT deserve?
+============================================================================
+  rows                    177   in 75 trims
+  model MAE               606,996,397
+  baseline MAE            526,344,633
+  observed difference     +80,651,765   (+15.3%)
+
+  paired cluster bootstrap, 10,000 resamples of TRIMS
+  95% CI on the difference   [-323,924,724, +435,581,962]
+  95% CI on the ratio        [0.59x, 2.18x]
+  P(model worse than baseline)      68.0%
+  P(worse by more than the gate's 10%)  58.1%
+
+WHAT THIS DOES AND DOES NOT SETTLE 
+----------------------------------------------------------------------------
+  ✗ the interval excludes zero — the model being WORSE is not distinguishable from noise
+  ✗ the interval excludes the gate's 1.10 threshold — 'worse by more than 10%' is NOT established
+
+  The REJECT does not survive its own uncertainty. On the
+  registered criterion the gate rejected; on the evidence the
+  difference is not distinguishable from sampling noise, and
+  UNJUDGEABLE would be the more honest verdict.
+
+  Either way this is a finding about the GATE, not about Run 5's
+  execution. `HierarchicalGate.mae_tolerance` is a bare comparison
+  on a point estimate, while the calibration criterion beside it
+  requires 2.5 SE — D33 fixed winner's curse on one field and left
+  the other one raw. Changing it now would be tuning after a loss,
+  so it is recorded and left alone; the next registration decides.
