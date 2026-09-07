@@ -877,7 +877,7 @@ check("a cross-source cluster forms", len(xs) >= 1)
 c0 = xs[0]
 check("it spans more than one source", len(c0.sources) >= 2, str(c0.sources))
 check("price spread is computed", c0.price_spread_toman > 0)
-check("minimum ask is the negotiation floor",
+check("minimum ask is the lowest PUBLISHED price, not a negotiation floor",
       c0.min_ask_toman == min(c0.prices))
 check("the wording is NOT «تأیید» — several sites is not corroboration",
       "تأیید" not in c0.claim_fa(), c0.claim_fa())

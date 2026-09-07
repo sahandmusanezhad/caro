@@ -224,8 +224,14 @@ The tempting UI copy is "confirmed by 3 sources". It is wrong, and
 
 Corroboration needs independent *observers* of one fact. Here there is one
 observer — the seller — publishing to several places. When the prices differ,
-which they usually do, the finding is the opposite of confirmation: it is
-inconsistency. Three things follow, all more useful than agreement would be:
+the finding is the opposite of confirmation: it is inconsistency. Three things
+follow, all more useful than agreement would be:
+
+> An earlier version of that sentence read "when the prices differ, which
+> they usually do". How often they differ is a market fact CARO has never
+> measured — the cross-source path has only ever run on fixtures. It is the
+> fifth instance of the pattern in **D36**, found while adding a pointer to
+> D36 from this entry. Read D36 before writing anything user-facing here.
 
 1. **A price gap, stated as an observation.** The lowest public ask is the
    least the seller is *advertising* — not a price they have accepted. An
@@ -989,3 +995,134 @@ The rule is deliberately stricter than it needs to be. There will be a
 legitimate reason to change the estimator eventually; the point is that it
 must not happen in the same step as changing the corpus, because then
 neither change can be attributed.
+
+## D36 — A mechanism is not a market fact
+
+Three text fixes in a row turned out to be one error wearing three
+costumes. Writing this entry found a fourth in the test suite and a fifth in
+the very paragraph of D18 the entry was being cross-referenced from. Running
+this entry's test for the first time found three more, including one in the
+shipped package. Eight is enough to stop calling it a proofreading miss.
+
+The count is worth stating in that order, because the order is the argument.
+Careful reading found two. A twenty-line regression test found three more in
+one second, one of which had survived being read past twice in the same
+week.
+
+**The pattern.** A mechanism the design supports gets restated as an
+observed fact about the market.
+
+    supported by the design   "sorting by price can systematically favour
+                               damaged cars"
+    promoted to market fact   "the cheapest listing is usually the most
+                               damaged one"
+
+The promoted version is shorter, more useful, more quotable, and reads
+like the kind of thing a product person is supposed to say. It is also a
+claim about Iranian used-car prices that this project has never measured.
+Nothing in the corpus, the benchmark or the estimator establishes it.
+
+**Where it has appeared.**
+
+                                                                    found by
+    1  price_gap_fa()    "the seller has already accepted this      review
+                          price, so there is room to negotiate
+                          above it"
+    2  D18               "cannot credibly refuse it elsewhere"      review
+    3  README            "the cheapest listing is usually the       review
+                          most damaged one"; "a number the seller
+                          has already accepted"
+    4  test_ingest.py    "minimum ask is the negotiation floor"     reading
+    5  D18               "when the prices differ, which they        reading
+                          usually do"
+    6  README            the same sentence as (5), copied           TEST
+    7  README            the retired Persian copy of (1), still     TEST
+                          printed as a sample of CARO's output
+    8  caro/ranking.py   "the cheapest listing is usually the       TEST
+                          most damaged one" — the module docstring
+
+Four of these are worth more than a note.
+
+(4) is the mildest and the same inference: `min(prices)` is the lowest
+number the seller has *published*, and calling it a floor asserts they will
+not go below it — the retired claim exactly, in a test label nobody thought
+of as a claim.
+
+(5) sits in the paragraph of D18 that already corrects (2), written by
+someone who had just finished being careful about this. How often
+cross-site prices differ is a market frequency CARO has never measured; the
+cross-source path has only ever run on fixtures. It was found while adding
+a pointer from D18 to this entry — the pattern reproducing inside the act of
+documenting the pattern.
+
+(7) is the most instructive. When (3) was fixed, the corrected paragraph sat
+four lines above a fenced block printing the *retired Persian copy* as an
+example of what CARO says. The prose was fixed; the sample output beneath it
+was read past. Fixing a claim in one register leaves it standing in another,
+and the register nobody re-reads is the one showing output.
+
+(8) is the most serious. It was not in a document at all — it was the
+opening docstring of `caro/ranking.py`, stating the market fact as the
+module's stated thesis, which makes it the version a reader of the code
+meets first. Three rounds of documentation review never opened that file.
+
+**Why prose alone did not stop it.** CARO already owns a machine for this.
+`EvidenceLedger.unsupported_claims()` refuses to let W2 tell a buyer
+anything the ledger cannot source, and `tests/test_agents.py` asserts the
+list is empty for every generated response. It works. All eight instances
+landed just outside its scope: assembled template copy, a design record, a
+README, a test label, a design record again, the README twice more, a module
+docstring.
+
+So the failure is not an absent mechanism. It is a mechanism with a boundary
+and eight recurrences on the far side of it. That is the finding worth
+keeping, and it is not specific to this project: the
+surface where a system speaks to its users tends to be governed carefully,
+and the surface where it explains *itself* tends not to be governed at
+all.
+
+**The rule.** Five tiers, kept distinct in anything a reader sees:
+
+    mechanism            the design supports it    "can", "is designed to",
+                                                   "responds to"
+    hypothesis           believed, untested        "we expect", "if"
+    synthetic property   built into the fixture    "in the generating
+                                                   process"
+    observed corpus      measured in a real run    "we observed, in N
+                                                   listings on <date>"
+    transaction fact     someone paid this         only with transaction
+                                                   evidence
+
+The bottom tier is currently empty and that is not an oversight. CARO
+observes asks, never settlements; there is no `sold` field and a
+disappearance is not a sale (D3). No sentence anywhere in this project may
+sit in that tier today.
+
+A mechanism does not become an empirical claim by being plausible, by
+being load-bearing, or by recurring in the architecture until it feels
+settled. The last is how all eight happened — each was true as a mechanism
+somewhere upstream and lost its qualifier on the way down.
+
+**The check.** `tests/test_claims.py` asserts the retired phrasings do not
+return, across every surface a reader meets — the README, the design record,
+the data contract, the package, the scripts, the other suites — plus the
+Persian copy the shipped functions actually emit, generated rather than
+grepped, because instance (1) was assembled at run time from fragments no
+file contains.
+
+It enforces one rule, and the rule is what makes it mechanical at all: **a
+retired claim may appear only in quotation marks.** Every sentence in the
+catalogue has to stay quotable, or this entry could not list them and D18
+could not correct itself. What is forbidden is the phrase asserted in the
+project's own voice. Cite the mistake; do not commit it. "Is this an
+overclaim?" is semantic and cannot be tested. "Is this inside quotation
+marks?" is not.
+
+Its limits, stated here rather than discovered later: it is a regression
+test, not a lint. It knows the eight claims that have already been caught.
+It cannot recognise a ninth overclaim phrased in new words, and no
+reasonable test can, because the judgement is semantic. What it buys is
+that the specific failure this decision is about — **recurrence** — is now
+mechanical instead of depending on who reads the file next.
+
+The tier vocabulary is the part a human still has to apply.

@@ -7,11 +7,17 @@ shortlist can then be handed to the decision layer.
 
 The thesis, made testable
 -------------------------
-Sorting by price actively harms the buyer, because the cheapest listing is
-usually the most damaged one. That is a claim, and `winrate_vs_price_sort`
-is the experiment that settles it. If ranking cannot beat sort-by-price, the
-product has no reason to exist and the honest move is to find that out here
-rather than in the demo.
+Sorting by price can systematically favour damaged cars, and where it does,
+it actively harms the buyer. `winrate_vs_price_sort` is the experiment that
+settles whether ranking answers that better than price order does. If it
+cannot beat sort-by-price, the product has no reason to exist and the honest
+move is to find that out here rather than in the demo.
+
+What the experiment tests, precisely: in a world where the cheapest listings
+*are* disproportionately damaged, does ranking respond correctly while price
+order does not. Whether Iranian used-car prices actually have that property
+is a separate, open question — the generating process was built with it, so
+this benchmark cannot also be evidence for it. See D36.
 
 Where the LLM is, and is not
 ----------------------------

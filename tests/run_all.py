@@ -34,6 +34,8 @@ SUITES = [
      "evidence ledger, adversarial review, judge"),
     ("W1+ pooling", "tests/test_hierarchical.py",
      "empirical-bayes shrinkage, visible extrapolation, held-out trims"),
+    ("--  claims", "tests/test_claims.py",
+     "retired overclaims do not return (D36)"),
 ]
 
 TTY = sys.stdout.isatty() and not os.environ.get("NO_COLOR")

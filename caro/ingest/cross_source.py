@@ -315,6 +315,11 @@ class CrossSourceCluster:
 
         The observation is worth stating. The conclusion is the user's to
         draw, and the wording now stops where the evidence does.
+
+        This was the first of five instances of the pattern recorded in D36 —
+        a mechanism the design supports, restated as a fact about the market.
+        `tests/test_claims.py` asserts the retired phrasings do not return.
+        Read D36 before changing any string in this method.
         """
         if not self.is_cross_source or self.price_spread_toman == 0:
             return None

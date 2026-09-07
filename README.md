@@ -309,16 +309,23 @@ that does not exist in the market.
 It is tempting to render a cross-source cluster as "confirmed by 3 sources".
 A test asserts the UI never says «تأیید», because corroboration needs
 independent *observers* of one fact — and here there is one observer, the
-seller, publishing in several places. When the prices differ, which they
-usually do, the finding is the opposite of confirmation:
+seller, publishing in several places. When the prices differ, the finding is
+the opposite of confirmation:
 
 ```
-همین خودرو در ۳ سایت آگهی شده، با ۳۰ میلیون اختلاف قیمت —
+همین خودرو در ۲ سایت آگهی شده، با ۳۰ میلیون اختلاف قیمت —
 کمترین قیمت اعلام‌شده ۱.۴۲ میلیارد است
 
-فروشنده خودش این خودرو را جایی ۱.۴۲ میلیارد گذاشته؛
-بالاتر از این عدد جای چانه‌زنی دارد.
+همین خودرو با قیمت ۱.۴۲ میلیارد نیز منتشر شده؛ اختلاف قیمت
+بین کانال‌ها ۳۰ میلیون تومان است. این اختلاف یک نکته‌ی قابل
+بررسی برای مذاکره است.
 ```
+
+An earlier version of this block printed «فروشنده خودش این خودرو را جایی
+۱.۴۲ میلیارد گذاشته؛ بالاتر از این عدد جای چانه‌زنی دارد» — the seller has
+put it somewhere at that price, so you can bargain above it. That copy was
+retired from the code, and survived here for one more revision because it
+sits below the paragraph that was being corrected. It is instance #7 in D36.
 
 The lowest public ask is a price the seller has publicly quoted for this
 car. It is actionable price evidence, not transaction evidence — the number
