@@ -7,8 +7,8 @@ intent → explain the best choice**.
 
 | Requirement | State |
 |---|---|
-| crawl offers | ⚠️ **adapter contract only.** `caro/ingest` defines the boundary and ships a working CSV adapter. No live marketplace crawler is in this repo. |
-| normalize messy data | ⚠️ **partial.** Identity normalisation, repost clustering and integrity handling are built. Persian free-text extraction (paint, replacement, documents, insurance) is not. |
+| crawl offers | ⚠️ **built, not yet run.** `DivarCarAdapter` collects public car listings with enforced politeness and stop-on-block; `CsvAdapter` ingests an external scraper's output. Parsing is tested offline against realistic fixtures. The live network path has not been exercised. |
+| normalize messy data | ✅ **built.** Persian numerals and amount words, prices in toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour — and body condition from free text, severity-ordered so the worse disclosed claim wins. |
 | rank by user intent | ✅ **built** (`caro/ranking.py`). Persian intent parsing, hard filters, relaxation ladder, inspectable scoring, diversity — and a win-rate benchmark against sort-by-price. |
 | explain the best choice | ✅ built, and the strongest part of the system. |
 
@@ -18,13 +18,17 @@ useful once something feeds it a ranked candidate set.
 
 ## Next, in order
 
-### 1. Ingest — connect a real source
-Write one `SourceAdapter` per source against `caro/ingest/base.py`. An external
-scraper needs no rewrite: emit rows to CSV and `CsvAdapter` consumes them.
+### 1. Ingest — run it
+`DivarCarAdapter` exists and its parsing is tested. What remains is a first
+live run, which is a decision rather than a build:
 
-Obligations are in the module docstring — terms of use, salted seller hashes,
-and honest failure classification. That last one matters most: misclassifying a
-403 as absence silently fabricates disappearances.
+- Review Divar's terms and robots directives for the car category, and record
+  the finding in the run log whatever it says.
+- Start with one city and a handful of pages. Volume is not the point.
+- Set `CARO_SELLER_SALT` in the environment. The hash helper refuses to run
+  without it, because an unsalted hash of a phone number is a phone number.
+- Expect to be blocked eventually. The adapter halts and says so; that is the
+  designed behaviour, not a bug to work around.
 
 ### 2. Ranking + intent — DONE, see `caro/ranking.py`
 Built as described below. Kept here because the shape is worth reading:

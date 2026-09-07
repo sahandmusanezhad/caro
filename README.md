@@ -8,7 +8,7 @@ CARO estimates a market range for a listing, then tries to prove itself wrong.
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 pip install numpy scikit-learn
 
-python3 tests/run_all.py            # 241 assertions, no API key, no network
+python3 tests/run_all.py            # 314 assertions, no API key, no network
 python3 tests/run_all.py ranking    # just the win-rate benchmark
 python3 demo/export_demo.py         # regenerate demo/index.html from live output
 ```
@@ -43,7 +43,7 @@ Two consequences:
 ## Architecture
 
 ```
-      SourceAdapter(s)              ← caro/ingest — deterministic, not agents
+  DivarCarAdapter · CsvAdapter    ← caro/ingest — deterministic, not agents
              │
         FetchOutcome
              │
@@ -66,6 +66,7 @@ Two consequences:
 
 | Layer | Module | What it guarantees |
 |---|---|---|
+| **Ingest** | `caro/ingest/` | A blocked source halts collection — no rotation, no retry-harder. A failed page is ignorance about that page, not absence of its listings. A raw seller identifier never reaches disk. |
 | **W0** | `caro/tracking.py` | A failed fetch is never an absence. A disappearance is never a sale. A blocked crawl cannot corrupt the history. Reposts link on precision, never on a guess. |
 | **W1** | `caro/appraisal.py` | No physical car appears on both sides of a split. Quantiles cannot cross. An unbenchmarked estimator cannot serve a number. |
 | **W3** | `caro/ranking.py` | Assumptions are surfaced, never silent. A deal-breaker is never relaxed away. Every scoring term is inspectable. Risk is priced in tomans, not normalised. |
@@ -124,7 +125,8 @@ These bands are calibrated by judgement, not fitted to data. That is stated in t
 | Demo page, fed from live pipeline output | ✅ built |
 | Source adapter contract + CSV adapter | ✅ built |
 | Intent parsing + ranking, beating sort-by-price | ✅ built, benchmarked |
-| **Live crawler against a marketplace** | ❌ not in this repo |
+| Divar car adapter — parsing, politeness, stop-on-block | ✅ built, tested offline |
+| **Live collection run against Divar** | ❌ the network path is unexercised here |
 | **Real corpus** | ❌ every number here comes from a synthetic corpus |
 
 **Synthetic validation proves the implementation is correct. It does not prove the product is right about the market.** Those are different claims and this repo only makes the first one.
@@ -133,10 +135,29 @@ These bands are calibrated by judgement, not fitted to data. That is stated in t
 
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · ranking (W3) · agents (W2)
-tests/           241 assertions across the four layers
+tests/           314 assertions across the five layers
 demo/            export_demo.py regenerates index.html from real output
 docs/            architecture, decisions, evaluation, roadmap
 ```
+
+## Collection, and what was deliberately not built
+
+`caro/ingest/divar_car.py` collects public Divar car listings. Its Persian
+normalisation and browser-fetch approach are adapted from
+[SorinFlow](https://github.com/Tecso-Dev/SorinFlow-DaTA-mAmager) (MIT) — a
+property scraper — with attribution in [NOTICE](NOTICE).
+
+Three of its components were **not** ported, and the omissions are the point:
+
+| Left behind | Why |
+|---|---|
+| Contact reveal (phone numbers) | The ingest contract forbids emitting a personal identifier. `seller_fingerprint` is a salted hash for deduplication and nothing else. A corpus of phone numbers is a liability in a public repo whatever the licence permits. |
+| Multi-account rotation | That is evasion. CARO stops when a source stops answering and records the gap. A test asserts it halts after three consecutive failures rather than continuing. |
+| Session / OTP handling | Follows from the above — nothing here authenticates. |
+
+The cost is real: no contact details, a lower volume ceiling, and collection
+halts when Divar says halt. That is the correct trade for a system whose
+pitch is that it does not overclaim.
 
 ## Documentation
 
