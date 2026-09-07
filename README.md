@@ -8,25 +8,45 @@ CARO estimates a market range for a listing, then tries to prove itself wrong.
 
 ## The result, up front
 
-CARO's estimator beats its baseline by **52%** on aggregate error. **It is
-not serving.** Those two facts are the project.
+**Two benchmarks. They disagree. The estimator is not serving, and the
+baseline is what ships.**
 
 ```
-BENCHMARK — partial pooling on the Run 3 corpus (155 eligible listings)
+                     corpus                        model MAE   baseline    verdict
+Run 3   155 eligible, 43 trims, 4 Saipa models      63.9M      133.4M    -52.1%
+        single snapshot, collected 2026-09-07                            UNJUDGEABLE_SLICE
 
-  slice                   n          MAE     cover   err  shrink  extrap
-  well-observed trim     75   64,072,026      69%    1%    0.93      0%
-  thin trim              54   63,738,855      70%    0%    0.84    100%
-  held-out trim          26  115,525,217      77%    7%    0.00    100%
-
-  MAE 63,932,559  vs  parent-median baseline 133,372,093   (-52.1%)
-
-  VERDICT: UNJUDGEABLE_SLICE
-
-  estimator quality                  promising
-  evidence for conditional serving   INSUFFICIENT
-  decision                           DO NOT SERVE
+Run 5   228 eligible, 100 trims, 44 makes          607.0M      526.3M    +15.3%
+        pre-registered before any request                                REJECTED
 ```
+
+Same estimator. Same gate. Same frozen constants — `MIN_SLICE_N=58`,
+`MIN_PER_TRIM_FLOOR=5`, hold-out 0.25, seed 0. The only thing that changed
+is the corpus, and the second one is larger, was collected against a
+specification written before the first request, and **rejected the model**.
+
+So the decision is D12's, and D12 was written long before the number that
+triggered it: *if the baseline wins, ship the baseline and say so.*
+
+**Why they disagree, and why that is the interesting part.** Run 3 was four
+Saipa models. Run 5 spans 44 makes and a **143× price range** (350M to 50B
+toman). Partial pooling shrinks a thin trim toward its parent, and where the
+parent is thin too, toward the global level — across 143× that is not a mild
+correction, it is a large error, while a baseline that never pools past
+`make|model` stays well behaved.
+
+Run 5's pre-registration constrained the trim-size distribution in detail and
+said **nothing** about price heterogeneity. Both corpora satisfy the
+registered shape; they are not comparable estimation problems. Nothing was
+violated — the registration was blind, in advance, to the variable that
+decided the outcome. That is the only way such a thing can be established,
+and it is the most useful finding either run produced.
+
+What this does **not** establish: that partial pooling is wrong for Iranian
+used cars. A corpus registered for homogeneity as well as shape would be a
+different experiment with a different question, and D35 forbids running it as
+a continuation of this one — *estimator loses → change the corpus → estimator
+wins* is the exact loop this project is built to refuse.
 
 The two slices the claim depends on carry n=54 and n=26 against the 58 a
 calibration verdict needs — 2.5 binomial standard errors on a 15-point

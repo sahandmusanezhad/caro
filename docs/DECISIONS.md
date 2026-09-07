@@ -1398,3 +1398,62 @@ disagrees with `docs/RUN5_SPEC.md` if either the corpus or a frozen constant
 moves. The 576-request cap is the one number it does *not* derive: that is
 registered, and the script checks the derivation against it, because a budget
 recomputed from its own formula grows with the formula.
+
+## D38 — Run 5 rejected the estimator, and the registration was blind
+
+The run executed as registered: 615 of 640 requests, the frozen estimator,
+the frozen gate, no constant touched. `HierarchicalGate` returned
+**REJECTED** — MAE 606,996,397 against a parent-median baseline of
+526,344,633, 15.3% worse. That failure is judgeable and does not depend on
+any slice being large enough, so the held-out slice landing at 51 does not
+soften it into UNJUDGEABLE.
+
+**D12 is now live, not hypothetical.** It has said since the beginning that
+if the baseline wins, the baseline ships and we say so. On this corpus the
+baseline wins. The README leads with that.
+
+Three numbers stay separate and none of them is the verdict:
+
+    thin slice        87   MET — judgeable for the first time in the project
+    held-out slice    51   short of 58; not a model failure, an unanswered
+                           question about that slice
+    coverage         47%   D30's precondition still fails, by more than Run 3
+
+**D37 has an empirical result now.** It predicted that thin-slice size and
+conditional coverage are complements and that no single acquisition strategy
+buys both. Reaching a judgeable thin slice took 100 trims where D37's model
+assumed 62, and coverage fell from Run 3's 55% to 47% doing it. The tension
+was real and it went the predicted way.
+
+**The finding worth more than the verdict.** `RUN5_SPEC.md` §2 constrained
+the trim-size distribution in detail — counts, floors, slice sizes — and said
+nothing about price heterogeneity or make composition. Run 3 was four Saipa
+models; Run 5 spans 44 makes and a 143× price range. Both satisfy the
+registered shape. They are not comparable estimation problems, and partial
+pooling's shrinkage is exactly the mechanism that a 143× range punishes.
+
+Nothing was violated. The registration was blind, in advance, to the variable
+that decided the outcome — which is the only way that could have been
+established at all. **A shape specification is not sufficient to make two
+corpora comparable**, and any future registration in this project has to say
+what it holds constant about the *problem*, not only about the sample.
+
+**The pre-flight over-read its own sample, and that is the same error class
+as D36 at smaller scale.** Seven detail pages from one thin trim came back
+6-of-7 usable, and §10 recorded that as "nothing suggests the tail converts
+worse", keeping 0.701. The real rate was **0.566**. At n=7 the interval spans
+roughly half the range and one trim is one trim; the honest record would have
+been "this sample cannot speak to the tail's conversion rate". D36 is about a
+mechanism promoted to a market fact — this is evidence promoted past what its
+sample size supports. Different sentence, same failure: a claim outrunning
+what is behind it. D36 stays frozen and does not absorb this; the two sit
+side by side.
+
+**Run 6 is not a rematch.** Constraining price band, constraining make
+composition, or comparing estimators on a narrower corpus are all legitimate
+experiments and none of them is a continuation of this one. Each needs its
+own registration and has to name the question it answers, because it is not
+this question. D35 is unchanged and now bites in the other direction: after
+an estimator loses, changing the corpus and re-running is the single most
+natural way to manufacture a win, and it is the loop this project exists to
+refuse.
