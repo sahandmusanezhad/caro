@@ -122,7 +122,8 @@ sentence that gets repeated because it sounds rigorous.
 Stop at whichever comes first:
 
 1. the target shape in §2 is met — **success**;
-2. the 576-request cap is reached — **stop and report what the corpus is**;
+2. the 640-request hard cap is reached — **stop and report what the corpus
+   is**;
 3. the route is measured to be unable to supply the shape — **stop and report
    the ceiling** (D28's standing rule: measure the route's own ceiling before
    concluding anything about the market; D31 found a 63% ceiling this way);
