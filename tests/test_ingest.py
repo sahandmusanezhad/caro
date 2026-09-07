@@ -919,6 +919,66 @@ check("supply is counted in CARS, not listings",
 check("  and the inflation is reported", sc["inflation"] > 0)
 check("one car counts once toward supply", c0.counts_as_supply() == 1)
 
+# ---------------------------------------------------------------------------
+print("\nrun 3 ladder — four outcomes that must never collapse into one")
+import sys as _sys
+_sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent))
+from scripts.run3_matrix import (                                    # noqa: E402
+    INVALID, READY, TOO_FEW, TOO_FLAT, ArmResult, compare,
+)
+
+
+def lst(n, *, year=lambda i: 1393 + (i % 8), km=lambda i: 20_000 + (i % 10) * 30_000,
+        price=lambda i: 600_000_000 + (i % 9) * 90_000_000,
+        cond=lambda i: ["intact", "minor_paint", "multi_paint", "accident"][i % 4]):
+    return [CarListing(
+        listing_id=f"id{i}", url=f"u{i}", title="t", description="",
+        asking_price_toman=price(i), make="Saipa", model="Tiba", trim=None,
+        year_jalali=year(i), mileage_km=km(i), gearbox="manual", fuel="petrol",
+        color="سفید", body_condition=cond(i), document_issue=False,
+        city="تهران", price_status="display_confirmed",
+        mileage_status="plausible") for i in range(n)]
+
+
+thin = ArmResult("Saipa Tiba", "depth", lst(12), fetched=12)
+check("12 eligible listings -> INSUFFICIENT_OBSERVATIONS",
+      thin.outcome == TOO_FEW, thin.outcome)
+
+flat = ArmResult("Saipa Tiba", "depth",
+                 lst(40, year=lambda i: 1399, km=lambda i: 85_000 + i * 40,
+                     cond=lambda i: "intact"), fetched=40)
+check("40 near-identical listings -> INSUFFICIENT_VARIATION, not READY",
+      flat.outcome == TOO_FLAT, flat.outcome)
+check("  and NOT reported as too few — the counts were met",
+      flat.eligible >= 30, str(flat.eligible))
+
+good = ArmResult("Saipa Tiba", "variation", lst(40), fetched=40)
+check("40 varied listings -> APPRAISAL_READY", good.outcome == READY,
+      f"{good.outcome} {good.cov.findings}")
+
+# The one that matters most: a run that fetched the wrong pages says nothing
+# about the market, and must not be laundered into a finding about variation.
+broken = ArmResult("Saipa Tiba", "variation",
+                   lst(40, year=lambda i: 1399, cond=lambda i: "intact"),
+                   fetched=40, acquisition_ok=False,
+                   acquisition_note="?year= did not change the feed")
+check("A FAILED PRE-FLIGHT IS ITS OWN VERDICT, NOT 'NO VARIATION'",
+      broken.outcome == INVALID, broken.outcome)
+check("  even though the same rows would otherwise read as TOO_FLAT",
+      flat.outcome == TOO_FLAT,
+      "invalid acquisition is decided first, on purpose")
+
+check("the ladder reports every stage, not just the last",
+      all(k in good.line() for k in ("40", "APPRAISAL_READY")),
+      good.line())
+
+rep = compare({"depth": lst(12), "variation": lst(12)},
+              fetched={"depth": 12, "variation": 12})
+check("pooled verdict names which gate failed", TOO_FEW in rep)
+check("  and arm overlap is measured, since identical arms compare nothing",
+      "ARM INDEPENDENCE" in rep and "100% overlap" in rep,
+      "both arms were given the same listing ids")
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

@@ -132,41 +132,140 @@ def plan() -> str:
     return "\n".join(L)
 
 
-def compare(arms: dict[str, list]) -> str:
-    """Side-by-side: did either arm change the answer?"""
-    L = ["RUN 3 RESULT", "=" * 62, ""]
-    seen_ids: dict[str, set] = {}
+# The four outcomes, kept apart on purpose. Collapsing any two of them is how
+# "we collected 30 rows" turns into "we have evidence for a valuation model".
+INVALID = "INVALID_ACQUISITION"        # the run did not test what it claims to
+TOO_FEW = "INSUFFICIENT_OBSERVATIONS"  # not enough eligible listings
+TOO_FLAT = "INSUFFICIENT_VARIATION"    # enough listings, too alike
+READY = "APPRAISAL_READY"              # both gates cleared
+
+OUTCOME_MEANING = {
+    INVALID: "the acquisition did not do what it claims — NOT a statement "
+             "about the market",
+    TOO_FEW: "not enough appraisal-eligible observations",
+    TOO_FLAT: "enough observations, but they are too alike to fit",
+    READY: "count and variation both cleared",
+}
+
+
+class ArmResult:
+    """One model under one sampling strategy, at every stage of the ladder.
+
+    `fetched → unique → usable → appraisal-eligible → variation → ready`.
+    Every stage is reported because every stage is a different reason to
+    stop, and the gaps say which one applies.
+    """
+
+    def __init__(self, model: str, arm: str, listings: list,
+                 fetched: int, acquisition_ok: bool = True,
+                 acquisition_note: str = ""):
+        self.model, self.arm = model, arm
+        self.fetched = fetched
+        self.acquisition_ok = acquisition_ok
+        self.acquisition_note = acquisition_note
+        by_id = {x.listing_id: x for x in listings}
+        self.unique = len(by_id)
+        rows = list(by_id.values())
+        self.usable = sum(1 for x in rows if x.model and x.year_jalali
+                          and x.mileage_status == "plausible")
+        self.eligible_rows = [x for x in rows if eligibility(x)[0]]
+        self.eligible = len(self.eligible_rows)
+        self.cov = cov_mod.assess_model(model, self.eligible_rows)
+
+    @property
+    def outcome(self) -> str:
+        # Order matters. An invalid acquisition is decided first, because a
+        # run that fetched the wrong pages says nothing about variation, and
+        # reporting it as TOO_FLAT would be evidence laundering.
+        if not self.acquisition_ok:
+            return INVALID
+        if self.eligible < cov_mod.MIN_ELIGIBLE:
+            return TOO_FEW
+        if self.cov.degenerate:
+            return TOO_FLAT
+        return READY
+
+    def line(self) -> str:
+        return (f"  {self.model:<8}{self.arm:<11}"
+                f"{self.fetched:>5}{self.unique:>8}{self.usable:>8}"
+                f"{self.eligible:>10}"
+                f"{'pass' if not self.cov.degenerate else 'FAIL':>11}"
+                f"   {self.outcome}")
+
+
+def compare(arms: dict[str, list], fetched: dict[str, int] | None = None,
+            acquisition: dict[str, tuple[bool, str]] | None = None) -> str:
+    """The full ladder, per model per arm, with the outcomes kept distinct."""
+    fetched = fetched or {}
+    acquisition = acquisition or {}
+
+    results: list[ArmResult] = []
     for arm, listings in arms.items():
-        ids = {x.listing_id for x in listings}
-        seen_ids[arm] = ids
-        elig = [x for x in listings if eligibility(x)[0]]
-        L += [f"arm '{arm}': {len(listings)} parsed, {len(ids)} distinct, "
-              f"{len(elig)} eligible"]
-        L += cov_mod.report(cov_mod.assess(listings))
-        L.append("")
+        ok, note = acquisition.get(arm, (True, ""))
+        by_model: dict[str, list] = {}
+        for x in listings:
+            if x.model:
+                by_model.setdefault(f"{x.make} {x.model}", []).append(x)
+        for model, rows in by_model.items():
+            results.append(ArmResult(model, arm, rows,
+                                     fetched.get(arm, len(listings)), ok, note))
 
-    if len(seen_ids) > 1:
-        arms_list = list(seen_ids)
-        overlap = set.intersection(*seen_ids.values())
-        union = set.union(*seen_ids.values())
-        L += ["OVERLAP BETWEEN ARMS", "-" * 62,
-              f"  {len(overlap)} listings appear in both of "
-              f"{', '.join(arms_list)}; {len(union)} distinct in total.",
-              "  High overlap means the arms are the same query wearing two",
-              "  names, and the comparison answers nothing."]
+    L = ["RUN 3 RESULT — the ladder, per model per arm", "=" * 78, "",
+         f"  {'model':<8}{'arm':<11}{'fetch':>5}{'unique':>8}{'usable':>8}"
+         f"{'eligible':>10}{'variation':>11}   outcome",
+         "  " + "-" * 74]
+    for r in sorted(results, key=lambda r: (r.model, r.arm)):
+        L.append(r.line())
+        for f in r.cov.findings:
+            L.append(f"        ⚠ {f}")
+        if not r.acquisition_ok:
+            L.append(f"        ⚠ {r.acquisition_note}")
 
-    merged = [x for ls in arms.values() for x in ls]
-    dedup = {x.listing_id: x for x in merged}.values()
-    covs = cov_mod.assess(list(dedup))
-    ready = [k for k, c in covs.items() if c.sufficient]
-    L += ["", "VERDICT (pooled, deduplicated)", "-" * 62]
-    if ready:
-        L.append(f"  {', '.join(sorted(ready))} meet BOTH the count and the "
-                 "spread. W1 may be unlocked for those models only.")
+    L += ["", "  outcome key", "  " + "-" * 74]
+    for k, v in OUTCOME_MEANING.items():
+        L.append(f"    {k:<26}{v}")
+
+    # Did the two arms actually reach different cars? If not, the comparison
+    # answers nothing regardless of what the counts say.
+    ids = {a: {x.listing_id for x in ls} for a, ls in arms.items()}
+    if len(ids) > 1:
+        overlap = set.intersection(*ids.values())
+        union = set.union(*ids.values())
+        share = len(overlap) / len(union) if union else 0.0
+        L += ["", "ARM INDEPENDENCE", "-" * 62,
+              f"  {len(overlap)} of {len(union)} distinct listings appear in "
+              f"more than one arm ({share:.0%} overlap)."]
+        if share > 0.8:
+            L.append("  ⚠ the arms are largely the SAME QUERY wearing two "
+                     "names. Whatever they agree on is not a comparison.")
+
+    merged = {x.listing_id: x for ls in arms.values() for x in ls}
+    covs = cov_mod.assess(list(merged.values()))
+    ready = sorted(k for k, c in covs.items() if c.sufficient)
+    invalid = [r for r in results if not r.acquisition_ok]
+
+    L += ["", "VERDICT (pooled across arms, deduplicated)", "-" * 62]
+    if invalid:
+        L.append(f"  {INVALID} — {len(invalid)} arm/model cell(s) did not "
+                 "acquire what they claim to. Fix acquisition and re-run; "
+                 "this run is not evidence about the market either way.")
+    elif ready:
+        L.append(f"  {READY}: {', '.join(ready)} — count AND variation. "
+                 "W1 may be unlocked for those models only.")
     else:
-        L.append("  No model meets both gates. This is a failed run, which is "
-                 "a result: record which arm got closer and try a third "
-                 "sampling strategy. Do not move the thresholds.")
+        pooled_big = [k for k, c in covs.items()
+                      if c.n_eligible >= cov_mod.MIN_ELIGIBLE]
+        if pooled_big:
+            L.append(f"  {TOO_FLAT} — {', '.join(sorted(pooled_big))} reached "
+                     f"{cov_mod.MIN_ELIGIBLE}+ eligible listings but stayed "
+                     "too alike. Volume was not the binding constraint.")
+        else:
+            best = max(covs.values(), key=lambda c: c.n_eligible, default=None)
+            L.append(f"  {TOO_FEW} — best model has "
+                     f"{best.n_eligible if best else 0} eligible listings of "
+                     f"{cov_mod.MIN_ELIGIBLE} needed.")
+        L.append("  A failed run is a result. Record which arm got closer and "
+                 "try a third sampling strategy — do not move the thresholds.")
     return "\n".join(L)
 
 
