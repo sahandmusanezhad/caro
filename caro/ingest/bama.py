@@ -60,6 +60,17 @@ from caro.ingest.persian import (
 )
 from caro.tracking import FetchOutcome, FetchStatus, classify_http
 
+# Phrases a page shows when the offer is gone but the server still answers
+# 200. Without these, a removed listing reads as a successful fetch of an
+# empty car and quietly enters the corpus.
+GONE_MARKERS = ("این آگهی موجود نیست", "آگهی حذف شده", "آگهی منقضی",
+                "یافت نشد", "صفحه مورد نظر یافت نشد", "آگهی فروخته شده")
+
+# What a real listing page must contain. A 200 that has none of these is not
+# a listing — it is a challenge page, a redirect landing, or a partial
+# render, and calling it ABSENT would fabricate a disappearance.
+REQUIRED_MARKERS = ("کارکرد", "تومان")
+
 SITEMAP_CAR = "https://bama.ir/sitemap/car"
 BASE = "https://bama.ir"
 
@@ -271,6 +282,80 @@ def http_fetcher(policy: PolitenessPolicy | None = None):
     return fetch
 
 
+class DiscoveryUnavailable(SourceBlocked):
+    """Discovery failed, so we do not know what exists.
+
+    Distinct from every other failure on purpose: an empty result here means
+    "we could not look", never "there is nothing". Without the distinction a
+    sitemap outage would flow downstream as a corpus of zero valid listings,
+    and every count computed from it would be confidently wrong.
+    """
+
+
+def classify_detail_page(status: int | None, html: str) -> FetchStatus:
+    """Three-way, because HTTP status alone is not enough.
+
+        404 / explicit "gone" text  -> ABSENT
+        200 + no listing markers    -> UNKNOWN  (challenge, redirect, partial)
+        200 + listing markers       -> OK
+        anything else               -> UNKNOWN
+
+    The middle case is the one that matters. A soft-404 answers 200, and
+    treating it as a successful fetch puts an empty car in the corpus;
+    treating it as ABSENT invents a disappearance. Neither is acceptable, so
+    it is recorded as what it is: we do not know.
+    """
+    base = classify_http(status)
+    if base is FetchStatus.ABSENT:
+        return FetchStatus.ABSENT
+    if base is not FetchStatus.OK:
+        return FetchStatus.UNKNOWN
+    text = normalize(html)
+    if any(normalize(m) in text for m in GONE_MARKERS):
+        return FetchStatus.ABSENT
+    if not any(normalize(m) in text for m in REQUIRED_MARKERS):
+        return FetchStatus.UNKNOWN
+    return FetchStatus.OK
+
+
+@dataclass
+class DiscoveryStats:
+    """What discovery actually did. Printed by first_run.py.
+
+    Coverage claims need these numbers: 50 listings all drawn from one brand
+    page says nothing about the corpus, and without the per-category counts
+    that bias is invisible.
+    """
+    sitemap_urls: int = 0
+    categories_found: int = 0
+    categories_tried: int = 0
+    categories_ok: int = 0
+    listings_per_category: dict = field(default_factory=dict)
+    listing_urls_raw: int = 0
+    listing_urls_unique: int = 0
+    detail_status: dict = field(default_factory=dict)
+
+    def report(self) -> str:
+        L = ["DISCOVERY", "-" * 62,
+             f"  sitemap urls          {self.sitemap_urls}",
+             f"  category pages found  {self.categories_found}",
+             f"  category pages tried  {self.categories_tried}"
+             f"  (ok: {self.categories_ok})"]
+        for cat, n in self.listings_per_category.items():
+            L.append(f"      {cat.rsplit('/', 1)[-1]:<24}{n:>4} listings")
+        L += [f"  listing urls          {self.listing_urls_raw} "
+              f"({self.listing_urls_unique} unique)"]
+        if self.detail_status:
+            L.append("  detail fetch outcomes")
+            for k, v in sorted(self.detail_status.items()):
+                L.append(f"      {str(k):<24}{v:>4}")
+        if self.categories_ok == 1 and self.listing_urls_unique > 20:
+            L.append("  ⚠ every listing came from ONE category page. This "
+                     "corpus is one brand, not the market — widen before "
+                     "drawing any conclusion from it.")
+        return "\n".join(L)
+
+
 @dataclass
 class BamaAdapter:
     """Sitemap → category pages → listings, stopping when told to.
@@ -288,6 +373,7 @@ class BamaAdapter:
     sitemap_url: str = SITEMAP_CAR
     only_makes: tuple[str, ...] = ()
     on_listing: Callable[[CarListing], None] | None = None
+    stats: DiscoveryStats = field(default_factory=DiscoveryStats)
 
     def _get(self, url: str) -> tuple[int, str]:
         if self.fetcher is None:
@@ -300,21 +386,31 @@ class BamaAdapter:
     def discover_categories(self) -> list[str]:
         status, body = self._get(self.sitemap_url)
         if classify_http(status) is not FetchStatus.OK or not body:
-            raise SourceBlocked(
+            raise DiscoveryUnavailable(
                 f"bama sitemap returned {status}; halting rather than "
-                "falling back to crawling search pages")
-        cats = [u for u in parse_sitemap(body) if is_category_url(u)]
+                "falling back to crawling search pages. This means we could "
+                "not look — not that bama has no listings.")
+        urls = parse_sitemap(body)
+        self.stats.sitemap_urls = len(urls)
+        cats = [u for u in urls if is_category_url(u)]
         if self.only_makes:
             cats = [u for u in cats
                     if any(m in u.lower() for m in self.only_makes)]
+        self.stats.categories_found = len(cats)
         return cats[:self.max_categories]
 
     def discover_listings(self) -> list[str]:
         urls: list[str] = []
         for cat in self.discover_categories():
+            self.stats.categories_tried += 1
             status, html = self._get(cat)
             if classify_http(status) is FetchStatus.OK and html:
-                urls.extend(extract_listing_links(html))
+                found = extract_listing_links(html)
+                self.stats.categories_ok += 1
+                self.stats.listings_per_category[cat] = len(found)
+                urls.extend(found)
+            else:
+                self.stats.listings_per_category[cat] = 0
             self.sleeper(self.policy.sleep())
             if len(urls) >= self.max_listings:
                 break
@@ -323,13 +419,17 @@ class BamaAdapter:
             if u not in seen:
                 seen.add(u)
                 out.append(u)
+        self.stats.listing_urls_raw = len(urls)
+        self.stats.listing_urls_unique = len(out)
         return out[:self.max_listings]
 
     def fetch_all(self, on: date) -> Iterator[FetchOutcome]:
         consecutive = 0
         for url in self.discover_listings():
             status, html = self._get(url)
-            fs = classify_http(status)
+            fs = classify_detail_page(status, html)
+            key = f"{status} -> {fs.value}"
+            self.stats.detail_status[key] = self.stats.detail_status.get(key, 0) + 1
 
             if fs is FetchStatus.OK and html:
                 consecutive = 0

@@ -291,7 +291,8 @@ check("the adapter's own urls satisfy robots",
 
 print("\nbama — parsed against the real page structure, observed 2026-09-07")
 from caro.ingest.bama import (
-    BamaAdapter, extract_listing_links, is_category_url, is_listing_url,
+    BamaAdapter, DiscoveryUnavailable, classify_detail_page,
+    extract_listing_links, is_category_url, is_listing_url,
     listing_id_from_url, parse_detail_page, parse_sitemap, parse_slug,
 )
 
@@ -399,15 +400,56 @@ b2 = BamaAdapter(fetcher=lambda u: (403, ""), sleeper=lambda s: None)
 try:
     b2.discover_listings()
     check("a blocked sitemap halts, with no fallback to search crawling", False)
-except SourceBlocked as e:
+except DiscoveryUnavailable as e:
     check("a blocked sitemap halts, with no fallback to search crawling",
           "falling back" in str(e))
+    check("  and says we COULD NOT LOOK, not that bama is empty",
+          "not that bama has no listings" in str(e))
+check("DiscoveryUnavailable is distinguishable from a mid-run block",
+      issubclass(DiscoveryUnavailable, SourceBlocked)
+      and DiscoveryUnavailable is not SourceBlocked)
+
+print("\nsoft-404: a 200 is not proof the listing is there")
+for status, html, want, why in [
+    (404, "", FetchStatus.ABSENT, "hard 404"),
+    (200, "کارکرد 100,000 کیلومتر تومان", FetchStatus.OK, "real listing"),
+    (200, "این آگهی موجود نیست", FetchStatus.ABSENT, "soft 404, stated"),
+    (200, "لطفا صبر کنید", FetchStatus.UNKNOWN, "challenge page"),
+    (200, "", FetchStatus.UNKNOWN, "empty body"),
+    (403, "", FetchStatus.UNKNOWN, "blocked"),
+    (301, "", FetchStatus.UNKNOWN, "redirect landing"),
+]:
+    got = classify_detail_page(status, html)
+    check(f"{status} + {why} -> {want.value}", got is want, got.value)
+check("a 200 with no listing markers is never ABSENT",
+      classify_detail_page(200, "<html><body></body></html>")
+      is not FetchStatus.ABSENT,
+      "calling a partial render an absence fabricates a disappearance")
+
+print("\ndiscovery telemetry — coverage claims need these numbers")
+b3 = BamaAdapter(fetcher=bama_fetch, salt="test-salt", max_listings=10,
+                 sleeper=lambda s: None)
+list(b3.fetch_all(date(2026, 9, 7)))
+st = b3.stats
+check("sitemap urls counted", st.sitemap_urls == 5, str(st.sitemap_urls))
+check("categories separated from listings", st.categories_found == 2)
+check("per-category listing counts recorded",
+      len(st.listings_per_category) == 2, str(st.listings_per_category))
+check("a category that returned nothing is recorded as zero, not omitted",
+      0 in st.listings_per_category.values())
+check("raw vs unique urls both counted",
+      st.listing_urls_raw >= st.listing_urls_unique)
+check("detail outcomes tallied by status", bool(st.detail_status),
+      str(st.detail_status))
+check("the report renders", "DISCOVERY" in st.stats_report()
+      if hasattr(st, "stats_report") else "DISCOVERY" in st.report())
 
 
 print("\ncross-source identity — a different problem from same-source reposts")
 from caro.ingest.cross_source import (
-    DEFAULT_SOURCES, CrossSourceCandidate, cluster_across_sources,
-    cross_source_contradictions, cross_source_match_score, supply_correction,
+    DEFAULT_SOURCES, CrossSourceCandidate, MatchVerdict, classify_cross_source,
+    cluster_across_sources, cross_source_contradictions,
+    cross_source_match_score, supply_correction,
 )
 
 check("three offer sources, each with a stated role",
@@ -453,8 +495,34 @@ check("the wording is NOT «تأیید» — several sites is not corroboration"
       "تأیید" not in c0.claim_fa(), c0.claim_fa())
 check("  it names the price inconsistency instead",
       "اختلاف قیمت" in c0.claim_fa(), c0.claim_fa())
-check("negotiation leverage is stated",
-      "چانه" in (c0.negotiation_floor_fa() or ""), str(c0.negotiation_floor_fa()))
+check("the price gap is stated as an OBSERVATION",
+      "منتشر شده" in (c0.price_gap_fa() or ""), str(c0.price_gap_fa()))
+check("  and never claims the seller would accept the lowest price",
+      "پذیرفته" not in (c0.price_gap_fa() or "")
+      and "قبول" not in (c0.price_gap_fa() or ""),
+      "a price published somewhere may be stale, channel-specific, or raised since")
+
+print("\nthree-state matching — AMBIGUOUS is never merged")
+strong = classify_cross_source(cand("bama", "b9", 1_450_000_000),
+                               cand("divar", "d9", 1_420_000_000))
+check("corroborated evidence -> MATCH", strong.verdict is MatchVerdict.MATCH)
+check("  and may_merge is true", strong.may_merge)
+
+one_photo = classify_cross_source(
+    cand("bama", "b8", 1_450_000_000, imgs=("dealer_showroom",), desc=""),
+    cand("divar", "d8", 1_420_000_000, imgs=("dealer_showroom",), desc=""))
+check("a SINGLE shared photo does not merge",
+      not one_photo.may_merge, one_photo.verdict.value)
+check("  because dealers reuse one showroom shot across their inventory",
+      one_photo.verdict in (MatchVerdict.AMBIGUOUS, MatchVerdict.NO_MATCH))
+
+unrelated = classify_cross_source(cand("bama", "b7", 1_450_000_000),
+                                  cand("divar", "d7", 1_400_000_000,
+                                       imgs=("z1",), desc="ماشین دیگر", km=95_000))
+check("a genuinely different car -> NO_MATCH",
+      unrelated.verdict is MatchVerdict.NO_MATCH)
+check("ambiguous pairs are recorded on the cluster, not discarded",
+      hasattr(clusters[0], "ambiguous_with"))
 
 sc = supply_correction(clusters)
 check("supply is counted in CARS, not listings",

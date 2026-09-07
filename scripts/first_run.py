@@ -34,7 +34,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from caro.ingest.bama import BamaAdapter, http_fetcher               # noqa: E402
+from caro.ingest.bama import (                                       # noqa: E402
+    BamaAdapter, DiscoveryUnavailable, http_fetcher,
+)
 from caro.ingest.divar_car import (                                     # noqa: E402
     DivarCarAdapter, SourceBlocked, parse_listing, playwright_fetcher,
 )
@@ -91,6 +93,12 @@ def inventory(listings: list) -> str:
         L.append(f"  {name:<22}{c:>4}  {bar}")
     thin = sum(1 for _, c in models.items() if c < 30)
     L.append(f"  {len(models)} models, {thin} of them under 30 listings")
+
+    top = models.most_common(1)
+    if top and top[0][1] / n > 0.7:
+        L.append(f"  ⚠ {top[0][1] / n:.0%} of the corpus is one model "
+                 f"({top[0][0]}). Field rates below describe that model, not "
+                 "the market.")
 
     L += ["", "BODY CONDITION  (the field no filter exposes)", "-" * 62]
     cond = Counter(x.body_condition for x in listings)
@@ -160,6 +168,12 @@ def main() -> int:
               f"asked to.\n")
         try:
             listings = collect(args)
+        except DiscoveryUnavailable as e:
+            # We could not look. That is emphatically not "there is nothing".
+            print(f"\nDISCOVERY UNAVAILABLE: {e}\n"
+                  "No corpus was collected, and no conclusion about the "
+                  "market follows from that. Try again later.", file=sys.stderr)
+            return 1
         except SourceBlocked as e:
             # Not a failure to work around. It is the designed behaviour and
             # it belongs in the run log.
@@ -205,7 +219,9 @@ def collect(args) -> list:
                      salt=os.environ["CARO_SELLER_SALT"],
                      on_listing=out.append)
 
-    records = [o for o in ad.fetch_all(date.today())]
+    records = list(ad.fetch_all(date.today()))
+    print(ad.stats.report())
+    print()
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
     snap = assess_integrity(Snapshot(
         f"{args.source}-{date.today().isoformat()}", date.today(), records))

@@ -28,8 +28,11 @@ finding of the two.
 Three things follow from a confirmed cross-source cluster, and none of them
 is corroboration:
 
-1. **A negotiation floor.** The lowest ask is a price the seller has already
-   publicly accepted. They cannot credibly refuse it elsewhere.
+1. **An observable price gap.** One car carries different numbers in
+   different places. That is a fact worth showing. It is NOT evidence that
+   the seller would accept the lowest of them — a price published somewhere
+   may be stale, channel-specific, or since raised. The observation is
+   stated; the conclusion is the reader's.
 2. **A supply correction.** Counting listings without cross-source dedup
    overstates how many cars are actually for sale, which inflates every
    liquidity estimate downstream.
@@ -44,6 +47,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Literal, Sequence
 
 from caro.ingest.persian import normalize
@@ -107,8 +111,32 @@ DEFAULT_SOURCES: tuple[SourceProfile, ...] = (
 # ---------------------------------------------------------------------------
 
 CROSS_SOURCE_THRESHOLD = 0.80
+AMBIGUOUS_FLOOR = 0.62
 AMBIGUITY_MARGIN = 0.10
 MILEAGE_TOLERANCE = 0.03
+
+# A single shared photo is not evidence. Dealers reuse one showroom shot
+# across their whole inventory, stock images appear on many listings, and a
+# listing with one photo scores jaccard 1.0 or 0.0 with nothing in between.
+# Full image weight requires more than one shared hash.
+MIN_SHARED_IMAGES_FOR_FULL_WEIGHT = 2
+
+
+class MatchVerdict(str, Enum):
+    MATCH = "match"
+    AMBIGUOUS = "ambiguous"      # never merged, always recorded
+    NO_MATCH = "no_match"
+
+
+@dataclass(frozen=True)
+class MatchResult:
+    verdict: MatchVerdict
+    score: float
+    reasons: tuple[str, ...]
+
+    @property
+    def may_merge(self) -> bool:
+        return self.verdict is MatchVerdict.MATCH
 
 
 def _jaccard(a: Sequence[str], b: Sequence[str]) -> float:
@@ -184,11 +212,16 @@ def cross_source_match_score(a: CrossSourceCandidate,
     score = 0.0
     reasons: list[str] = []
 
-    # Photos are the only artefact that crosses sites unchanged.
+    # Photos are the only artefact that crosses sites unchanged — but a
+    # single shared photo is weak evidence, not strong. See the constant.
+    shared = len(set(a.image_phashes) & set(b.image_phashes))
     img = _jaccard(a.image_phashes, b.image_phashes)
     if img > 0:
-        score += 0.50 * img
-        reasons.append(f"image overlap {img:.2f}")
+        weight = 0.50 if shared >= MIN_SHARED_IMAGES_FOR_FULL_WEIGHT else 0.20
+        score += weight * img
+        reasons.append(f"image overlap {img:.2f} ({shared} shared)")
+        if shared < MIN_SHARED_IMAGES_FOR_FULL_WEIGHT:
+            reasons.append("only one shared photo — dealers reuse stock shots")
 
     spec_hits = sum([
         bool(a.make and a.make == b.make),
@@ -225,6 +258,7 @@ class CrossSourceCluster:
     members: list[CrossSourceCandidate] = field(default_factory=list)
     match_confidence: float = 1.0
     reasons: list[str] = field(default_factory=list)
+    ambiguous_with: list[tuple[str, str, float]] = field(default_factory=list)
 
     @property
     def sources(self) -> list[str]:
@@ -269,13 +303,62 @@ class CrossSourceCluster:
                 f"{self.price_spread_irr / 1e6:.0f} میلیون اختلاف قیمت — "
                 f"کمترین قیمت اعلام‌شده {self.min_ask_irr / 1e9:.2f} میلیارد است")
 
-    def negotiation_floor_fa(self) -> str | None:
-        """The lowest public ask is a number the seller already accepted."""
+    def price_gap_fa(self) -> str | None:
+        """What was OBSERVED, and nothing about the seller's state of mind.
+
+        An earlier version said "the seller has already accepted this price,
+        so there is room to negotiate above it". That is an inference, and a
+        weak one: a price published somewhere is not a price still on offer,
+        nor one the seller would accept today, nor necessarily their current
+        number at all. It could be stale, or a channel-specific listing they
+        have since raised.
+
+        The observation is worth stating. The conclusion is the user's to
+        draw, and the wording now stops where the evidence does.
+        """
         if not self.is_cross_source or self.price_spread_irr == 0:
             return None
-        return (f"فروشنده خودش این خودرو را جایی "
-                f"{self.min_ask_irr / 1e9:.2f} میلیارد گذاشته؛ "
-                "بالاتر از این عدد جای چانه‌زنی دارد.")
+        return (f"همین خودرو با قیمت {self.min_ask_irr / 1e9:.2f} میلیارد نیز "
+                f"منتشر شده؛ اختلاف قیمت بین کانال‌ها "
+                f"{self.price_spread_irr / 1e6:.0f} میلیون تومان است. "
+                "این اختلاف یک نکته‌ی قابل بررسی برای مذاکره است.")
+
+
+def classify_cross_source(a: CrossSourceCandidate,
+                          b: CrossSourceCandidate) -> MatchResult:
+    """Three states, because two is not enough.
+
+    A binary matcher forces every uncertain pair into either a merge or a
+    silent discard. In CARO a false merge destroys a genuine independent
+    market observation, so the uncertain cases get their own outcome:
+    AMBIGUOUS is recorded, shown, and never merged.
+
+    A MATCH additionally requires CORROBORATION — evidence from more than
+    one family. Images alone can be a dealer's reused showroom photo; specs
+    alone can be two identical cars in the same city, which is common for
+    high-volume models and exactly where a naive matcher fails.
+    """
+    score, reasons = cross_source_match_score(a, b)
+    if score == 0.0:
+        return MatchResult(MatchVerdict.NO_MATCH, 0.0, tuple(reasons))
+
+    families = sum([
+        any(r.startswith("image overlap") for r in reasons),
+        any(r.startswith("spec agreement") for r in reasons),
+        any(r.startswith("description similarity") for r in reasons),
+    ])
+    corroborated = families >= 2
+
+    if score >= CROSS_SOURCE_THRESHOLD and corroborated:
+        return MatchResult(MatchVerdict.MATCH, score, tuple(reasons))
+    if score >= CROSS_SOURCE_THRESHOLD:
+        return MatchResult(
+            MatchVerdict.AMBIGUOUS, score,
+            tuple(reasons) + ("scores high on one evidence family only — "
+                              "not merged",))
+    if score >= AMBIGUOUS_FLOOR:
+        return MatchResult(MatchVerdict.AMBIGUOUS, score, tuple(reasons))
+    return MatchResult(MatchVerdict.NO_MATCH, score, tuple(reasons))
 
 
 def cluster_across_sources(
@@ -297,18 +380,26 @@ def cluster_across_sources(
             continue
 
         scored: list[tuple[float, CrossSourceCandidate, list[str]]] = []
+        ambiguous: list[tuple[float, CrossSourceCandidate, tuple[str, ...]]] = []
         for other in candidates[i + 1:]:
             if (other.source, other.listing_id) in assigned:
                 continue
             if other.source == cand.source:
                 continue
-            s, why = cross_source_match_score(cand, other)
-            if s >= threshold:
-                scored.append((s, other, why))
+            res = classify_cross_source(cand, other)
+            if res.verdict is MatchVerdict.MATCH and res.score >= threshold:
+                scored.append((res.score, other, list(res.reasons)))
+            elif res.verdict is MatchVerdict.AMBIGUOUS:
+                ambiguous.append((res.score, other, res.reasons))
 
         cid = f"xs_{len(clusters):05d}"
         cluster = CrossSourceCluster(cid, [cand])
         assigned.add(key)
+        # Recorded, not merged. An unexplained near-match is information —
+        # it belongs in the run log so the matcher can be tuned against real
+        # failure modes rather than guessed at.
+        cluster.ambiguous_with = [
+            (o.source, o.listing_id, round(sc, 3)) for sc, o, _ in ambiguous]
 
         if scored:
             scored.sort(key=lambda x: x[0], reverse=True)
