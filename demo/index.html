@@ -1,0 +1,313 @@
+<title>CARO Decision Trace</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#f1f3f0; --surface:#fbfcfa; --sunk:#e7eae6;
+  --ink:#131a1b; --ink-2:#3d4947; --ink-3:#69736f;
+  --line:#d5dbd6; --line-2:#c2cac4;
+  --accent:#1a5f59; --accent-soft:#dbe9e6;
+  --warn:#9a6508; --warn-soft:#f5ead4; --bad:#8f2f2f; --bad-soft:#f6e0dd;
+  --good:#2e6b46; --good-soft:#dcecdf;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --fa:"Vazirmatn",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0e1213; --surface:#161c1d; --sunk:#1d2425;
+  --ink:#e4e8e5; --ink-2:#b3bcb8; --ink-3:#7f8a86;
+  --line:#293230; --line-2:#374240;
+  --accent:#5db3a8; --accent-soft:#16302e;
+  --warn:#d9a441; --warn-soft:#32270f; --bad:#e08b83; --bad-soft:#331a18;
+  --good:#7bbd92; --good-soft:#14291c;
+}}
+:root[data-theme="dark"]{
+  --ground:#0e1213; --surface:#161c1d; --sunk:#1d2425;
+  --ink:#e4e8e5; --ink-2:#b3bcb8; --ink-3:#7f8a86;
+  --line:#293230; --line-2:#374240;
+  --accent:#5db3a8; --accent-soft:#16302e;
+  --warn:#d9a441; --warn-soft:#32270f; --bad:#e08b83; --bad-soft:#331a18;
+  --good:#7bbd92; --good-soft:#14291c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--fa);
+  font-size:15px;line-height:1.75;direction:rtl}
+.wrap{max-width:1000px;margin:0 auto;padding:40px 22px 72px}
+code,.mono,.num{font-family:var(--mono);direction:ltr;unicode-bidi:isolate;
+  font-variant-numeric:tabular-nums}
+
+header{border-bottom:1px solid var(--line);padding-bottom:22px;margin-bottom:26px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font-family:var(--mono);font-size:26px;font-weight:500;letter-spacing:.14em;
+  margin:0;color:var(--accent)}
+.brand .sub{color:var(--ink-3);font-size:13px}
+.thesis{margin:14px 0 0;font-size:19px;font-weight:500;max-width:60ch;text-wrap:balance;line-height:1.6}
+.thesis em{font-style:normal;color:var(--accent);font-weight:700}
+
+.cases{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:26px}
+.case-btn{font-family:var(--fa);font-size:13px;background:var(--surface);color:var(--ink-2);
+  border:1px solid var(--line);border-radius:2px;padding:7px 12px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;transition:border-color .15s,color .15s}
+.case-btn:hover{border-color:var(--line-2);color:var(--ink)}
+.case-btn .tag{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.case-btn[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] .case-btn[aria-selected="true"],
+@media (prefers-color-scheme:dark){}
+.case-btn[aria-selected="true"] .tag{color:rgba(255,255,255,.7)}
+.case-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  padding:24px;margin-bottom:16px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 14px;direction:ltr;text-align:right}
+
+/* verdict */
+.verdict-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.chip{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  padding:4px 9px;border-radius:2px;border:1px solid;direction:ltr}
+.c-approve{color:var(--good);border-color:var(--good);background:var(--good-soft)}
+.c-downgrade{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+.c-reject,.c-insufficient_evidence{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.headline{font-size:17px;font-weight:500;margin:0;max-width:52ch;line-height:1.6}
+
+/* scale */
+.scale{margin:26px 0 6px}
+.scale-track{position:relative;height:44px}
+.scale-line{position:absolute;top:22px;right:0;left:0;height:1px;background:var(--line-2)}
+.scale-band{position:absolute;top:12px;height:22px;background:var(--accent-soft);
+  border-inline:1px solid var(--accent);border-radius:1px}
+.scale-med{position:absolute;top:6px;width:2px;height:34px;background:var(--accent)}
+.scale-lab{position:absolute;top:0;font-family:var(--mono);font-size:11px;color:var(--ink-2);
+  transform:translateX(50%);direction:ltr;white-space:nowrap}
+.scale-cap{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
+  color:var(--ink-3);direction:ltr;border-top:1px solid var(--line);padding-top:6px}
+
+/* confidence transition */
+.conf{display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap}
+.conf .lvl{font-family:var(--mono);font-size:15px;font-weight:500;letter-spacing:.06em;direction:ltr}
+.lvl-HIGH{color:var(--good)} .lvl-MEDIUM{color:var(--warn)}
+.lvl-LOW{color:var(--bad)} .lvl-INSUFFICIENT_EVIDENCE{color:var(--bad);font-size:12px}
+.conf .was{color:var(--ink-3);text-decoration:line-through;font-size:13px}
+.conf .arrow{color:var(--ink-3);font-family:var(--mono)}
+.conf .why{color:var(--ink-3);font-size:13px}
+
+/* dimensions */
+.dims{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);margin-top:18px}
+.dim{background:var(--surface);padding:11px 13px}
+.dim .k{font-size:12px;color:var(--ink-3)}
+.dim .v{font-family:var(--mono);font-size:18px;font-weight:500;margin-top:2px;direction:ltr}
+.dim .bar{height:3px;background:var(--sunk);margin-top:7px;position:relative}
+.dim .bar i{position:absolute;inset-block:0;right:0;background:var(--accent);display:block}
+.dim.risk .bar i{background:var(--bad)}
+
+/* challenge */
+.challenge{margin-top:18px}
+.btn{font-family:var(--fa);font-size:14px;font-weight:500;background:transparent;
+  color:var(--accent);border:1px solid var(--accent);border-radius:2px;padding:9px 18px;
+  cursor:pointer;transition:background .15s,color .15s}
+.btn:hover{background:var(--accent);color:var(--surface)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.btn[disabled]{opacity:.45;cursor:default}
+.checks{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column;gap:1px;
+  background:var(--line);border:1px solid var(--line)}
+.checks li{background:var(--surface);padding:10px 13px;display:flex;gap:11px;align-items:flex-start;
+  opacity:0;transform:translateY(-3px);animation:reveal .32s ease forwards}
+@keyframes reveal{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.checks li{animation:none;opacity:1;transform:none}}
+.checks .mark{font-family:var(--mono);font-size:13px;flex:none;width:1.2em}
+.checks .pass .mark{color:var(--good)} .checks .warn .mark{color:var(--warn)}
+.checks .fail .mark{color:var(--bad)}
+.checks .txt{font-size:13.5px;line-height:1.6}
+.checks .code{font-family:var(--mono);font-size:11px;color:var(--ink-3);direction:ltr}
+
+/* trace */
+.trace{list-style:none;margin:0;padding:0}
+.trace li{display:grid;grid-template-columns:auto 128px 1fr;gap:12px;align-items:baseline;
+  padding:8px 0;border-bottom:1px dashed var(--line)}
+.trace li:last-child{border-bottom:0}
+.trace .dot{color:var(--accent);font-size:10px}
+.trace .who{font-family:var(--mono);font-size:12px;color:var(--ink-2);direction:ltr;text-align:right}
+.trace .what{font-size:13.5px;color:var(--ink-2)}
+
+/* answer */
+.answer{white-space:pre-wrap;font-size:14.5px;line-height:1.9;
+  background:var(--sunk);border-radius:2px;padding:18px;border:1px solid var(--line)}
+
+/* ledger */
+details.claim{border-bottom:1px solid var(--line)}
+details.claim:last-of-type{border-bottom:0}
+details.claim summary{cursor:pointer;padding:11px 0;font-size:14px;display:flex;gap:10px;
+  align-items:baseline;list-style:none}
+details.claim summary::-webkit-details-marker{display:none}
+details.claim summary::before{content:"+";font-family:var(--mono);color:var(--accent);flex:none}
+details.claim[open] summary::before{content:"−"}
+.kindtag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);border:1px solid var(--line-2);padding:1px 5px;border-radius:2px;flex:none;direction:ltr}
+.ev{margin:0 22px 12px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.ev li{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);direction:ltr;text-align:left;
+  border-right:2px solid var(--line-2);padding-right:9px}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--line)}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:400}
+td.n{font-family:var(--mono);direction:ltr;text-align:left;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+pre.policy{font-family:var(--mono);font-size:11.5px;line-height:1.65;direction:ltr;text-align:left;
+  background:var(--sunk);border:1px solid var(--line);padding:16px;border-radius:2px;
+  overflow-x:auto;margin:0;color:var(--ink-2)}
+footer{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);
+  color:var(--ink-3);font-size:12.5px;max-width:62ch}
+h2.sec{font-size:13px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:30px 0 12px;font-weight:400;direction:ltr;text-align:right}
+</style>
+<div class="wrap">
+<header>
+  <div class="brand"><h1>CARO</h1>
+    <span class="sub">سامانه‌ی تصمیم‌یار خرید خودروی کارکرده — نمونه‌ی اجرایی</span></div>
+  <p class="thesis">CARO محدوده‌ی قیمت پیشنهادی را تخمین می‌زند، بعد <em>تلاش می‌کند خودش را نقض کند</em>.</p>
+</header>
+
+<div class="cases" role="tablist" id="cases"></div>
+
+<section class="panel" id="verdict"></section>
+<section class="panel" id="challenge"></section>
+
+<h2 class="sec">Agent trace</h2>
+<section class="panel"><ul class="trace" id="trace"></ul></section>
+
+<h2 class="sec">Answer</h2>
+<section class="panel"><div class="answer" id="answer"></div></section>
+
+<h2 class="sec">Evidence ledger</h2>
+<section class="panel" id="ledger"></section>
+
+<h2 class="sec">Benchmark — the gate every estimator must pass</h2>
+<section class="panel scroll"><table id="bench"></table></section>
+
+<h2 class="sec">Confidence policy — published rules, not a fitted score</h2>
+<section class="panel"><pre class="policy" id="policy"></pre></section>
+
+<footer>
+  همه‌ی اعداد این صفحه خروجی واقعی همان کدی است که تست‌ها را اجرا می‌کند — هیچ مقداری دستی نوشته نشده.
+  کورپوس این نمونه مصنوعی است و فقط درستیِ خودِ سامانه را نشان می‌دهد، نه اعتبار بازار واقعی.
+  برآوردها از <strong>قیمت‌های پیشنهادی مشاهده‌شده</strong> ساخته می‌شوند، نه قیمت معامله.
+</footer>
+</div>
+<script>
+const D = {"cases": [{"label": "A", "title": "شواهد قوی — برآورد تأییدشده", "decision": "approve", "status": "HIGH", "status_before": "HIGH", "downgrade_reasons": [], "estimate": {"0.15": 1207084351.5342472, "0.35": 1349947971.0257862, "0.5": 1444041277.6748486, "0.85": 1765260006.0252888}, "confidence": {"evidence": 1.0, "comparable": 1.0, "temporal": 1.0, "calibration": 1.0, "data_quality": 1.0, "anomaly_risk": 0, "score": 1.0, "notes": ["قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده", "پوشش کامل — کمتر از ۱۰٪ نامعلوم", "سقف رده‌ی strict × 38 آگهی"]}, "findings": [], "trace": [{"agent": "Evidence", "summary": "5 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"}, {"agent": "Comparables", "summary": "رده‌ی strict · 38 آگهی"}, {"agent": "Estimation", "summary": "log-linear-ridge پذیرفته شد"}, {"agent": "Risk", "summary": "نشانه‌ی مهمی نبود"}, {"agent": "Adversarial", "summary": "تناقض مهمی پیدا نشد"}, {"agent": "Judge", "summary": "APPROVE · اطمینان HIGH"}, {"agent": "Explanation", "summary": "پاسخ فارسی تولید شد"}], "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.21 تا 1.77 میلیارد\n\nشواهد: 38 آگهی مشابه (مدل، سال و کارکرد نزدیک)\nتاریخچه: از شروع رصد ما حداقل 4 روز در بازار بوده\n\nاطمینان: HIGH\n  • بازبینی انتقادی تناقض مهمی پیدا نکرد.\nضعیف‌ترین بُعد: شواهد مشاهده‌شده (100%)\n\nاین برآورد از قیمت‌های پیشنهادی مشاهده‌شده ساخته شده، نه از قیمت معامله.", "claims": [{"text": "از شروع رصد ما حداقل 4 روز در بازار بوده", "kind": "observed", "evidence": [{"id": "obs:trk_000001:2026-09-06", "summary": "2026-09-06: present", "kind": "observation", "on": "2026-09-06"}, {"id": "obs:trk_000001:2026-09-07", "summary": "2026-09-07: present", "kind": "observation", "on": "2026-09-07"}, {"id": "obs:trk_000001:2026-09-08", "summary": "2026-09-08: present", "kind": "observation", "on": "2026-09-08"}, {"id": "obs:trk_000001:2026-09-09", "summary": "2026-09-09: present", "kind": "observation", "on": "2026-09-09"}, {"id": "obs:trk_000001:2026-09-10", "summary": "2026-09-10: present", "kind": "observation", "on": "2026-09-10"}]}, {"text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)", "kind": "observed", "evidence": [{"id": "comp:l17", "summary": "tier=strict n=38 dispersion=0.250", "kind": "comparable", "on": null}]}, {"text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد", "kind": "estimated", "evidence": [{"id": "bench:log-linear-ridge:accepted", "summary": "log-linear-ridge passed AcceptanceGate", "kind": "benchmark", "on": null}]}], "unsupported": 0}, {"label": "B", "title": "آگهی مشابه کم — اطمینان پایین", "decision": "insufficient_evidence", "status": "INSUFFICIENT_EVIDENCE", "status_before": "INSUFFICIENT_EVIDENCE", "downgrade_reasons": ["تخمین بر پایه‌ی آگهی‌های واقعاً مشابه نیست؛ فقط همین مدل.", "فقط 4 آگهی مشابه پیدا شد.", "کل بازه از 4 آگهی درآمده؛ یک آگهی پرت می‌تواند آن را جابه‌جا کند."], "estimate": {"0.15": 1543980729.689693, "0.35": 1726717483.0808654, "0.5": 1847072164.238219, "0.85": 2257942809.6559405}, "confidence": {"evidence": 0.65, "comparable": 0.08733333333333333, "temporal": 1.0, "calibration": 1.0, "data_quality": 1.0, "anomaly_risk": 1.0, "score": 0.40183333333333343, "notes": ["متوسط — سه تا چهار روز", "پوشش کامل — کمتر از ۱۰٪ نامعلوم", "سقف رده‌ی model_only × 4 آگهی"]}, "findings": [{"code": "weak_comparable_tier", "severity": "high", "text": "تخمین بر پایه‌ی آگهی‌های واقعاً مشابه نیست؛ فقط همین مدل.", "action": "downgrade", "hard": false, "evidence_ids": ["comp:rare_q"]}, {"code": "sparse_comparables", "severity": "high", "text": "فقط 4 آگهی مشابه پیدا شد.", "action": "downgrade", "hard": false, "evidence_ids": ["comp:rare_q"]}, {"code": "estimate_dominated_by_few", "severity": "high", "text": "کل بازه از 4 آگهی درآمده؛ یک آگهی پرت می‌تواند آن را جابه‌جا کند.", "action": "downgrade", "hard": false, "evidence_ids": ["comp:rare_q"]}], "trace": [{"agent": "Evidence", "summary": "4 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"}, {"agent": "Comparables", "summary": "رده‌ی model_only · 4 آگهی"}, {"agent": "Estimation", "summary": "log-linear-ridge پذیرفته شد"}, {"agent": "Risk", "summary": "2 نشانه"}, {"agent": "Adversarial", "summary": "1 چالش"}, {"agent": "Judge", "summary": "INSUFFICIENT_EVIDENCE · اطمینان INSUFFICIENT_EVIDENCE"}, {"agent": "Explanation", "summary": "پاسخ فارسی تولید شد"}], "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.54 تا 2.26 میلیارد\n\nچرا برآورد نمی‌دهیم:\n  • تخمین بر پایه‌ی آگهی‌های واقعاً مشابه نیست؛ فقط همین مدل.\n  • فقط 4 آگهی مشابه پیدا شد.\n  • کل بازه از 4 آگهی درآمده؛ یک آگهی پرت می‌تواند آن را جابه‌جا کند.\n\nکاری که می‌توانیم بکنیم: آگهی‌های موجود را نشان دهیم، ریسک‌های متن آگهی را دربیاوریم، و بگوییم چه چیزی را باید از فروشنده بپرسید.", "claims": [{"text": "از شروع رصد ما حداقل 3 روز در بازار بوده", "kind": "observed", "evidence": [{"id": "obs:trk_000001:2026-09-06", "summary": "2026-09-06: present", "kind": "observation", "on": "2026-09-06"}, {"id": "obs:trk_000001:2026-09-07", "summary": "2026-09-07: present", "kind": "observation", "on": "2026-09-07"}, {"id": "obs:trk_000001:2026-09-08", "summary": "2026-09-08: present", "kind": "observation", "on": "2026-09-08"}, {"id": "obs:trk_000001:2026-09-09", "summary": "2026-09-09: present", "kind": "observation", "on": "2026-09-09"}]}, {"text": "4 آگهی از همین مدل — مشابه نیستند", "kind": "observed", "evidence": [{"id": "comp:rare_q", "summary": "tier=model_only n=4 dispersion=0.053", "kind": "comparable", "on": null}]}, {"text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.54 تا 2.26 میلیارد", "kind": "estimated", "evidence": [{"id": "bench:log-linear-ridge:accepted", "summary": "log-linear-ridge passed AcceptanceGate", "kind": "benchmark", "on": null}]}], "unsupported": 0}, {"label": "C", "title": "تجدید آگهی و کاهش قیمت", "decision": "approve", "status": "HIGH", "status_before": "HIGH", "downgrade_reasons": [], "estimate": {"0.15": 1207084351.5342472, "0.35": 1349947971.0257862, "0.5": 1444041277.6748486, "0.85": 1765260006.0252888}, "confidence": {"evidence": 1.0, "comparable": 1.0, "temporal": 1.0, "calibration": 1.0, "data_quality": 1.0, "anomaly_risk": 0.1, "score": 0.97, "notes": ["قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده", "پوشش کامل — کمتر از ۱۰٪ نامعلوم", "سقف رده‌ی strict × 38 آگهی"]}, "findings": [{"code": "reposted", "severity": "low", "text": "این خودرو 1 بار تجدید آگهی شده؛ تاریخ نمایش‌داده‌شده سن واقعی آگهی نیست.", "action": "approve", "hard": false, "evidence_ids": ["obs:trk_000001:2026-09-06", "obs:trk_000001:2026-09-07", "obs:trk_000001:2026-09-08"]}], "trace": [{"agent": "Evidence", "summary": "6 مشاهده · 0 روز نامعلوم · 1 تجدید آگهی"}, {"agent": "Comparables", "summary": "رده‌ی strict · 38 آگهی"}, {"agent": "Estimation", "summary": "log-linear-ridge پذیرفته شد"}, {"agent": "Risk", "summary": "1 نشانه"}, {"agent": "Adversarial", "summary": "تناقض مهمی پیدا نشد"}, {"agent": "Judge", "summary": "APPROVE · اطمینان HIGH"}, {"agent": "Explanation", "summary": "پاسخ فارسی تولید شد"}], "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.21 تا 1.77 میلیارد\n\nشواهد: 38 آگهی مشابه (مدل، سال و کارکرد نزدیک)\nتاریخچه: از شروع رصد ما حداقل 5 روز در بازار بوده و 1 بار تجدید آگهی شده\nقیمت 2 بار کاهش یافته (از 1.50 به 1.42 میلیارد).\n\nاطمینان: HIGH\n  • بازبینی انتقادی تناقض مهمی پیدا نکرد.\nضعیف‌ترین بُعد: شواهد مشاهده‌شده (100%)\n\nاین برآورد از قیمت‌های پیشنهادی مشاهده‌شده ساخته شده، نه از قیمت معامله.", "claims": [{"text": "از شروع رصد ما حداقل 5 روز در بازار بوده", "kind": "observed", "evidence": [{"id": "obs:trk_000001:2026-09-06", "summary": "2026-09-06: present", "kind": "observation", "on": "2026-09-06"}, {"id": "obs:trk_000001:2026-09-07", "summary": "2026-09-07: present", "kind": "observation", "on": "2026-09-07"}, {"id": "obs:trk_000001:2026-09-08", "summary": "2026-09-08: present", "kind": "observation", "on": "2026-09-08"}, {"id": "obs:trk_000001:2026-09-09", "summary": "2026-09-09: present", "kind": "observation", "on": "2026-09-09"}, {"id": "obs:trk_000001:2026-09-10", "summary": "2026-09-10: absent", "kind": "observation", "on": "2026-09-10"}, {"id": "obs:trk_000001:2026-09-11", "summary": "2026-09-11: present", "kind": "observation", "on": "2026-09-11"}]}, {"text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)", "kind": "observed", "evidence": [{"id": "comp:l17", "summary": "tier=strict n=38 dispersion=0.250", "kind": "comparable", "on": null}]}, {"text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد", "kind": "estimated", "evidence": [{"id": "bench:log-linear-ridge:accepted", "summary": "log-linear-ridge passed AcceptanceGate", "kind": "benchmark", "on": null}]}], "unsupported": 0}, {"label": "D", "title": "شکاف نامعلوم — غیبت فرض نمی‌شود", "decision": "downgrade", "status": "MEDIUM", "status_before": "HIGH", "downgrade_reasons": ["3 روز وضعیت این آگهی برای ما نامعلوم بوده."], "estimate": {"0.15": 1207084351.5342472, "0.35": 1349947971.0257862, "0.5": 1444041277.6748486, "0.85": 1765260006.0252888}, "confidence": {"evidence": 0.65, "comparable": 1.0, "temporal": 0.3, "calibration": 1.0, "data_quality": 1.0, "anomaly_risk": 0.25, "score": 0.7500000000000001, "notes": ["متوسط — سه تا چهار روز", "شکاف زیاد — ۳۰ تا ۵۰٪ نامعلوم", "سقف رده‌ی strict × 38 آگهی"]}, "findings": [{"code": "observation_gap", "severity": "medium", "text": "3 روز وضعیت این آگهی برای ما نامعلوم بوده.", "action": "downgrade", "hard": false, "evidence_ids": ["obs:trk_000001:2026-09-06", "obs:trk_000001:2026-09-07", "obs:trk_000001:2026-09-08"]}], "trace": [{"agent": "Evidence", "summary": "6 مشاهده · 3 روز نامعلوم · 0 تجدید آگهی"}, {"agent": "Comparables", "summary": "رده‌ی strict · 38 آگهی"}, {"agent": "Estimation", "summary": "log-linear-ridge پذیرفته شد"}, {"agent": "Risk", "summary": "1 نشانه"}, {"agent": "Adversarial", "summary": "تناقض مهمی پیدا نشد"}, {"agent": "Judge", "summary": "DOWNGRADE · اطمینان HIGH ← MEDIUM"}, {"agent": "Explanation", "summary": "پاسخ فارسی تولید شد"}], "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.21 تا 1.77 میلیارد\n\nشواهد: 38 آگهی مشابه (مدل، سال و کارکرد نزدیک)\nتاریخچه: از شروع رصد ما حداقل 5 روز در بازار بوده؛ 3 روز وضعیتش نامعلوم بوده\n\nاطمینان: HIGH ← MEDIUM (پس از بازبینی انتقادی)\n  • 3 روز وضعیت این آگهی برای ما نامعلوم بوده.\nضعیف‌ترین بُعد: تازگی داده (30%)\n\nاین برآورد از قیمت‌های پیشنهادی مشاهده‌شده ساخته شده، نه از قیمت معامله.", "claims": [{"text": "از شروع رصد ما حداقل 5 روز در بازار بوده", "kind": "observed", "evidence": [{"id": "obs:trk_000001:2026-09-06", "summary": "2026-09-06: present", "kind": "observation", "on": "2026-09-06"}, {"id": "obs:trk_000001:2026-09-07", "summary": "2026-09-07: present", "kind": "observation", "on": "2026-09-07"}, {"id": "obs:trk_000001:2026-09-08", "summary": "2026-09-08: present", "kind": "observation", "on": "2026-09-08"}, {"id": "obs:trk_000001:2026-09-09", "summary": "2026-09-09: unknown", "kind": "observation", "on": "2026-09-09"}, {"id": "obs:trk_000001:2026-09-10", "summary": "2026-09-10: unknown", "kind": "observation", "on": "2026-09-10"}, {"id": "obs:trk_000001:2026-09-11", "summary": "2026-09-11: unknown", "kind": "observation", "on": "2026-09-11"}]}, {"text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)", "kind": "observed", "evidence": [{"id": "comp:l17", "summary": "tier=strict n=38 dispersion=0.250", "kind": "comparable", "on": null}]}, {"text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد", "kind": "estimated", "evidence": [{"id": "bench:log-linear-ridge:accepted", "summary": "log-linear-ridge passed AcceptanceGate", "kind": "benchmark", "on": null}]}], "unsupported": 0}, {"label": "E", "title": "بازبینی انتقادی: وتوی سخت", "decision": "reject", "status": "INSUFFICIENT_EVIDENCE", "status_before": "HIGH", "downgrade_reasons": ["قیمت این آگهی بیرون از محدوده‌ی مشاهده‌شده‌ی این مدل است؛ برآورد ما برای چنین موردی اعتبار ندارد."], "estimate": {"0.15": 1207084351.5342472, "0.35": 1349947971.0257862, "0.5": 1444041277.6748486, "0.85": 1765260006.0252888}, "confidence": {"evidence": 1.0, "comparable": 1.0, "temporal": 1.0, "calibration": 1.0, "data_quality": 1.0, "anomaly_risk": 0.5, "score": 0.85, "notes": ["قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده", "پوشش کامل — کمتر از ۱۰٪ نامعلوم", "سقف رده‌ی strict × 38 آگهی"]}, "findings": [{"code": "outside_observed_distribution", "severity": "high", "text": "قیمت این آگهی بیرون از محدوده‌ی مشاهده‌شده‌ی این مدل است؛ برآورد ما برای چنین موردی اعتبار ندارد.", "action": "reject", "hard": true, "evidence_ids": ["adv:range:l17"]}], "trace": [{"agent": "Evidence", "summary": "5 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"}, {"agent": "Comparables", "summary": "رده‌ی strict · 38 آگهی"}, {"agent": "Estimation", "summary": "log-linear-ridge پذیرفته شد"}, {"agent": "Risk", "summary": "نشانه‌ی مهمی نبود"}, {"agent": "Adversarial", "summary": "1 چالش"}, {"agent": "Judge", "summary": "REJECT · اطمینان HIGH ← INSUFFICIENT_EVIDENCE"}, {"agent": "Explanation", "summary": "پاسخ فارسی تولید شد"}], "explanation": "برای این آگهی برآورد قابل اتکایی نداریم.\n\nچرا برآورد نمی‌دهیم:\n  • قیمت این آگهی بیرون از محدوده‌ی مشاهده‌شده‌ی این مدل است؛ برآورد ما برای چنین موردی اعتبار ندارد.\n\nکاری که می‌توانیم بکنیم: آگهی‌های موجود را نشان دهیم، ریسک‌های متن آگهی را دربیاوریم، و بگوییم چه چیزی را باید از فروشنده بپرسید.", "claims": [{"text": "از شروع رصد ما حداقل 4 روز در بازار بوده", "kind": "observed", "evidence": [{"id": "obs:trk_000001:2026-09-06", "summary": "2026-09-06: present", "kind": "observation", "on": "2026-09-06"}, {"id": "obs:trk_000001:2026-09-07", "summary": "2026-09-07: present", "kind": "observation", "on": "2026-09-07"}, {"id": "obs:trk_000001:2026-09-08", "summary": "2026-09-08: present", "kind": "observation", "on": "2026-09-08"}, {"id": "obs:trk_000001:2026-09-09", "summary": "2026-09-09: present", "kind": "observation", "on": "2026-09-09"}, {"id": "obs:trk_000001:2026-09-10", "summary": "2026-09-10: present", "kind": "observation", "on": "2026-09-10"}]}, {"text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)", "kind": "observed", "evidence": [{"id": "comp:l17", "summary": "tier=strict n=38 dispersion=0.250", "kind": "comparable", "on": null}]}, {"text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد", "kind": "estimated", "evidence": [{"id": "bench:log-linear-ridge:accepted", "summary": "log-linear-ridge passed AcceptanceGate", "kind": "benchmark", "on": null}]}], "unsupported": 0}, {"label": "F", "title": "برآوردگر پذیرفته نشده — سرو نمی‌شود", "decision": "reject", "status": "INSUFFICIENT_EVIDENCE", "status_before": "MEDIUM", "downgrade_reasons": ["هیچ برآوردگری از دروازه‌ی پذیرش عبور نکرده است."], "estimate": {}, "confidence": {"evidence": 1.0, "comparable": 1.0, "temporal": 1.0, "calibration": 0.0, "data_quality": 0.4, "anomaly_risk": 0.5, "score": 0.53, "notes": ["قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده", "پوشش کامل — کمتر از ۱۰٪ نامعلوم", "سقف رده‌ی strict × 38 آگهی"]}, "findings": [{"code": "estimator_not_accepted", "severity": "high", "text": "هیچ برآوردگری از دروازه‌ی پذیرش عبور نکرده است.", "action": "reject", "hard": true, "evidence_ids": ["bench:global-quantiles"]}], "trace": [{"agent": "Evidence", "summary": "5 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"}, {"agent": "Comparables", "summary": "رده‌ی strict · 38 آگهی"}, {"agent": "Estimation", "summary": "هیچ برآوردگری پذیرفته نشده"}, {"agent": "Risk", "summary": "1 نشانه"}, {"agent": "Adversarial", "summary": "تناقض مهمی پیدا نشد"}, {"agent": "Judge", "summary": "REJECT · اطمینان MEDIUM ← INSUFFICIENT_EVIDENCE"}, {"agent": "Explanation", "summary": "پاسخ فارسی تولید شد"}], "explanation": "برای این آگهی برآورد قابل اتکایی نداریم.\n\nچرا برآورد نمی‌دهیم:\n  • هیچ برآوردگری از دروازه‌ی پذیرش عبور نکرده است.\n\nکاری که می‌توانیم بکنیم: آگهی‌های موجود را نشان دهیم، ریسک‌های متن آگهی را دربیاوریم، و بگوییم چه چیزی را باید از فروشنده بپرسید.", "claims": [{"text": "از شروع رصد ما حداقل 4 روز در بازار بوده", "kind": "observed", "evidence": [{"id": "obs:trk_000001:2026-09-06", "summary": "2026-09-06: present", "kind": "observation", "on": "2026-09-06"}, {"id": "obs:trk_000001:2026-09-07", "summary": "2026-09-07: present", "kind": "observation", "on": "2026-09-07"}, {"id": "obs:trk_000001:2026-09-08", "summary": "2026-09-08: present", "kind": "observation", "on": "2026-09-08"}, {"id": "obs:trk_000001:2026-09-09", "summary": "2026-09-09: present", "kind": "observation", "on": "2026-09-09"}, {"id": "obs:trk_000001:2026-09-10", "summary": "2026-09-10: present", "kind": "observation", "on": "2026-09-10"}]}, {"text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)", "kind": "observed", "evidence": [{"id": "comp:l17", "summary": "tier=strict n=38 dispersion=0.250", "kind": "comparable", "on": null}]}], "unsupported": 0}, {"label": "H", "title": "بدون تاریخچه‌ی رصد", "decision": "insufficient_evidence", "status": "INSUFFICIENT_EVIDENCE", "status_before": "INSUFFICIENT_EVIDENCE", "downgrade_reasons": [], "estimate": {"0.15": 1207084351.5342472, "0.35": 1349947971.0257862, "0.5": 1444041277.6748486, "0.85": 1765260006.0252888}, "confidence": {"evidence": 0.0, "comparable": 1.0, "temporal": 0.0, "calibration": 1.0, "data_quality": 1.0, "anomaly_risk": 0, "score": 0.65, "notes": ["هیچ مشاهده‌ی تأییدشده‌ای نداریم", "بازه‌ی مشاهده‌ای وجود ندارد", "سقف رده‌ی strict × 38 آگهی"]}, "findings": [], "trace": [{"agent": "Evidence", "summary": "1 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"}, {"agent": "Comparables", "summary": "رده‌ی strict · 38 آگهی"}, {"agent": "Estimation", "summary": "log-linear-ridge پذیرفته شد"}, {"agent": "Risk", "summary": "نشانه‌ی مهمی نبود"}, {"agent": "Adversarial", "summary": "تناقض مهمی پیدا نشد"}, {"agent": "Judge", "summary": "INSUFFICIENT_EVIDENCE · اطمینان INSUFFICIENT_EVIDENCE"}, {"agent": "Explanation", "summary": "پاسخ فارسی تولید شد"}], "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.21 تا 1.77 میلیارد\n\nچرا برآورد نمی‌دهیم:\n\nکاری که می‌توانیم بکنیم: آگهی‌های موجود را نشان دهیم، ریسک‌های متن آگهی را دربیاوریم، و بگوییم چه چیزی را باید از فروشنده بپرسید.", "claims": [{"text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)", "kind": "observed", "evidence": [{"id": "comp:l17", "summary": "tier=strict n=38 dispersion=0.250", "kind": "comparable", "on": null}]}, {"text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد", "kind": "estimated", "evidence": [{"id": "bench:log-linear-ridge:accepted", "summary": "log-linear-ridge passed AcceptanceGate", "kind": "benchmark", "on": null}]}], "unsupported": 0}], "policy": "CONFIDENCE POLICY (published rules, not a fitted model)\n──────────────────────────────────────────────────────────\nevidence_strength — by days CONFIRMED present\n    >=    5 days → 1.00   قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده\n    >=    3 days → 0.65   متوسط — سه تا چهار روز\n    >=    1 days → 0.35   ضعیف — یک تا دو روز\n    >=    0 days → 0.00   هیچ مشاهده‌ی تأییدشده‌ای نداریم\ntemporal_strength — by fraction of span that was KNOWN\n    >=  90%      → 1.00   پوشش کامل — کمتر از ۱۰٪ نامعلوم\n    >=  70%      → 0.60   شکاف متوسط — ۱۰ تا ۳۰٪ نامعلوم\n    >=  50%      → 0.30   شکاف زیاد — ۳۰ تا ۵۰٪ نامعلوم\n    >=   0%      → 0.10   بیشتر بازه نامعلوم بوده\ncomparable_strength — tier ceiling x count, minus dispersion\n    strict           ceiling 1.00\n    relaxed_mileage  ceiling 0.70\n    relaxed_year     ceiling 0.45\n    model_only       ceiling 0.20\n    global           ceiling 0.00\n    count saturates at 30; floor 0.35\n    dispersion > 40% → x0.75\noverall status\n    >= 0.68 HIGH · >= 0.42 MEDIUM · else LOW\n    any core dimension < 0.20 → INSUFFICIENT_EVIDENCE", "benchmark": {"global-quantiles": {"pinball": 137371363.13509047, "crossing": 0.0, "cov_err": 0.027966101694915257}, "comparable-quantiles": {"pinball": 67243133.24969277, "crossing": 0.0, "cov_err": 0.032687651331719136}}};
+const FA = n => n.toLocaleString('fa-IR');
+const B = v => (v/1e9).toLocaleString('fa-IR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const $ = s => document.querySelector(s);
+
+const SEV = {low:['warn','!'], medium:['warn','!'], high:['fail','×']};
+
+function scale(est){
+  const lo=est['0.15'], mid=est['0.5'], hi=est['0.85'];
+  const pad=(hi-lo)*0.35, a=lo-pad, b=hi+pad, W=x=>((x-a)/(b-a))*100;
+  return `<div class="scale"><div class="scale-track">
+    <div class="scale-line"></div>
+    <div class="scale-band" style="right:${W(lo)}%;width:${W(hi)-W(lo)}%"></div>
+    <div class="scale-med" style="right:calc(${W(mid)}% - 1px)"></div>
+    <div class="scale-lab" style="right:${W(lo)}%">${B(lo)}</div>
+    <div class="scale-lab" style="right:${W(hi)}%">${B(hi)}</div>
+  </div><div class="scale-cap"><span>${B(a)}</span>
+    <span>میلیارد تومان · میانه ${B(mid)}</span><span>${B(b)}</span></div></div>`;
+}
+
+function dims(c){
+  const rows=[['شواهد مشاهده‌شده','evidence'],['آگهی مشابه','comparable'],
+    ['تازگی داده','temporal'],['کالیبراسیون','calibration'],['کیفیت داده','data_quality']];
+  let h=rows.map(([k,key])=>`<div class="dim"><div class="k">${k}</div>
+    <div class="v">${Math.round(c.confidence[key]*100)}%</div>
+    <div class="bar"><i style="width:${c.confidence[key]*100}%"></i></div></div>`).join('');
+  h+=`<div class="dim risk"><div class="k">ریسک ناهنجاری</div>
+    <div class="v">${Math.round(c.confidence.anomaly_risk*100)}%</div>
+    <div class="bar"><i style="width:${c.confidence.anomaly_risk*100}%"></i></div></div>`;
+  return `<div class="dims">${h}</div>`;
+}
+
+function render(i){
+  const c = D.cases[i];
+  document.querySelectorAll('.case-btn').forEach((b,j)=>b.setAttribute('aria-selected', j===i));
+
+  const moved = c.status !== c.status_before;
+  $('#verdict').innerHTML = `
+    <p class="eyebrow">Verdict · case ${c.label}</p>
+    <div class="verdict-top">
+      <p class="headline">${c.title}</p>
+      <span class="chip c-${c.decision}">${c.decision.replace(/_/g,' ')}</span>
+    </div>
+    ${Object.keys(c.estimate).length ? scale(c.estimate)
+      : `<p style="color:var(--ink-3);margin:20px 0 0;font-size:14px">
+         محدوده‌ای نمایش داده نمی‌شود — شواهد کافی نبود.</p>`}
+    <div class="conf">
+      ${moved?`<span class="was lvl">${c.status_before}</span><span class="arrow">←</span>`:''}
+      <span class="lvl lvl-${c.status}">${c.status.replace(/_/g,' ')}</span>
+      <span class="why">${moved?'پس از بازبینی انتقادی':'بدون تغییر پس از بازبینی'}</span>
+    </div>
+    ${dims(c)}`;
+
+  const findings = c.findings;
+  $('#challenge').innerHTML = `
+    <p class="eyebrow">Adversarial review</p>
+    <p style="margin:0 0 4px;font-size:14px;color:var(--ink-2);max-width:56ch">
+      بازبین قطعی است، نه مدل زبانی: نه می‌شود از یافته‌اش منصرفش کرد، نه یافته‌ی بی‌وجود می‌سازد.</p>
+    <div class="challenge">
+      <button class="btn" id="go">این برآورد را به چالش بکش</button>
+      <ul class="checks" id="checks" hidden></ul>
+    </div>`;
+
+  $('#go').addEventListener('click', e => {
+    e.target.disabled = true;
+    const ul = $('#checks'); ul.hidden = false; ul.innerHTML = '';
+    const items = findings.length ? findings.map(f => {
+      const [cls, mk] = SEV[f.severity];
+      return {cls: f.hard?'fail':cls, mk: f.hard?'×':mk,
+              txt: f.text, code: `${f.code} · ${f.severity}${f.hard?' · HARD VETO':''}`};
+    }) : [{cls:'pass', mk:'✓', txt:'تناقض مهمی پیدا نشد.', code:'no_material_contradiction'}];
+    items.forEach((it,k)=>{
+      const li=document.createElement('li');
+      li.className=it.cls; li.style.animationDelay=(k*180)+'ms';
+      li.innerHTML=`<span class="mark">${it.mk}</span><span><span class="txt">${it.txt}</span><br>
+        <span class="code">${it.code}</span></span>`;
+      ul.appendChild(li);
+    });
+    if(moved){
+      const li=document.createElement('li');
+      li.className='warn'; li.style.animationDelay=(items.length*180)+'ms';
+      li.innerHTML=`<span class="mark">→</span><span><span class="txt">
+        قاضی اطمینان را از ${c.status_before} به ${c.status} کاهش داد.</span><br>
+        <span class="code">judge · downgrade</span></span>`;
+      ul.appendChild(li);
+    }
+  });
+
+  $('#trace').innerHTML = c.trace.map(t=>
+    `<li><span class="dot">●</span><span class="who">${t.agent}</span>
+     <span class="what">${t.summary}</span></li>`).join('');
+
+  $('#answer').textContent = c.explanation;
+
+  $('#ledger').innerHTML = `<p class="eyebrow">${c.claims.length} claims · ${c.unsupported} unsupported</p>`
+    + c.claims.map(cl=>`<details class="claim"><summary>
+        <span class="kindtag">${cl.kind}</span><span>${cl.text}</span></summary>
+        <ul class="ev">${cl.evidence.map(e=>
+          `<li>${e.id}${e.on?' · '+e.on:''}<br>${e.summary}</li>`).join('')}</ul></details>`).join('');
+}
+
+$('#cases').innerHTML = D.cases.map((c,i)=>
+  `<button class="case-btn" role="tab" aria-selected="false">
+     <span class="tag">${c.label}</span>${c.title}</button>`).join('');
+document.querySelectorAll('.case-btn').forEach((b,i)=>b.addEventListener('click',()=>render(i)));
+
+$('#bench').innerHTML = `<thead><tr><th>estimator</th><th>pinball</th>
+  <th>crossing</th><th>max coverage err</th></tr></thead><tbody>` +
+  Object.entries(D.benchmark).sort((a,b)=>a[1].pinball-b[1].pinball).map(([k,v])=>
+  `<tr><td class="n">${k}</td><td class="n">${Math.round(v.pinball).toLocaleString('en-US')}</td>
+   <td class="n">${(v.crossing*100).toFixed(1)}%</td>
+   <td class="n">${v.cov_err.toFixed(3)}</td></tr>`).join('') + '</tbody>';
+
+$('#policy').textContent = D.policy;
+render(3);
+</script>

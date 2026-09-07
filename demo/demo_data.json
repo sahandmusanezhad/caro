@@ -1,0 +1,920 @@
+{
+ "cases": [
+  {
+   "label": "A",
+   "title": "شواهد قوی — برآورد تأییدشده",
+   "decision": "approve",
+   "status": "HIGH",
+   "status_before": "HIGH",
+   "downgrade_reasons": [],
+   "estimate": {
+    "0.15": 1207084351.5342472,
+    "0.35": 1349947971.0257862,
+    "0.5": 1444041277.6748486,
+    "0.85": 1765260006.0252888
+   },
+   "confidence": {
+    "evidence": 1.0,
+    "comparable": 1.0,
+    "temporal": 1.0,
+    "calibration": 1.0,
+    "data_quality": 1.0,
+    "anomaly_risk": 0,
+    "score": 1.0,
+    "notes": [
+     "قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده",
+     "پوشش کامل — کمتر از ۱۰٪ نامعلوم",
+     "سقف رده‌ی strict × 38 آگهی"
+    ]
+   },
+   "findings": [],
+   "trace": [
+    {
+     "agent": "Evidence",
+     "summary": "5 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"
+    },
+    {
+     "agent": "Comparables",
+     "summary": "رده‌ی strict · 38 آگهی"
+    },
+    {
+     "agent": "Estimation",
+     "summary": "log-linear-ridge پذیرفته شد"
+    },
+    {
+     "agent": "Risk",
+     "summary": "نشانه‌ی مهمی نبود"
+    },
+    {
+     "agent": "Adversarial",
+     "summary": "تناقض مهمی پیدا نشد"
+    },
+    {
+     "agent": "Judge",
+     "summary": "APPROVE · اطمینان HIGH"
+    },
+    {
+     "agent": "Explanation",
+     "summary": "پاسخ فارسی تولید شد"
+    }
+   ],
+   "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.21 تا 1.77 میلیارد\n\nشواهد: 38 آگهی مشابه (مدل، سال و کارکرد نزدیک)\nتاریخچه: از شروع رصد ما حداقل 4 روز در بازار بوده\n\nاطمینان: HIGH\n  • بازبینی انتقادی تناقض مهمی پیدا نکرد.\nضعیف‌ترین بُعد: شواهد مشاهده‌شده (100%)\n\nاین برآورد از قیمت‌های پیشنهادی مشاهده‌شده ساخته شده، نه از قیمت معامله.",
+   "claims": [
+    {
+     "text": "از شروع رصد ما حداقل 4 روز در بازار بوده",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "obs:trk_000001:2026-09-06",
+       "summary": "2026-09-06: present",
+       "kind": "observation",
+       "on": "2026-09-06"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-07",
+       "summary": "2026-09-07: present",
+       "kind": "observation",
+       "on": "2026-09-07"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-08",
+       "summary": "2026-09-08: present",
+       "kind": "observation",
+       "on": "2026-09-08"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-09",
+       "summary": "2026-09-09: present",
+       "kind": "observation",
+       "on": "2026-09-09"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-10",
+       "summary": "2026-09-10: present",
+       "kind": "observation",
+       "on": "2026-09-10"
+      }
+     ]
+    },
+    {
+     "text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "comp:l17",
+       "summary": "tier=strict n=38 dispersion=0.250",
+       "kind": "comparable",
+       "on": null
+      }
+     ]
+    },
+    {
+     "text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد",
+     "kind": "estimated",
+     "evidence": [
+      {
+       "id": "bench:log-linear-ridge:accepted",
+       "summary": "log-linear-ridge passed AcceptanceGate",
+       "kind": "benchmark",
+       "on": null
+      }
+     ]
+    }
+   ],
+   "unsupported": 0
+  },
+  {
+   "label": "B",
+   "title": "آگهی مشابه کم — اطمینان پایین",
+   "decision": "insufficient_evidence",
+   "status": "INSUFFICIENT_EVIDENCE",
+   "status_before": "INSUFFICIENT_EVIDENCE",
+   "downgrade_reasons": [
+    "تخمین بر پایه‌ی آگهی‌های واقعاً مشابه نیست؛ فقط همین مدل.",
+    "فقط 4 آگهی مشابه پیدا شد.",
+    "کل بازه از 4 آگهی درآمده؛ یک آگهی پرت می‌تواند آن را جابه‌جا کند."
+   ],
+   "estimate": {
+    "0.15": 1543980729.689693,
+    "0.35": 1726717483.0808654,
+    "0.5": 1847072164.238219,
+    "0.85": 2257942809.6559405
+   },
+   "confidence": {
+    "evidence": 0.65,
+    "comparable": 0.08733333333333333,
+    "temporal": 1.0,
+    "calibration": 1.0,
+    "data_quality": 1.0,
+    "anomaly_risk": 1.0,
+    "score": 0.40183333333333343,
+    "notes": [
+     "متوسط — سه تا چهار روز",
+     "پوشش کامل — کمتر از ۱۰٪ نامعلوم",
+     "سقف رده‌ی model_only × 4 آگهی"
+    ]
+   },
+   "findings": [
+    {
+     "code": "weak_comparable_tier",
+     "severity": "high",
+     "text": "تخمین بر پایه‌ی آگهی‌های واقعاً مشابه نیست؛ فقط همین مدل.",
+     "action": "downgrade",
+     "hard": false,
+     "evidence_ids": [
+      "comp:rare_q"
+     ]
+    },
+    {
+     "code": "sparse_comparables",
+     "severity": "high",
+     "text": "فقط 4 آگهی مشابه پیدا شد.",
+     "action": "downgrade",
+     "hard": false,
+     "evidence_ids": [
+      "comp:rare_q"
+     ]
+    },
+    {
+     "code": "estimate_dominated_by_few",
+     "severity": "high",
+     "text": "کل بازه از 4 آگهی درآمده؛ یک آگهی پرت می‌تواند آن را جابه‌جا کند.",
+     "action": "downgrade",
+     "hard": false,
+     "evidence_ids": [
+      "comp:rare_q"
+     ]
+    }
+   ],
+   "trace": [
+    {
+     "agent": "Evidence",
+     "summary": "4 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"
+    },
+    {
+     "agent": "Comparables",
+     "summary": "رده‌ی model_only · 4 آگهی"
+    },
+    {
+     "agent": "Estimation",
+     "summary": "log-linear-ridge پذیرفته شد"
+    },
+    {
+     "agent": "Risk",
+     "summary": "2 نشانه"
+    },
+    {
+     "agent": "Adversarial",
+     "summary": "1 چالش"
+    },
+    {
+     "agent": "Judge",
+     "summary": "INSUFFICIENT_EVIDENCE · اطمینان INSUFFICIENT_EVIDENCE"
+    },
+    {
+     "agent": "Explanation",
+     "summary": "پاسخ فارسی تولید شد"
+    }
+   ],
+   "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.54 تا 2.26 میلیارد\n\nچرا برآورد نمی‌دهیم:\n  • تخمین بر پایه‌ی آگهی‌های واقعاً مشابه نیست؛ فقط همین مدل.\n  • فقط 4 آگهی مشابه پیدا شد.\n  • کل بازه از 4 آگهی درآمده؛ یک آگهی پرت می‌تواند آن را جابه‌جا کند.\n\nکاری که می‌توانیم بکنیم: آگهی‌های موجود را نشان دهیم، ریسک‌های متن آگهی را دربیاوریم، و بگوییم چه چیزی را باید از فروشنده بپرسید.",
+   "claims": [
+    {
+     "text": "از شروع رصد ما حداقل 3 روز در بازار بوده",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "obs:trk_000001:2026-09-06",
+       "summary": "2026-09-06: present",
+       "kind": "observation",
+       "on": "2026-09-06"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-07",
+       "summary": "2026-09-07: present",
+       "kind": "observation",
+       "on": "2026-09-07"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-08",
+       "summary": "2026-09-08: present",
+       "kind": "observation",
+       "on": "2026-09-08"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-09",
+       "summary": "2026-09-09: present",
+       "kind": "observation",
+       "on": "2026-09-09"
+      }
+     ]
+    },
+    {
+     "text": "4 آگهی از همین مدل — مشابه نیستند",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "comp:rare_q",
+       "summary": "tier=model_only n=4 dispersion=0.053",
+       "kind": "comparable",
+       "on": null
+      }
+     ]
+    },
+    {
+     "text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.54 تا 2.26 میلیارد",
+     "kind": "estimated",
+     "evidence": [
+      {
+       "id": "bench:log-linear-ridge:accepted",
+       "summary": "log-linear-ridge passed AcceptanceGate",
+       "kind": "benchmark",
+       "on": null
+      }
+     ]
+    }
+   ],
+   "unsupported": 0
+  },
+  {
+   "label": "C",
+   "title": "تجدید آگهی و کاهش قیمت",
+   "decision": "approve",
+   "status": "HIGH",
+   "status_before": "HIGH",
+   "downgrade_reasons": [],
+   "estimate": {
+    "0.15": 1207084351.5342472,
+    "0.35": 1349947971.0257862,
+    "0.5": 1444041277.6748486,
+    "0.85": 1765260006.0252888
+   },
+   "confidence": {
+    "evidence": 1.0,
+    "comparable": 1.0,
+    "temporal": 1.0,
+    "calibration": 1.0,
+    "data_quality": 1.0,
+    "anomaly_risk": 0.1,
+    "score": 0.97,
+    "notes": [
+     "قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده",
+     "پوشش کامل — کمتر از ۱۰٪ نامعلوم",
+     "سقف رده‌ی strict × 38 آگهی"
+    ]
+   },
+   "findings": [
+    {
+     "code": "reposted",
+     "severity": "low",
+     "text": "این خودرو 1 بار تجدید آگهی شده؛ تاریخ نمایش‌داده‌شده سن واقعی آگهی نیست.",
+     "action": "approve",
+     "hard": false,
+     "evidence_ids": [
+      "obs:trk_000001:2026-09-06",
+      "obs:trk_000001:2026-09-07",
+      "obs:trk_000001:2026-09-08"
+     ]
+    }
+   ],
+   "trace": [
+    {
+     "agent": "Evidence",
+     "summary": "6 مشاهده · 0 روز نامعلوم · 1 تجدید آگهی"
+    },
+    {
+     "agent": "Comparables",
+     "summary": "رده‌ی strict · 38 آگهی"
+    },
+    {
+     "agent": "Estimation",
+     "summary": "log-linear-ridge پذیرفته شد"
+    },
+    {
+     "agent": "Risk",
+     "summary": "1 نشانه"
+    },
+    {
+     "agent": "Adversarial",
+     "summary": "تناقض مهمی پیدا نشد"
+    },
+    {
+     "agent": "Judge",
+     "summary": "APPROVE · اطمینان HIGH"
+    },
+    {
+     "agent": "Explanation",
+     "summary": "پاسخ فارسی تولید شد"
+    }
+   ],
+   "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.21 تا 1.77 میلیارد\n\nشواهد: 38 آگهی مشابه (مدل، سال و کارکرد نزدیک)\nتاریخچه: از شروع رصد ما حداقل 5 روز در بازار بوده و 1 بار تجدید آگهی شده\nقیمت 2 بار کاهش یافته (از 1.50 به 1.42 میلیارد).\n\nاطمینان: HIGH\n  • بازبینی انتقادی تناقض مهمی پیدا نکرد.\nضعیف‌ترین بُعد: شواهد مشاهده‌شده (100%)\n\nاین برآورد از قیمت‌های پیشنهادی مشاهده‌شده ساخته شده، نه از قیمت معامله.",
+   "claims": [
+    {
+     "text": "از شروع رصد ما حداقل 5 روز در بازار بوده",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "obs:trk_000001:2026-09-06",
+       "summary": "2026-09-06: present",
+       "kind": "observation",
+       "on": "2026-09-06"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-07",
+       "summary": "2026-09-07: present",
+       "kind": "observation",
+       "on": "2026-09-07"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-08",
+       "summary": "2026-09-08: present",
+       "kind": "observation",
+       "on": "2026-09-08"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-09",
+       "summary": "2026-09-09: present",
+       "kind": "observation",
+       "on": "2026-09-09"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-10",
+       "summary": "2026-09-10: absent",
+       "kind": "observation",
+       "on": "2026-09-10"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-11",
+       "summary": "2026-09-11: present",
+       "kind": "observation",
+       "on": "2026-09-11"
+      }
+     ]
+    },
+    {
+     "text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "comp:l17",
+       "summary": "tier=strict n=38 dispersion=0.250",
+       "kind": "comparable",
+       "on": null
+      }
+     ]
+    },
+    {
+     "text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد",
+     "kind": "estimated",
+     "evidence": [
+      {
+       "id": "bench:log-linear-ridge:accepted",
+       "summary": "log-linear-ridge passed AcceptanceGate",
+       "kind": "benchmark",
+       "on": null
+      }
+     ]
+    }
+   ],
+   "unsupported": 0
+  },
+  {
+   "label": "D",
+   "title": "شکاف نامعلوم — غیبت فرض نمی‌شود",
+   "decision": "downgrade",
+   "status": "MEDIUM",
+   "status_before": "HIGH",
+   "downgrade_reasons": [
+    "3 روز وضعیت این آگهی برای ما نامعلوم بوده."
+   ],
+   "estimate": {
+    "0.15": 1207084351.5342472,
+    "0.35": 1349947971.0257862,
+    "0.5": 1444041277.6748486,
+    "0.85": 1765260006.0252888
+   },
+   "confidence": {
+    "evidence": 0.65,
+    "comparable": 1.0,
+    "temporal": 0.3,
+    "calibration": 1.0,
+    "data_quality": 1.0,
+    "anomaly_risk": 0.25,
+    "score": 0.7500000000000001,
+    "notes": [
+     "متوسط — سه تا چهار روز",
+     "شکاف زیاد — ۳۰ تا ۵۰٪ نامعلوم",
+     "سقف رده‌ی strict × 38 آگهی"
+    ]
+   },
+   "findings": [
+    {
+     "code": "observation_gap",
+     "severity": "medium",
+     "text": "3 روز وضعیت این آگهی برای ما نامعلوم بوده.",
+     "action": "downgrade",
+     "hard": false,
+     "evidence_ids": [
+      "obs:trk_000001:2026-09-06",
+      "obs:trk_000001:2026-09-07",
+      "obs:trk_000001:2026-09-08"
+     ]
+    }
+   ],
+   "trace": [
+    {
+     "agent": "Evidence",
+     "summary": "6 مشاهده · 3 روز نامعلوم · 0 تجدید آگهی"
+    },
+    {
+     "agent": "Comparables",
+     "summary": "رده‌ی strict · 38 آگهی"
+    },
+    {
+     "agent": "Estimation",
+     "summary": "log-linear-ridge پذیرفته شد"
+    },
+    {
+     "agent": "Risk",
+     "summary": "1 نشانه"
+    },
+    {
+     "agent": "Adversarial",
+     "summary": "تناقض مهمی پیدا نشد"
+    },
+    {
+     "agent": "Judge",
+     "summary": "DOWNGRADE · اطمینان HIGH ← MEDIUM"
+    },
+    {
+     "agent": "Explanation",
+     "summary": "پاسخ فارسی تولید شد"
+    }
+   ],
+   "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.21 تا 1.77 میلیارد\n\nشواهد: 38 آگهی مشابه (مدل، سال و کارکرد نزدیک)\nتاریخچه: از شروع رصد ما حداقل 5 روز در بازار بوده؛ 3 روز وضعیتش نامعلوم بوده\n\nاطمینان: HIGH ← MEDIUM (پس از بازبینی انتقادی)\n  • 3 روز وضعیت این آگهی برای ما نامعلوم بوده.\nضعیف‌ترین بُعد: تازگی داده (30%)\n\nاین برآورد از قیمت‌های پیشنهادی مشاهده‌شده ساخته شده، نه از قیمت معامله.",
+   "claims": [
+    {
+     "text": "از شروع رصد ما حداقل 5 روز در بازار بوده",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "obs:trk_000001:2026-09-06",
+       "summary": "2026-09-06: present",
+       "kind": "observation",
+       "on": "2026-09-06"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-07",
+       "summary": "2026-09-07: present",
+       "kind": "observation",
+       "on": "2026-09-07"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-08",
+       "summary": "2026-09-08: present",
+       "kind": "observation",
+       "on": "2026-09-08"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-09",
+       "summary": "2026-09-09: unknown",
+       "kind": "observation",
+       "on": "2026-09-09"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-10",
+       "summary": "2026-09-10: unknown",
+       "kind": "observation",
+       "on": "2026-09-10"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-11",
+       "summary": "2026-09-11: unknown",
+       "kind": "observation",
+       "on": "2026-09-11"
+      }
+     ]
+    },
+    {
+     "text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "comp:l17",
+       "summary": "tier=strict n=38 dispersion=0.250",
+       "kind": "comparable",
+       "on": null
+      }
+     ]
+    },
+    {
+     "text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد",
+     "kind": "estimated",
+     "evidence": [
+      {
+       "id": "bench:log-linear-ridge:accepted",
+       "summary": "log-linear-ridge passed AcceptanceGate",
+       "kind": "benchmark",
+       "on": null
+      }
+     ]
+    }
+   ],
+   "unsupported": 0
+  },
+  {
+   "label": "E",
+   "title": "بازبینی انتقادی: وتوی سخت",
+   "decision": "reject",
+   "status": "INSUFFICIENT_EVIDENCE",
+   "status_before": "HIGH",
+   "downgrade_reasons": [
+    "قیمت این آگهی بیرون از محدوده‌ی مشاهده‌شده‌ی این مدل است؛ برآورد ما برای چنین موردی اعتبار ندارد."
+   ],
+   "estimate": {
+    "0.15": 1207084351.5342472,
+    "0.35": 1349947971.0257862,
+    "0.5": 1444041277.6748486,
+    "0.85": 1765260006.0252888
+   },
+   "confidence": {
+    "evidence": 1.0,
+    "comparable": 1.0,
+    "temporal": 1.0,
+    "calibration": 1.0,
+    "data_quality": 1.0,
+    "anomaly_risk": 0.5,
+    "score": 0.85,
+    "notes": [
+     "قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده",
+     "پوشش کامل — کمتر از ۱۰٪ نامعلوم",
+     "سقف رده‌ی strict × 38 آگهی"
+    ]
+   },
+   "findings": [
+    {
+     "code": "outside_observed_distribution",
+     "severity": "high",
+     "text": "قیمت این آگهی بیرون از محدوده‌ی مشاهده‌شده‌ی این مدل است؛ برآورد ما برای چنین موردی اعتبار ندارد.",
+     "action": "reject",
+     "hard": true,
+     "evidence_ids": [
+      "adv:range:l17"
+     ]
+    }
+   ],
+   "trace": [
+    {
+     "agent": "Evidence",
+     "summary": "5 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"
+    },
+    {
+     "agent": "Comparables",
+     "summary": "رده‌ی strict · 38 آگهی"
+    },
+    {
+     "agent": "Estimation",
+     "summary": "log-linear-ridge پذیرفته شد"
+    },
+    {
+     "agent": "Risk",
+     "summary": "نشانه‌ی مهمی نبود"
+    },
+    {
+     "agent": "Adversarial",
+     "summary": "1 چالش"
+    },
+    {
+     "agent": "Judge",
+     "summary": "REJECT · اطمینان HIGH ← INSUFFICIENT_EVIDENCE"
+    },
+    {
+     "agent": "Explanation",
+     "summary": "پاسخ فارسی تولید شد"
+    }
+   ],
+   "explanation": "برای این آگهی برآورد قابل اتکایی نداریم.\n\nچرا برآورد نمی‌دهیم:\n  • قیمت این آگهی بیرون از محدوده‌ی مشاهده‌شده‌ی این مدل است؛ برآورد ما برای چنین موردی اعتبار ندارد.\n\nکاری که می‌توانیم بکنیم: آگهی‌های موجود را نشان دهیم، ریسک‌های متن آگهی را دربیاوریم، و بگوییم چه چیزی را باید از فروشنده بپرسید.",
+   "claims": [
+    {
+     "text": "از شروع رصد ما حداقل 4 روز در بازار بوده",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "obs:trk_000001:2026-09-06",
+       "summary": "2026-09-06: present",
+       "kind": "observation",
+       "on": "2026-09-06"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-07",
+       "summary": "2026-09-07: present",
+       "kind": "observation",
+       "on": "2026-09-07"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-08",
+       "summary": "2026-09-08: present",
+       "kind": "observation",
+       "on": "2026-09-08"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-09",
+       "summary": "2026-09-09: present",
+       "kind": "observation",
+       "on": "2026-09-09"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-10",
+       "summary": "2026-09-10: present",
+       "kind": "observation",
+       "on": "2026-09-10"
+      }
+     ]
+    },
+    {
+     "text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "comp:l17",
+       "summary": "tier=strict n=38 dispersion=0.250",
+       "kind": "comparable",
+       "on": null
+      }
+     ]
+    },
+    {
+     "text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد",
+     "kind": "estimated",
+     "evidence": [
+      {
+       "id": "bench:log-linear-ridge:accepted",
+       "summary": "log-linear-ridge passed AcceptanceGate",
+       "kind": "benchmark",
+       "on": null
+      }
+     ]
+    }
+   ],
+   "unsupported": 0
+  },
+  {
+   "label": "F",
+   "title": "برآوردگر پذیرفته نشده — سرو نمی‌شود",
+   "decision": "reject",
+   "status": "INSUFFICIENT_EVIDENCE",
+   "status_before": "MEDIUM",
+   "downgrade_reasons": [
+    "هیچ برآوردگری از دروازه‌ی پذیرش عبور نکرده است."
+   ],
+   "estimate": {},
+   "confidence": {
+    "evidence": 1.0,
+    "comparable": 1.0,
+    "temporal": 1.0,
+    "calibration": 0.0,
+    "data_quality": 0.4,
+    "anomaly_risk": 0.5,
+    "score": 0.53,
+    "notes": [
+     "قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده",
+     "پوشش کامل — کمتر از ۱۰٪ نامعلوم",
+     "سقف رده‌ی strict × 38 آگهی"
+    ]
+   },
+   "findings": [
+    {
+     "code": "estimator_not_accepted",
+     "severity": "high",
+     "text": "هیچ برآوردگری از دروازه‌ی پذیرش عبور نکرده است.",
+     "action": "reject",
+     "hard": true,
+     "evidence_ids": [
+      "bench:global-quantiles"
+     ]
+    }
+   ],
+   "trace": [
+    {
+     "agent": "Evidence",
+     "summary": "5 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"
+    },
+    {
+     "agent": "Comparables",
+     "summary": "رده‌ی strict · 38 آگهی"
+    },
+    {
+     "agent": "Estimation",
+     "summary": "هیچ برآوردگری پذیرفته نشده"
+    },
+    {
+     "agent": "Risk",
+     "summary": "1 نشانه"
+    },
+    {
+     "agent": "Adversarial",
+     "summary": "تناقض مهمی پیدا نشد"
+    },
+    {
+     "agent": "Judge",
+     "summary": "REJECT · اطمینان MEDIUM ← INSUFFICIENT_EVIDENCE"
+    },
+    {
+     "agent": "Explanation",
+     "summary": "پاسخ فارسی تولید شد"
+    }
+   ],
+   "explanation": "برای این آگهی برآورد قابل اتکایی نداریم.\n\nچرا برآورد نمی‌دهیم:\n  • هیچ برآوردگری از دروازه‌ی پذیرش عبور نکرده است.\n\nکاری که می‌توانیم بکنیم: آگهی‌های موجود را نشان دهیم، ریسک‌های متن آگهی را دربیاوریم، و بگوییم چه چیزی را باید از فروشنده بپرسید.",
+   "claims": [
+    {
+     "text": "از شروع رصد ما حداقل 4 روز در بازار بوده",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "obs:trk_000001:2026-09-06",
+       "summary": "2026-09-06: present",
+       "kind": "observation",
+       "on": "2026-09-06"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-07",
+       "summary": "2026-09-07: present",
+       "kind": "observation",
+       "on": "2026-09-07"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-08",
+       "summary": "2026-09-08: present",
+       "kind": "observation",
+       "on": "2026-09-08"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-09",
+       "summary": "2026-09-09: present",
+       "kind": "observation",
+       "on": "2026-09-09"
+      },
+      {
+       "id": "obs:trk_000001:2026-09-10",
+       "summary": "2026-09-10: present",
+       "kind": "observation",
+       "on": "2026-09-10"
+      }
+     ]
+    },
+    {
+     "text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "comp:l17",
+       "summary": "tier=strict n=38 dispersion=0.250",
+       "kind": "comparable",
+       "on": null
+      }
+     ]
+    }
+   ],
+   "unsupported": 0
+  },
+  {
+   "label": "H",
+   "title": "بدون تاریخچه‌ی رصد",
+   "decision": "insufficient_evidence",
+   "status": "INSUFFICIENT_EVIDENCE",
+   "status_before": "INSUFFICIENT_EVIDENCE",
+   "downgrade_reasons": [],
+   "estimate": {
+    "0.15": 1207084351.5342472,
+    "0.35": 1349947971.0257862,
+    "0.5": 1444041277.6748486,
+    "0.85": 1765260006.0252888
+   },
+   "confidence": {
+    "evidence": 0.0,
+    "comparable": 1.0,
+    "temporal": 0.0,
+    "calibration": 1.0,
+    "data_quality": 1.0,
+    "anomaly_risk": 0,
+    "score": 0.65,
+    "notes": [
+     "هیچ مشاهده‌ی تأییدشده‌ای نداریم",
+     "بازه‌ی مشاهده‌ای وجود ندارد",
+     "سقف رده‌ی strict × 38 آگهی"
+    ]
+   },
+   "findings": [],
+   "trace": [
+    {
+     "agent": "Evidence",
+     "summary": "1 مشاهده · 0 روز نامعلوم · 0 تجدید آگهی"
+    },
+    {
+     "agent": "Comparables",
+     "summary": "رده‌ی strict · 38 آگهی"
+    },
+    {
+     "agent": "Estimation",
+     "summary": "log-linear-ridge پذیرفته شد"
+    },
+    {
+     "agent": "Risk",
+     "summary": "نشانه‌ی مهمی نبود"
+    },
+    {
+     "agent": "Adversarial",
+     "summary": "تناقض مهمی پیدا نشد"
+    },
+    {
+     "agent": "Judge",
+     "summary": "INSUFFICIENT_EVIDENCE · اطمینان INSUFFICIENT_EVIDENCE"
+    },
+    {
+     "agent": "Explanation",
+     "summary": "پاسخ فارسی تولید شد"
+    }
+   ],
+   "explanation": "جایگاه این آگهی در توزیع قیمت‌های پیشنهادی مشاهده‌شده: 1.21 تا 1.77 میلیارد\n\nچرا برآورد نمی‌دهیم:\n\nکاری که می‌توانیم بکنیم: آگهی‌های موجود را نشان دهیم، ریسک‌های متن آگهی را دربیاوریم، و بگوییم چه چیزی را باید از فروشنده بپرسید.",
+   "claims": [
+    {
+     "text": "38 آگهی مشابه (مدل، سال و کارکرد نزدیک)",
+     "kind": "observed",
+     "evidence": [
+      {
+       "id": "comp:l17",
+       "summary": "tier=strict n=38 dispersion=0.250",
+       "kind": "comparable",
+       "on": null
+      }
+     ]
+    },
+    {
+     "text": "محدوده‌ی تخمینی قیمت پیشنهادی: 1.21 تا 1.77 میلیارد",
+     "kind": "estimated",
+     "evidence": [
+      {
+       "id": "bench:log-linear-ridge:accepted",
+       "summary": "log-linear-ridge passed AcceptanceGate",
+       "kind": "benchmark",
+       "on": null
+      }
+     ]
+    }
+   ],
+   "unsupported": 0
+  }
+ ],
+ "policy": "CONFIDENCE POLICY (published rules, not a fitted model)\n──────────────────────────────────────────────────────────\nevidence_strength — by days CONFIRMED present\n    >=    5 days → 1.00   قوی — پنج روز یا بیشتر مشاهده‌ی تأییدشده\n    >=    3 days → 0.65   متوسط — سه تا چهار روز\n    >=    1 days → 0.35   ضعیف — یک تا دو روز\n    >=    0 days → 0.00   هیچ مشاهده‌ی تأییدشده‌ای نداریم\ntemporal_strength — by fraction of span that was KNOWN\n    >=  90%      → 1.00   پوشش کامل — کمتر از ۱۰٪ نامعلوم\n    >=  70%      → 0.60   شکاف متوسط — ۱۰ تا ۳۰٪ نامعلوم\n    >=  50%      → 0.30   شکاف زیاد — ۳۰ تا ۵۰٪ نامعلوم\n    >=   0%      → 0.10   بیشتر بازه نامعلوم بوده\ncomparable_strength — tier ceiling x count, minus dispersion\n    strict           ceiling 1.00\n    relaxed_mileage  ceiling 0.70\n    relaxed_year     ceiling 0.45\n    model_only       ceiling 0.20\n    global           ceiling 0.00\n    count saturates at 30; floor 0.35\n    dispersion > 40% → x0.75\noverall status\n    >= 0.68 HIGH · >= 0.42 MEDIUM · else LOW\n    any core dimension < 0.20 → INSUFFICIENT_EVIDENCE",
+ "benchmark": {
+  "global-quantiles": {
+   "pinball": 137371363.13509047,
+   "crossing": 0.0,
+   "cov_err": 0.027966101694915257
+  },
+  "comparable-quantiles": {
+   "pinball": 67243133.24969277,
+   "crossing": 0.0,
+   "cov_err": 0.032687651331719136
+  }
+ }
+}
