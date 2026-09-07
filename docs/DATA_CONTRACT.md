@@ -120,6 +120,45 @@ if any of them reaches the design matrix.
 
 ---
 
+## The estimand
+
+> CARO's appraisal estimand is **conditional**, not a population-weighted
+> model-level market statistic. Trim-stratified acquisition does not receive
+> population weights because trim inclusion probabilities are unknown. Any
+> model-level aggregate is out of scope unless sampling sensitivity is
+> reported.
+
+That defence holds only under four conditions. Three are checked on the
+corpus by `stratification.conditional_scope`; the fourth is a scope rule
+enforced at the point of use by `appraisal.AggregateOutOfScope`.
+
+1. trim is actually present as a conditioning value;
+2. each trim carries at least 5 observations of its own;
+3. at least 70% of eligible listings sit in such trims, so the estimator is
+   not mostly extrapolating between trims from the pooled distribution;
+4. nothing downstream aggregates across trims while implicitly assuming
+   sampling weights.
+
+**On the 2026-09-07 corpus condition 3 FAILS at 55%.** So the conditional
+defence does not currently cover it, and the sampling span must be read as
+bias rather than as precision. That is a measured reason to keep W1 closed,
+not a judgement call.
+
+## Three uncertainties, never merged
+
+D8 required two; D29 adds a third, and it is different in kind.
+
+| quantity | what it measures | shrinks with more data? |
+|---|---|---|
+| `estimate_confidence` | how well we know this model's market | yes |
+| `information_completeness` | how much *this listing* disclosed | no — ask the seller |
+| `sampling_sensitivity` | how much the answer depends on how we sampled | **no** — not while the design is unchanged |
+
+Folding the third into a confidence band would tell a user their uncertainty
+is reducible by collecting more, when collecting more the same way cannot
+reduce it. Any served estimate carries `estimate + confidence + sampling
+sensitivity`.
+
 ## What this contract cannot check
 
 Stated plainly, because an unstated limit reads as a covered one.

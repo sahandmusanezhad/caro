@@ -80,6 +80,20 @@ STRATIFICATION  (variation is not representativeness)
   known — a trim's listing count reflects that page's ceiling at
   least as much as its share of the market. See D29.
 
+  n_eff is NOT the eligible count. Pride reaches 48 eligible for
+  33.3 effective; Tiba 38 for 18.1. Both clear the count gate and
+  they are not in the same condition — which is what 30 is: a
+  safety floor, never a guarantee of precision or of coverage.
+
+  CONDITIONAL-SCOPE PRECONDITIONS (D29 (C))
+  ------------------------------------------------------------------
+  NOT SATISFIED — 55% of eligible listings sit in trims with 5+ observations
+      ⚠ only 55% of listings sit in trims with 5+ observations — the rest are priced by extrapolation from the pooled distribution, which is the assumption the conditional argument rules out
+      thin trims: MVM x22pro ie (1), Hyundai azera 6cylinder 2007 (1), Saipa Pride 131 ex (1), Saipa Pride 132 sx (1), Saipa Pride 151 sl (1), Saipa Pride 132 basic (1)
+      Failing these does not make the corpus useless; it means the conditional
+      defence of unweighted trim sampling does not cover it, and the span
+      above must be read as bias rather than as precision.
+
 
 WHAT THE SAMPLE IS MADE OF
 --------------------------------------------------------------

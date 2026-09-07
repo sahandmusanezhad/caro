@@ -1047,6 +1047,64 @@ check("  and matches coverage.py's quantile convention under equal weights",
       "two quantile conventions in one codebase would eventually disagree "
       "about a price and nobody would know which was meant")
 
+# ---------------------------------------------------------------------------
+print("\nconditional scope + the three-way uncertainty split")
+from caro.appraisal import (                                         # noqa: E402
+    ESTIMAND, AggregateOutOfScope, MarketEstimator, SamplingSensitivity,
+)
+from caro.ingest.stratification import MIN_PER_TRIM, conditional_scope  # noqa: E402
+
+fat = [trimmed(f"t{i % 4}", 1390 + i % 8, 40_000 + i * 8_000,
+               500_000_000 + (i % 7) * 40_000_000) for i in range(40)]
+sc = conditional_scope(fat)
+check("a corpus concentrated in a few well-populated trims is IN SCOPE",
+      sc.ok and sc.covered_share == 1.0, str(sc.failures))
+
+# 40 listings spread one-per-trim: varied, eligible, and every estimate is
+# extrapolated from the pool rather than supported by its own trim.
+sparse = [trimmed(f"t{i}", 1390 + i % 8, 40_000 + i * 8_000,
+                  500_000_000 + (i % 7) * 40_000_000) for i in range(40)]
+sc2 = conditional_scope(sparse)
+check("ONE LISTING PER TRIM is not in scope, however varied",
+      not sc2.ok, str(sc2.covered_share))
+check("  and the reason names extrapolation from the pooled distribution",
+      any("extrapolation" in f for f in sc2.failures), str(sc2.failures))
+check("  with the thin trims listed so they can be looked at",
+      len(sc2.thin_trims) == 40)
+check("passing the COUNT gate does not imply passing scope",
+      len(sparse) >= 30 and not sc2.ok,
+      "30 is a safety floor, not a guarantee of coverage or precision")
+
+# The third uncertainty must not hide inside the first two (D8, extended).
+ss = SamplingSensitivity(relative_span=0.137, observed=1.15e9,
+                         equal_facet=1.24e9, drop_one_min=1.08e9,
+                         drop_one_max=1.24e9)
+check("a wide sampling span is flagged as material", ss.material)
+check("  and a narrow one is not",
+      not SamplingSensitivity(0.019, 5.4e8, 5.4e8, 5.3e8, 5.4e8).material)
+check("  and it reads as a SAMPLING span, not a confidence band",
+      "sampling span" in str(ss) and "confidence" not in str(ss),
+      "no amount of extra listings collected the same way shrinks it")
+
+me = MarketEstimator(estimator=None)
+raised = False
+try:
+    me.aggregate(1.15e9, what="Saipa Tiba median asking price")
+except AggregateOutOfScope as e:
+    raised = "out of scope" in str(e)
+check("A MODEL-LEVEL AGGREGATE IS REFUSED WITHOUT ITS SPAN", raised,
+      "a warning beside a market median gets quoted without the warning")
+check("  and the refusal states the estimand",
+      "CONDITIONAL" in ESTIMAND and "not a population-weighted" in ESTIMAND)
+
+me2 = MarketEstimator(estimator=None, sampling=ss)
+val, span = me2.aggregate(1.15e9, what="Saipa Tiba median")
+check("  while the same aggregate WITH a span is allowed through",
+      val == 1.15e9 and span.relative_span == 0.137)
+check("thresholds were not moved to rescue a model",
+      MIN_PER_TRIM == 5,
+      "Tiba's sensitivity is a fact to report, not a reason to change a gate")
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

@@ -620,3 +620,44 @@ Consequences, stated so they cannot be quietly forgotten:
    month", a model-level median — is **out of scope** on this sampling
    design, and must either carry the sensitivity span or not be published.
 3. The span is a reportable quantity alongside the estimate, not a footnote.
+
+## D30 — The conditional defence has preconditions, and one of them fails
+
+D29 concluded that uneven trim sampling costs precision *within* a trim
+rather than biasing a conditional estimate. That is true, and it is not free.
+It holds only if trim genuinely conditions the estimate rather than being
+extrapolated around, so the conditions are checked rather than asserted:
+
+1. trim is present as a conditioning value;
+2. each trim carries at least `MIN_PER_TRIM = 5` observations;
+3. at least 70% of eligible listings sit in such trims;
+4. nothing downstream aggregates across trims assuming sampling weights.
+
+**Condition 3 fails on the 2026-09-07 corpus at 55%.** Nearly half the
+eligible listings sit in trims of one or two, so their prices come from the
+pooled distribution — exactly the extrapolation the conditional argument
+assumes is not happening. The consequence is specific: for this corpus the
+sampling span is **bias, not precision**, and W1 stays closed for a measured
+reason rather than a cautious one.
+
+The first three are checkable on data; the fourth is about what a caller does
+with the output, so it is enforced where the output is used.
+`MarketEstimator.aggregate()` raises `AggregateOutOfScope` unless a
+`SamplingSensitivity` accompanies the number. It refuses rather than warns,
+because a warning printed beside a market-level median is read as a caveat:
+the number gets quoted and the caveat does not.
+
+`SamplingSensitivity` is deliberately a third quantity rather than a
+contribution to `estimate_confidence`. D8 established that two uncertainties
+must stay apart because they demand opposite user actions; this one is
+different again — it is a property of the **acquisition design**, and no
+volume of further listings collected the same way will shrink it. A
+confidence band that absorbed it would tell the user their uncertainty is
+reducible when it is not.
+
+One thing deliberately not done: `MIN_PER_TRIM`, the 30-eligible floor and
+the variation thresholds were all left alone. Tiba clears the gates with 38
+observations and carries an 11.5% sampling span. That span is a reportable
+fact about Tiba, not evidence that a gate is mis-set — moving a threshold to
+make a model look better is the exact failure this contract was frozen to
+prevent.

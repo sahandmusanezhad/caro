@@ -185,6 +185,71 @@ def sensitivity(rows, q: float = 0.5) -> dict:
             "worst_drop": (min(drops, key=drops.get) if drops else None)}
 
 
+# ---------------------------------------------------------------------------
+# The preconditions that make a conditional estimand safe under this design
+# ---------------------------------------------------------------------------
+#
+# D29 concluded that uneven trim sampling costs precision within a trim rather
+# than biasing a CONDITIONAL estimate. That conclusion is not free — it holds
+# only under stated conditions, and three of the four are checkable, so they
+# are checked rather than asserted. The fourth (that no downstream aggregate
+# silently assumes sampling weights) is a scope rule, enforced by
+# `AggregateOutOfScope` in the appraisal layer.
+
+# Below this, a trim's own estimate is being carried by the pooled
+# distribution rather than by its own observations, which is precisely the
+# extrapolation the conditional argument assumes is not happening.
+MIN_PER_TRIM = 5
+
+
+@dataclass(frozen=True)
+class ScopeCheck:
+    ok: bool
+    failures: list[str]
+    thin_trims: list[tuple[str, int]]
+    covered_share: float          # fraction of listings in adequately-sized trims
+
+
+def conditional_scope(rows, min_per_trim: int = MIN_PER_TRIM) -> ScopeCheck:
+    """Is the conditional reading of this corpus actually supported?
+
+    Conditions, from D29:
+
+      1. trim is present as a conditioning value at all — a row with no trim
+         cannot be conditioned on one;
+      2. each trim carries enough observations to speak for itself;
+      3. the share of listings sitting in adequately-sized trims is high
+         enough that the estimator is not mostly extrapolating.
+
+    Failing this does not mean the corpus is useless. It means the
+    *conditional* defence of unweighted trim sampling does not apply to it,
+    and the sampling span must be treated as bias rather than as precision.
+    """
+    from caro.ingest.quality import eligibility
+    elig = [r for r in rows if r.model and eligibility(r)[0]]
+    failures: list[str] = []
+    if not elig:
+        return ScopeCheck(False, ["no appraisal-eligible rows"], [], 0.0)
+
+    missing_trim = sum(1 for r in elig if not r.trim)
+    if missing_trim:
+        failures.append(
+            f"{missing_trim}/{len(elig)} eligible rows carry no trim, so they "
+            "cannot be conditioned on one")
+
+    sizes = Counter(trim_key(r) for r in elig)
+    thin = sorted(((t, c) for t, c in sizes.items() if c < min_per_trim),
+                  key=lambda kv: kv[1])
+    covered = sum(c for c in sizes.values() if c >= min_per_trim) / len(elig)
+    if covered < 0.70:
+        failures.append(
+            f"only {covered:.0%} of listings sit in trims with "
+            f"{min_per_trim}+ observations — the rest are priced by "
+            "extrapolation from the pooled distribution, which is the "
+            "assumption the conditional argument rules out")
+    return ScopeCheck(not failures, failures, thin, covered)
+
+
 def report(rows) -> list[str]:
     strata = stratify(rows)
     if not strata:
@@ -223,5 +288,26 @@ def report(rows) -> list[str]:
           "  These weightings are DIAGNOSTIC. None enters the estimator: a",
           "  valid design weight is 1/P(inclusion), and P(inclusion) is not",
           "  known — a trim's listing count reflects that page's ceiling at",
-          "  least as much as its share of the market. See D29."]
+          "  least as much as its share of the market. See D29.",
+          "",
+          "  n_eff is NOT the eligible count. Pride reaches 48 eligible for",
+          "  33.3 effective; Tiba 38 for 18.1. Both clear the count gate and",
+          "  they are not in the same condition — which is what 30 is: a",
+          "  safety floor, never a guarantee of precision or of coverage."]
+
+    scope = conditional_scope(rows)
+    L += ["", "  CONDITIONAL-SCOPE PRECONDITIONS (D29 (C))", "  " + "-" * 66,
+          f"  {'satisfied' if scope.ok else 'NOT SATISFIED'} — "
+          f"{scope.covered_share:.0%} of eligible listings sit in trims with "
+          f"{MIN_PER_TRIM}+ observations"]
+    for f in scope.failures:
+        L.append(f"      ⚠ {f}")
+    if scope.thin_trims:
+        thin = ", ".join(f"{t} ({c})" for t, c in scope.thin_trims[:6])
+        L.append(f"      thin trims: {thin}")
+    L.append("      Failing these does not make the corpus useless; it means "
+             "the conditional")
+    L.append("      defence of unweighted trim sampling does not cover it, "
+             "and the span")
+    L.append("      above must be read as bias rather than as precision.")
     return L

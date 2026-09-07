@@ -627,6 +627,69 @@ class NotBenchmarked(RuntimeError):
     pass
 
 
+# ---------------------------------------------------------------------------
+# What, exactly, is being estimated
+# ---------------------------------------------------------------------------
+#
+# Written down because the whole D29 argument turns on it, and because a
+# scope that lives only in a reviewer's head is a scope that will be exceeded
+# by the second feature request.
+ESTIMAND = (
+    "CARO's appraisal estimand is CONDITIONAL — the distribution of asking "
+    "prices for a vehicle given its make, model, trim, year, mileage and "
+    "disclosed condition. It is not a population-weighted, model-level market "
+    "statistic. Trim-stratified acquisition does not receive population "
+    "weights because trim inclusion probabilities are unknown (D29). Any "
+    "model-level aggregate is OUT OF SCOPE unless sampling sensitivity is "
+    "reported alongside it."
+)
+
+
+class AggregateOutOfScope(RuntimeError):
+    """A model-level aggregate was requested without its sampling span.
+
+    The fourth D29 condition, made structural. Conditions 1-3 are checked on
+    the corpus by `stratification.conditional_scope`; this one cannot be —
+    it is about what a caller does with the output — so it is enforced at the
+    point of use instead.
+    """
+
+
+@dataclass(frozen=True)
+class SamplingSensitivity:
+    """How much the answer moves under defensible reweightings of the design.
+
+    Deliberately NOT folded into `estimate_confidence`. D8 established that
+    two uncertainties must not be merged because they require opposite user
+    actions; this is a third, and it is different again:
+
+      estimate_confidence      how well we know this model's market
+      information_completeness how much THIS listing disclosed
+      sampling_sensitivity     how much the answer depends on how we sampled
+
+    The first two are properties of the evidence. This is a property of the
+    *acquisition design*, and no amount of extra listings collected the same
+    way will shrink it. Hiding it inside a confidence band would tell the
+    user their uncertainty is reducible when it is not.
+    """
+    relative_span: float          # as a fraction of the point estimate
+    observed: float
+    equal_facet: float
+    drop_one_min: float
+    drop_one_max: float
+    basis: str = "trim facets, unweighted (D29)"
+
+    @property
+    def material(self) -> bool:
+        return self.relative_span > 0.10
+
+    def __str__(self) -> str:
+        flag = "  ⚠ material" if self.material else ""
+        return (f"sampling span {self.relative_span:.1%} of the estimate "
+                f"({self.drop_one_min/1e9:.2f}–{self.drop_one_max/1e9:.2f}B "
+                f"under reweighting){flag}")
+
+
 @dataclass
 class MarketEstimator:
     """Wraps an estimator and REFUSES to serve until the gate passes.
@@ -634,11 +697,30 @@ class MarketEstimator:
     The honesty rule is enforced here rather than documented: a model that
     has not been benchmarked cannot physically produce a number the product
     could display.
+
+    `sampling` is required before any aggregate may be published, and is
+    carried alongside every estimate rather than inside its confidence — see
+    `SamplingSensitivity` for why the two must stay separable.
     """
     estimator: Estimator
     gate: AcceptanceGate = field(default_factory=AcceptanceGate)
+    sampling: SamplingSensitivity | None = None
     _approved: bool = False
     _report: BenchmarkResult | None = None
+
+    def aggregate(self, value: float, *, what: str) -> tuple[float, SamplingSensitivity]:
+        """A model-level number, which may only leave here with its span.
+
+        Refuses rather than warns. A warning next to a market-level median is
+        read as a caveat; the number is quoted anyway, and the caveat is not.
+        """
+        if self.sampling is None:
+            raise AggregateOutOfScope(
+                f"{what} aggregates across trims, and no SamplingSensitivity "
+                "was supplied. Under this acquisition design trim inclusion "
+                "probabilities are unknown (D29), so an unqualified "
+                f"model-level figure is out of scope.\n\n{ESTIMAND}")
+        return value, self.sampling
 
     def benchmark(self, split: Split, baselines: dict[str, BenchmarkResult],
                   *, name: str = "candidate") -> tuple[bool, list[str]]:
