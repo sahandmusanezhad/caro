@@ -636,9 +636,23 @@ extrapolated around, so the conditions are checked rather than asserted:
 **Condition 3 fails on the 2026-09-07 corpus at 55%.** Nearly half the
 eligible listings sit in trims of one or two, so their prices come from the
 pooled distribution — exactly the extrapolation the conditional argument
-assumes is not happening. The consequence is specific: for this corpus the
-sampling span is **bias, not precision**, and W1 stays closed for a measured
-reason rather than a cautious one.
+assumes is not happening.
+
+The consequence, stated precisely, because an earlier draft of this entry
+overstated it. The span does **not** demonstrate bias. What it shows is that
+the estimate is *sensitive to the sampling design being assumed*; and since
+`P(inclusion)` is unknown, there is no standing to nominate any one of those
+designs as the correct weighting. So the span cannot be read as precision
+either — it is design sensitivity, reported and unresolved. W1 stays closed
+for that measured reason rather than a cautious one.
+
+What is frozen in the contract is the **principle** — *a conditional
+appraisal may only be served when the estimator does not materially
+extrapolate across thin trims* — not the number 5. A properly benchmarked
+hierarchical or shrinkage estimator would change what counts as material
+extrapolation, and should be able to do so without breaking the contract.
+Freezing the threshold rather than the principle would turn the contract into
+an obstacle to improving the estimator.
 
 The first three are checkable on data; the fourth is about what a caller does
 with the output, so it is enforced where the output is used.
@@ -661,3 +675,42 @@ observations and carries an 11.5% sampling span. That span is a reportable
 fact about Tiba, not evidence that a gate is mis-set — moving a threshold to
 make a model look better is the exact failure this contract was frozen to
 prevent.
+
+
+## D31 — Deeper inside the trims we have, not more trims
+
+Run 3's remaining failure is condition 3 of D30: 55% of eligible listings sit
+in trims with five or more observations, against a 70% requirement. The
+obvious response is the wrong one. Adding models, category pages or new trims
+raises the count and *lowers* this share, because each new facet arrives with
+one or two listings of its own — it would make the number worse while looking
+like progress.
+
+So Run 4 goes the other way:
+
+    existing model
+      └── existing, already-populous trim facet
+            └── deeper valid acquisition
+                  └── more independent listings in trims we already have
+
+The question, fixed in advance:
+
+> Can the share of genuinely conditional observations be raised from 55% to
+> the 70% threshold, **without changing any gate and without constructing a
+> weight**?
+
+Both outcomes are informative, which is the point of stating it this way.
+
+*If yes* — the D30 preconditions are re-evaluated and, if they pass, W1's
+estimand gate opens for the models that qualify.
+
+*If no* — that is a finding rather than a setback: this acquisition design
+cannot support a conditional appraisal at this granularity, and the response
+is to change the **estimator or the design** — a hierarchical model that
+borrows strength across trims honestly, or a coarser conditioning level with
+its own benchmark — and never to move the threshold.
+
+The standing rule from D28 carries over: the route's own ceiling is measured
+before anything is concluded from a shortfall. A trim page that saturates at
+twenty listings cannot supply thirty, and reporting that as market thinness
+would repeat the mistake the pre-flight exists to prevent.

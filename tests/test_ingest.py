@@ -953,7 +953,7 @@ check("  and NOT reported as too few — the counts were met",
       flat.eligible >= 30, str(flat.eligible))
 
 good = ArmResult("Saipa Tiba", "variation", lst(40), fetched=40)
-check("40 varied listings -> APPRAISAL_READY", good.outcome == READY,
+check("40 varied listings -> SAMPLE_SUFFICIENT", good.outcome == READY,
       f"{good.outcome} {good.cov.findings}")
 
 # The one that matters most: a run that fetched the wrong pages says nothing
@@ -969,8 +969,10 @@ check("  even though the same rows would otherwise read as TOO_FLAT",
       "invalid acquisition is decided first, on purpose")
 
 check("the ladder reports every stage, not just the last",
-      all(k in good.line() for k in ("40", "APPRAISAL_READY")),
-      good.line())
+      all(k in good.line() for k in ("40", "SAMPLE_SUFFICIENT")), good.line())
+check("  and its top outcome does not read as permission to serve",
+      "READY" not in READY,
+      "the label names a sampling result; the serving decision is D30's")
 
 rep = compare({"depth": lst(12), "variation": lst(12)},
               fetched={"depth": 12, "variation": 12})

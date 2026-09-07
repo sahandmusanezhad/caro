@@ -128,21 +128,38 @@ if any of them reaches the design matrix.
 > model-level aggregate is out of scope unless sampling sensitivity is
 > reported.
 
-That defence holds only under four conditions. Three are checked on the
-corpus by `stratification.conditional_scope`; the fourth is a scope rule
-enforced at the point of use by `appraisal.AggregateOutOfScope`.
+### The frozen principle
 
-1. trim is actually present as a conditioning value;
-2. each trim carries at least 5 observations of its own;
-3. at least 70% of eligible listings sit in such trims, so the estimator is
-   not mostly extrapolating between trims from the pooled distribution;
-4. nothing downstream aggregates across trims while implicitly assuming
-   sampling weights.
+> A conditional appraisal may only be served when the estimator does not
+> **materially extrapolate** across thin or unrepresented trims, and when no
+> downstream aggregate assumes sampling weights.
 
-**On the 2026-09-07 corpus condition 3 FAILS at 55%.** So the conditional
-defence does not currently cover it, and the sampling span must be read as
-bias rather than as precision. That is a measured reason to keep W1 closed,
-not a judgement call.
+That principle is what is frozen. The rule below is its current
+*operationalisation*, and may be replaced by a better one — a properly
+benchmarked hierarchical or shrinkage estimator would change what counts as
+"material extrapolation" without changing the principle. Freezing the
+threshold instead of the principle would make the contract an obstacle to
+improving the estimator, which is not what it is for.
+
+**Current operationalisation** (`stratification.conditional_scope`,
+`appraisal.AggregateOutOfScope`):
+
+1. trim is present as a conditioning value;
+2. each trim carries at least `MIN_PER_TRIM = 5` observations of its own;
+3. at least 70% of eligible listings sit in such trims;
+4. nothing downstream aggregates across trims without a sampling span.
+
+**On the 2026-09-07 corpus, (3) fails at 55%.** So the conditional defence
+does not currently cover it. The consequence is precise, and narrower than it
+first appears:
+
+> The span does **not** demonstrate that the estimate is biased. It shows the
+> estimate is sensitive to the sampling design that is assumed. Because
+> `P(inclusion)` is unknown, none of the candidate designs may be called the
+> correct weighting — so the span cannot be read as precision either, and a
+> model-level aggregate is out of scope without it.
+
+That is a measured reason to keep W1 closed, not a judgement call.
 
 ## Three uncertainties, never merged
 

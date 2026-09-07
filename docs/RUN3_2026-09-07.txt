@@ -28,24 +28,24 @@ RUN 3 RESULT — the ladder, per model per arm
         ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
   Saipa Pride            depth          41      10       7         7       pass   INVALID_ACQUISITION
         ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
-  Saipa Pride            variation     214      64      52        48       pass   APPRAISAL_READY
+  Saipa Pride            variation     214      64      52        48       pass   SAMPLE_SUFFICIENT
   Saipa Quik             depth          41       5       3         3       pass   INVALID_ACQUISITION
         ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
-  Saipa Quik             variation     214      56      40        38       pass   APPRAISAL_READY
+  Saipa Quik             variation     214      56      40        38       pass   SAMPLE_SUFFICIENT
   Saipa Saina            depth          41       9       4         4       FAIL   INVALID_ACQUISITION
         ⚠ 100% share one body condition (intact) — the risk layer has nothing to discriminate on
         ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
   Saipa Saina            variation     214      46      30        29       pass   INSUFFICIENT_OBSERVATIONS
   Saipa Tiba             depth          41      10       9         7       pass   INVALID_ACQUISITION
         ⚠ the /car/<slug>-page-N route saturates at ~20 distinct listings per model (pride: 10,10,3,1,0,0 new per page). This arm CANNOT reach 30 by construction — a ceiling of the route, not of the market.
-  Saipa Tiba             variation     214      48      43        38       pass   APPRAISAL_READY
+  Saipa Tiba             variation     214      48      43        38       pass   SAMPLE_SUFFICIENT
 
   outcome key
   --------------------------------------------------------------------------
     INVALID_ACQUISITION       the acquisition did not do what it claims — NOT a statement about the market
     INSUFFICIENT_OBSERVATIONS not enough appraisal-eligible observations
     INSUFFICIENT_VARIATION    enough observations, but they are too alike to fit
-    APPRAISAL_READY           count and variation both cleared
+    SAMPLE_SUFFICIENT         count and variation cleared — NOT an unlock; the estimand gate (D30) sits above this
 
 ARM INDEPENDENCE
 --------------------------------------------------------------
@@ -54,7 +54,8 @@ ARM INDEPENDENCE
 VERDICT (pooled across VALID arms, deduplicated)
 --------------------------------------------------------------
   arm(s) excluded from pooling as INVALID_ACQUISITION: depth — their question is unanswerable by this route, which is a fact about the route and not about the market.
-  APPRAISAL_READY: Saipa Pride, Saipa Quik, Saipa Tiba — count AND variation. W1 may be unlocked for those models only.
+  SAMPLE_SUFFICIENT: Saipa Pride, Saipa Quik, Saipa Tiba — count AND variation, under a valid acquisition.
+  This is a statement about the SAMPLE, not a decision to serve. The estimand preconditions (D30) are a higher gate and are evaluated separately below.
 
 STRATIFICATION  (variation is not representativeness)
 --------------------------------------------------------------------
@@ -90,9 +91,11 @@ STRATIFICATION  (variation is not representativeness)
   NOT SATISFIED — 55% of eligible listings sit in trims with 5+ observations
       ⚠ only 55% of listings sit in trims with 5+ observations — the rest are priced by extrapolation from the pooled distribution, which is the assumption the conditional argument rules out
       thin trims: MVM x22pro ie (1), Hyundai azera 6cylinder 2007 (1), Saipa Pride 131 ex (1), Saipa Pride 132 sx (1), Saipa Pride 151 sl (1), Saipa Pride 132 basic (1)
-      Failing these does not make the corpus useless; it means the conditional
-      defence of unweighted trim sampling does not cover it, and the span
-      above must be read as bias rather than as precision.
+      Failing these does not make the corpus useless, and it does not prove
+      the estimate is biased. It means the span above CANNOT be read as
+      precision: it is sensitivity to an assumed design, and with
+      P(inclusion) unknown there is no standing to call any one of those
+      designs the correct weighting.
 
 
 WHAT THE SAMPLE IS MADE OF

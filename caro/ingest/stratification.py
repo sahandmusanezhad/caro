@@ -221,9 +221,13 @@ def conditional_scope(rows, min_per_trim: int = MIN_PER_TRIM) -> ScopeCheck:
       3. the share of listings sitting in adequately-sized trims is high
          enough that the estimator is not mostly extrapolating.
 
-    Failing this does not mean the corpus is useless. It means the
-    *conditional* defence of unweighted trim sampling does not apply to it,
-    and the sampling span must be treated as bias rather than as precision.
+    Failing this does not mean the corpus is useless, and it does not
+    demonstrate that the estimate is biased. It means the *conditional*
+    defence of unweighted trim sampling does not apply, so the sampling span
+    cannot be interpreted as precision: it is sensitivity to an assumed
+    design. With `P(inclusion)` unknown, none of the candidate designs may be
+    called the correct one — which is exactly why the span is reported and no
+    weighting is chosen.
     """
     from caro.ingest.quality import eligibility
     elig = [r for r in rows if r.model and eligibility(r)[0]]
@@ -305,9 +309,13 @@ def report(rows) -> list[str]:
     if scope.thin_trims:
         thin = ", ".join(f"{t} ({c})" for t, c in scope.thin_trims[:6])
         L.append(f"      thin trims: {thin}")
-    L.append("      Failing these does not make the corpus useless; it means "
-             "the conditional")
-    L.append("      defence of unweighted trim sampling does not cover it, "
-             "and the span")
-    L.append("      above must be read as bias rather than as precision.")
+    L.append("      Failing these does not make the corpus useless, and it "
+             "does not prove")
+    L.append("      the estimate is biased. It means the span above CANNOT "
+             "be read as")
+    L.append("      precision: it is sensitivity to an assumed design, and "
+             "with")
+    L.append("      P(inclusion) unknown there is no standing to call any "
+             "one of those")
+    L.append("      designs the correct weighting.")
     return L

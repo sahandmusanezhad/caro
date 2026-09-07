@@ -197,14 +197,20 @@ def plan() -> str:
 INVALID = "INVALID_ACQUISITION"        # the run did not test what it claims to
 TOO_FEW = "INSUFFICIENT_OBSERVATIONS"  # not enough eligible listings
 TOO_FLAT = "INSUFFICIENT_VARIATION"    # enough listings, too alike
-READY = "APPRAISAL_READY"              # both gates cleared
+READY = "SAMPLE_SUFFICIENT"            # count + variation, under a
+                                       # valid acquisition. NOT a
+                                       # decision to serve — the
+                                       # estimand gate (D30) is above
+                                       # this one and is checked
+                                       # separately.
 
 OUTCOME_MEANING = {
     INVALID: "the acquisition did not do what it claims — NOT a statement "
              "about the market",
     TOO_FEW: "not enough appraisal-eligible observations",
     TOO_FLAT: "enough observations, but they are too alike to fit",
-    READY: "count and variation both cleared",
+    READY: "count and variation cleared — NOT an unlock; the "
+           "estimand gate (D30) sits above this",
 }
 
 
@@ -321,8 +327,11 @@ def compare(arms: dict[str, list], fetched: dict[str, int] | None = None,
                  "acquisition and re-run; this run is not evidence about "
                  "the market either way.")
     elif ready:
-        L.append(f"  {READY}: {', '.join(ready)} — count AND variation. "
-                 "W1 may be unlocked for those models only.")
+        L.append(f"  {READY}: {', '.join(ready)} — count AND variation, "
+                 "under a valid acquisition.")
+        L.append("  This is a statement about the SAMPLE, not a decision to "
+                 "serve. The estimand preconditions (D30) are a higher gate "
+                 "and are evaluated separately below.")
     else:
         pooled_big = [k for k, c in covs.items()
                       if c.n_eligible >= cov_mod.MIN_ELIGIBLE]
