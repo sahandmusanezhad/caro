@@ -6,12 +6,11 @@ CARO estimates a market range for a listing, then tries to prove itself wrong.
 
 ```
 git clone https://github.com/sahandmusanezhad/caro && cd caro
-./scripts/setup.sh                  # creates .venv, installs numpy
-source .venv/bin/activate
+./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 
-python tests/run_all.py             # 349 assertions, no API key, no network
-python tests/run_all.py ranking     # just the win-rate benchmark
-python demo/export_demo.py          # regenerate demo/index.html from live output
+python3 tests/run_all.py            # 349 assertions, no API key, no network
+python3 tests/run_all.py ranking    # just the win-rate benchmark
+python3 demo/export_demo.py         # regenerate demo/index.html from live output
 ```
 
 **numpy is the only hard dependency.** Ridge regression is written out in
@@ -22,16 +21,22 @@ see a test pass. The closed-form solution is asserted to match `sklearn.Ridge`
 to 1e-9 where sklearn happens to be available.
 
 No build tool either — the suites are plain scripts. A `Makefile` exists as a
-convenience but nothing depends on it. On Debian, Ubuntu and Fedora the
-system Python is externally managed (PEP 668), which is why `setup.sh` makes
-a venv rather than reaching for `--break-system-packages`.
+convenience but nothing depends on it.
+
+`setup.sh` tries four routes in order of how little they disturb the machine:
+numpy already present (common — distributions ship `python3-numpy`), then a
+venv, then a `--user` install into `~/.local`, and only then does it mention
+`sudo`. Debian-family systems make this necessary rather than fussy: the
+system Python is externally managed (PEP 668) *and* `python3-venv` is a
+separate package, so the obvious command fails and the obvious fix also
+fails. **Nobody should need root to run a test suite.**
 
 ### First live collection
 
 ```
 pip install playwright && playwright install chromium
 export CARO_SELLER_SALT="$(head -c 24 /dev/urandom | base64)"
-python scripts/first_run.py --source bama --limit 50
+python3 scripts/first_run.py --source bama --limit 50
 ```
 
 Deliberately small. The point of a first run is not volume — it is the
