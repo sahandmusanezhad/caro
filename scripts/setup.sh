@@ -40,10 +40,15 @@ fi
 
 if [ -x .venv/bin/python ]; then
   .venv/bin/python -m pip install --quiet --upgrade pip 2>/dev/null
-  if .venv/bin/python -m pip install --quiet numpy; then
+  if .venv/bin/python -m pip install --quiet numpy 2>/dev/null; then
     ok "numpy installed into .venv" \
        "source .venv/bin/activate && python tests/run_all.py"
   fi
+  # A venv without pip is worse than no venv: `bin/python` exists so it looks
+  # usable, but `bin/activate` may not, and a later `source .venv/bin/activate`
+  # fails confusingly. Debian creates exactly this when python3-venv is absent.
+  echo "the venv came out without pip — removing it so it cannot mislead later"
+  rm -rf .venv
 fi
 
 # ---- 3. a user-site install ----------------------------------------------
