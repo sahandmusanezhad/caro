@@ -176,6 +176,24 @@ is reducible by collecting more, when collecting more the same way cannot
 reduce it. Any served estimate carries `estimate + confidence + sampling
 sensitivity`.
 
+## When a gate refuses
+
+> **The fix is a corpus that can judge, not a tuning pass that makes the
+> question go away.**
+
+Every threshold in this document is either arithmetic (`MIN_SLICE_N = 58` is
+2.5 binomial standard errors on a 15-point coverage deviation) or a recorded
+policy with its reasoning. Lowering one to obtain a verdict does not buy
+information; it buys the appearance of one, and the appearance is what a
+reader will act on.
+
+Three statements can be true at once, and the benchmark prints them together
+so the flattering one cannot travel alone:
+
+    estimator quality                  promising
+    evidence for conditional serving   insufficient
+    decision                           do not serve
+
 ## What this contract cannot check
 
 Stated plainly, because an unstated limit reads as a covered one.

@@ -4,11 +4,98 @@
 
 CARO estimates a market range for a listing, then tries to prove itself wrong.
 
+---
+
+## The result, up front
+
+CARO's estimator beats its baseline by **52%** on aggregate error. **It is
+not serving.** Those two facts are the project.
+
+```
+BENCHMARK — partial pooling on the Run 3 corpus (155 eligible listings)
+
+  slice                   n          MAE     cover   err  shrink  extrap
+  well-observed trim     75   64,072,026      69%    1%    0.93      0%
+  thin trim              54   63,738,855      70%    0%    0.84    100%
+  held-out trim          26  115,525,217      77%    7%    0.00    100%
+
+  MAE 63,932,559  vs  parent-median baseline 133,372,093   (-52.1%)
+
+  VERDICT: UNJUDGEABLE_SLICE
+
+  estimator quality                  promising
+  evidence for conditional serving   INSUFFICIENT
+  decision                           DO NOT SERVE
+```
+
+The two slices the claim depends on carry n=54 and n=26 against the 58 a
+calibration verdict needs — 2.5 binomial standard errors on a 15-point
+coverage deviation. Their coverage numbers look excellent. They are noise
+that happens to look reassuring, and a demo would quote them.
+
+> **The fix is a corpus that can judge, not a tuning pass that makes the
+> question go away.**
+
+Three independent, *measured* reasons the appraiser stays locked — none of
+them a judgement call:
+
+| | finding | how it was established |
+|---|---|---|
+| **D30** | conditional coverage 55% against a 70% requirement | measured on the corpus |
+| **D31** | the acquisition ceiling is 63% | proved from the source's own trim census — 135 listings across 34 Pride trim pages, 22 holding fewer than five |
+| **D34** | the corpus cannot calibrate the estimator | n=54 and n=26 against a derived floor of 58 |
+
+## What the live runs actually found
+
+Four collection runs against bama.ir. Each one broke something that looked
+like it worked:
+
+- **The sitemap does not list listings.** It lists brand pages. Run 1
+  collected zero cars and reported success.
+- **`/car/saipa` silently returns the generic feed.** It is not a brand slug.
+  A guessed URL that answers `200` is the most expensive kind of bug here,
+  and this pattern recurred **three times** across the runs.
+- **The site declares `priceCurrency: "IRR"` and publishes toman.** Reading
+  the label literally divides every price by ten, and the currency whitelist
+  cannot catch it because `IRR` is a code we recognise. Caught by
+  cross-checking the structured price against the one rendered to buyers.
+- **`999,990 km` on a 1384 Pride; `1 km` on a 1385 Pride.** In range, present,
+  and false. Semantic validation is not a bounds check.
+- **`?page=N` answers 200 and redirects to page 1.** Four "pages" dedupe to
+  ten listings. Reporting that as a homogeneous market would have blamed
+  Iran's used-car trade for a bug in the crawler.
+
+Every one is recorded in [`docs/DECISIONS.md`](docs/DECISIONS.md) with what
+it replaced and what being wrong would have cost.
+
+## Why this shape
+
+The brief was *crawl → normalise → rank by intent → explain*. The part that
+turned out to be hard is none of those: it is knowing when the evidence is
+good enough to speak. So the architecture is a chain of gates, each of which
+can only make a narrower claim than the one before it:
+
+```
+acquisition validity  →  sample sufficiency  →  estimand validity
+                      →  estimator acceptance  →  serving
+```
+
+Run 3 clears the first two. D30 stops it at the third. D34 stops it at the
+fourth. A number that reaches the end has passed all of them, and a number
+that does not is *absent* rather than caveated —
+`MarketEstimator.predict()` raises rather than returning, and
+`aggregate()` refuses a model-level figure that arrives without its sampling
+sensitivity.
+
+CARO reports uncertainty about prices. It also reports **uncertainty about
+its own ability to assess uncertainty**, and refuses on it.
+
 ```
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 
-python3 tests/run_all.py            # 349 assertions, no API key, no network
+python3 tests/run_all.py            # 556 assertions, no API key, no network
+python3 scripts/benchmark_run3.py   # the benchmark above, from the stored corpus
 python3 tests/run_all.py ranking    # just the win-rate benchmark
 python3 demo/export_demo.py         # regenerate demo/index.html from live output
 ```

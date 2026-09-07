@@ -135,6 +135,24 @@ def main() -> int:
     for u in unanswered:
         print(f"    ? {u}")
 
+    # Three statements that do not contradict each other, printed together
+    # so the flattering one cannot be quoted without the other two. An
+    # aggregate MAE lifted out of this block is a different claim from the
+    # one the evidence supports.
+    print("\nREAD AS THREE SEPARATE STATEMENTS", "\n" + "-" * 78)
+    print(f"  estimator quality              promising "
+          f"({(1 - m_mae / b_mae):.0%} better than the parent-median "
+          f"baseline on aggregate error)")
+    print("  evidence for conditional serving   INSUFFICIENT "
+          f"({verdict.value})")
+    print("  decision                       DO NOT SERVE")
+    print("\n  The first does not imply the third is wrong, and the third")
+    print("  does not imply the first is false. Partial pooling has a much")
+    print("  lower aggregate error on this corpus than the baseline; that")
+    print("  result alone does not establish the validity of a CONDITIONAL")
+    print("  appraisal, because the slices the conditioning depends on")
+    print("  cannot be judged at this sample size.")
+
     if verdict is GateVerdict.UNJUDGEABLE:
         print("\n  This is a failure of the EVIDENCE for this claim, not of")
         print("  the model. The aggregate MAE above is real and says nothing")

@@ -958,3 +958,34 @@ about its own ability to assess uncertainty** — and refuses on it. The
 distinction between "the model is wrong" and "we cannot tell whether the
 model is wrong" is the one a benchmark normally erases, and it is the one an
 appraisal product most needs to keep.
+
+## D35 — Acquisition and estimator do not change in the same run
+
+From here the two are separated, and the separation is the decision.
+
+The next run is **mechanical**:
+
+    bounded acquisition  →  ≥ required eligible corpus
+                         →  the SAME frozen estimator
+                         →  the SAME frozen AcceptanceGate
+                         →  judge thin + held-out slices
+
+and explicitly not:
+
+    more data → tune model → change threshold → rerun → keep the nicer result
+
+The second loop is not a worse version of the first; it answers a different
+question. Every free parameter it touches is one the verdict depends on, so
+whatever comes out is a statement about the search, not about the market.
+D34 would have been quietly relocated rather than answered.
+
+This also means a failure after the next acquisition is **still a result**.
+If 450 eligible listings arrive and the gate returns REJECTED, that is the
+honest finding that partial pooling does not support trim-level conditional
+appraisal on Bama data — and it is a finding worth having, not a state to
+tune out of.
+
+The rule is deliberately stricter than it needs to be. There will be a
+legitimate reason to change the estimator eventually; the point is that it
+must not happen in the same step as changing the corpus, because then
+neither change can be attributed.
