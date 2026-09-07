@@ -46,12 +46,23 @@ two of collecting, it arrives as pressure to move a threshold.
 **576 requests, hard cap.** Detail pages, trim pages, `robots.txt`, redirects
 and errors all count. Run 3 spent ~314.
 
+576 is a **registered number, not a computed one**, and the difference is the
+point. The derivation below is how it was arrived at; it is not how it is
+maintained. `run5_target.py` re-runs the derivation and *checks* it against
+this constant — a cap the script produces would move whenever the script did,
+and a budget that grows with its own derivation is not a budget.
+
 Derivation: 312 eligible ÷ 0.701 eligible-per-fetch (measured in Run 3, not
 assumed) = 445 detail pages; ~56 trim pages to enumerate them; ×1.15 for
-duplicates and dead slugs.
+duplicates and dead slugs = 576.
 
-The cap bounds what a bug can cost. It is not a plan to spend it, and hitting
-it is a stop, not a budget increase.
+There is **no slack**: the derivation lands at exactly 576. So a real
+conversion rate below Run 3's 0.701 means the cap binds before the target is
+reached. That is §3 case 2 — stop and report what the corpus is — and it is a
+foreseen outcome, not an overrun. Raising the cap is a §4 change, which ends
+Run 5 rather than amending it.
+
+The cap bounds what a bug can cost. It is not a plan to spend it.
 
 ## 2. Target
 
@@ -110,11 +121,34 @@ attributed to either.
 ## 5. Split rule
 
 Unchanged from D34: `held_out_trim_split(fraction=0.25, seed=0)`, holding out
-entire **trims**, not rows. Thin slice is `THIN_TRIM_MAX`-or-fewer within the
-training set.
+entire **trims**, not rows.
 
-Lowering the fraction would grow the held-out slice without collecting
-anything. That is the specific move this section exists to forbid.
+The order of operations is part of the registration, because two of these
+numbers have a plausible wrong reading and the report must not permit it:
+
+    raw pages
+        ↓  parse
+    parsed listings
+        ↓  eligibility()                        — D22, frozen
+    appraisal-eligible corpus                   — the 312
+        ↓  held_out_trim_split(0.25, seed=0)    — splits TRIMS, not rows
+        ├── held-out trims  ────────────────────→ held-out slice  (≥58)
+        └── training trims
+              ├── ≤ THIN_TRIM_MAX (4) listings ─→ thin slice      (≥58)
+              └── ≥ MIN_PER_TRIM_FLOOR (5)     ─→ well-observed slice
+
+**Thin is measured inside the training set, after the split — not on the raw
+corpus.** A trim's size is counted among training rows only, so a trim can be
+thin here and not thin in the corpus as a whole. Reporting `thin = 60` from a
+whole-corpus count would be a different number with the same name, and the
+one place it would be noticed is nowhere.
+
+Conditional coverage (D30) is the complement of thin *over the whole eligible
+corpus*, so it and the thin slice are computed on different populations by
+design. The report states both with their population named.
+
+Lowering the hold-out fraction would grow the held-out slice without
+collecting anything. That is the specific move this section exists to forbid.
 
 Single-snapshot limitation, carried forward: there is no time dimension, so
 `cluster_temporal_split` cannot run and Run 5 says nothing about temporal
@@ -196,7 +230,10 @@ Run 5 must be replayable from the repository with no network:
 - `docs/RUN5_<date>.txt` — the funnel (fetched / parsed / usable / eligible),
   per-model ladder, stratification, and the gate verdict;
 - `docs/BENCHMARK_RUN5_<date>.txt` — the three slices and the verdict, in the
-  same format as D34's, so the two are directly comparable;
+  same format as D34's, so the two are directly comparable. Every slice count
+  carries the population it was computed on, in the words of §5: *thin
+  (training trims, ≤4)*, *held-out (held-out trims)*, *coverage (whole
+  eligible corpus)*. A bare `thin = 60` is not an acceptable line;
 - this file, unmodified, with the commit it was frozen at.
 
 If the run produces a number that is not reproducible from those files, the

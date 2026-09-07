@@ -64,6 +64,15 @@ from caro.ingest.quality import MIN_PER_TRIM_FLOOR                 # noqa: E402
 HOLDOUT_FRACTION = 0.25      # frozen: the value D34 ran at
 SPLIT_SEED = 0               # frozen: the seed D34 ran at
 
+# The registered hard cap, from RUN5_SPEC.md §1. It is a REGISTERED NUMBER,
+# not a computed one, and the difference matters: a cap the script produces
+# moves whenever the script does, and a budget that quietly grows with its
+# own derivation is not a budget. The derivation below is checked against
+# this constant, never used to replace it. If the check fails, the spec needs
+# an explicit amendment — which under §4 ends the run rather than adjusting
+# it.
+REGISTERED_BUDGET = 576
+
 # Run 3, measured. Detail pages fetched -> rows that parsed -> rows W1 can
 # use. Every conversion below comes from these two numbers, not from a guess
 # about what a good crawler achieves.
@@ -241,11 +250,25 @@ def main() -> int:
     print(f"  + trim pages to find them           ~{cat}"
           f"   (Run 3 saw ~8-10 listings per trim page)")
     print("  + 15% for duplicates and dead slugs")
-    print(f"\n  BUDGET  {int((fetches + cat) * 1.15)} requests, hard cap. "
-          f"Run 3 spent ~314.")
-    print("\n  A ceiling, not a plan to spend it. The stopping rule is on the")
-    print("  corpus, not the budget; the budget only bounds what a bug costs.")
-    return 0
+    derived = int((fetches + cat) * 1.15)
+    print(f"  derivation lands at                 {derived}")
+    print(f"\n  BUDGET  {REGISTERED_BUDGET} requests, hard cap — REGISTERED "
+          f"in RUN5_SPEC.md §1,\n          not recomputed here. Run 3 spent "
+          f"~314.")
+
+    ok = derived <= REGISTERED_BUDGET
+    print(f"\n  {'✓' if ok else '✗'} the derivation still fits the registered "
+          f"cap ({derived} ≤ {REGISTERED_BUDGET})")
+    if not ok:
+        print("\n  It does not. That is not a licence to raise the cap: under")
+        print("  §4 a changed constant ENDS Run 5 rather than amending it, so")
+        print("  this needs an explicit new registration, argued on its own.")
+        print("  A budget that grows with its own derivation is not a budget.")
+
+    print("\n  The cap is a ceiling, not a plan to spend it. The stopping rule")
+    print("  is on the corpus (§3), not the budget; the budget only bounds")
+    print("  what a bug can cost.")
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

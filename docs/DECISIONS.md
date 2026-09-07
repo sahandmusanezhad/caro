@@ -1347,3 +1347,54 @@ same decision the rest of the project keeps making, one level up:
 Every one refuses the same move: turning *we do not know* into *it is
 fine*. D36 applies it to the project's own prose, which was the last place
 still doing it.
+
+## D37 — A sample-size multiplier is not an acquisition strategy
+
+Found while pre-registering Run 5, before any request was sent, and recorded
+here because it is a fact about **our own gates' arithmetic** — not an
+observation about the market, and not a result. Under D36's tiers it is a
+derivation from frozen constants; it would be true of a corpus that does not
+exist yet, which is precisely why it could be established on paper.
+
+D34 left two slices short, and the obvious reading was "collect about twice
+as much". That reading is wrong, and not by a margin:
+
+    thin slice   rows in TRAINING trims with 4 or fewer listings  (needs 58)
+    coverage     share of eligible rows in trims with 5 or more   (wants 70%)
+
+These are complements. Every listing that lifts a trim from four to five
+raises coverage and removes that trim's rows from the thin slice. So the two
+gates the project already froze pull in **opposite directions on acquisition
+strategy**, and neither pure strategy satisfies both:
+
+    strategy   eligible  trims  thin  held  cover
+    deepen            —      —     —     —      —   UNREACHABLE
+    broaden         229     74   107    62    40%   fails D30
+    mixed           312     62    60    76    76%   ok
+
+Deepening being *unreachable* rather than merely expensive is the part worth
+keeping. D31 chose to deepen existing trims specifically to raise coverage
+from 55% toward 70%. It does — and past a point the thin slice is empty, so
+the benchmark that decides whether thin-trim estimates can be trusted has
+nothing left to judge. A strategy chosen to satisfy one gate destroys the
+other's ability to run at all.
+
+**The consequence: a corpus target is a shape, not a count.** Run 5 needs 312
+eligible listings across ~62 trims, every well-observed trim at five or more,
+and enough trims under the floor to put 58 rows in the thin slice. The same
+312 collected the obvious way — deepest models first — satisfies neither
+gate, while the count alone reads as success.
+
+**Why this had to be found before collecting, not during.** Halfway through a
+run, this arrives as pressure to relax 5, or 70%, or 58. Each of those makes
+the shortfall disappear without answering anything, and each would be
+proposed in good faith by someone who has just spent two weeks collecting.
+D34's verdict is only worth what it cost if the threshold that produced it
+survives contact with the inconvenience. The cheapest moment to fix a number
+is before anyone is invested in it.
+
+`scripts/run5_target.py` derives all of this from the Run 3 snapshot and
+disagrees with `docs/RUN5_SPEC.md` if either the corpus or a frozen constant
+moves. The 576-request cap is the one number it does *not* derive: that is
+registered, and the script checks the derivation against it, because a budget
+recomputed from its own formula grows with the formula.
