@@ -445,11 +445,21 @@ quantity estimable from data.
 
 The 2026-09-07 corpus already fails it at n=5–8: Saina's eligible listings are
 100% `intact` with an asking-price IQR of **3%** of the median, which is not a
-market, it is one narrow slice. That matters for the run that comes next: a
-slice already homogeneous at n=8 will usually still be homogeneous at n=40,
-because more pages of one query return more of one kind of car. Homogeneity
-is a property of the query, not of the sample size — so the report says so
-rather than recommending more pages.
+market, it is one narrow slice.
+
+What that licenses, stated carefully. The evidence supports *"this sample is
+not evidence of a varied market"*. It does **not** support *"deeper pagination
+cannot fix it"* — a later page could perfectly well introduce different
+sellers, conditions and prices, and asserting otherwise would be a claim about
+pages nobody has fetched. An earlier draft of this entry made the stronger
+claim; it was wrong, and the kind of wrong that is easy to attack precisely
+because it sounds like a finding.
+
+So the gate fails the current sample and the next run tests whether changing
+the retrieval strategy fixes it — pagination depth and query variation as
+separate arms, with the thresholds held fixed while the sampling changes. If
+the constants moved to accommodate whatever the next run produced, the gate
+would be measuring the run rather than the market.
 
 ## D26 — Seller type is inferred from the business, never from the person
 
@@ -470,3 +480,25 @@ membership, agency-sales language. Two consequences are deliberate:
 
 A weaker signal that touches no personal data is the right trade here. The
 alternative is not a better feature — it is a phone number in a model.
+
+## D27 — Sampling diagnostics are barred from the model, in code
+
+`seller_type`, `price_status`, `mileage_status` and the provenance fields
+describe how a corpus was *collected*. They are listed in
+`quality.DIAGNOSTIC_ONLY_FIELDS`, and `Row.__post_init__` raises
+`DiagnosticLeakedIntoModel` if any of them appears in a row's features.
+
+The failure this prevents would look like a result. Dealer listings really
+are priced differently, so an estimator given `seller_type` would find a
+genuine correlation, improve on every metric, and encode *fair value depends
+on who is selling*. What the corpus actually establishes is only that this
+sample may be dominated by a particular seller population. The model would
+then quote a lower fair value for a private seller's otherwise identical car,
+and nothing in the evaluation would object.
+
+The signal is also a coarse proxy built from a trade badge (D26), so part of
+what it would learn is badge-availability rather than anything about cars.
+
+A guard in code rather than a paragraph in a design doc, for the same reason
+`NotBenchmarked` is an exception rather than a README promise (D11): the
+boundary that matters is the one that fails loudly.

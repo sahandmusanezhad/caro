@@ -726,6 +726,41 @@ check("the seller signal reads no personal identifier",
       detect_seller_type(["نمایش شماره", "۰۹۱۲۳۴۵۶۷XX"]) == "unknown",
       "a phone number must never become a seller feature")
 
+# A diagnostic that quietly becomes a feature is how a pipeline starts
+# modelling itself. seller_type answers "is this one forecourt?", which is a
+# question about our sampling — never about the car.
+from caro.appraisal import Row                                       # noqa: E402
+from caro.ingest.quality import DiagnosticLeakedIntoModel             # noqa: E402
+
+leaked = False
+try:
+    Row(listing_id="r1", cluster_id="c1", first_seen_ordinal=1,
+        model_key="Saipa|Tiba|EX", year_jalali=1399, mileage_km=80_000,
+        asking_price_toman=900_000_000, features={"seller_type": 1.0})
+except DiagnosticLeakedIntoModel:
+    leaked = True
+check("SELLER TYPE CANNOT BE USED AS A PREDICTOR", leaked,
+      "the estimator would learn 'fair value depends on who is selling' from "
+      "a correlation that is real and an inference that is not")
+
+for f in ("mileage_status", "price_status", "price_provenance"):
+    caught = False
+    try:
+        Row(listing_id="r", cluster_id="c", first_seen_ordinal=1,
+            model_key="m", year_jalali=1399, mileage_km=1.0,
+            asking_price_toman=1.0, features={f: 1.0})
+    except DiagnosticLeakedIntoModel:
+        caught = True
+    check(f"  nor {f}", caught)
+
+ok_row = Row(listing_id="r2", cluster_id="c2", first_seen_ordinal=1,
+             model_key="Saipa|Tiba|EX", year_jalali=1399, mileage_km=80_000,
+             asking_price_toman=900_000_000,
+             features={"body_condition_score": 0.8})
+check("a genuine vehicle feature still passes",
+      ok_row.features["body_condition_score"] == 0.8,
+      "the guard must not become a reason to have no features at all")
+
 pages = {"https://bama.ir/sitemap/car": (200, SITEMAP),
          "https://bama.ir/car/peugeot": (200, CATEGORY),
          "https://bama.ir/car/saipa": (200, "")}
@@ -841,9 +876,9 @@ xs = [c for c in clusters if c.is_cross_source]
 check("a cross-source cluster forms", len(xs) >= 1)
 c0 = xs[0]
 check("it spans more than one source", len(c0.sources) >= 2, str(c0.sources))
-check("price spread is computed", c0.price_spread_irr > 0)
+check("price spread is computed", c0.price_spread_toman > 0)
 check("minimum ask is the negotiation floor",
-      c0.min_ask_irr == min(c0.prices))
+      c0.min_ask_toman == min(c0.prices))
 check("the wording is NOT «تأیید» — several sites is not corroboration",
       "تأیید" not in c0.claim_fa(), c0.claim_fa())
 check("  it names the price inconsistency instead",

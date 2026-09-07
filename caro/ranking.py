@@ -158,8 +158,8 @@ WEIGHT_PRESETS: dict[str, Weights] = {
 @dataclass(frozen=True)
 class IntentSpec:
     raw_query: str
-    budget_max_irr: int | None = None
-    budget_min_irr: int | None = None
+    budget_max_toman: int | None = None
+    budget_min_toman: int | None = None
     budget_hard: bool = True
     model_hints: tuple[str, ...] = ()
     year_min: int | None = None
@@ -271,8 +271,8 @@ class RuleIntentParser:
                                      for a in al))[:4]
 
         return IntentSpec(
-            raw_query=query, budget_max_irr=budget_max,
-            budget_min_irr=budget_min, budget_hard=hard,
+            raw_query=query, budget_max_toman=budget_max,
+            budget_min_toman=budget_min, budget_hard=hard,
             model_hints=models, year_min=year_min, max_mileage_km=max_km,
             use_case=use_case, deal_breakers=breakers,
             weights=w.normalized(), risk_profile=risk,
@@ -307,9 +307,9 @@ class RelaxationReport:
 
 
 def _passes(row: Row, spec: IntentSpec) -> bool:
-    if spec.budget_max_irr and row.asking_asking_price_toman > spec.budget_max_irr:
+    if spec.budget_max_toman and row.asking_price_toman > spec.budget_max_toman:
         return False
-    if spec.budget_min_irr and row.asking_asking_price_toman < spec.budget_min_irr:
+    if spec.budget_min_toman and row.asking_price_toman < spec.budget_min_toman:
         return False
     if spec.model_hints and row.model_key not in spec.model_hints:
         return False
@@ -340,8 +340,8 @@ def retrieve(rows: Sequence[Row], spec: IntentSpec,
 
     ladder = [
         ("budget", lambda s: replace(
-            s, budget_max_irr=int(s.budget_max_irr * 1.10))
-         if s.budget_max_irr else None,
+            s, budget_max_toman=int(s.budget_max_toman * 1.10))
+         if s.budget_max_toman else None,
          "بودجه ۱۰٪ افزایش یافت"),
         ("mileage", lambda s: replace(
             s, max_mileage_km=int(s.max_mileage_km * 1.30))
@@ -351,8 +351,8 @@ def retrieve(rows: Sequence[Row], spec: IntentSpec,
          if s.year_min else None,
          "یک سال مدل پایین‌تر هم بررسی شد"),
         ("budget2", lambda s: replace(
-            s, budget_max_irr=int(s.budget_max_irr * 1.10))
-         if s.budget_max_irr and not s.budget_hard else None,
+            s, budget_max_toman=int(s.budget_max_toman * 1.10))
+         if s.budget_max_toman and not s.budget_hard else None,
          "بودجه ۱۰٪ دیگر افزایش یافت"),
     ]
     for _, step, label in ladder:
@@ -409,9 +409,9 @@ class ScoredRow:
     row: Row
     score: float
     breakdown: dict[str, float]
-    conservative_estimate_irr: float
-    adjusted_opportunity_irr: float
-    expected_damage_irr: float = 0.0
+    conservative_estimate_toman: float
+    adjusted_opportunity_toman: float
+    expected_damage_toman: float = 0.0
 
     @property
     def role_fa(self) -> str:
@@ -441,14 +441,14 @@ class Ranker:
         qi = min(range(len(QUANTILES)),
                  key=lambda i: abs(QUANTILES[i] - alpha))
 
-        asking = np.array([r.asking_asking_price_toman for r in rows], dtype=float)
+        asking = np.array([r.asking_price_toman for r in rows], dtype=float)
         conservative = preds[:, qi]
         risk = np.array([r.features.get("risk", 0.0) for r in rows])
 
         # Risk is priced in tomans against the car's own value, then
         # subtracted — not normalised and blended. See DAMAGE_COST_FACTOR.
-        expected_damage_irr = risk * conservative * DAMAGE_COST_FACTOR
-        opportunity = conservative - asking - expected_damage_irr
+        expected_damage_toman = risk * conservative * DAMAGE_COST_FACTOR
+        opportunity = conservative - asking - expected_damage_toman
         owning = np.array([r.features.get("ownership_risk", 0.0) for r in rows])
         liquid = np.array([r.features.get("liquidity", 0.5) for r in rows])
         mileage = np.array([r.mileage_km for r in rows], dtype=float)
@@ -468,9 +468,9 @@ class Ranker:
         return [ScoredRow(
             row=r, score=float(total[i]),
             breakdown={k: float(v[i]) for k, v in terms.items()},
-            conservative_estimate_irr=float(conservative[i]),
-            adjusted_opportunity_irr=float(opportunity[i]),
-            expected_damage_irr=float(expected_damage_irr[i]),
+            conservative_estimate_toman=float(conservative[i]),
+            adjusted_opportunity_toman=float(opportunity[i]),
+            expected_damage_toman=float(expected_damage_toman[i]),
         ) for i, r in enumerate(rows)]
 
 
@@ -501,9 +501,9 @@ def diversify(scored: Sequence[ScoredRow], k: int = 5) -> list[ScoredRow]:
                 return
 
     best(lambda s: s.row.features.get("risk", 0.0) <= 0.15, "امن‌ترین گزینه")
-    best(lambda s: s.adjusted_opportunity_irr > 0, "بیشترین صرفه")
-    best(lambda s: s.row.asking_asking_price_toman <= np.percentile(
-        [x.row.asking_asking_price_toman for x in ordered], 25), "ارزان‌ترین قابل قبول")
+    best(lambda s: s.adjusted_opportunity_toman > 0, "بیشترین صرفه")
+    best(lambda s: s.row.asking_price_toman <= np.percentile(
+        [x.row.asking_price_toman for x in ordered], 25), "ارزان‌ترین قابل قبول")
     for s in ordered:
         if len(picks) >= k:
             break
@@ -602,7 +602,7 @@ def winrate_vs_price_sort(pipeline: RankingPipeline, rows: Sequence[Row],
 
         c = float(np.mean([utility_fn(s.row) for s in sl.items[:k]]))
         p = float(np.mean([utility_fn(r) for r in sorted(
-            cands, key=lambda r: r.asking_asking_price_toman)[:k]]))
+            cands, key=lambda r: r.asking_price_toman)[:k]]))
         idx = rng.choice(len(cands), size=min(k, len(cands)), replace=False)
         rnd = float(np.mean([utility_fn(cands[i]) for i in idx]))
 

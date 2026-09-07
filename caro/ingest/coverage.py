@@ -199,12 +199,16 @@ def report(covs: dict) -> list[str]:
             L.append(f"  No model reaches {MIN_ELIGIBLE} eligible listings, "
                      "so none is ready regardless of spread.")
             if flagged:
-                # Worth reading now rather than after the deeper run: a slice
-                # that is already homogeneous at n=8 will usually still be
-                # homogeneous at n=40, because more pages of one query return
-                # more of one kind of car.
+                # Stated as what the evidence supports and no more. This
+                # sample is not evidence of diversity; whether a deeper or
+                # differently-shaped retrieval produces one is an open
+                # question, and the next run is the experiment that answers
+                # it. Asserting that more pages *cannot* help would be a
+                # claim about pages nobody has fetched.
                 L.append(f"  {flagged} of them ALREADY show the homogeneity "
-                         "above at this size. Deeper pagination on the same "
-                         "query will not fix that — it is a property of the "
-                         "query, not of the sample size.")
+                         "above at this size, so this sample is not evidence "
+                         "of a varied market.")
+                L.append("  Whether more pages of the SAME query fix it, or "
+                         "only a differently-shaped query does, is untested — "
+                         "run both and compare rather than assuming either.")
     return L

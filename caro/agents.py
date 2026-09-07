@@ -497,7 +497,7 @@ class AdversarialAgent:
                 tuple(cp.evidence_ids), "downgrade"))
 
         # Challenge 2: is the listing outside the observed market at all?
-        prices = np.array([r.asking_asking_price_toman for r in train_rows
+        prices = np.array([r.asking_price_toman for r in train_rows
                            if r.model_key == row.model_key], dtype=float)
         if prices.size >= 10:
             p1, p99 = np.quantile(prices, [0.01, 0.99])
@@ -505,7 +505,7 @@ class AdversarialAgent:
                 f"adv:range:{row.listing_id}", "derived",
                 f"observed {row.model_key} range {p1:,.0f}–{p99:,.0f} "
                 f"from {prices.size} listings", row.model_key))
-            if row.asking_asking_price_toman < p1 or row.asking_asking_price_toman > p99:
+            if row.asking_price_toman < p1 or row.asking_price_toman > p99:
                 out.append(Finding(
                     "outside_observed_distribution", "high",
                     "قیمت این آگهی بیرون از محدوده‌ی مشاهده‌شده‌ی این مدل است؛ "

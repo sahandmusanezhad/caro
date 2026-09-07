@@ -87,7 +87,8 @@ COMPARABLE-SET VARIATION  (size is not coverage)
       ⚠ 100% share one body condition (intact) — the risk layer has nothing to discriminate on
       ⚠ asking prices are near-uniform (IQR 3% of median) — check this is a market and not one seller's inventory
   No model reaches 30 eligible listings, so none is ready regardless of spread.
-  5 of them ALREADY show the homogeneity above at this size. Deeper pagination on the same query will not fix that — it is a property of the query, not of the sample size.
+  5 of them ALREADY show the homogeneity above at this size, so this sample is not evidence of a varied market.
+  Whether more pages of the SAME query fix it, or only a differently-shaped query does, is untested — run both and compare rather than assuming either.
 
 VERDICT
 --------------------------------------------------------------

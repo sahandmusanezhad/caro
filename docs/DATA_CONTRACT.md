@@ -97,9 +97,26 @@ same slice can detect this, because the held-out half is degenerate in
 exactly the same way. It has to be checked structurally, on the inputs,
 before anything is fitted — which is what `caro/ingest/coverage.py` does.
 
-Corollary, and the practical rule for Run 3: **if a slice is already
-homogeneous at n=8, more pages of the same query will not fix it.**
-Homogeneity is usually a property of the query, not of the sample size.
+What this licenses, and what it does not. A failing slice establishes
+*"this sample is not evidence of a varied market"*. It does **not** establish
+*"more pages cannot help"* — a later page could hold different sellers,
+conditions and prices, and claiming otherwise would be a statement about
+pages nobody has fetched. The gate fails the sample; the next run tests
+whether a different retrieval strategy fixes it, with these thresholds held
+fixed while the sampling varies (`scripts/run3_matrix.py`).
+
+## seller_type is a diagnostic, never a feature
+
+`seller_type` answers "is this comparable set one forecourt's inventory?" —
+a question about *our sampling*, not about the car. Feeding it to the
+estimator would let CARO learn that fair value depends on who is selling,
+from a correlation that is real and an inference that is not; every metric
+would improve, because dealer listings genuinely are priced differently.
+
+The boundary is enforced rather than documented:
+`caro.ingest.quality.DIAGNOSTIC_ONLY_FIELDS` lists it alongside the other
+provenance fields, and `Row.__post_init__` raises `DiagnosticLeakedIntoModel`
+if any of them reaches the design matrix.
 
 ---
 

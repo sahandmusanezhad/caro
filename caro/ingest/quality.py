@@ -144,6 +144,53 @@ def classify_price_value(toman: int | None) -> Judgement:
     return Judgement(Validity.PLAUSIBLE)
 
 
+# ---------------------------------------------------------------------------
+# Fields that describe the SAMPLE, and must never describe the CAR
+# ---------------------------------------------------------------------------
+#
+# `seller_type` exists so `coverage` can ask whether a comparable set is one
+# forecourt's inventory pretending to be a market. That is a question about
+# our sampling. It is not a fact about the vehicle.
+#
+# The failure it guards against is subtle and would look like a result. Feed
+# `seller_type` to the estimator and it will find that dealer listings are
+# priced differently — they are — and encode that as *fair value depends on
+# who is selling*. What the corpus actually establishes is only that this
+# sample may be dominated by a particular seller population. The model would
+# then quote a lower fair value for a private seller's identical car, and
+# every metric would improve, because the correlation is real. It is the
+# inference that is wrong.
+#
+# Worse, the signal is a coarse proxy built from a trade badge (D26), so the
+# "effect" it would learn is partly just badge-availability. Diagnostics that
+# quietly become features is a standard way a pipeline starts modelling
+# itself, so the boundary is enforced rather than documented.
+DIAGNOSTIC_ONLY_FIELDS = frozenset({
+    "seller_type",
+    "price_status", "price_provenance", "price_raw", "price_currency_raw",
+    "mileage_status", "mileage_note",
+})
+
+
+class DiagnosticLeakedIntoModel(RuntimeError):
+    """A sampling diagnostic reached the design matrix."""
+
+
+def assert_not_features(names) -> None:
+    """Raise if a diagnostic is being used as a predictor.
+
+    Called by the estimator on its own column list. A type error at fit time
+    is a boundary; a paragraph in a design doc is a hope.
+    """
+    leaked = sorted(set(map(str, names)) & DIAGNOSTIC_ONLY_FIELDS)
+    if leaked:
+        raise DiagnosticLeakedIntoModel(
+            f"{', '.join(leaked)} describe how this SAMPLE was collected, not "
+            "the car. Using them as predictors would encode 'fair value "
+            "depends on who is selling' from a correlation that is real and "
+            "an inference that is not. They belong to caro.ingest.coverage.")
+
+
 # What W1 needs before a listing can inform an estimate. Deliberately narrow:
 # these are the terms that appear in the appraisal itself, so a row missing
 # any of them cannot contribute a comparable, only noise.

@@ -269,11 +269,11 @@ class CrossSourceCluster:
         return sorted(m.asking_price_toman for m in self.members if m.asking_price_toman)
 
     @property
-    def min_ask_irr(self) -> int | None:
+    def min_ask_toman(self) -> int | None:
         return self.prices[0] if self.prices else None
 
     @property
-    def price_spread_irr(self) -> int:
+    def price_spread_toman(self) -> int:
         p = self.prices
         return (p[-1] - p[0]) if len(p) > 1 else 0
 
@@ -297,11 +297,11 @@ class CrossSourceCluster:
         if not self.is_cross_source:
             return f"در {len(self.members)} آگهی از یک منبع دیده شده"
         n = len(self.sources)
-        if self.price_spread_irr == 0:
+        if self.price_spread_toman == 0:
             return f"همین خودرو در {n} سایت با قیمت یکسان آگهی شده"
         return (f"همین خودرو در {n} سایت آگهی شده، با "
-                f"{self.price_spread_irr / 1e6:.0f} میلیون اختلاف قیمت — "
-                f"کمترین قیمت اعلام‌شده {self.min_ask_irr / 1e9:.2f} میلیارد است")
+                f"{self.price_spread_toman / 1e6:.0f} میلیون اختلاف قیمت — "
+                f"کمترین قیمت اعلام‌شده {self.min_ask_toman / 1e9:.2f} میلیارد است")
 
     def price_gap_fa(self) -> str | None:
         """What was OBSERVED, and nothing about the seller's state of mind.
@@ -316,11 +316,11 @@ class CrossSourceCluster:
         The observation is worth stating. The conclusion is the user's to
         draw, and the wording now stops where the evidence does.
         """
-        if not self.is_cross_source or self.price_spread_irr == 0:
+        if not self.is_cross_source or self.price_spread_toman == 0:
             return None
-        return (f"همین خودرو با قیمت {self.min_ask_irr / 1e9:.2f} میلیارد نیز "
+        return (f"همین خودرو با قیمت {self.min_ask_toman / 1e9:.2f} میلیارد نیز "
                 f"منتشر شده؛ اختلاف قیمت بین کانال‌ها "
-                f"{self.price_spread_irr / 1e6:.0f} میلیون تومان است. "
+                f"{self.price_spread_toman / 1e6:.0f} میلیون تومان است. "
                 "این اختلاف یک نکته‌ی قابل بررسی برای مذاکره است.")
 
 

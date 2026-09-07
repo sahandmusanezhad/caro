@@ -64,7 +64,7 @@ def make_corpus(n=1800):
             listing_id=f"l{i}", cluster_id=f"c{i}",
             first_seen_ordinal=int(rng.integers(0, 100)),
             model_key=m, year_jalali=year, mileage_km=km,
-            asking_asking_price_toman=float(asking),
+            asking_price_toman=float(asking),
             features={
                 "risk": risk,
                 "ownership_risk": float(rng.beta(2, 5)),
@@ -80,7 +80,7 @@ def true_utility(r: Row) -> float:
     pay, minus what the damage will cost them. The ranker never sees this."""
     clean = r.features["_clean_value"]
     damage_cost = clean * 0.85 * r.features["risk"]
-    return clean - r.asking_asking_price_toman - damage_cost
+    return clean - r.asking_price_toman - damage_cost
 
 
 ROWS = make_corpus()
@@ -116,7 +116,7 @@ print("\nintent parsing")
 P = RuleIntentParser()
 
 s = P.parse("یه ۲۰۶ اتومات کم‌کارکرد تا ۱.۵ میلیارد میخوام")
-check("budget parsed", s.budget_max_irr == 1_500_000_000, str(s.budget_max_irr))
+check("budget parsed", s.budget_max_toman == 1_500_000_000, str(s.budget_max_toman))
 check("model recognised", "206" in s.model_hints, str(s.model_hints))
 check("low-mileage inferred", s.max_mileage_km == 120_000)
 check("  and the inference is disclosed",
@@ -154,7 +154,7 @@ check("weights always normalise to 1",
 
 # ---------------------------------------------------------------------------
 print("\nretrieval and the relaxation ladder")
-tight = IntentSpec(raw_query="", budget_max_irr=100_000_000,
+tight = IntentSpec(raw_query="", budget_max_toman=100_000_000,
                    model_hints=("206",), year_min=1402,
                    max_mileage_km=20_000)
 got, used, rep = retrieve(POOL, tight)
@@ -163,12 +163,12 @@ check("impossible query never returns an empty list silently",
 check("  and says what was loosened",
       "بودجه" in rep.text_fa() or not rep.relaxed, rep.text_fa())
 
-easy = IntentSpec(raw_query="", budget_max_irr=10_000_000_000)
+easy = IntentSpec(raw_query="", budget_max_toman=10_000_000_000)
 got2, _, rep2 = retrieve(POOL, easy)
 check("a satisfiable query relaxes nothing", not rep2.relaxed)
 check("  and returns candidates", len(got2) > 50)
 
-db = IntentSpec(raw_query="", budget_max_irr=10_000_000_000,
+db = IntentSpec(raw_query="", budget_max_toman=10_000_000_000,
                 deal_breakers=("accident",))
 got3, used3, _ = retrieve(POOL, db)
 check("a deal-breaker is never relaxed away",
@@ -279,20 +279,20 @@ dear = Row("x2", "cx2", 10, "pars", 1398, 100_000, 1_900_000_000,
 spec = P.parse("تا ۳ میلیارد")
 sc = {s.row.listing_id: s for s in PIPE.ranker.score([cheap, dear], spec)}
 check("identical risk costs more on the more valuable car",
-      sc["x2"].expected_damage_irr > sc["x1"].expected_damage_irr * 2,
-      f'{sc["x2"].expected_damage_irr:,.0f} vs {sc["x1"].expected_damage_irr:,.0f}')
+      sc["x2"].expected_damage_toman > sc["x1"].expected_damage_toman * 2,
+      f'{sc["x2"].expected_damage_toman:,.0f} vs {sc["x1"].expected_damage_toman:,.0f}')
 check("the damage charge is proportional to the estimate",
-      all(abs(s.expected_damage_irr
-              - s.row.features["risk"] * s.conservative_estimate_irr
+      all(abs(s.expected_damage_toman
+              - s.row.features["risk"] * s.conservative_estimate_toman
               * DAMAGE_COST_FACTOR) < 1.0 for s in sc.values()))
 check("opportunity is net of the damage charge",
-      all(abs(s.adjusted_opportunity_irr
-              - (s.conservative_estimate_irr - s.row.asking_asking_price_toman
-                 - s.expected_damage_irr)) < 1.0 for s in sc.values()))
+      all(abs(s.adjusted_opportunity_toman
+              - (s.conservative_estimate_toman - s.row.asking_price_toman
+                 - s.expected_damage_toman)) < 1.0 for s in sc.values()))
 check("a zero-risk car carries no damage charge",
       PIPE.ranker.score(
           [Row("x3", "cx3", 10, "pride", 1398, 100_000, 700_000_000,
-               {"risk": 0.0})], spec)[0].expected_damage_irr == 0.0)
+               {"risk": 0.0})], spec)[0].expected_damage_toman == 0.0)
 print(f"     uplift over price-sort: {res.uplift:+.1%}")
 
 

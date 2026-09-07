@@ -131,7 +131,7 @@ def pick(model="206", price=None):
     r = next(x for x in SPLIT.test if x.model_key == model)
     return Row(r.listing_id, r.cluster_id, r.first_seen_ordinal, r.model_key,
                r.year_jalali, r.mileage_km,
-               price if price is not None else r.asking_asking_price_toman)
+               price if price is not None else r.asking_price_toman)
 
 
 # ---------------------------------------------------------------------------
