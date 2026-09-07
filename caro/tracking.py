@@ -78,7 +78,7 @@ class FetchOutcome:
     listing_id: str
     status: FetchStatus
     http_status: int | None = None
-    price_irr: int | None = None
+    asking_price_toman: int | None = None
     # Identity signals, only needed for listings seen as OK
     make: str | None = None
     model: str | None = None
@@ -301,8 +301,8 @@ def repost_match_score(old: FetchOutcome, new: FetchOutcome) -> tuple[float, lis
         reasons.append(f"province changed {old.province} → {new.province}")
 
     # Weak evidence in both directions; never decisive on its own.
-    if old.price_irr and new.price_irr:
-        ratio = new.price_irr / old.price_irr
+    if old.asking_price_toman and new.asking_price_toman:
+        ratio = new.asking_price_toman / old.asking_price_toman
         if 0.80 <= ratio <= 1.10:
             score += 0.10
             reasons.append(f"price ratio {ratio:.2f}")
@@ -326,8 +326,8 @@ class TrackingEvent:
     type: EventType
     source_listing_id: str
     snapshot_id: str
-    old_price_irr: int | None = None
-    new_price_irr: int | None = None
+    old_asking_price_toman: int | None = None
+    new_asking_price_toman: int | None = None
     match_confidence: float | None = None
     reasons: list[str] = field(default_factory=list)
 
@@ -351,7 +351,7 @@ class TrackedListing:
     # began, its true age is unknown and every age we report is a lower bound.
     observed_appearance: bool
     observations: list[Observation] = field(default_factory=list)
-    current_price_irr: int | None = None
+    current_asking_price_toman: int | None = None
     events: list[TrackingEvent] = field(default_factory=list)
     last_signals: FetchOutcome | None = None
 
@@ -470,16 +470,16 @@ def apply_snapshot(state: TrackingState, snapshot: Snapshot, *,
                     existing.status = "active"
                     existing.events.append(ev)
                     events.append(ev)
-                if (outcome.price_irr is not None
-                        and existing.current_price_irr is not None
-                        and outcome.price_irr != existing.current_price_irr):
+                if (outcome.asking_price_toman is not None
+                        and existing.current_asking_price_toman is not None
+                        and outcome.asking_price_toman != existing.current_asking_price_toman):
                     ev = TrackingEvent(day, "price_change", outcome.listing_id, sid_snap,
-                                       old_price_irr=existing.current_price_irr,
-                                       new_price_irr=outcome.price_irr)
+                                       old_asking_price_toman=existing.current_asking_price_toman,
+                                       new_asking_price_toman=outcome.asking_price_toman)
                     existing.events.append(ev)
                     events.append(ev)
-                if outcome.price_irr is not None:
-                    existing.current_price_irr = outcome.price_irr
+                if outcome.asking_price_toman is not None:
+                    existing.current_asking_price_toman = outcome.asking_price_toman
                 existing.last_observed_at = day
                 existing.last_signals = outcome
 
@@ -499,15 +499,15 @@ def apply_snapshot(state: TrackingState, snapshot: Snapshot, *,
         match, conf, reasons = _best_repost_match(state, outcome, day)
         if match is not None:
             ev = TrackingEvent(day, "reposted", outcome.listing_id, sid_snap,
-                               old_price_irr=match.current_price_irr,
-                               new_price_irr=outcome.price_irr,
+                               old_asking_price_toman=match.current_asking_price_toman,
+                               new_asking_price_toman=outcome.asking_price_toman,
                                match_confidence=conf, reasons=reasons)
             match.source_listing_ids.append(outcome.listing_id)
             match.observations.append(Observation(day, "present"))
             match.status = "active"
             match.last_observed_at = day
-            if outcome.price_irr is not None:
-                match.current_price_irr = outcome.price_irr
+            if outcome.asking_price_toman is not None:
+                match.current_asking_price_toman = outcome.asking_price_toman
             match.last_signals = outcome
             match.events.append(ev)
             events.append(ev)
@@ -515,7 +515,7 @@ def apply_snapshot(state: TrackingState, snapshot: Snapshot, *,
 
         tid = state._new_id()
         ev = TrackingEvent(day, "appeared", outcome.listing_id, sid_snap,
-                           new_price_irr=outcome.price_irr)
+                           new_asking_price_toman=outcome.asking_price_toman)
         state.listings[tid] = TrackedListing(
             tracking_id=tid,
             source_listing_ids=[outcome.listing_id],
@@ -525,7 +525,7 @@ def apply_snapshot(state: TrackingState, snapshot: Snapshot, *,
             # Anything present in the very first snapshot already existed for
             # an unknown time. Its age is left-truncated, forever.
             observed_appearance=not is_first,
-            current_price_irr=outcome.price_irr,
+            current_asking_price_toman=outcome.asking_price_toman,
             observations=[Observation(day, "present")],
             events=[ev],
             last_signals=outcome,
@@ -705,9 +705,9 @@ def observed_age_claim_fa(t: TrackedListing, as_of: date) -> str:
     if unknown > 0:
         base += f"؛ {unknown} روز وضعیتش برای ما نامعلوم بوده"
     drops = [e for e in t.price_changes
-             if e.old_price_irr and e.new_price_irr and e.new_price_irr < e.old_price_irr]
+             if e.old_asking_price_toman and e.new_asking_price_toman and e.new_asking_price_toman < e.old_asking_price_toman]
     if drops:
-        total = drops[0].old_price_irr - drops[-1].new_price_irr
+        total = drops[0].old_asking_price_toman - drops[-1].new_asking_price_toman
         base += f"؛ {len(drops)} بار کاهش قیمت (مجموع {total / 1_000_000:.0f} میلیون)"
     return base
 

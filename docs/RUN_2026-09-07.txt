@@ -6,7 +6,7 @@ CORPUS INVENTORY  (100 listings)
 
 field                filled  garbage   usable
 --------------------------------------------------------------
-price_irr              86%       0%      86%
+asking_price_toman     86%       0%      86%
 year_jalali           100%       0%     100%
 mileage_km             73%       4%      69%
 make                   98%       0%      98%
@@ -46,6 +46,20 @@ PRICE DISTRIBUTION (toman)
 --------------------------------------------------------------
   min   0.18B   p25   1.00B   median   1.48B   p75   2.10B   max   4.18B
 
+COLLECTION FUNNEL
+--------------------------------------------------------------
+  fetched              100
+  parsed               100
+  usable                94   coherent car records
+  appraisal-eligible    60   can inform an estimate
+  held back by
+      no mileage_km                       27
+      no asking_price_toman               14
+      price is absent                     13
+      mileage is suspicious                4
+      no model                             2
+      price is ambiguous                   1
+
 EXTRACTION PROVENANCE  (how the fields were obtained)
 --------------------------------------------------------------
   pages with a schema.org Car block    100   100%
@@ -59,7 +73,8 @@ EXTRACTION PROVENANCE  (how the fields were obtained)
 
 VERDICT
 --------------------------------------------------------------
-  NOT READY for appraisal — no model has 30+ listings. Collect more, or narrow to fewer models.
+  NOT READY for appraisal — no model reaches 30 appraisal-eligible listings; the best has 8 (Saipa Tiba).
+  This is a SAMPLING problem, not an extraction one: go deeper on 2-3 models rather than wider across many.
 
 
 PRICE SANITY (the reason the currency was cross-checked)

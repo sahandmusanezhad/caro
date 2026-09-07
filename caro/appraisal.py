@@ -44,7 +44,7 @@ class Row:
     model_key: str           # canonical make|model|trim
     year_jalali: int
     mileage_km: float
-    asking_price_irr: float  # the target. AN ASKING PRICE.
+    asking_asking_price_toman: float  # the target. AN ASKING PRICE.
     features: dict[str, float] = field(default_factory=dict)
 
 
@@ -148,8 +148,8 @@ def distribution_shift(split: Split, *, ratio_tol: float = 0.10,
     stationary synthetic world used in the tests cannot surface this, so it
     is measured explicitly on real data.
     """
-    a = np.sort(np.array([r.asking_price_irr for r in split.train], dtype=float))
-    b = np.sort(np.array([r.asking_price_irr for r in split.test], dtype=float))
+    a = np.sort(np.array([r.asking_asking_price_toman for r in split.train], dtype=float))
+    b = np.sort(np.array([r.asking_asking_price_toman for r in split.test], dtype=float))
     if a.size == 0 or b.size == 0:
         return ShiftReport(0.0, 0.0, 1.0, 0.0, False)
     ma, mb = float(np.median(a)), float(np.median(b))
@@ -285,7 +285,7 @@ def slice_rows(rows: Sequence[Row], preds: np.ndarray,
     the headline metric looked perfect.
 
     CRITICAL: every slice must be defined by FEATURES or by the model's own
-    PREDICTION — never by the target. Slicing on `asking_price_irr` selects
+    PREDICTION — never by the target. Slicing on `asking_asking_price_toman` selects
     on the dependent variable: inside a "price >= 2B" bucket you have kept
     only rows whose y landed high, so even a perfectly calibrated estimator
     shows badly skewed coverage there. That artefact would reject every good
@@ -398,13 +398,13 @@ class ComparableQuantiles:
                   abs(o.mileage_km - r.mileage_km)
                   <= self.mileage_rel_tolerance * max(r.mileage_km, 1)]
         if len(strict) >= self.min_comparables:
-            return [o.asking_price_irr for o in strict], "strict"
+            return [o.asking_asking_price_toman for o in strict], "strict"
         if len(same_year) >= self.min_comparables:
-            return [o.asking_price_irr for o in same_year], "relaxed_mileage"
+            return [o.asking_asking_price_toman for o in same_year], "relaxed_mileage"
         if len(same_model) >= self.min_comparables:
-            return [o.asking_price_irr for o in same_model], "relaxed_year"
+            return [o.asking_asking_price_toman for o in same_model], "relaxed_year"
         if same_model:
-            return [o.asking_price_irr for o in same_model], "model_only"
+            return [o.asking_asking_price_toman for o in same_model], "model_only"
         return [], "global"
 
     def evidence(self, r: Row) -> ComparableEvidence:
@@ -426,7 +426,7 @@ class ComparableQuantiles:
         return dict(sorted(h.items(), key=lambda kv: TIER_RANK[kv[0]]))
 
     def predict(self, rows: Sequence[Row]) -> np.ndarray:
-        allp = np.array([o.asking_price_irr for o in self._rows], dtype=float)
+        allp = np.array([o.asking_asking_price_toman for o in self._rows], dtype=float)
         glob = np.quantile(allp, self.quantiles) if allp.size else np.zeros(len(self.quantiles))
         out = np.empty((len(rows), len(self.quantiles)))
         for i, r in enumerate(rows):
@@ -445,7 +445,7 @@ class GlobalQuantiles:
     _q: np.ndarray | None = None
 
     def fit(self, rows: Sequence[Row]) -> "GlobalQuantiles":
-        p = np.array([r.asking_price_irr for r in rows], dtype=float)
+        p = np.array([r.asking_asking_price_toman for r in rows], dtype=float)
         self._q = np.quantile(p, self.quantiles) if p.size else np.zeros(len(self.quantiles))
         return self
 
@@ -502,7 +502,7 @@ class LogLinearQuantiles:
 
     def fit(self, rows: Sequence[Row]) -> "LogLinearQuantiles":
         X = self._design(rows, fit=True)
-        y = np.log(np.array([r.asking_price_irr for r in rows], dtype=float))
+        y = np.log(np.array([r.asking_asking_price_toman for r in rows], dtype=float))
         self._coef, self._intercept = _ridge_fit(X, y, self.alpha)
         self._resid_q = np.quantile(y - self._raw_predict(X), self.quantiles)
         return self
@@ -555,7 +555,7 @@ def run_benchmark(est: Estimator, split: Split, *, name: str,
     raw = np.asarray(est.predict(split.test), dtype=float)
     cr = crossing_rate(raw)
     preds = rearrange_monotone(raw)
-    y = np.array([r.asking_price_irr for r in split.test], dtype=float)
+    y = np.array([r.asking_asking_price_toman for r in split.test], dtype=float)
 
     overall = evaluate(y, preds, name="overall", quantiles=quantiles)
     slices = []

@@ -307,9 +307,9 @@ class RelaxationReport:
 
 
 def _passes(row: Row, spec: IntentSpec) -> bool:
-    if spec.budget_max_irr and row.asking_price_irr > spec.budget_max_irr:
+    if spec.budget_max_irr and row.asking_asking_price_toman > spec.budget_max_irr:
         return False
-    if spec.budget_min_irr and row.asking_price_irr < spec.budget_min_irr:
+    if spec.budget_min_irr and row.asking_asking_price_toman < spec.budget_min_irr:
         return False
     if spec.model_hints and row.model_key not in spec.model_hints:
         return False
@@ -441,7 +441,7 @@ class Ranker:
         qi = min(range(len(QUANTILES)),
                  key=lambda i: abs(QUANTILES[i] - alpha))
 
-        asking = np.array([r.asking_price_irr for r in rows], dtype=float)
+        asking = np.array([r.asking_asking_price_toman for r in rows], dtype=float)
         conservative = preds[:, qi]
         risk = np.array([r.features.get("risk", 0.0) for r in rows])
 
@@ -502,8 +502,8 @@ def diversify(scored: Sequence[ScoredRow], k: int = 5) -> list[ScoredRow]:
 
     best(lambda s: s.row.features.get("risk", 0.0) <= 0.15, "امن‌ترین گزینه")
     best(lambda s: s.adjusted_opportunity_irr > 0, "بیشترین صرفه")
-    best(lambda s: s.row.asking_price_irr <= np.percentile(
-        [x.row.asking_price_irr for x in ordered], 25), "ارزان‌ترین قابل قبول")
+    best(lambda s: s.row.asking_asking_price_toman <= np.percentile(
+        [x.row.asking_asking_price_toman for x in ordered], 25), "ارزان‌ترین قابل قبول")
     for s in ordered:
         if len(picks) >= k:
             break
@@ -602,7 +602,7 @@ def winrate_vs_price_sort(pipeline: RankingPipeline, rows: Sequence[Row],
 
         c = float(np.mean([utility_fn(s.row) for s in sl.items[:k]]))
         p = float(np.mean([utility_fn(r) for r in sorted(
-            cands, key=lambda r: r.asking_price_irr)[:k]]))
+            cands, key=lambda r: r.asking_asking_price_toman)[:k]]))
         idx = rng.choice(len(cands), size=min(k, len(cands)), replace=False)
         rnd = float(np.mean([utility_fn(cands[i]) for i in idx]))
 

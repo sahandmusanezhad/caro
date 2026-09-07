@@ -64,7 +64,7 @@ def make_corpus(n=1800):
             listing_id=f"l{i}", cluster_id=f"c{i}",
             first_seen_ordinal=int(rng.integers(0, 100)),
             model_key=m, year_jalali=year, mileage_km=km,
-            asking_price_irr=float(asking),
+            asking_asking_price_toman=float(asking),
             features={
                 "risk": risk,
                 "ownership_risk": float(rng.beta(2, 5)),
@@ -80,7 +80,7 @@ def true_utility(r: Row) -> float:
     pay, minus what the damage will cost them. The ranker never sees this."""
     clean = r.features["_clean_value"]
     damage_cost = clean * 0.85 * r.features["risk"]
-    return clean - r.asking_price_irr - damage_cost
+    return clean - r.asking_asking_price_toman - damage_cost
 
 
 ROWS = make_corpus()
@@ -287,7 +287,7 @@ check("the damage charge is proportional to the estimate",
               * DAMAGE_COST_FACTOR) < 1.0 for s in sc.values()))
 check("opportunity is net of the damage charge",
       all(abs(s.adjusted_opportunity_irr
-              - (s.conservative_estimate_irr - s.row.asking_price_irr
+              - (s.conservative_estimate_irr - s.row.asking_asking_price_toman
                  - s.expected_damage_irr)) < 1.0 for s in sc.values()))
 check("a zero-risk car carries no damage charge",
       PIPE.ranker.score(

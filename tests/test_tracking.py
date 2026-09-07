@@ -31,7 +31,7 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 def car(lid, price, *, mileage=80_000, seller="s1", phashes=("p1", "p2"),
         status=FetchStatus.OK):
     return FetchOutcome(
-        listing_id=lid, status=status, price_irr=price,
+        listing_id=lid, status=status, asking_price_toman=price,
         make="Peugeot", model="206", trim="Type 5", year_jalali=1399,
         color="white", province="Tehran", seller_fingerprint=seller,
         mileage_km=mileage, image_phashes=phashes,
@@ -112,7 +112,7 @@ apply_snapshot(st, snap("s1", D0 + timedelta(days=1), [car("a", 1_450_000_000)])
 apply_snapshot(st, snap("s2", D0 + timedelta(days=2), [car("a", 1_400_000_000)]))
 t = st.find_by_source_id("a")
 check("two price changes recorded", len(t.price_changes) == 2, f"got {len(t.price_changes)}")
-check("current price updated", t.current_price_irr == 1_400_000_000)
+check("current price updated", t.current_asking_price_toman == 1_400_000_000)
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +132,7 @@ s, reasons = repost_match_score(old, rolled_back)
 check("mileage running backwards blocks the link", s < 0.70, f"score={s:.2f}")
 check("  and says why", any("mileage decreased" in r for r in reasons))
 
-different_model = FetchOutcome("new", FetchStatus.OK, price_irr=1_450_000_000,
+different_model = FetchOutcome("new", FetchStatus.OK, asking_price_toman=1_450_000_000,
                                make="Peugeot", model="405", trim="GLX",
                                year_jalali=1399, color="white", province="Tehran",
                                seller_fingerprint="s1", mileage_km=81_000,
@@ -147,7 +147,7 @@ print("\nrepost detection end to end — the flagship")
 def background(n=25):
     """Unrelated stable listings, so integrity rates are computed on a real
     sample rather than on one car."""
-    return [FetchOutcome(f"bg{i}", FetchStatus.OK, price_irr=900_000_000 + i,
+    return [FetchOutcome(f"bg{i}", FetchStatus.OK, asking_price_toman=900_000_000 + i,
                          make="Saipa", model="Pride", trim="111",
                          year_jalali=1396, color="silver", province="Karaj",
                          seller_fingerprint=f"bg_s{i}", mileage_km=150_000,
@@ -239,11 +239,11 @@ check("no `sold` field exists anywhere", not hasattr(t, "sold"))
 # ---------------------------------------------------------------------------
 print("\nambiguity guard — refuse rather than guess")
 amb = TrackingState()
-twin_a = FetchOutcome("twin_a", FetchStatus.OK, price_irr=1_500_000_000,
+twin_a = FetchOutcome("twin_a", FetchStatus.OK, asking_price_toman=1_500_000_000,
                       make="Peugeot", model="206", trim="Type 5", year_jalali=1399,
                       color="white", province="Tehran", seller_fingerprint="dealer",
                       mileage_km=80_000, image_phashes=("shared1", "shared2"))
-twin_b = FetchOutcome("twin_b", FetchStatus.OK, price_irr=1_500_000_000,
+twin_b = FetchOutcome("twin_b", FetchStatus.OK, asking_price_toman=1_500_000_000,
                       make="Peugeot", model="206", trim="Type 5", year_jalali=1399,
                       color="white", province="Tehran", seller_fingerprint="dealer",
                       mileage_km=80_000, image_phashes=("shared1", "shared2"))
@@ -253,7 +253,7 @@ apply_snapshot(amb, snap("s1", D0 + timedelta(days=1), [
     FetchOutcome("twin_b", FetchStatus.ABSENT), *background()]))
 n_before = len(amb.listings)
 apply_snapshot(amb, snap("s2", D0 + timedelta(days=2), [
-    FetchOutcome("twin_c", FetchStatus.OK, price_irr=1_480_000_000,
+    FetchOutcome("twin_c", FetchStatus.OK, asking_price_toman=1_480_000_000,
                  make="Peugeot", model="206", trim="Type 5", year_jalali=1399,
                  color="white", province="Tehran", seller_fingerprint="dealer",
                  mileage_km=80_000, image_phashes=("shared1", "shared2")),
@@ -300,7 +300,7 @@ check("claim discloses the unknown gap",
 
 print("\nmulti-key blocking recovers recall lost to normalisation drift")
 a = car("a", 1_500_000_000, phashes=("i1", "i2"))
-b = FetchOutcome("b", FetchStatus.OK, price_irr=1_460_000_000,
+b = FetchOutcome("b", FetchStatus.OK, asking_price_toman=1_460_000_000,
                  make="Peugeot", model="206", trim="تیپ ۵",      # re-normalised
                  year_jalali=1399, color="سفید صدفی",            # re-normalised
                  province="Tehran", seller_fingerprint="s1",

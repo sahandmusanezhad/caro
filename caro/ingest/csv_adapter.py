@@ -19,7 +19,7 @@ from caro.ingest.base import salted_fingerprint
 
 # Column name -> the FetchOutcome field it fills. Override per dataset.
 DEFAULT_MAPPING = {
-    "id": "listing_id", "price": "price_irr", "make": "make", "model": "model",
+    "id": "listing_id", "price": "asking_price_toman", "make": "make", "model": "model",
     "trim": "trim", "year": "year_jalali", "color": "color",
     "province": "province", "mileage": "mileage_km", "seller": "seller_raw",
 }
@@ -48,7 +48,7 @@ class CsvAdapter:
                 yield FetchOutcome(
                     listing_id=f"{self.name}:{r.get('listing_id','')}",
                     status=FetchStatus.OK,
-                    price_irr=self._int(r.get("price_irr")),
+                    asking_price_toman=self._int(r.get("asking_price_toman")),
                     make=r.get("make"), model=r.get("model"), trim=r.get("trim"),
                     year_jalali=self._int(r.get("year_jalali")),
                     color=r.get("color"), province=r.get("province"),

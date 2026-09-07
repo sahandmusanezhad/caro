@@ -134,7 +134,7 @@ L = parse_listing(
     seller_raw="09121234567")
 
 check("id and url kept", L.listing_id == "gYx1" and L.url.endswith("gYx1"))
-check("price", L.price_irr == 1_480_000_000, str(L.price_irr))
+check("price", L.asking_price_toman == 1_480_000_000, str(L.asking_price_toman))
 check("make/model", (L.make, L.model) == ("Peugeot", "206"))
 check("year", L.year_jalali == 1399, str(L.year_jalali))
 check("mileage", L.mileage_km == 80_000, str(L.mileage_km))
@@ -356,9 +356,9 @@ REAL_DETAIL = """<div>
 
 RU = "https://bama.ir/car/detail-ffdrszax-peugeot-206ir-type5-1396"
 D = parse_detail_page(RU, REAL_DETAIL)
-check("price belongs to THIS car", D.price_irr == 1_180_000_000, str(D.price_irr))
+check("price belongs to THIS car", D.asking_price_toman == 1_180_000_000, str(D.asking_price_toman))
 check("  not to a related listing below it",
-      D.price_irr not in (660_000_000, 1_570_000_000))
+      D.asking_price_toman not in (660_000_000, 1_570_000_000))
 check("mileage belongs to THIS car", D.mileage_km == 146_000, str(D.mileage_km))
 check("  not 412,000 or 35,000 from the related block",
       D.mileage_km not in (412_000, 35_000))
@@ -440,8 +440,8 @@ check("  while jalali years pass through",
 tr = ParseTrace()
 J = parse_detail_page(LU, ld_page(), trace=tr)
 check("THE NAVIGATION PRICE IS NOT THIS CAR'S PRICE",
-      J.price_irr == 850_000_000,
-      f"got {J.price_irr}; the menu above the article carries 1,234,567,890")
+      J.asking_price_toman == 850_000_000,
+      f"got {J.asking_price_toman}; the menu above the article carries 1,234,567,890")
 check("  and the run records that the structured block supplied it",
       tr.price_source == "jsonld", tr.price_source)
 check("mileage from the structured block", J.mileage_km == 43_000)
@@ -464,7 +464,7 @@ check("a page with no structured block is recorded as text-parsed",
 tr3 = ParseTrace()
 N = parse_detail_page(LU, ld_page(currency="XYZ"), trace=tr3)
 check("an unparseable price is MISSING, not the navigation's number",
-      N.price_irr is None, str(N.price_irr))
+      N.asking_price_toman is None, str(N.asking_price_toman))
 check("  which the inventory can then count and exclude from fitting",
       tr3.price_source == "none")
 check("  and the reason names the currency, so a site change is visible",
@@ -480,8 +480,8 @@ NAV_ONLY = ("<div><p>خودرو</p><p>قیمت روز خودرو</p>"
 tr4 = ParseTrace()
 V = parse_detail_page(RU, NAV_ONLY, trace=tr4)
 check("with NO structured block, the text price is still the car's",
-      V.price_irr == 1_180_000_000,
-      f"got {V.price_irr}; the menu price 1,234,567,890 sits above it")
+      V.asking_price_toman == 1_180_000_000,
+      f"got {V.asking_price_toman}; the menu price 1,234,567,890 sits above it")
 check("  because the scan is anchored at the article, not the page top",
       tr4.price_source == "text")
 check("mileage is read from the anchor line itself", V.mileage_km == 146_000)
@@ -534,8 +534,8 @@ LIVE = ld_page(price="850000000", currency="IRR",
 tr6 = ParseTrace()
 A = parse_detail_page(LU, LIVE, trace=tr6)
 check("the structured and displayed prices agree under that convention",
-      A.price_irr == 850_000_000 and tr6.price_agreement == "agree",
-      f"{A.price_irr} / {tr6.price_agreement}")
+      A.asking_price_toman == 850_000_000 and tr6.price_agreement == "agree",
+      f"{A.asking_price_toman} / {tr6.price_agreement}")
 check("  and the corroborated case is distinguishable in the trace",
       tr6.price_source == "jsonld+text", tr6.price_source)
 
@@ -550,7 +550,7 @@ M = parse_detail_page(LU, FIXED_LABEL, trace=tr5)
 check("a site that starts meaning IRR literally is CAUGHT, not absorbed",
       tr5.price_agreement == "label_wrong_ld_10x_high", tr5.price_agreement)
 check("  and the price shown to buyers is the one kept",
-      M.price_irr == 850_000_000, str(M.price_irr))
+      M.asking_price_toman == 850_000_000, str(M.asking_price_toman))
 
 # An instalment listing: the article's only numbers are a deposit and a
 # monthly payment, neither of which is the car's cash price. Observed live on
@@ -562,9 +562,99 @@ INSTALMENT = ld_page(price="580000000", currency="IRR",
 tr7 = ParseTrace()
 I = parse_detail_page(LU, INSTALMENT, trace=tr7)
 check("an instalment listing yields NO price rather than a deposit",
-      I.price_irr is None, str(I.price_irr))
+      I.asking_price_toman is None, str(I.asking_price_toman))
 check("  because a down payment is not comparable to a cash asking price",
       tr7.price_agreement == "unexplained_disagreement", tr7.price_agreement)
+
+# ---------------------------------------------------------------------------
+print("\nsemantic validity — 'in range' is not 'true'")
+from caro.ingest.quality import (                                    # noqa: E402
+    PriceStatus, Validity, classify_mileage, classify_price_value, eligibility,
+)
+
+# Every one of these was in the 2026-09-07 corpus, and every one passes a
+# 0 <= km <= 1,000,000 bound.
+check("999,990 km on a 1384 pride is the placeholder, not an odometer",
+      classify_mileage(999_990, 1384).status is Validity.SUSPICIOUS)
+check("1 km on a 1385 pride is «ask me», typed as a digit",
+      classify_mileage(1, 1385).status is Validity.SUSPICIOUS)
+check("6,000 km on a 21-year-old car is ~300 km/year",
+      classify_mileage(6_000, 1385).status is Validity.SUSPICIOUS)
+check("  and the reason says the rate, so it can be argued with",
+      "km/year" in (classify_mileage(6_000, 1385).reason or ""))
+check("125 km on a 1395 tiba is caught too",
+      classify_mileage(125, 1395).status is Validity.SUSPICIOUS)
+
+check("3,100 km on a CURRENT-year car is perfectly plausible",
+      classify_mileage(3_100, 1405).status is Validity.PLAUSIBLE,
+      "the rate rule must not fire on cars too young to have driven far")
+check("43,000 km on a 1398 car is plausible",
+      classify_mileage(43_000, 1398).status is Validity.PLAUSIBLE)
+
+check("SUSPICIOUS and IMPOSSIBLE are different states",
+      classify_mileage(-5_000, 1390).status is Validity.IMPOSSIBLE
+      and classify_mileage(1, 1385).status is Validity.SUSPICIOUS,
+      "1 km is implausible; a negative odometer cannot be a reading at all")
+check("an absent odometer is UNKNOWN, never suspicious",
+      classify_mileage(None, 1390).status is Validity.UNKNOWN,
+      "declining to say is a different fact from saying something untrue")
+check("mileage with no year is judged on magnitude alone",
+      classify_mileage(6_000, None).status is Validity.PLAUSIBLE)
+
+check("a price below any car's floor is suspicious",
+      classify_price_value(5_000_000).status is Validity.SUSPICIOUS)
+check("  and a real one is not",
+      classify_price_value(850_000_000).status is Validity.PLAUSIBLE)
+
+# The whole point of the status living on the record: the appraiser filters
+# on it. Before this, plausibility existed only in the report and W1 was
+# still free to consume 999,990 km as a fact.
+J2 = parse_detail_page(LU, ld_page(km=999_990, year=1384), trace=ParseTrace())
+check("THE SUSPICIOUS ODOMETER IS FLAGGED ON THE LISTING ITSELF",
+      J2.mileage_status == "suspicious", J2.mileage_status)
+check("  and the value is KEPT, not deleted",
+      J2.mileage_km == 999_990,
+      "dropping it would erase the evidence that the source publishes "
+      "placeholders at all")
+ok2, why2 = eligibility(J2)
+check("  and it is refused entry to the appraiser",
+      not ok2 and any("mileage" in w for w in why2), str(why2))
+
+good = parse_detail_page(LU, LIVE, trace=ParseTrace())
+check("a sound listing IS appraisal-eligible", eligibility(good)[0],
+      str(eligibility(good)[1]))
+check("the instalment listing is not", not eligibility(I)[0])
+
+check("price status records that the display confirmed it",
+      good.price_status == PriceStatus.DISPLAY_CONFIRMED.value,
+      good.price_status)
+check("  and the raw values are preserved for replay",
+      (good.price_raw, good.price_currency_raw) == ("850000000", "IRR"),
+      f"{good.price_raw} / {good.price_currency_raw}")
+check("  including the number actually shown to the buyer",
+      good.price_displayed_toman == 850_000_000,
+      "without it, a corrected price is indistinguishable from a raw one")
+
+# ---------------------------------------------------------------------------
+print("\nregression: the exact source quirks the live runs found")
+check("saina-manuals-mtgas-1404 — SAINA IS A MODEL, NOT A MAKE",
+      (parse_slug("detail-xproyaln-saina-manuals-mtgas-1404")["make"],
+       parse_slug("detail-xproyaln-saina-manuals-mtgas-1404")["model"])
+      == ("Saipa", "Saina"),
+      "read naively this yields make='Saina', model='manuals', and the "
+      "2026-09-07 run reported 31 models where there are 12")
+check("  and the variant lands in trim, where the ladder can relax it",
+      parse_slug("detail-xproyaln-saina-manuals-mtgas-1404")["trim"]
+      == "manuals mtgas")
+check("runna-plus-tu5-1403 likewise maps to its manufacturer",
+      (parse_slug("detail-k7lhz5sa-runna-plus-tu5-1403")["make"],
+       parse_slug("detail-k7lhz5sa-runna-plus-tu5-1403")["model"])
+      == ("IKCO", "Runna"))
+check("a genuine make is still read as one",
+      (parse_slug("detail-ffdrszax-peugeot-206ir-type5-1396")["make"],
+       parse_slug("detail-ffdrszax-peugeot-206ir-type5-1396")["model"])
+      == ("Peugeot", "206"),
+      "the two url shapes must not be confused in either direction")
 
 pages = {"https://bama.ir/sitemap/car": (200, SITEMAP),
          "https://bama.ir/car/peugeot": (200, CATEGORY),
@@ -656,7 +746,7 @@ def cand(src, lid, price, *, imgs=("i1", "i2", "i3"), color="سفید",
     return CrossSourceCandidate(
         source=src, listing_id=lid, make="Peugeot", model="206",
         trim="تیپ 5", year_jalali=1399, mileage_km=km, color=color,
-        province="تهران", price_irr=price, description=desc,
+        province="تهران", asking_price_toman=price, description=desc,
         image_phashes=imgs)
 
 

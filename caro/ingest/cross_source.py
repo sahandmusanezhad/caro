@@ -170,7 +170,7 @@ class CrossSourceCandidate:
     mileage_km: int | None
     color: str | None
     province: str | None
-    price_irr: int | None
+    asking_price_toman: int | None
     description: str = ""
     image_phashes: tuple[str, ...] = ()
 
@@ -266,7 +266,7 @@ class CrossSourceCluster:
 
     @property
     def prices(self) -> list[int]:
-        return sorted(m.price_irr for m in self.members if m.price_irr)
+        return sorted(m.asking_price_toman for m in self.members if m.asking_price_toman)
 
     @property
     def min_ask_irr(self) -> int | None:

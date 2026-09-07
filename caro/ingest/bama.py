@@ -85,6 +85,7 @@ from caro.ingest.divar_car import (
 from caro.ingest.persian import (
     digits_only, normalize, parse_mileage_km, parse_price, parse_year_jalali,
 )
+from caro.ingest.quality import PriceStatus, classify_mileage
 from caro.tracking import FetchOutcome, FetchStatus, classify_http
 
 # Phrases a page shows when the offer is gone but the server still answers
@@ -526,11 +527,27 @@ def parse_detail_page(url: str, html: str,
 
     price, agreement = reconcile_price(ld_price, text_price)
     tr.price_agreement = agreement
+    # The agreement code and the status are different things: the first says
+    # what the two readings did, the second says how much the result is worth
+    # believing. Downstream cares about the second and should not have to
+    # re-derive it from the first.
+    price_status = {
+        "agree": PriceStatus.DISPLAY_CONFIRMED,
+        "ld_only": PriceStatus.STRUCTURED_ONLY,
+        "text_only": PriceStatus.DISPLAYED_ONLY,
+        "label_wrong_ld_10x_low": PriceStatus.LABEL_CORRECTED,
+        "label_wrong_ld_10x_high": PriceStatus.LABEL_CORRECTED,
+        "unexplained_disagreement": PriceStatus.AMBIGUOUS,
+    }.get(agreement, PriceStatus.ABSENT)
     if price is None:
         tr.price_source = "none"
         tr.price_reason = (ld_reason if agreement == "none"
                            else f"structured and displayed prices disagree "
                                 f"({ld_price} vs {text_price})")
+        if agreement == "none" and ld_reason == "negotiable or unpriced":
+            # «توافقی» is the seller declining to name a price, which is a
+            # different fact from the page failing to carry one.
+            price_status = PriceStatus.NEGOTIABLE
     elif agreement == "agree":
         tr.price_source = "jsonld+text"
         tr.price_reason = None
@@ -571,21 +588,30 @@ def parse_detail_page(url: str, html: str,
                if isinstance(ld.get("vehicleTransmission"), str) else "")
     ld_fuel = ld.get("fuelType") if isinstance(ld.get("fuelType"), str) else ""
 
+    year = (slug.get("year_jalali") or ld_year_jalali(ld)
+            or parse_year_jalali(blob))
+    # Judged here, at the point the year is known, and carried on the record.
+    # Doing it in the report instead would leave the appraiser free to consume
+    # 999,990 km as a fact — which is exactly how a plausibility check that
+    # "exists" fails to protect anything.
+    km_judgement = classify_mileage(mileage, year)
+
+    offers = ld.get("offers") if isinstance(ld.get("offers"), dict) else {}
+
     return CarListing(
         listing_id=(ld.get("identifier") or slug.get("listing_id")
                     or url.rsplit("-", 1)[-1]),
         url=url,
         title=str(ld.get("name") or " ".join(lines[:4])),
         description=desc or str(ld.get("description") or ""),
-        price_irr=price,
+        asking_price_toman=price,
         make=slug.get("make"),
         model=slug.get("model"),
         trim=slug.get("trim"),
         # The slug is the identity of record — it is what comparables and
         # repost matching key on — so JSON-LD fills the year only when the
         # slug carried none, rather than competing with it.
-        year_jalali=(slug.get("year_jalali") or ld_year_jalali(ld)
-                     or parse_year_jalali(blob)),
+        year_jalali=year,
         mileage_km=mileage,
         gearbox=(extract_gearbox(ld_gear)
                  or extract_gearbox(_labelled(lines, "گیربکس") or "")),
@@ -596,6 +622,15 @@ def parse_detail_page(url: str, html: str,
         document_issue=has_document_issue(desc),
         city=_labelled(lines, "موقعیت") or None,
         seller_raw=None,          # the masked phone is never read
+        # Everything the reconciliation was based on, kept verbatim.
+        price_raw=(str(offers.get("price"))
+                   if offers.get("price") is not None else None),
+        price_currency_raw=offers.get("priceCurrency") or None,
+        price_displayed_toman=text_price,
+        price_status=price_status.value,
+        price_provenance=tr.price_source,
+        mileage_status=km_judgement.status.value,
+        mileage_note=km_judgement.reason,
     )
 
 

@@ -222,7 +222,7 @@ sh = distribution_shift(sp)
 check("stationary synthetic world shows no severe shift", not sh.severe, str(sh))
 drifted = [Row(r.listing_id, r.cluster_id, r.first_seen_ordinal, r.model_key,
                r.year_jalali, r.mileage_km,
-               r.asking_price_irr * (1.9 if r.first_seen_ordinal > 60 else 1.0))
+               r.asking_asking_price_toman * (1.9 if r.first_seen_ordinal > 60 else 1.0))
            for r in ROWS]
 check("a 90% price jump IS flagged severe",
       distribution_shift(cluster_temporal_split(drifted)).severe)

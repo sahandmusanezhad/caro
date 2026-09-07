@@ -105,17 +105,17 @@ def main() -> int:
     print(f"BAMA · live collection 2026-09-07 · {len(records)} detail pages "
           f"fetched, {len(listings)} parsed\n"
           "10 model categories, first page of each, all HTTP 200\n")
-    print(inventory(listings, traces))
+    print(inventory(listings, traces, fetched=len(records)))
 
     print("\n\nPRICE SANITY (the reason the currency was cross-checked)")
     print("-" * 62)
-    priced = sorted((x for x in listings if x.price_irr),
-                    key=lambda x: x.price_irr)
+    priced = sorted((x for x in listings if x.asking_price_toman),
+                    key=lambda x: x.asking_price_toman)
 
     def row(tag, x):
         km = f"{x.mileage_km:,} km" if x.mileage_km is not None else "no km"
         print(f"  {tag:<9}{x.make} {x.model} {x.year_jalali:<6}"
-              f"{x.price_irr/1e6:>8,.0f}M toman  {km:>12}")
+              f"{x.asking_price_toman/1e6:>8,.0f}M toman  {km:>12}")
 
     for x in priced[:3]:
         row("cheapest", x)

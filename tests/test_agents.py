@@ -76,14 +76,14 @@ def tracked_for(listing_id, days_present, *, unknown_days=0, reposts=0,
                 price_drops=0, never_present=False):
     """Build a real TrackedListing by feeding snapshots through W0."""
     st = TrackingState()
-    bg = [FetchOutcome(f"bg{i}", FetchStatus.OK, price_irr=9e8,
+    bg = [FetchOutcome(f"bg{i}", FetchStatus.OK, asking_price_toman=9e8,
                        make="Saipa", model="Pride", year_jalali=1396,
                        color="silver", province="Karaj",
                        seller_fingerprint=f"b{i}", mileage_km=150_000,
                        image_phashes=(f"b{i}",)) for i in range(25)]
 
     def car(lid, price, day):
-        return FetchOutcome(lid, FetchStatus.OK, price_irr=int(price),
+        return FetchOutcome(lid, FetchStatus.OK, asking_price_toman=int(price),
                             make="Peugeot", model="206", trim="Type 5",
                             year_jalali=1399, color="white", province="Tehran",
                             seller_fingerprint="s1", mileage_km=80_000,
@@ -131,7 +131,7 @@ def pick(model="206", price=None):
     r = next(x for x in SPLIT.test if x.model_key == model)
     return Row(r.listing_id, r.cluster_id, r.first_seen_ordinal, r.model_key,
                r.year_jalali, r.mileage_km,
-               price if price is not None else r.asking_price_irr)
+               price if price is not None else r.asking_asking_price_toman)
 
 
 # ---------------------------------------------------------------------------

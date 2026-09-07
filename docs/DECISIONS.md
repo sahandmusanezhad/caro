@@ -330,3 +330,85 @@ in both the training and the test half.
 under 1,500 km/year sustained over a car at least three years old. Genuinely
 unused cars say «صفر» and are almost always current-model-year. The rate is
 reported as garbage rather than dropped silently: 4% of this corpus.
+
+## D22 — Validity is a field on the record, not a line in a report
+
+The first version of the mileage plausibility check (D21) lived in
+`first_run.py`. It printed an accurate garbage rate and protected nothing:
+the listing still carried `mileage_km = 999_990`, and W1 was still free to
+consume it as a fact. A check that only the report can see is a check the
+pipeline does not have.
+
+So `caro.ingest.quality` owns the judgement, the parser applies it, and the
+status travels on `CarListing`:
+
+    mileage_status   plausible | suspicious | impossible | unknown
+    price_status     display_confirmed | structured_only | displayed_only
+                     | label_corrected | ambiguous | negotiable | absent
+
+Three properties this buys, each of which the previous shape lacked.
+
+**Status, not deletion.** A suspicious value is kept and labelled. Dropping
+it would erase the evidence that the source publishes placeholders at all,
+which is a fact about the source worth having. `eligibility()` filters; the
+inventory reports the rate; nothing is quietly thrown away.
+
+**Suspicious is not impossible.** 1 km on a twenty-year-old car is
+implausible, not physically impossible — an odometer may have been replaced.
+−5,000 km cannot be a reading at all. Collapsing the two would either discard
+real edge cases or admit corrupt ones, so the caller decides.
+
+**Unknown is not suspicious.** A missing odometer is the seller declining to
+say, which is information about the *listing*; a false one is the seller
+saying something untrue, which is information about the *seller*. Counting
+them together would hide both.
+
+The report now calls the same functions the parser does, so the number a
+reader sees and the flag the appraiser filters on cannot drift apart.
+
+## D23 — Four counts, because "listings scraped" means four different things
+
+The run report separates:
+
+    fetched             the page came back
+    parsed              the page yielded a listing
+    usable              the listing describes a car coherently
+    appraisal-eligible  it can actually inform an estimate
+
+On 2026-09-07: **100 → 100 → 94 → 60**.
+
+The gaps are the whole point, because they call for opposite responses. A
+wide fetched→parsed gap is an extraction bug. A wide usable→eligible gap is
+a market-coverage problem, and no amount of parser work fixes it. Collapsing
+them into "100 listings collected" invites the reader — including the
+author, later — to assume the best of all four.
+
+Source integrity stays separate from these counts. An HTTP 200 is a
+transport fact; the D19 soft-404 check exists precisely because it is not a
+semantic one.
+
+The same reasoning moved the readiness gate: model support is counted in
+appraisal-eligible listings, not parsed ones. Ten parsed Tibas of which
+eight can be priced is eight. Reading the threshold off the parsed count is
+how a corpus passes a gate it does not meet.
+
+## D24 — The price field is named for the unit it holds
+
+`price_irr` held toman. The name was left over from Divar's structured field
+and survived the currency work in D20 unchanged, which made it a live trap:
+a later component reading `price_irr` and dividing by ten to "normalise" it
+would be doing exactly the right thing to the wrong data, and every test
+would still pass.
+
+Renamed to `asking_price_toman`, with the inputs kept alongside it:
+
+    price_raw               verbatim from the source
+    price_currency_raw      what the source *claimed*
+    price_displayed_toman   what the buyer actually sees
+    price_status            how much the result is worth believing
+    price_provenance        which path produced it
+
+`asking_price_toman` is a conclusion — it may have been corrected against
+the displayed price when the source's label disagreed. Without the inputs, a
+corrected price is indistinguishable from a raw one, and the correction is
+neither auditable nor replayable after the rule changes.

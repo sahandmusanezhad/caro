@@ -191,7 +191,7 @@ class CarListing:
     url: str
     title: str
     description: str
-    price_irr: int | None
+    asking_price_toman: int | None
     make: str | None
     model: str | None
     trim: str | None
@@ -206,13 +206,30 @@ class CarListing:
     seller_raw: str | None = None      # hashed on the way out, never stored
     image_urls: tuple[str, ...] = ()
 
+    # ---- provenance, so every derived number stays auditable --------------
+    # `asking_price_toman` is a *conclusion*: it may have been corrected
+    # against the price shown to buyers when the source's currency label
+    # disagreed (D20). Keeping the inputs means the conclusion can be
+    # re-derived, disputed, or replayed after the rule changes — without
+    # them, a corrected price is indistinguishable from a raw one.
+    price_raw: str | None = None            # verbatim from the source
+    price_currency_raw: str | None = None   # what the source *claimed*
+    price_displayed_toman: int | None = None  # what the buyer actually sees
+    price_status: str = "absent"            # quality.PriceStatus
+    price_provenance: str = "none"          # which path produced the value
+
+    # Present-but-false is a different state from absent, and neither is the
+    # same as usable. See caro.ingest.quality.
+    mileage_status: str = "unknown"         # quality.Validity
+    mileage_note: str | None = None
+
     def to_fetch_outcome(self, source: str = "divar",
                          salt: str | None = None) -> FetchOutcome:
         return FetchOutcome(
             listing_id=f"{source}:{self.listing_id}",
             status=FetchStatus.OK,
             http_status=200,
-            price_irr=self.price_irr,
+            asking_price_toman=self.asking_price_toman,
             make=self.make, model=self.model, trim=self.trim,
             year_jalali=self.year_jalali, color=self.color,
             province=self.city, mileage_km=self.mileage_km,
@@ -237,7 +254,7 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
     make, model = extract_make_model(blob)
     return CarListing(
         listing_id=listing_id, url=url, title=title, description=description,
-        price_irr=parse_price(price_text) or parse_price(blob),
+        asking_price_toman=parse_price(price_text) or parse_price(blob),
         make=make, model=model, trim=extract_trim(blob),
         year_jalali=parse_year_jalali(year_text) or parse_year_jalali(title),
         mileage_km=(parse_mileage_km(mileage_text)

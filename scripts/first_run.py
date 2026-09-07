@@ -40,61 +40,86 @@ from caro.ingest.bama import (                                       # noqa: E40
 from caro.ingest.divar_car import (                                     # noqa: E402
     DivarCarAdapter, SourceBlocked, parse_listing, playwright_fetcher,
 )
+from caro.ingest.quality import (                                     # noqa: E402
+    classify_mileage, classify_price_value, eligibility,
+)
 from caro.tracking import FetchStatus, Snapshot, assess_integrity, write_snapshot  # noqa: E402
 
 SNAPSHOT_DIR = ROOT / "data" / "snapshots"
 
 # Fields whose absence changes the design, in the order they matter.
-TRACKED = ["price_irr", "year_jalali", "mileage_km", "make", "model",
+TRACKED = ["asking_price_toman", "year_jalali", "mileage_km", "make", "model",
            "trim", "gearbox", "fuel", "color", "body_condition"]
-
-
-CURRENT_JALALI_YEAR = 1405
 
 
 def _garbage(field: str, value, row=None) -> bool:
     """Values that are present but meaningless.
 
-    A price of 1 and a mileage of 0 are the two classic placeholder values on
-    Iranian marketplaces — sellers use them to mean "ask me". Counting them as
-    populated would make the corpus look far healthier than it is, which is
-    the specific way a field inventory usually lies.
-
-    The mileage rules below were written against the 2026-09-07 corpus, where
-    the live data showed three shapes no range check would catch:
-
-        999,990 km on a 1384 Pride     — the 999999 placeholder
-              1 km on a 1385 Pride     — "ask me", typed as a digit
-          6,000 km on a 1385 Pride     — a 21-year-old car at 300 km/year
-
-    All three are present, in range, and false. Left uncounted they would
-    enter the appraiser as genuine low-mileage cars and drag the whole
-    mileage coefficient toward zero — the cheapest way imaginable to make a
-    model confidently wrong.
+    The two hard cases — odometer plausibility and price magnitude — are
+    delegated to `caro.ingest.quality`, which is also what the parser calls,
+    so the number in this report and the flag the appraiser filters on can
+    never drift apart. A report that computed its own definition of "usable"
+    would eventually disagree with the pipeline and be believed anyway.
     """
     if value is None:
         return False
-    if field == "price_irr":
-        return value < 10_000_000          # under 10M toman is not a car
+    if field == "asking_price_toman":
+        return not classify_price_value(value).usable
     if field == "mileage_km":
-        if value < 0 or value > 1_500_000:
-            return True
-        if value >= 900_000:               # the 999999 family of placeholders
-            return True
-        year = getattr(row, "year_jalali", None) if row is not None else None
-        if year:
-            age = max(0, CURRENT_JALALI_YEAR - year)
-            # Under 1,500 km/year sustained is not a used car, it is a
-            # placeholder or a typo. Genuinely unused cars say «صفر» and are
-            # almost always current-model-year.
-            if age >= 3 and value < 1_500 * age:
-                return True
-        return False
+        return not classify_mileage(
+            value, getattr(row, "year_jalali", None) if row else None).usable
     if field == "year_jalali":
         return not (1350 <= value <= 1410)
     if field == "body_condition":
         return value == "unknown"
     return isinstance(value, str) and not value.strip()
+
+
+def funnel(fetched: int, listings: list) -> list[str]:
+    """Four counts that are routinely collapsed into one, and should not be.
+
+    "300 listings scraped" hides which of these it means:
+
+        fetched             the page came back
+        parsed              the page yielded a listing
+        usable              the listing's own fields are internally sound
+        appraisal-eligible  it can actually inform an estimate
+
+    The gaps between them are the interesting part. A large fetched→parsed
+    gap is an extraction problem; a large usable→eligible gap is a *market
+    coverage* problem, and the two call for opposite responses. Reporting one
+    number invites the reader to assume the best of all four.
+
+    An HTTP 200 is a transport fact, not a semantic one, which is why source
+    integrity is reported separately rather than folded in here.
+    """
+    parsed = len(listings)
+    if not parsed:
+        return []
+    usable, eligible, reasons = 0, 0, Counter()
+    for x in listings:
+        ok, why = eligibility(x)
+        if ok:
+            eligible += 1
+        else:
+            reasons.update(why)
+        # "Usable" is the weaker bar: the listing describes a real car
+        # coherently, whether or not it can be priced.
+        if x.model and x.year_jalali and not _garbage(
+                "mileage_km", x.mileage_km, x):
+            usable += 1
+
+    L = ["", "COLLECTION FUNNEL", "-" * 62,
+         f"  fetched             {fetched:>4}",
+         f"  parsed              {parsed:>4}"
+         f"{'  (' + str(fetched - parsed) + ' pages yielded nothing)' if fetched > parsed else ''}",
+         f"  usable              {usable:>4}   coherent car records",
+         f"  appraisal-eligible  {eligible:>4}   can inform an estimate"]
+    if reasons:
+        L.append("  held back by")
+        for why, c in reasons.most_common(6):
+            L.append(f"      {why:<34}{c:>4}")
+    return L
 
 
 def provenance(traces: list) -> list[str]:
@@ -148,7 +173,8 @@ def provenance(traces: list) -> list[str]:
     return L
 
 
-def inventory(listings: list, traces: list | None = None) -> str:
+def inventory(listings: list, traces: list | None = None,
+              fetched: int | None = None) -> str:
     n = len(listings)
     if not n:
         return "no listings parsed — nothing to report"
@@ -189,8 +215,8 @@ def inventory(listings: list, traces: list | None = None) -> str:
                  "layer is mostly blind on this corpus; say so in EVAL.md "
                  "rather than treating silence as 'intact'.")
 
-    prices = sorted(x.price_irr for x in listings
-                    if x.price_irr and not _garbage("price_irr", x.price_irr))
+    prices = sorted(x.asking_price_toman for x in listings
+                    if x.asking_price_toman and not _garbage("asking_price_toman", x.asking_price_toman))
     if prices:
         q = lambda p: prices[int(p * (len(prices) - 1))]          # noqa: E731
         L += ["", "PRICE DISTRIBUTION (toman)", "-" * 62,
@@ -198,21 +224,32 @@ def inventory(listings: list, traces: list | None = None) -> str:
               f"median {q(.5)/1e9:>6.2f}B   p75 {q(.75)/1e9:>6.2f}B   "
               f"max {q(1)/1e9:>6.2f}B"]
 
+    L += funnel(fetched if fetched is not None else len(listings), listings)
     L += provenance(traces or [])
 
     L += ["", "VERDICT", "-" * 62]
-    ok_price = sum(1 for x in listings if x.price_irr
-                   and not _garbage("price_irr", x.price_irr)) / n
-    big_models = sum(1 for _, c in models.items() if c >= 30)
+    ok_price = sum(1 for x in listings if x.asking_price_toman
+                   and not _garbage("asking_price_toman", x.asking_price_toman)) / n
+    # Support is counted in APPRAISAL-ELIGIBLE listings, not parsed ones. A
+    # model with 30 rows of which 12 can be priced has 12, and reading the
+    # threshold off the parsed count is how a corpus passes a gate it does
+    # not meet.
+    eligible_models = Counter(f"{x.make} {x.model}" for x in listings
+                              if x.model and eligibility(x)[0])
+    big_models = [m for m, c in eligible_models.items() if c >= 30]
     if ok_price < 0.8:
         L.append("  NOT READY — under 80% usable prices. Fix extraction "
                  "before fitting anything.")
-    elif big_models == 0:
-        L.append("  NOT READY for appraisal — no model has 30+ listings. "
-                 "Collect more, or narrow to fewer models.")
+    elif not big_models:
+        best = eligible_models.most_common(1)
+        have = f"{best[0][1]} ({best[0][0]})" if best else "0"
+        L.append(f"  NOT READY for appraisal — no model reaches 30 "
+                 f"appraisal-eligible listings; the best has {have}.")
+        L.append("  This is a SAMPLING problem, not an extraction one: go "
+                 "deeper on 2-3 models rather than wider across many.")
     else:
-        L.append(f"  Ready to benchmark on {big_models} model(s) with enough "
-                 "support. Run tests/run_all.py, then fit on this corpus.")
+        L.append(f"  Ready to benchmark on {len(big_models)} model(s) with "
+                 f"30+ eligible listings: {', '.join(sorted(big_models))}.")
     return "\n".join(L)
 
 
@@ -270,7 +307,7 @@ def main() -> int:
                   file=sys.stderr)
             return 2
 
-    print(inventory(listings, traces))
+    print(inventory(listings, traces, fetched=len(traces) or None))
     return 0
 
 
