@@ -6,7 +6,8 @@ CARO estimates a market range for a listing, then tries to prove itself wrong.
 
 ```
 python3 -m pip install -e .
-make test        # 190 assertions, no API key, no network
+make test        # 241 assertions, no API key, no network
+make winrate     # the number that decides whether this product should exist
 make demo        # regenerate demo/index.html from live pipeline output
 make policy      # print the confidence rulebook
 ```
@@ -48,17 +49,21 @@ Two consequences:
     │  W1  appraisal   │  leak-free split · baselines · AcceptanceGate
     └────────┬─────────┘
     ┌────────▼─────────┐
+    │  W3  ranking     │  Persian intent · relaxation ladder · scoring
+    └────────┬─────────┘
+    ┌────────▼─────────┐
     │  W2  agents      │  evidence → comparables → estimate → risk
     │                  │  → adversarial → judge → explanation
     └────────┬─────────┘
              ▼
-     Verdict + Evidence Ledger
+   Shortlist + Verdict + Evidence Ledger
 ```
 
 | Layer | Module | What it guarantees |
 |---|---|---|
 | **W0** | `caro/tracking.py` | A failed fetch is never an absence. A disappearance is never a sale. A blocked crawl cannot corrupt the history. Reposts link on precision, never on a guess. |
 | **W1** | `caro/appraisal.py` | No physical car appears on both sides of a split. Quantiles cannot cross. An unbenchmarked estimator cannot serve a number. |
+| **W3** | `caro/ranking.py` | Assumptions are surfaced, never silent. A deal-breaker is never relaxed away. Every scoring term is inspectable. Risk is priced in tomans, not normalised. |
 | **W2** | `caro/agents.py` | Every user-facing claim resolves to an observation. Hard contradictions veto. Confidence is a published policy, not a fitted score. |
 
 ## Invariants, enforced in code
@@ -73,6 +78,29 @@ These are tested, not documented-and-hoped:
 - A model that loses to the comparable baseline is **rejected, and the failure message says to ship the baseline**.
 - Every `Claim` cites `EvidenceItem` ids; `EvidenceLedger.unsupported_claims()` must be empty on every path.
 - Target is an **asking price**. The vocabulary never says "fair price", "true value", or "transaction price".
+
+## The number
+
+The thesis is that sorting by price harms the buyer, because the cheapest
+listing is usually the most damaged one. That is a claim, so it gets an
+experiment — `make winrate`:
+
+```
+queries=11  win-rate=100%  CARO=-46,928,024  price-sort=-60,165,712  random=-105,918,867
+uplift over price-sort: +22.0%
+```
+
+Utility is ground truth from the generating process, which the ranker never
+sees — it works from a fitted estimator, so the comparison is not circular.
+On real data there is no such function and the honest substitute is a blind
+human panel; that result belongs in EVAL.md whatever it says.
+
+**This benchmark caught a real bug.** The first ranker normalised risk to
+[0,1] across the candidate set — scale-free, so a 20% defect probability cost
+the same on an 800M car as on a 2B one. It kept choosing expensive damaged
+cars and *lost* to price-sorting. The fix restored the formula from the
+original thesis — `value = estimate − asking − risk_discount`, every term in
+tomans, subtracted before normalisation. Risk is priced, not scored.
 
 ## Confidence is a rulebook, not a number
 
@@ -90,17 +118,17 @@ These bands are calibrated by judgement, not fitted to data. That is stated in t
 | Adversarial review, evidence ledger | ✅ built, tested |
 | Demo page, fed from live pipeline output | ✅ built |
 | Source adapter contract + CSV adapter | ✅ built |
+| Intent parsing + ranking, beating sort-by-price | ✅ built, benchmarked |
 | **Live crawler against a marketplace** | ❌ not in this repo |
 | **Real corpus** | ❌ every number here comes from a synthetic corpus |
-| **Ranking a candidate set by user intent** | ❌ not built — see ROADMAP |
 
 **Synthetic validation proves the implementation is correct. It does not prove the product is right about the market.** Those are different claims and this repo only makes the first one.
 
 ## Repository layout
 
 ```
-caro/            tracking (W0) · appraisal (W1) · agents (W2) · ingest
-tests/           190 assertions across the three layers
+caro/            ingest · tracking (W0) · appraisal (W1) · ranking (W3) · agents (W2)
+tests/           241 assertions across the four layers
 demo/            export_demo.py regenerates index.html from real output
 docs/            architecture, decisions, evaluation, roadmap
 ```

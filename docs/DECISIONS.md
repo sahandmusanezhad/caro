@@ -125,3 +125,44 @@ The honesty rule is a type error, not a README promise.
 `AcceptanceGate` rejects any estimator that does not beat comparable quantiles
 on pinball, and the rejection message says "ship the baseline instead".
 No model is kept because the project has "AI" in the description.
+
+## D13 — Risk is priced, not scored
+
+`opportunity = conservative_estimate − asking − risk × estimate × DAMAGE_COST_FACTOR`,
+every term in tomans, subtracted before any normalisation.
+
+**The win-rate benchmark caught this.** The first ranker normalised risk to
+[0,1] across the candidate set and blended it as a weighted term. That is
+scale-free: a 20% defect probability scored identically on an 800M car and a
+2B one, though it costs the buyer roughly 2.5× more on the second. The ranker
+kept selecting expensive, moderately damaged cars — and **lost** to sorting by
+price (−4.0% uplift, despite winning 64% of individual queries: narrow wins,
+occasional heavy losses).
+
+Pricing risk in currency took it to a 100% win-rate and +22.0% uplift.
+
+The lesson is not the constant. It is that the ranker had quietly stopped
+implementing the product thesis — `value = estimate − asking − risk_discount` —
+and no unit test would have noticed, because every component was individually
+correct. Only an end-to-end benchmark against the baseline the product claims
+to beat could see it.
+
+`DAMAGE_COST_FACTOR = 0.60` is policy, not a fitted parameter. In the test
+world the true cost is 0.85, and the ranker still wins with the wrong
+constant — which is the robustness result worth having, since on real data
+the true factor is unknown.
+
+## D14 — Intent parsing is where an LLM belongs
+
+The one place in CARO where a language model genuinely earns its keep:
+Persian free text is exactly what deterministic code is bad at.
+
+`IntentParser` is a Protocol. The shipped `RuleIntentParser` is deterministic,
+runs offline and never hallucinates; an LLM parser can replace it by producing
+the same frozen `IntentSpec`. Everything after parsing stays deterministic,
+because ranking must be reproducible, inspectable term by term, and
+recomputable client-side when a user drags a weight.
+
+Two rules the parser holds regardless of implementation: every inference goes
+into `assumptions` so the user can correct it, and text it could not map goes
+into `unparsed` rather than being silently dropped.

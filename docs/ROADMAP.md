@@ -9,7 +9,7 @@ intent → explain the best choice**.
 |---|---|
 | crawl offers | ⚠️ **adapter contract only.** `caro/ingest` defines the boundary and ships a working CSV adapter. No live marketplace crawler is in this repo. |
 | normalize messy data | ⚠️ **partial.** Identity normalisation, repost clustering and integrity handling are built. Persian free-text extraction (paint, replacement, documents, insurance) is not. |
-| rank by user intent | ❌ **not built.** CARO currently evaluates *one* listing. There is no intent parser, no candidate retrieval, no scoring across a set. |
+| rank by user intent | ✅ **built** (`caro/ranking.py`). Persian intent parsing, hard filters, relaxation ladder, inspectable scoring, diversity — and a win-rate benchmark against sort-by-price. |
 | explain the best choice | ✅ built, and the strongest part of the system. |
 
 **Read that table honestly: the deepest work sits on the last row, and the
@@ -26,8 +26,8 @@ Obligations are in the module docstring — terms of use, salted seller hashes,
 and honest failure classification. That last one matters most: misclassifying a
 403 as absence silently fabricates disappearances.
 
-### 2. Ranking + intent — the missing half
-The layer the brief asks for and this repo does not have:
+### 2. Ranking + intent — DONE, see `caro/ranking.py`
+Built as described below. Kept here because the shape is worth reading:
 
 ```
 Persian query → IntentSpec (budget, use case, deal-breakers, weights)
@@ -43,8 +43,10 @@ adjustable** by the user, and the relaxation must **say what it loosened**
 rather than silently widening the net.
 
 The number that decides whether this is a product: **win-rate against
-sort-by-price on realistic queries.** If it cannot beat sorting by price, the
-thesis is wrong and it is better to find that out early.
+sort-by-price on realistic queries.** Currently 100% win-rate, +22% uplift on
+the synthetic corpus — and getting there required fixing a real bug the
+benchmark exposed (risk normalised instead of priced). On real data this
+needs the blind human panel, not a ground-truth utility function.
 
 ### 3. Real-data evaluation
 Corpus inventory first — row count, date range, models, missingness, repost
