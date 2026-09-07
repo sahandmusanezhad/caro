@@ -78,6 +78,21 @@ obvious way — deepest models first — satisfies neither gate, and the count
 alone would read as success. A run that reports "312 eligible ✓" without the
 shape has not done the experiment.
 
+**How these two numbers may be stated, and how they may not.** Both are easy
+to quote into something much larger than they are, and both would then be
+D36 instances rather than reporting errors.
+
+| number | is | is NOT |
+|---|---|---|
+| 312 | the registered target corpus **shape** for this run, on this source | "312 listings is enough to validate a used-car appraiser" |
+| 58 | the rows needed **in a slice** to judge a calibration deviation of 15 points at 2.5 binomial SE | "CARO needs 58 listings per trim" |
+| 5 | `MIN_PER_TRIM_FLOOR` — the line between a well-observed trim and a thin one | anything to do with 58 |
+
+58 and 5 answer different questions and are not on the same scale: one sizes
+a *test*, the other classifies a *trim*. Saying "58 per trim" merges them
+into a requirement roughly twelve times the real one, and it is the kind of
+sentence that gets repeated because it sounds rigorous.
+
 ## 3. Stopping rule
 
 Stop at whichever comes first:
@@ -238,6 +253,32 @@ Run 5 must be replayable from the repository with no network:
 
 If the run produces a number that is not reproducible from those files, the
 number does not count.
+
+## 12. How each outcome is reported
+
+Registered now, in the exact words, so the sentence is not composed by
+whoever is happiest or unhappiest with the result. Each names the scope it
+holds over, which is the whole point.
+
+    PASS         On the frozen Bama benchmark, the estimator passed the
+                 pre-registered acceptance gate for the tested conditional
+                 scope.
+
+    REJECT       The frozen benchmark rejected the estimator for the tested
+                 conditional scope.
+
+    UNJUDGEABLE  The available corpus could not judge the required
+                 calibration slices. <which slice, how short, and whether
+                 the route can supply the difference>
+
+None of the three may be written as "CARO can appraise Iranian used cars",
+its negation, or anything about the market. The benchmark is one snapshot of
+one source under one frozen scope, and every sentence above says so in its
+own words rather than relying on a caveat somewhere else — D36's whole
+finding was that the caveat and the claim get separated.
+
+PASS in particular does not license serving. D30's preconditions sit above
+this gate and are evaluated on their own.
 
 ---
 
