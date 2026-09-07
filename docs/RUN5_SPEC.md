@@ -1,8 +1,23 @@
-# Run 5 — pre-registration
+# Run 5 — pre-registration (v2)
 
-**Status: FROZEN, NOT STARTED.** Written before any request was sent. Every
-number below comes from `scripts/run5_target.py`, which derives it from the
-Run 3 snapshot; re-run it to check this document rather than trusting it.
+**Status: FROZEN, NOT STARTED.** Every number below comes from
+`scripts/run5_target.py`, which derives it from the Run 3 snapshot and the
+pre-flight's measurements; re-run it to check this document rather than
+trusting it.
+
+**v2 supersedes v1 and does not amend it.** v1 registered a 576-request cap
+and was closed by its own §13 pre-flight *without a single collection request
+being spent*: the derivation had landed at exactly 576 with no slack, and the
+pre-flight measured a contamination rate that consumes more than slack that
+did not exist. §4 says a changed constant ends a run rather than adjusting
+it, and that applies to the run's own budget first of all — so this is a new
+registration carrying the pre-flight's evidence, not a raised cap. v1's
+numbers are kept in §14 rather than overwritten.
+
+Unchanged from v1, deliberately and completely: the D37 target **shape**, the
+estimator, the gate, every frozen constant in §4, the eligibility rules, and
+the 0.701 conversion estimate. The pre-flight found the envelope wrong. It
+found nothing wrong with the experiment.
 
 The point of registering this in advance is narrow and specific. D34 returned
 `UNJUDGEABLE_SLICE`, and the single most likely way to waste that result is to
@@ -43,24 +58,33 @@ two of collecting, it arrives as pressure to move a threshold.
 
 ## 1. Budget
 
-**576 requests, hard cap.** Detail pages, trim pages, `robots.txt`, redirects
-and errors all count. Run 3 spent ~314.
+**640 requests, hard cap.** Detail pages, trim pages, sitemap fetches,
+`robots.txt`, redirects and errors all count. Run 3 spent ~314. v1's 40-request
+pre-flight is accounted to v1 and is **not** drawn from this budget.
 
-576 is a **registered number, not a computed one**, and the difference is the
+640 is a **registered number, not a computed one**, and the difference is the
 point. The derivation below is how it was arrived at; it is not how it is
 maintained. `run5_target.py` re-runs the derivation and *checks* it against
-this constant — a cap the script produces would move whenever the script did,
-and a budget that grows with its own derivation is not a budget.
+this constant — a cap the script produces moves whenever the script does, and
+a budget that grows with its own derivation is not a budget.
 
-Derivation: 312 eligible ÷ 0.701 eligible-per-fetch (measured in Run 3, not
-assumed) = 445 detail pages; ~56 trim pages to enumerate them; ×1.15 for
-duplicates and dead slugs = 576.
+| | |
+|---|---|
+| 312 eligible ÷ 0.701 eligible-per-fetch | 445 detail pages |
+| 62 trims ÷ (1 − 17% contamination) | 75 trim pages |
+| sitemap enumeration, all 1,599 trims | 3 |
+| ×1.15 duplicates and dead slugs | **601** |
+| registered cap | **640** — 39 spare |
 
-There is **no slack**: the derivation lands at exactly 576. So a real
-conversion rate below Run 3's 0.701 means the cap binds before the target is
-reached. That is §3 case 2 — stop and report what the corpus is — and it is a
-foreseen outcome, not an overrun. Raising the cap is a §4 change, which ends
-Run 5 rather than amending it.
+The 17% is the pre-flight's measured contamination rate (2 of 12 slugs). Its
+interval is wide, roughly 5–45%, and the point estimate is used deliberately:
+building on the optimistic end of a wide interval is exactly how v1 came to
+have no slack at all.
+
+39 spare is margin for that uncertainty. It is **not** a licence to spend
+whatever the run turns out to need — hitting 640 is §3 case 2, stop and
+report, and a further increase is another new registration argued on its own
+evidence.
 
 The cap bounds what a bug can cost. It is not a plan to spend it.
 
@@ -219,19 +243,44 @@ moving 58.
   `CARO_SELLER_SALT`.
 - Politeness: unchanged rate limiting, one worker.
 
+**Two guards added by the §13 pre-flight, both enforced in code
+(`caro.ingest.bama.parse_trim_page`) and tested, because the pre-flight found
+both of them the hard way:**
+
+- **Trim inventory is counted from rendered detail links, never from the
+  page's JSON-LD `ItemList`.** That block is truncated at five —
+  `/car/pride`, the site's whole Pride inventory, reports five items. D19's
+  preference for structured data is about which source is *authoritative for
+  a field*, not which is *complete*; reading counts off it puts an artefact
+  of the page into the corpus as a fact about the market.
+- **Every trim page is validated against its own slug.** If no detail link on
+  the page belongs to the trim, the slug is a generic feed and contributes
+  **zero** observations — not the 32 unrelated cars it is showing. `tara-v1`
+  and `renault-l90-e2` both did this on 2026-09-07. The threshold is *none on
+  trim*, not *most off trim*, because a related-listings rail is normal and a
+  proportional threshold would need a rationale nobody has measured.
+
 ## 10. Request envelope
 
 | | |
 |---|---|
 | eligible per detail fetch | 0.701 *(Run 3, measured)* |
 | detail fetches for 312 eligible | 445 |
-| trim pages to enumerate them | ~56 |
+| trim pages, 62 trims at 17% contamination | 75 |
+| sitemap enumeration | 3 |
 | duplicates and dead slugs | +15% |
-| **hard cap** | **576** |
+| derivation | 601 |
+| **hard cap** | **640** |
 
-The conversion rate is Run 3's own, not an optimistic one. If the real rate
-comes in lower, the cap binds before the target — which is §3 case 2, a
-reportable outcome, not a reason to raise the cap.
+0.701 is **kept, not recalibrated.** The pre-flight saw 6 of 7 tail listings
+carry price, odometer and year, which is not evidence the tail converts
+better: at n=7 the interval spans about half the range, and one trim is one
+trim. The only defensible reading is the negative one — nothing suggests the
+tail converts *worse*, so 0.701 is not knowingly optimistic. Refining it
+would need a sample this run has not taken.
+
+If the real rate comes in lower, the cap binds before the target — §3 case 2,
+a reportable outcome, not a reason to raise the cap.
 
 ## 11. What gets recorded
 
@@ -327,7 +376,35 @@ in it. It reports one of:
 The third is a real possibility, not a formality. D31 measured a 63% ceiling
 on a route that looked adequate until it was measured.
 
+## 14. Registration history
+
+**v1 — 2026-09-07, cap 576. Closed by its own pre-flight, never started.**
+
+| | v1 | v2 | why |
+|---|---|---|---|
+| hard cap | 576 | 640 | v1's derivation landed at exactly 576 — no slack |
+| trim pages | ~56 | 75 | 17% of slugs serve a generic feed (measured) |
+| sitemap enumeration | not costed | 3 | all 1,599 trims, one request per sitemap |
+| derivation | 576 | 601 | above |
+| trim counting | unspecified | rendered links only | the `ItemList` is capped at 5 |
+| slug validation | unspecified | mandatory | `tara-v1`, `renault-l90-e2` |
+
+**Unchanged:** target shape, 312, ~62 trims, 58, 5, 4, 0.25, seed 0, 70%,
+estimator, gate, eligibility, validity rules, 0.701.
+
+That list is the point of recording the history at all. A budget moved and
+two collector guards were added; the experiment did not change. If a later
+version of this table shows 58 or 70% or the shape moving, the run it
+describes is answering a different question from the one D34 left open, and
+it has to say so rather than inherit D34's framing.
+
+v1's pre-flight cost 40 requests and prevented spending 536 more against an
+envelope that was wrong and a route that would have fed 32 unrelated cars
+into two trims. That is the whole case for pre-registration, and it is
+cheaper to make once than to argue later.
+
 ---
 
-**Run 5 proper: not started.** The pre-flight in §13 is authorised; nothing
-in §1–§12 executes until there is a separate explicit decision.
+**Not started.** §13's pre-flight is complete and reported in
+`RUN5_PREFLIGHT_2026-09-07.txt`. Nothing in §1–§12 executes until there is a
+separate explicit decision to begin collection under this v2 registration.

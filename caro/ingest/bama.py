@@ -221,6 +221,92 @@ def extract_listing_links(html: str) -> list[str]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Trim pages — the two guards the Run 5 pre-flight bought
+# ---------------------------------------------------------------------------
+#
+# Both of these are things a reasonable collector would get wrong, and both
+# were measured on 2026-09-07 rather than guessed.
+
+# A trim page carries a schema.org ItemList, and it is TRUNCATED. `/car/pride`
+# — the site's entire Pride inventory — reports five items, and so does
+# `/car/pride-131` and every thin trim tested. Five is the cap, not the count.
+#
+# The temptation is obvious: the ItemList is structured data, and D19 says to
+# prefer structured data over rendered text. That rule is about which source
+# is AUTHORITATIVE for a field, not about which is COMPLETE. Reading inventory
+# size off this block puts an artefact of the page into the corpus as a fact
+# about the market — the same error as Run 1's `/car/saipa` and D31's
+# `-page-N` redirect, on a third route.
+ITEMLIST_CAP = 5
+
+# The rendered list is itself paginated at thirty. A page returning thirty
+# means "at least thirty", never "thirty".
+TRIM_PAGE_CAP = 30
+
+_DETAIL_SLUG = re.compile(r"/car/(detail-[a-z0-9]+-[a-z0-9-]+)")
+
+
+@dataclass(frozen=True)
+class TrimPage:
+    """What one `/car/<model>-<trim>` page actually contains.
+
+    `contaminated` is the important field. Two of twelve slugs sampled in the
+    Run 5 pre-flight served a generic feed instead of the trim — `tara-v1` and
+    `renault-l90-e2` each returned 32 listings with none belonging to the
+    trim, the same Hyundai first in both. A collector that trusted the slug
+    would have entered 64 unrelated cars as observations of those trims.
+
+    That corruption is invisible downstream: it lands in the trim conditioning
+    the estimator is built on, the rows sit on both sides of any split, and no
+    error metric can see it because the model is consistently wrong about a
+    trim that does not exist as described.
+    """
+    slug: str
+    on_trim: tuple[str, ...]
+    off_trim: tuple[str, ...]
+
+    @property
+    def contaminated(self) -> bool:
+        """No listing on this page belongs to the trim it claims to be.
+
+        Deliberately "none", not "most". A real trim page can carry a
+        neighbouring car in a related-listings rail, so a threshold would need
+        a rationale nobody has measured. Total absence is unambiguous, and it
+        is what both observed cases looked like.
+        """
+        return not self.on_trim and bool(self.off_trim)
+
+    @property
+    def n(self) -> int:
+        """Listings usable as observations of this trim. Zero when
+        contaminated — the off-trim rows are real cars, but they are not
+        evidence about this trim, and counting them is the whole failure."""
+        return 0 if self.contaminated else len(self.on_trim)
+
+    @property
+    def at_page_cap(self) -> bool:
+        return len(self.on_trim) + len(self.off_trim) >= TRIM_PAGE_CAP
+
+
+def parse_trim_page(html: str, slug: str) -> TrimPage:
+    """Count a trim page's listings, and check they are that trim's.
+
+    Counting is done on the RENDERED detail links, never on the ItemList: see
+    `ITEMLIST_CAP`. Membership is decided by the slug the site itself puts in
+    each detail URL, which is the site's own claim about what the car is —
+    not our inference from a title.
+    """
+    seen, on, off = set(), [], []
+    for m in _DETAIL_SLUG.finditer(html):
+        d = m.group(1)
+        if d in seen:
+            continue
+        seen.add(d)
+        (on if f"-{slug}-" in d else off).append(d)
+    return TrimPage(slug=slug, on_trim=tuple(on), off_trim=tuple(off))
+
+
 def parse_slug(url: str) -> dict:
     """Identity from the url alone, so it survives a failed page load.
 

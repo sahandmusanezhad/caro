@@ -71,7 +71,21 @@ SPLIT_SEED = 0               # frozen: the seed D34 ran at
 # this constant, never used to replace it. If the check fails, the spec needs
 # an explicit amendment — which under §4 ends the run rather than adjusting
 # it.
-REGISTERED_BUDGET = 576
+#
+# v2 (640). v1 registered 576 and was CLOSED WITHOUT STARTING by its own
+# pre-flight: the derivation had landed at exactly 576 with no slack, and the
+# pre-flight measured a contamination rate that consumes more than the slack
+# that did not exist. v1's 40-request pre-flight is accounted to v1 and is
+# not drawn from this budget.
+REGISTERED_BUDGET = 640
+PREVIOUS_BUDGET = 576
+
+# Measured in the 2026-09-07 pre-flight: 2 of 12 sampled trim slugs served a
+# generic feed instead of the trim, so a fetched trim page is not always a
+# usable one. The interval on 2/12 is wide (roughly 5-45%); the point estimate
+# is used because a budget built on the optimistic end of a wide interval is
+# how v1 came to have no slack.
+CONTAMINATION_RATE = 2 / 12
 
 # Run 3, measured. Detail pages fetched -> rows that parsed -> rows W1 can
 # use. Every conversion below comes from these two numbers, not from a guess
@@ -242,23 +256,34 @@ def main() -> int:
 
     rate = len(rows) / RUN3_DETAIL_FETCHED
     fetches = int(np.ceil(target / rate))
-    cat = int(fetches / 8) + 1
+    # One trim page per trim in the target shape, plus replacements for the
+    # slugs that turn out to be generic feeds. Pre-flight proved enumeration
+    # itself is ~3 requests for all 1,599 trims, so discovery is not per-trim.
+    trim_pages = int(np.ceil(plan["trims"] / (1 - CONTAMINATION_RATE)))
     print("\nREQUEST ENVELOPE", "\n" + "-" * 74)
     print(f"  eligible per detail page fetched   {rate:.3f}"
-          f"   (measured in Run 3, not assumed)")
+          f"   (Run 3, measured — pre-flight saw 6/7 on the tail, which at")
+    print(f"                                     n=7 cannot refine it, so it "
+          f"stands)")
     print(f"  detail fetches for {target} eligible      {fetches}")
-    print(f"  + trim pages to find them           ~{cat}"
-          f"   (Run 3 saw ~8-10 listings per trim page)")
+    print(f"  + trim pages for {plan['trims']} trims at "
+          f"{CONTAMINATION_RATE:.0%} contamination   {trim_pages}")
+    print("  + sitemap enumeration                 3"
+          "   (all 1,599 trims, measured)")
     print("  + 15% for duplicates and dead slugs")
-    derived = int((fetches + cat) * 1.15)
+    derived = int((fetches + trim_pages + 3) * 1.15)
     print(f"  derivation lands at                 {derived}")
     print(f"\n  BUDGET  {REGISTERED_BUDGET} requests, hard cap — REGISTERED "
-          f"in RUN5_SPEC.md §1,\n          not recomputed here. Run 3 spent "
-          f"~314.")
+          f"in RUN5_SPEC.md §1 (v2),\n          not recomputed here. Run 3 "
+          f"spent ~314; v1 registered {PREVIOUS_BUDGET} and was closed by "
+          f"its own\n          pre-flight without starting.")
 
     ok = derived <= REGISTERED_BUDGET
-    print(f"\n  {'✓' if ok else '✗'} the derivation still fits the registered "
-          f"cap ({derived} ≤ {REGISTERED_BUDGET})")
+    print(f"\n  {'✓' if ok else '✗'} the derivation fits the registered cap "
+          f"({derived} ≤ {REGISTERED_BUDGET}), with "
+          f"{REGISTERED_BUDGET - derived} spare")
+    print(f"    v1 would not have: {derived} > {PREVIOUS_BUDGET}. That is "
+          f"what the pre-flight bought.")
     if not ok:
         print("\n  It does not. That is not a licence to raise the cap: under")
         print("  §4 a changed constant ENDS Run 5 rather than amending it, so")

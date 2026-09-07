@@ -1108,6 +1108,55 @@ check("thresholds were not moved to rescue a model",
       MIN_PER_TRIM == 5,
       "Tiba's sensitivity is a fact to report, not a reason to change a gate")
 
+print("\ntrim pages — the two guards the Run 5 pre-flight paid for")
+from caro.ingest.bama import (                                    # noqa: E402
+    ITEMLIST_CAP, TRIM_PAGE_CAP, parse_trim_page,
+)
+
+
+def _trim_html(slugs):
+    """A trim page's shape: detail links, plus an ItemList truncated to five
+    exactly as the live site truncates it."""
+    ld = ('<script type="application/ld+json">{"@type":"ItemList",'
+          '"itemListElement":['
+          + ",".join('{"url":"https://bama.ir/car/%s"}' % s
+                     for s in slugs[:ITEMLIST_CAP]) + "]}</script>")
+    body = "".join('<a href="/car/%s">x</a>' % s for s in slugs)
+    return ld + body
+
+
+# Observed 2026-09-07: a real thin trim, nine listings.
+real = [f"detail-a{i}b{i}c-tiba-sedan-sxcng-139{i}" for i in range(9)]
+tp = parse_trim_page(_trim_html(real), "tiba-sedan-sxcng")
+check("a trim page is counted from RENDERED links, not the ItemList",
+      tp.n == 9, f"got {tp.n}; the ItemList only ever shows {ITEMLIST_CAP}")
+check("  so the ItemList cap cannot become an inventory count",
+      tp.n != ITEMLIST_CAP,
+      "/car/pride — the whole Pride inventory — reports 5 items")
+check("  and a clean page is not flagged", not tp.contaminated)
+
+# Observed 2026-09-07: tara-v1 and renault-l90-e2 each served a generic feed,
+# 32 listings, none of them the trim, the same Hyundai first in both.
+feed = [f"detail-z{i}q{i}w-hyundai-santafeix45-2700cc-200{i}" for i in range(8)]
+bad = parse_trim_page(_trim_html(feed), "tara-v1")
+check("a generic feed served under a trim slug is CONTAMINATED",
+      bad.contaminated, "tara-v1 returned 32 listings, 0 on-trim")
+check("  and contributes zero observations, not 8",
+      bad.n == 0,
+      "those are real cars; they are not evidence about this trim")
+
+mixed = parse_trim_page(_trim_html(real[:3] + feed[:2]), "tiba-sedan-sxcng")
+check("a page with a related-listings rail is NOT contaminated",
+      not mixed.contaminated and mixed.n == 3,
+      "contamination is 'none on trim', not 'some off trim' — a threshold "
+      "would need a rationale nobody has measured")
+
+deep = [f"detail-c{i}d{i}e-pride-141-basic-138{i%9}" for i in range(TRIM_PAGE_CAP)]
+cap = parse_trim_page(_trim_html(deep), "pride-141-basic")
+check(f"a page at {TRIM_PAGE_CAP} links reports it is at the page cap",
+      cap.at_page_cap, "30 means 'at least 30', never 'exactly 30'")
+check("  a shorter page does not", not tp.at_page_cap)
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
