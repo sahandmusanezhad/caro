@@ -145,7 +145,7 @@ asks the site for nothing.
 
 Torob works because one product has many sellers: one SKU, twelve prices, pick the cheapest trustworthy one. Matching is trivial; the value is the comparison.
 
-**In used cars that premise collapses.** No two cars are the same object — mileage, paint history, documents, region, and seller honesty all differ. So a naive "Torob for cars" is a marketplace with a sort button, and sorting by price actively harms the buyer: the cheapest listing is usually the most damaged one.
+**In used cars that premise collapses.** No two cars are the same object — mileage, paint history, documents, region, and seller honesty all differ. So a naive "Torob for cars" is a marketplace with a sort button, and sorting by price actively harms the buyer, because the cheapest listing can systematically favour damaged cars.
 
 CARO's answer is not a cheaper number. It is a **defensible** one — an estimate that carries its own evidence, its own uncertainty, and a record of the checks that tried to invalidate it.
 
@@ -210,13 +210,19 @@ These are tested, not documented-and-hoped:
 ## The number
 
 The thesis is that sorting by price harms the buyer, because the cheapest
-listing is usually the most damaged one. That is a claim, so it gets an
-experiment — `make winrate`:
+listing can systematically favour damaged cars. That is a claim, so it gets
+an experiment — `make winrate`:
 
 ```
 queries=11  win-rate=100%  CARO=-46,928,024  price-sort=-60,165,712  random=-105,918,867
 uplift over price-sort: +22.0%
 ```
+
+What this tests, precisely: in a world where the cheapest listings *are*
+disproportionately damaged, does CARO's ranking respond to that correctly
+while price-sorting does not. It does not test whether Iranian used-car
+prices have that property — the generating process was built with it. The
+market question is open and belongs to a blind human panel.
 
 Utility is ground truth from the generating process, which the ranker never
 sees — it works from a fitted estimator, so the comparison is not circular.
@@ -314,8 +320,10 @@ usually do, the finding is the opposite of confirmation:
 بالاتر از این عدد جای چانه‌زنی دارد.
 ```
 
-The lowest public ask is a number the seller has already accepted. That is
-worth more than agreement would have been.
+The lowest public ask is a price the seller has publicly quoted for this
+car. It is actionable price evidence, not transaction evidence — the number
+may be stale, specific to one channel, or since raised, and none of that is
+visible from here.
 
 ## Collection, and what was deliberately not built
 
