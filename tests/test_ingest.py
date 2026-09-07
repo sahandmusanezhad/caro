@@ -979,6 +979,74 @@ check("  and arm overlap is measured, since identical arms compare nothing",
       "ARM INDEPENDENCE" in rep and "100% overlap" in rep,
       "both arms were given the same listing ids")
 
+# ---------------------------------------------------------------------------
+print("\nstratification — variation is not representativeness")
+from caro.ingest.stratification import (                             # noqa: E402
+    herfindahl, kish_effective_n, normalised_entropy, sensitivity,
+    stratify, weighted_quantile,
+)
+
+
+def trimmed(trim, year, km, price, cond="intact"):
+    return CarListing(
+        listing_id=f"{trim}{year}{price}", url="u", title="t", description="",
+        asking_price_toman=price, make="Saipa", model="Pride", trim=trim,
+        year_jalali=year, mileage_km=km, gearbox="manual", fuel="petrol",
+        color="سفید", body_condition=cond, document_issue=False, city="تهران",
+        price_status="display_confirmed", mileage_status="plausible")
+
+
+check("HHI is 1.0 when one facet holds everything", herfindahl([1.0]) == 1.0)
+check("  and 1/k when perfectly even",
+      abs(herfindahl([0.25] * 4) - 0.25) < 1e-9)
+check("normalised entropy is 1.0 for a flat distribution",
+      abs(normalised_entropy([0.25] * 4) - 1.0) < 1e-9)
+check("  and low when one facet dominates",
+      normalised_entropy([0.97, 0.01, 0.01, 0.01]) < 0.25)
+
+check("effective n equals n under equal weights",
+      abs(kish_effective_n([1.0] * 20) - 20) < 1e-9)
+check("  and is SMALLER under uneven weights",
+      kish_effective_n([10.0] + [1.0] * 19) < 20,
+      "the gap between n and n_eff is the price of an uneven design")
+
+# 30 listings of one trim and 3 of another: varied enough to pass coverage,
+# but the sample is not the market in the proportions it suggests.
+skew = ([trimmed("131 se", 1390 + i % 8, 50_000 + i * 9_000,
+                 500_000_000 + i * 12_000_000) for i in range(30)]
+        + [trimmed("111 sx", 1395 + i, 40_000 + i * 20_000,
+                   900_000_000 + i * 60_000_000) for i in range(3)])
+rep = stratify(skew)["Saipa Pride"]
+check("stratify counts eligible listings per trim facet",
+      rep.n_eligible == 33 and len(rep.counts) == 2, str(rep.counts))
+check("  and reports the dominant facet's share",
+      abs(rep.top[1] / rep.n_eligible - 30 / 33) < 1e-9)
+check("  HHI flags the concentration", rep.hhi > 0.8, f"{rep.hhi:.2f}")
+
+s = sensitivity(skew)
+check("the median MOVES when trims are weighted equally",
+      s["equal_trim"] != s["observed"],
+      f"{s['observed']} vs {s['equal_trim']}")
+check("  and the span is reported as a fraction of the median",
+      s["relative_span"] > 0.10, f"{s['relative_span']:.1%}")
+
+even = [trimmed(f"t{i % 6}", 1390 + i % 8, 50_000 + i * 7_000,
+                600_000_000 + (i % 9) * 15_000_000) for i in range(36)]
+s2 = sensitivity(even)
+check("an evenly-spread sample is INSENSITIVE to reweighting",
+      s2["relative_span"] < 0.10, f"{s2['relative_span']:.1%}")
+check("  which is the whole point: the span separates a robust estimate "
+      "from one that rests on the sampling design",
+      s2["relative_span"] < s["relative_span"])
+
+check("weighted quantile honours the weights",
+      weighted_quantile([(10, 1.0), (20, 99.0)], 0.5) == 20)
+check("  and matches coverage.py's quantile convention under equal weights",
+      weighted_quantile([(v, 1.0) for v in (10, 20, 30, 40)], 0.5)
+      == float(sorted([10, 20, 30, 40])[int(0.5 * 3)]),
+      "two quantile conventions in one codebase would eventually disagree "
+      "about a price and nobody would know which was meant")
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

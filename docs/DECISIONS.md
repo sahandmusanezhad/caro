@@ -546,3 +546,77 @@ way to fool ourselves next: that arm is varied **by construction** — different
 trims are different cars — so its diversity is a property of the query, not
 evidence of a varied market. The degeneracy gate still has to pass on the
 pooled, deduplicated result.
+
+## D29 — Measure the sampling design; do not invent weights for it
+
+The variation gate (D25) asks *are the cars sufficiently different?* It does
+not ask *are they present in the right proportions?* Run 3 made the gap
+concrete.
+
+Bama publishes ~34 trim-level category pages under `pride`, each with its own
+ceiling of roughly twenty listings. Sampling all of them produced 48 eligible
+Prides that are genuinely varied — and gave `pride-111-se` roughly the same
+weight as `pride-131-sl`, whatever their real shares of the market. The result
+is a sample **stratified by the source's published facets, with unknown and
+non-proportional weights**.
+
+Why this is dangerous rather than merely imprecise: if rare trims are
+systematically dearer or cheaper, the price distribution shifts, and
+`AcceptanceGate` cannot see it — train and test are drawn from the same skewed
+design, so both carry the same bias and the model calibrates beautifully
+against the wrong population. The fourth appearance of the same structural
+blindness, after D6, D21 and D25.
+
+**No weighting is applied.** A valid design weight is `w ∝ 1/P(inclusion)`,
+and `P(inclusion)` is not known. Three listings under one trim slug do not
+imply that trim is 3% of the market — the count reflects the page's ceiling at
+least as much as the market's composition. Deriving a weight from the sample's
+own shape would launder an assumption into a number, which is the failure this
+project keeps refusing.
+
+So `caro/ingest/stratification.py` measures and reports:
+
+    model         elig  trims  top-trim   HHI  entropy  n_eff
+    Saipa Pride     48     17      12%   0.07     0.95   33.3
+    Saipa Quik      38     11      18%   0.12     0.92   23.6
+    Saipa Tiba      38      7      24%   0.19     0.90   18.1
+    Saipa Saina     29      6      31%   0.22     0.91   17.7
+
+and runs a **reweighting sensitivity analysis** — none of whose weightings
+enters the estimator — because the spread is itself the finding:
+
+    Saipa Pride   observed 0.54B   equal-trim 0.54B   span  1.9%
+    Saipa Quik    observed 1.15B   equal-trim 1.16B   span  8.5%
+    Saipa Tiba    observed 0.78B   equal-trim 0.84B   span 11.5%  ⚠
+    Saipa Saina   observed 1.15B   equal-trim 1.24B   span 13.7%  ⚠
+
+That differentiates three models the ladder had reported identically. Pride's
+median is robust to how the trims are weighted; Tiba's and Saina's are not.
+"The model says 1.5B" and "the model says 1.5B, and stays between 1.47B and
+1.53B under reasonable sampling assumptions" are different products — and when
+the span is wide, the uncertainty is coming from the acquisition design rather
+than from residual model error, which is a thing the user is owed and a
+confidence interval will not say.
+
+### The decision among the three options
+
+**(B) applies: inclusion probability is not inferable**, so no population
+weighting is performed, and `docs/DATA_CONTRACT.md` records the limitation
+verbatim rather than leaving it to be discovered.
+
+**(C) also applies, and narrows the damage.** CARO's product is a *conditional*
+statement — "what is this car worth, given its trim, year, mileage and
+condition" — not "the market value of Pride". Trim is a conditioning variable
+in the estimator, not something averaged over. Under that target, uneven trim
+sampling costs **precision within each trim**, which the count gate already
+governs; it does not bias the conditional estimate. The bias enters only when
+something aggregates across trims, and the sensitivity span above is exactly
+how much.
+
+Consequences, stated so they cannot be quietly forgotten:
+
+1. Any CARO output phrased as a per-vehicle estimate is within scope.
+2. Any output phrased as a market-level aggregate — "Pride is up 8% this
+   month", a model-level median — is **out of scope** on this sampling
+   design, and must either carry the sensitivity span or not be published.
+3. The span is a reportable quantity alongside the estimate, not a footnote.

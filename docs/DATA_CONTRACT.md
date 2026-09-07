@@ -134,6 +134,16 @@ Stated plainly, because an unstated limit reads as a covered one.
   check cannot see a uniformly tenfold-wrong corpus. Only the cross-check
   against the buyer-facing price can (D20), and only on pages that display
   one.
+- **Trim-level market shares — and therefore population weighting.** The
+  sample is stratified by the source's published trim facets, each of which
+  has its own listing ceiling. Trim-level market shares are unknown, so
+  estimates are **not population-weighted across trims**. A trim's listing
+  count reflects that page's ceiling at least as much as its share of the
+  market, so no weight is derived from it (D29). What IS reported, per model,
+  is the concentration (HHI, normalised entropy, effective n) and a
+  reweighting sensitivity span. Per-vehicle conditional estimates are in
+  scope; market-level aggregates across trims are not, unless they carry that
+  span.
 - **Geographic representativeness.** Not measured at all yet.
 - **Truthfulness.** A plausible odometer is not a verified one. Every claim
   in the corpus is the seller's, and the system's job is to say so.

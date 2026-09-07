@@ -45,6 +45,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from caro.ingest.bama import ParseTrace, parse_detail_page          # noqa: E402
+from caro.ingest import stratification                            # noqa: E402
 from scripts.run3_matrix import compare                              # noqa: E402
 
 SNAP = ROOT / "data" / "snapshots" / "run3"
@@ -139,6 +140,8 @@ def main() -> int:
     print(compare(arms, fetched={"depth": len(arms["depth"]),
                                  "variation": len(arms["variation"])},
                   acquisition=acquisition))
+
+    print("\n".join(stratification.report(parsed)))
 
     print("\n\nWHAT THE SAMPLE IS MADE OF")
     print("-" * 62)
