@@ -169,7 +169,16 @@ into `unparsed` rather than being silently dropped.
 
 ## D15 — Three sources, each with a role
 
-Bama `primary_offers`, Divar `breadth`, Sheypoor `corroboration`. Specs and
+Bama `primary_offers`, Divar `breadth`, Sheypoor `independent_cross_check`.
+
+The third role was called `corroboration` until D18 established that several
+sites carrying one seller's car is the opposite of corroboration — one
+observer publishing in several places. The word was doing real damage in a
+role name, because it says the thing D18 forbids. What Sheypoor actually
+supplies is a second source whose *coverage* can be compared with Bama's:
+evidence about what each site publishes, never a second witness to a price.
+
+Specs and
 price-guide sites are `taxonomy_only` and never enter the corpus as offers —
 a price-guide page is not something anyone is asking, and letting one in
 teaches the appraiser from a number that does not exist in the market.
@@ -721,7 +730,7 @@ before anything is concluded from a shortfall. A trim page that saturates at
 twenty listings cannot supply thirty, and reporting that as market thinness
 would repeat the mistake the pre-flight exists to prevent.
 
-## D31 (result) — the ceiling is the market's shape, not our route
+## D31 (result) — the ceiling is the source inventory's shape, not our route
 
 Run 4's pre-flight answered D31 without needing the collection, and the
 answer is stronger than a shortfall: the ceiling is provable.
@@ -755,9 +764,15 @@ That is with **complete** acquisition of everything Bama publishes for Pride.
 attainable figure is lower still.
 
 So D31's answer is **no**, and for the most useful possible reason. The
-shortfall is not our sampling and not the route — it is the shape of the
-market. Pride's inventory is long-tailed across trims, and no acquisition
-strategy makes `pride-151-sl` have more than the two cars that are listed.
+shortfall is not our sampling and not the route — it is the shape of what
+this source publishes. **Bama's published Pride inventory** is long-tailed
+across trims on the snapshot measured, and no acquisition strategy makes
+`pride-151-sl` have more than the two cars listed there.
+
+That distinction is not pedantry. We have seen one source on one day. Whether
+the Iranian Pride *market* is long-tailed is a different claim, about a
+population we have never observed, and nothing in this run bears on it. See
+D36.
 
 ### What follows, per the options fixed in advance
 
@@ -783,8 +798,8 @@ re-run this experiment hoping for a different answer.
 
 ## D32 — Partial pooling that shows its work
 
-D31 closed acquisition: the trim tail is the market's shape, and no crawling
-fixes it. The remaining honest option is to keep trim-level conditioning and
+D31 closed acquisition: the trim tail is the shape of what this source
+publishes, and no crawling fixes it. The remaining honest option is to keep trim-level conditioning and
 make the borrowing across trims **explicit, measured and visible**, instead of
 implicit and unmeasurable as pooling already is.
 
@@ -925,8 +940,14 @@ improvement over the baseline, coverage within a point of nominal on the
 slices we can measure, shrinkage behaving as designed — and none of it
 licenses serving a conditional appraisal, because the two slices the claim
 depends on carry n = 54 and n = 26 against the 58 a calibration verdict
-requires. Their coverage figures are not evidence; they are noise that
-happens to look reassuring.
+requires. Their coverage figures are real measurements — what is missing is
+enough of them to turn a measurement into a calibration verdict.
+
+The distinction matters and an earlier draft got it wrong, calling those
+figures "noise that happens to look reassuring". They are not noise. They are
+observations with an interval too wide to decide anything, which is a
+different and more honest complaint: we measured, and the measurement cannot
+settle the question.
 
 Publishing on this would have been easy and defensible-sounding: the
 aggregate is genuinely strong. It is also the precise inference D30 refused —
@@ -1312,7 +1333,9 @@ this entry is about, applied to the entry itself.
 ### D36 — frozen
 
 Reviewed and closed at `4d95b7d`. Nine instances, seven patterns, 47
-assertions inside a 603-assertion suite. Reopen it for a real recurrence, a
+assertions, inside a suite that totalled 603 at that moment (the project
+total moves; this is a freeze-time snapshot, not a current count). Reopen it
+for a real recurrence, a
 real bug, or a genuinely new surface — not to improve it. Its value now is
 that it is finite, and every addition costs some of that.
 
@@ -1395,7 +1418,7 @@ is before anyone is invested in it.
 
 `scripts/run5_target.py` derives all of this from the Run 3 snapshot and
 disagrees with `docs/RUN5_SPEC.md` if either the corpus or a frozen constant
-moves. The 576-request cap is the one number it does *not* derive: that is
+moves. The 640-request cap is the one number it does *not* derive: that is
 registered, and the script checks the derivation against it, because a budget
 recomputed from its own formula grows with the formula.
 
@@ -1429,8 +1452,18 @@ was real and it went the predicted way.
 the trim-size distribution in detail — counts, floors, slice sizes — and said
 nothing about price heterogeneity or make composition. Run 3 was four Saipa
 models; Run 5 spans 44 makes and a 143× price range. Both satisfy the
-registered shape. They are not comparable estimation problems, and partial
-pooling's shrinkage is exactly the mechanism that a 143× range punishes.
+registered shape. They are not comparable estimation problems.
+
+What Run 5 established, stated at the level the evidence reaches: **a regime
+exists in which this estimator's cross-trim borrowing costs more than it
+buys** — a corpus of 44 makes across a 143× asking-price range, on which the
+parent-median baseline did better. That the shrinkage is *what* caused it is
+a mechanism I find convincing and did not measure. Isolating it would need
+the error decomposed against the other candidates the same corpus carries:
+missing prices, missing odometers, dealer and current-model-year
+concentration, and extrapolation into unseen trims. None of that was done, so
+the mechanism stays a hypothesis (D36's second tier) and the regime stays an
+observation.
 
 Nothing was violated. The registration was blind, in advance, to the variable
 that decided the outcome — which is the only way that could have been

@@ -332,8 +332,9 @@ this gate and are evaluated on their own.
 
 ## 13. Pre-flight — registered 2026-09-07, runs first
 
-**Budget: 40 requests, drawn from the 576 in §1.** Run 5 proper therefore has
-536 left, and the pre-flight's spend is not additional.
+**Budget: 40 requests, drawn from v1's 576.** (This section was registered
+and run under v1. v2's §1 raised the cap to 640 *because of* what the pre-flight
+found, and accounts these 40 to v1 — they are not drawn from the 640.)
 
 D28's standing rule is to measure a route's own ceiling before concluding
 anything from a shortfall, and it applies here with more force than usual.
