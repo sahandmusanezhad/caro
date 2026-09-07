@@ -34,7 +34,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from caro.ingest.bama import BamaAdapter, listing_id_from_url          # noqa: E402
+from caro.ingest.bama import BamaAdapter, http_fetcher               # noqa: E402
 from caro.ingest.divar_car import (                                     # noqa: E402
     DivarCarAdapter, SourceBlocked, parse_listing, playwright_fetcher,
 )
@@ -181,7 +181,6 @@ def main() -> int:
 
 def collect(args) -> list:
     """Live collection. Kept separate so main() stays readable."""
-    fetch = playwright_fetcher()
     out: list = []
 
     if args.source == "divar":
@@ -192,50 +191,27 @@ def collect(args) -> list:
                 "missing is the DOM extraction, which has to be written "
                 "against the live markup. Start with --source bama.")
         ad = DivarCarAdapter(city=args.city, max_pages=args.pages,
-                             page_fetcher=fetch, parse_page=parse_page,
+                             page_fetcher=playwright_fetcher(),
+                             parse_page=parse_page,
                              salt=os.environ["CARO_SELLER_SALT"])
         list(ad.fetch_all(date.today()))
         return out
 
-    def parse_detail(url, html):
-        # Captures the parsed CarListing into `out` as a side effect: the
-        # adapter's own return type is FetchOutcome, which is what the
-        # tracker needs, but the inventory needs the richer parsed object.
-        # Minimal, markup-independent first pass: Bama's detail pages carry a
-        # JSON-LD block on most listings. Falling back to the raw text keeps
-        # the run useful when they do not.
-        import re
-        m = re.search(r'<script[^>]+application/ld\+json[^>]*>(.*?)</script>',
-                      html, re.S)
-        title = desc = ""
-        if m:
-            try:
-                d = json.loads(m.group(1))
-                title = d.get("name", "") or ""
-                desc = d.get("description", "") or ""
-            except json.JSONDecodeError:
-                pass
-        if not title:
-            text = re.sub(r"<[^>]+>", " ", html)
-            title = re.sub(r"\s+", " ", text)[:200]
-            desc = re.sub(r"\s+", " ", text)[:2000]
-        listing = parse_listing(listing_id_from_url(url), url, title, desc)
-        out.append(listing)
-        return listing
+    # The sitemap and Bama's pages are server-rendered, so plain HTTP is
+    # correct here. Driving a browser to download static XML costs seconds and
+    # a Chromium process per request for nothing.
+    ad = BamaAdapter(fetcher=http_fetcher(), max_listings=args.limit,
+                     max_categories=max(1, args.limit // 20 + 1),
+                     salt=os.environ["CARO_SELLER_SALT"],
+                     on_listing=out.append)
 
-    ad = BamaAdapter(fetcher=fetch, parse_detail=parse_detail,
-                     max_listings=args.limit,
-                     salt=os.environ["CARO_SELLER_SALT"])
-    raw_records = []
-    for outcome in ad.fetch_all(date.today()):
-        if outcome.status is FetchStatus.OK:
-            raw_records.append(outcome)
+    records = [o for o in ad.fetch_all(date.today())]
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
     snap = assess_integrity(Snapshot(
-        f"{args.source}-{date.today().isoformat()}", date.today(), raw_records))
+        f"{args.source}-{date.today().isoformat()}", date.today(), records))
     path = write_snapshot(SNAPSHOT_DIR, snap)
-    print(f"snapshot written to {path.relative_to(ROOT)} "
-          f"(integrity: {snap.integrity.value})\n")
+    print(f"{len(out)} listings parsed · snapshot "
+          f"{path.relative_to(ROOT)} (integrity: {snap.integrity.value})\n")
     return out
 
 

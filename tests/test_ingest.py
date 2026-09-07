@@ -289,70 +289,118 @@ check("the adapter's own urls satisfy robots",
       blocked_search.search_url(3).endswith("?page=3"))
 
 
-print("\nbama — sitemap-first, because bama publishes one")
+print("\nbama — parsed against the real page structure, observed 2026-09-07")
 from caro.ingest.bama import (
-    BamaAdapter, is_listing_url, listing_id_from_url, parse_sitemap,
+    BamaAdapter, extract_listing_links, is_category_url, is_listing_url,
+    listing_id_from_url, parse_detail_page, parse_sitemap, parse_slug,
 )
 
+# The sitemap lists BRAND pages, not listings. The first live run collected
+# zero because the code assumed otherwise; this fixture is the real shape.
 SITEMAP = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://bama.ir/car/detail-abc123</loc></url>
-  <url><loc>https://bama.ir/car/detail-def456</loc></url>
-  <url><loc>https://bama.ir/price/peugeot-206</loc></url>
-  <url><loc>https://bama.ir/dealer/tehran-motors</loc></url>
+  <url><loc>https://bama.ir/car</loc></url>
+  <url><loc>https://bama.ir/car/peugeot</loc></url>
+  <url><loc>https://bama.ir/car/peugeot?mileage=0</loc></url>
+  <url><loc>https://bama.ir/car/peugeot?mileage=1</loc></url>
+  <url><loc>https://bama.ir/car/saipa</loc></url>
 </urlset>"""
 
-urls = parse_sitemap(SITEMAP)
-check("sitemap parsed with namespace", len(urls) == 4, str(len(urls)))
-check("malformed xml degrades to a partial list, not an exception",
-      parse_sitemap("<loc>https://bama.ir/car/detail-x</loc") == []
-      or True)
-check("price-guide pages are NOT offers",
-      not is_listing_url("https://bama.ir/price/peugeot-206"))
-check("dealer pages are not offers",
-      not is_listing_url("https://bama.ir/dealer/tehran-motors"))
-check("detail pages are offers",
-      is_listing_url("https://bama.ir/car/detail-abc123"))
-check("listing id extracted", listing_id_from_url(
-    "https://bama.ir/car/detail-abc123") == "abc123")
+check("sitemap parses", len(parse_sitemap(SITEMAP)) == 5)
+check("sitemap holds CATEGORIES, not listings",
+      not any(is_listing_url(u) for u in parse_sitemap(SITEMAP)))
+check("filter permutations are skipped",
+      [u for u in parse_sitemap(SITEMAP) if is_category_url(u)]
+      == ["https://bama.ir/car/peugeot", "https://bama.ir/car/saipa"],
+      "?mileage=0/1 slice the same inventory and multiply requests")
 
-pages = {"https://bama.ir/sitemap/car": (200, SITEMAP)}
+CATEGORY = '''<a href="/car/detail-6xphr0fb-peugeot-206ir-type2-1401">a</a>
+<a href="/car/detail-ffdrszax-peugeot-206ir-type5-1396">b</a>
+<a href="/car/detail-ffdrszax-peugeot-206ir-type5-1396">dup</a>
+<a href="/car/peugeot">not a listing</a>'''
+links = extract_listing_links(CATEGORY)
+check("listing links extracted and deduped", len(links) == 2, str(len(links)))
+check("category links are not mistaken for listings",
+      all(is_listing_url(u) for u in links))
+
+for slug_url, want in [
+    ("detail-ffdrszax-peugeot-206ir-type5-1396", ("Peugeot", "206", 1396)),
+    ("detail-uznbau54-peugeot-206sd-v9-1388", ("Peugeot", "206 SD", 1388)),
+    ("detail-txoqrr6c-peugeot-pars-mt-1388", ("Peugeot", "Pars", 1388)),
+]:
+    s = parse_slug(slug_url)
+    check(f"slug → {want}",
+          (s["make"], s["model"], s["year_jalali"]) == want, str(s))
+check("market codes fold to one model key",
+      parse_slug("detail-x-peugeot-206ir-type5-1396")["model"] == "206",
+      "otherwise comparables split across spellings of one car")
+
+# Verbatim from bama.ir/car/detail-ffdrszax-peugeot-206ir-type5-1396,
+# including the related-listings block that must NOT be parsed.
+REAL_DETAIL = """<div>
+<p>بازگشت</p><p>پژو، 206</p><p>تیپ 5</p><p>1396</p>
+<p>کارکرد 146,000 کیلومتر</p><p>1 ساعت پیش</p><p>ری، تهران</p>
+<p>1,180,000,000</p><p>تومان</p>
+<p>وضعیت بدنه</p><p>درب تعویض</p>
+<p>رنگ بدنه</p><p>سفید</p><p>رنگ داخل</p><p>مشکی</p>
+<p>گیربکس</p><p>دنده ای</p>
+<p>نمایش شماره</p><p>۰۹۳۶۱۰۴۲۹XX</p>
+<p>توضیحات</p><p>فروش 206 مدل 96 صندوق عقب رنگ</p>
+<p>آگهی های مرتبط</p><p>290 آگهی مرتبط</p>
+<p>پژو، 206</p><p>تیپ 5</p><p>1383</p><p>کارکرد 412,000 کیلومتر</p>
+<p>660,000,000</p><p>تومان</p>
+<p>پژو، 206</p><p>1390</p><p>کارکرد 35,000 کیلومتر</p>
+<p>1,570,000,000</p><p>تومان</p></div>"""
+
+RU = "https://bama.ir/car/detail-ffdrszax-peugeot-206ir-type5-1396"
+D = parse_detail_page(RU, REAL_DETAIL)
+check("price belongs to THIS car", D.price_irr == 1_180_000_000, str(D.price_irr))
+check("  not to a related listing below it",
+      D.price_irr not in (660_000_000, 1_570_000_000))
+check("mileage belongs to THIS car", D.mileage_km == 146_000, str(D.mileage_km))
+check("  not 412,000 or 35,000 from the related block",
+      D.mileage_km not in (412_000, 35_000))
+check("bama's STRUCTURED body condition is used",
+      D.body_condition == "replaced_part", D.body_condition)
+check("colour from the labelled field", D.color == "سفید")
+check("gearbox from the labelled field", D.gearbox == "manual")
+check("identity survives from the url slug",
+      (D.make, D.model, D.year_jalali) == ("Peugeot", "206", 1396))
+check("MASKED PHONE IS NEVER READ",
+      D.seller_raw is None and "0936" not in (D.description or "")
+      and "۰۹۳۶" not in (D.description or ""))
+check("description is the seller's text only",
+      D.description == "فروش 206 مدل 96 صندوق عقب رنگ", D.description)
+
+pages = {"https://bama.ir/sitemap/car": (200, SITEMAP),
+         "https://bama.ir/car/peugeot": (200, CATEGORY),
+         "https://bama.ir/car/saipa": (200, "")}
 
 
 def bama_fetch(url):
     if url in pages:
         return pages[url]
-    if url.endswith("def456"):
+    if "6xphr0fb" in url:
         return 404, ""
-    return 200, "<html>detail</html>"
+    return 200, REAL_DETAIL
 
 
-def bama_detail(url, _html):
-    return parse_listing(listing_id_from_url(url), url,
-                         "پژو ۲۰۶ تیپ ۵ مدل ۱۳۹۹",
-                         "کارکرد ۹۰ هزار، بدون رنگ", price_text="۱.۴ میلیارد")
-
-
-b = BamaAdapter(fetcher=bama_fetch, parse_detail=bama_detail,
-                salt="test-salt", sleeper=lambda s: None)
-check("discovery uses the sitemap, filtered to offers",
-      b.discover() == ["https://bama.ir/car/detail-abc123",
-                       "https://bama.ir/car/detail-def456"])
-
+collected = []
+b = BamaAdapter(fetcher=bama_fetch, salt="test-salt", max_listings=10,
+                sleeper=lambda s: None, on_listing=collected.append)
+check("two-stage discovery reaches real listings",
+      len(b.discover_listings()) == 2, str(b.discover_listings()))
 bout = list(b.fetch_all(date(2026, 9, 7)))
-check("live listing collected",
-      any(o.status is FetchStatus.OK for o in bout))
-check("a 404 on a SITEMAP-ADVERTISED url is a real ABSENT",
-      any(o.status is FetchStatus.ABSENT for o in bout),
-      "it was present when the index was built, and is gone now")
+check("a listing is collected", len(collected) == 1)
+check("a 404 on a just-advertised url is a real ABSENT",
+      any(o.status is FetchStatus.ABSENT for o in bout))
 
-b2 = BamaAdapter(fetcher=lambda u: (403, ""), parse_detail=bama_detail,
-                 sleeper=lambda s: None)
+b2 = BamaAdapter(fetcher=lambda u: (403, ""), sleeper=lambda s: None)
 try:
-    list(b2.fetch_all(date(2026, 9, 7)))
-    check("a blocked sitemap halts — no fallback to crawling search", False)
+    b2.discover_listings()
+    check("a blocked sitemap halts, with no fallback to search crawling", False)
 except SourceBlocked as e:
-    check("a blocked sitemap halts — no fallback to crawling search",
+    check("a blocked sitemap halts, with no fallback to search crawling",
           "falling back" in str(e))
 
 
