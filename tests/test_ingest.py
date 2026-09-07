@@ -440,7 +440,7 @@ check("  while jalali years pass through",
 tr = ParseTrace()
 J = parse_detail_page(LU, ld_page(), trace=tr)
 check("THE NAVIGATION PRICE IS NOT THIS CAR'S PRICE",
-      J.price_irr == 85_000_000,
+      J.price_irr == 850_000_000,
       f"got {J.price_irr}; the menu above the article carries 1,234,567,890")
 check("  and the run records that the structured block supplied it",
       tr.price_source == "jsonld", tr.price_source)
@@ -485,6 +485,86 @@ check("with NO structured block, the text price is still the car's",
 check("  because the scan is anchored at the article, not the page top",
       tr4.price_source == "text")
 check("mileage is read from the anchor line itself", V.mileage_km == 146_000)
+
+# ---------------------------------------------------------------------------
+print("\nprice reconciliation — a currency LABEL can be wrong")
+from caro.ingest.bama import reconcile_price                       # noqa: E402
+
+check("two readings that agree are trusted",
+      reconcile_price(850_000_000, 850_000_000) == (850_000_000, "agree"))
+check("  with tolerance, since a rendered string rounds",
+      reconcile_price(850_000_000, 849_999_000)[1] == "agree")
+
+# The hazard the currency whitelist CANNOT catch: a page that declares IRR
+# and publishes a toman figure. `IRR` is a code we recognise, so the guard
+# stays silent while the divide-by-ten makes the price a tenth of the truth.
+val, why = reconcile_price(85_000_000, 850_000_000)
+check("a page declaring IRR but showing toman is caught by the cross-check",
+      why == "label_wrong_ld_10x_low", why)
+check("  and the DISPLAYED price wins, because that is what a buyer acts on",
+      val == 850_000_000, str(val))
+
+val2, why2 = reconcile_price(8_500_000_000, 850_000_000)
+check("the opposite mislabelling is caught too",
+      why2 == "label_wrong_ld_10x_high" and val2 == 850_000_000)
+
+val3, why3 = reconcile_price(770_000_000, 850_000_000)
+check("an UNEXPLAINED disagreement yields no price at all",
+      val3 is None and why3 == "unexplained_disagreement",
+      "a discrepancy we cannot account for is not a number to pick between")
+
+check("one reading alone is used, and recorded as such",
+      reconcile_price(850_000_000, None)[1] == "ld_only"
+      and reconcile_price(None, 850_000_000)[1] == "text_only")
+
+# ---------------------------------------------------------------------------
+print("\nbama declares IRR and publishes toman — verified against 76 pages")
+from caro.ingest.bama import BAMA_TO_TOMAN, _TO_TOMAN                # noqa: E402
+
+check("read as ISO, IRR would be a tenth of a toman",
+      _TO_TOMAN["IRR"] == 0.1)
+check("bama's OBSERVED convention overrides its declared one",
+      BAMA_TO_TOMAN["IRR"] == 1.0,
+      "every page pairs priceCurrency IRR with the toman figure it displays")
+
+# The live case, end to end: JSON-LD "850000000"/IRR beside «۸۵۰,۰۰۰,۰۰۰ تومان».
+LIVE = ld_page(price="850000000", currency="IRR",
+               body="<p>850,000,000</p><p>تومان</p>"
+                    "<p>وضعیت بدنه</p><p>سالم</p>")
+tr6 = ParseTrace()
+A = parse_detail_page(LU, LIVE, trace=tr6)
+check("the structured and displayed prices agree under that convention",
+      A.price_irr == 850_000_000 and tr6.price_agreement == "agree",
+      f"{A.price_irr} / {tr6.price_agreement}")
+check("  and the corroborated case is distinguishable in the trace",
+      tr6.price_source == "jsonld+text", tr6.price_source)
+
+# If bama ever fixes its label, the figure would become a true rial amount and
+# the displayed price would be a tenth of it. The cross-check is what notices;
+# without it the override would silently start multiplying every price by ten.
+FIXED_LABEL = ld_page(price="8500000000", currency="IRR",
+                      body="<p>850,000,000</p><p>تومان</p>"
+                           "<p>وضعیت بدنه</p><p>سالم</p>")
+tr5 = ParseTrace()
+M = parse_detail_page(LU, FIXED_LABEL, trace=tr5)
+check("a site that starts meaning IRR literally is CAUGHT, not absorbed",
+      tr5.price_agreement == "label_wrong_ld_10x_high", tr5.price_agreement)
+check("  and the price shown to buyers is the one kept",
+      M.price_irr == 850_000_000, str(M.price_irr))
+
+# An instalment listing: the article's only numbers are a deposit and a
+# monthly payment, neither of which is the car's cash price. Observed live on
+# detail-fenkds6r-tiba-hatchback-ex-1394.
+INSTALMENT = ld_page(price="580000000", currency="IRR",
+                     body="<p>جزئیات اقساط</p><p>پیش پرداخت</p>"
+                          "<p>400,000,000</p><p>تومان</p>"
+                          "<p>وضعیت بدنه</p><p>سالم</p>")
+tr7 = ParseTrace()
+I = parse_detail_page(LU, INSTALMENT, trace=tr7)
+check("an instalment listing yields NO price rather than a deposit",
+      I.price_irr is None, str(I.price_irr))
+check("  because a down payment is not comparable to a cash asking price",
+      tr7.price_agreement == "unexplained_disagreement", tr7.price_agreement)
 
 pages = {"https://bama.ir/sitemap/car": (200, SITEMAP),
          "https://bama.ir/car/peugeot": (200, CATEGORY),

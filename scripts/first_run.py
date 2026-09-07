@@ -49,20 +49,47 @@ TRACKED = ["price_irr", "year_jalali", "mileage_km", "make", "model",
            "trim", "gearbox", "fuel", "color", "body_condition"]
 
 
-def _garbage(field: str, value) -> bool:
+CURRENT_JALALI_YEAR = 1405
+
+
+def _garbage(field: str, value, row=None) -> bool:
     """Values that are present but meaningless.
 
     A price of 1 and a mileage of 0 are the two classic placeholder values on
     Iranian marketplaces — sellers use them to mean "ask me". Counting them as
     populated would make the corpus look far healthier than it is, which is
     the specific way a field inventory usually lies.
+
+    The mileage rules below were written against the 2026-09-07 corpus, where
+    the live data showed three shapes no range check would catch:
+
+        999,990 km on a 1384 Pride     — the 999999 placeholder
+              1 km on a 1385 Pride     — "ask me", typed as a digit
+          6,000 km on a 1385 Pride     — a 21-year-old car at 300 km/year
+
+    All three are present, in range, and false. Left uncounted they would
+    enter the appraiser as genuine low-mileage cars and drag the whole
+    mileage coefficient toward zero — the cheapest way imaginable to make a
+    model confidently wrong.
     """
     if value is None:
         return False
     if field == "price_irr":
         return value < 10_000_000          # under 10M toman is not a car
     if field == "mileage_km":
-        return value < 0 or value > 1_500_000
+        if value < 0 or value > 1_500_000:
+            return True
+        if value >= 900_000:               # the 999999 family of placeholders
+            return True
+        year = getattr(row, "year_jalali", None) if row is not None else None
+        if year:
+            age = max(0, CURRENT_JALALI_YEAR - year)
+            # Under 1,500 km/year sustained is not a used car, it is a
+            # placeholder or a typo. Genuinely unused cars say «صفر» and are
+            # almost always current-model-year.
+            if age >= 3 and value < 1_500 * age:
+                return True
+        return False
     if field == "year_jalali":
         return not (1350 <= value <= 1410)
     if field == "body_condition":
@@ -96,6 +123,24 @@ def provenance(traces: list) -> list[str]:
                   if t.price_source == "none" and t.price_reason)
     for reason, c in why.most_common(5):
         L.append(f"      no price — {reason}: {c}")
+
+    # The structured price against the one shown to buyers. This is the check
+    # that catches a wrong currency *label*, which the currency whitelist
+    # cannot: `IRR` on a toman figure is a recognised code, so the guard stays
+    # silent while every price comes out a tenth of the truth.
+    agree = Counter(t.price_agreement for t in traces)
+    L.append(f"  price cross-check  "
+             + "  ".join(f"{k}:{v}" for k, v in agree.most_common()))
+    mislabelled = sum(v for k, v in agree.items() if k.startswith("label_wrong"))
+    if mislabelled:
+        L.append(f"  ⚠ {mislabelled} page(s) declare a currency that does not "
+                 "match the figure they display. The displayed price was used. "
+                 "Record the site's actual convention in DECISIONS.md.")
+    if agree.get("unexplained_disagreement"):
+        L.append(f"  ⚠ {agree['unexplained_disagreement']} page(s) gave two "
+                 "prices that differ by something other than a factor of ten. "
+                 "Those rows carry NO price rather than a chosen one — read a "
+                 "couple by hand before fitting.")
     if ld < n * 0.9:
         L.append("  ⚠ the structured block is missing on some pages. The text "
                  "fallback is anchored but weaker; treat those rows as lower "
@@ -113,7 +158,7 @@ def inventory(listings: list, traces: list | None = None) -> str:
     for f in TRACKED:
         vals = [getattr(x, f, None) for x in listings]
         filled = sum(1 for v in vals if v is not None)
-        garbage = sum(1 for v in vals if _garbage(f, v))
+        garbage = sum(1 for x in listings if _garbage(f, getattr(x, f, None), x))
         usable = filled - garbage
         flag = "  <-- thin" if usable / n < 0.6 else ""
         L.append(f"{f:<18}{filled / n:>8.0%}{garbage / n:>9.0%}"

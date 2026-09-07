@@ -128,6 +128,29 @@ SLUG_MAKES = {"peugeot": "Peugeot", "saipa": "Saipa", "ikco": "IKCO",
               "benz": "Mercedes", "bmw": "BMW", "chery": "Chery",
               "mvm": "MVM", "jac": "JAC", "lifan": "Lifan"}
 
+# Bama's url puts the MODEL FAMILY where a make would go on a western site:
+#
+#     /car/detail-xproyaln-saina-manuals-mtgas-1404
+#                           ^^^^^ model, not manufacturer
+#
+# Read naively that yields `make="Saina"`, which is wrong — Saina is a Saipa
+# model. The 2026-09-07 run printed "Saina manuals" and "Runna plus" as makes
+# and models, which is how this surfaced. Domestic families are therefore
+# mapped to their manufacturer, and the family itself becomes the model.
+FAMILY_MAKE = {
+    "pride": "Saipa", "tiba": "Saipa", "saina": "Saipa", "quick": "Saipa",
+    "quik": "Saipa", "shahin": "Saipa", "aria": "Saipa", "atlas": "Saipa",
+    "samand": "IKCO", "dena": "IKCO", "runna": "IKCO", "rana": "IKCO",
+    "tara": "IKCO", "soren": "IKCO", "arisun": "IKCO", "haima": "IKCO",
+}
+
+FAMILY_NAME = {
+    "pride": "Pride", "tiba": "Tiba", "saina": "Saina", "quick": "Quik",
+    "quik": "Quik", "shahin": "Shahin", "samand": "Samand", "dena": "Dena",
+    "runna": "Runna", "rana": "Runna", "tara": "Tara", "soren": "Soren",
+    "aria": "Aria", "atlas": "Atlas", "arisun": "Arisun",
+}
+
 
 # ---------------------------------------------------------------------------
 # Discovery — two stages, because the sitemap lists categories
@@ -174,19 +197,42 @@ def extract_listing_links(html: str) -> list[str]:
 
 
 def parse_slug(url: str) -> dict:
-    """Identity from the url alone, so it survives a failed page load."""
+    """Identity from the url alone, so it survives a failed page load.
+
+    Two url shapes, and getting them confused mislabels the whole corpus:
+
+        detail-ffdrszax-peugeot-206ir-type5-1396   make, model, trim, year
+        detail-xproyaln-saina-manuals-mtgas-1404   MODEL, trim, trim, year
+
+    Domestic cars use the second shape — the first token is the model family,
+    not the manufacturer — so it is mapped through FAMILY_MAKE and the whole
+    remainder becomes the trim. Variant then lives where the comparable
+    ladder already knows how to relax it, instead of splitting one model
+    across a dozen spellings of its trim.
+    """
     m = _SLUG.search(url.split("?")[0].rstrip("/"))
     if not m:
         return {}
+    head = m.group("make")
     rest = m.group("rest") or ""
     parts = [p for p in rest.split("-") if p]
-    raw_model = parts[0] if parts else None
+
+    if head in FAMILY_MAKE:
+        make = FAMILY_MAKE[head]
+        model = FAMILY_NAME.get(head, head.title())
+        trim_parts, raw_model = parts, head
+    else:
+        make = SLUG_MAKES.get(head, head.title())
+        raw_model = parts[0] if parts else None
+        model = SLUG_MODELS.get(raw_model, raw_model)
+        trim_parts = parts[1:]
+
     return {
         "listing_id": m.group("id"),
-        "make": SLUG_MAKES.get(m.group("make"), m.group("make").title()),
-        "model": SLUG_MODELS.get(raw_model, raw_model),
+        "make": make,
+        "model": model,
         "raw_model_slug": raw_model,
-        "trim": " ".join(parts[1:]) or None,
+        "trim": " ".join(trim_parts) or None,
         "year_jalali": int(m.group("year")) if m.group("year") else None,
     }
 
@@ -218,12 +264,30 @@ _LD_BLOCK = re.compile(
     r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
     re.S | re.I)
 
-# Bama has emitted IRR; the others are here so a change of unit is caught
-# rather than silently absorbed. A price in the wrong unit is the single most
-# destructive parse error in this codebase — every estimate, every ranking,
-# every «ارزش» claim inherits it — so an unrecognised currency yields None
-# and is counted, never coerced.
+# The correct reading of the ISO codes. A price in the wrong unit is the
+# single most destructive parse error in this codebase — every estimate,
+# every ranking, every «ارزش» claim inherits it — so an unrecognised
+# currency yields None and is counted, never coerced.
 _TO_TOMAN = {"IRR": 0.1, "IRT": 1.0, "TOMAN": 1.0, "IRT-TOMAN": 1.0}
+
+# Bama's actual convention, established 2026-09-07 across 76 live listings.
+#
+# Every detail page declares `"priceCurrency": "IRR"` and publishes a **toman**
+# figure. Verified against the number rendered to buyers on the same page:
+#
+#     JSON-LD  "price": "850000000", "priceCurrency": "IRR"
+#     page     ۸۵۰,۰۰۰,۰۰۰ تومان
+#
+# Reading the label literally would divide every price by ten. That is the
+# nastiest class of bug available here, because the currency whitelist above
+# cannot catch it: `IRR` *is* a code we recognise, so nothing raises, nothing
+# is counted, and the corpus is uniformly wrong by an order of magnitude.
+#
+# So the site's observed convention overrides its declared one, and
+# reconcile_price() keeps checking that override against the rendered price on
+# every page that shows one. If Bama ever fixes the label, the run report
+# starts logging `label_wrong_*` and this constant is what needs revisiting.
+BAMA_TO_TOMAN = {"IRR": 1.0, "IRT": 1.0, "TOMAN": 1.0, "IRT-TOMAN": 1.0}
 
 # UN/CEFACT codes. KMT = kilometre, SMI = statute mile.
 _TO_KM = {"KMT": 1.0, "KM": 1.0, "SMI": 1.609344}
@@ -278,7 +342,8 @@ def _num(v):
     return float(s) if s.isdigit() else None
 
 
-def ld_price_toman(offers) -> tuple[int | None, str | None]:
+def ld_price_toman(offers, factors: dict | None = None,
+                   ) -> tuple[int | None, str | None]:
     """(toman, reason-it-is-missing).
 
     Returns the reason as well as the value because "no price" has three
@@ -294,10 +359,46 @@ def ld_price_toman(offers) -> tuple[int | None, str | None]:
     if raw is None or raw <= 0:
         return None, "negotiable or unpriced"
     cur = str(offers.get("priceCurrency") or "").upper().strip()
-    factor = _TO_TOMAN.get(cur)
+    factor = (factors if factors is not None else _TO_TOMAN).get(cur)
     if factor is None:
         return None, f"unrecognised currency {cur!r}"
     return int(round(raw * factor)), None
+
+
+def reconcile_price(ld_toman: int | None, text_toman: int | None,
+                    ) -> tuple[int | None, str]:
+    """Cross-check the structured price against the one shown to buyers.
+
+    Why this exists rather than trusting the structured block outright: a
+    site's `priceCurrency` label is metadata, and metadata can be wrong in a
+    way that the currency whitelist cannot catch. If a page declares `IRR`
+    but publishes a toman figure, dividing by ten is *silently* a tenfold
+    error — the guard does not fire, because `IRR` is a code we recognise.
+
+    The number rendered on the page is what a buyer reads and acts on, so it
+    is the ground truth for the unit. Agreement between the two is the
+    evidence that the conversion is right; a clean factor of ten is evidence
+    the label is wrong; anything else is unexplained, and unexplained means
+    no price rather than a chosen one.
+
+    Returns (toman, agreement-code).
+    """
+    if ld_toman is None and text_toman is None:
+        return None, "none"
+    if text_toman is None:
+        return ld_toman, "ld_only"
+    if ld_toman is None:
+        return text_toman, "text_only"
+    # Rounding differs between a rendered string and a raw integer, so exact
+    # equality is the wrong test.
+    if abs(ld_toman - text_toman) <= max(1, text_toman // 100):
+        return ld_toman, "agree"
+    if abs(ld_toman * 10 - text_toman) <= max(1, text_toman // 100):
+        # The block's number was already toman despite its label.
+        return text_toman, "label_wrong_ld_10x_low"
+    if abs(ld_toman - text_toman * 10) <= max(1, text_toman // 10):
+        return text_toman, "label_wrong_ld_10x_high"
+    return None, "unexplained_disagreement"
 
 
 def ld_mileage_km(node: dict) -> int | None:
@@ -356,8 +457,9 @@ class ParseTrace:
     is how that gets noticed on the run it happens, not a month later.
     """
     used_jsonld: bool = False
-    price_source: str = "none"        # jsonld | text | none
+    price_source: str = "none"        # jsonld+text | jsonld | text | none
     price_reason: str | None = None
+    price_agreement: str = "none"     # see reconcile_price()
     mileage_source: str = "none"
     condition_source: str = "none"    # field | description | none
 
@@ -403,30 +505,44 @@ def parse_detail_page(url: str, html: str,
                       if "کارکرد" in normalize(ln)), None)
 
     # ---- price ------------------------------------------------------------
-    # When the structured block exists, its verdict is FINAL — including its
-    # verdict that there is no usable price. Falling back to text there would
-    # let a heuristic overrule an authority, which is exactly how a
-    # navigation number becomes a car's asking price.
-    price, reason = (None, "no structured block")
+    # Both readings are taken and then reconciled. Neither source is trusted
+    # alone: the structured block can carry a wrong currency *label*, which
+    # no whitelist can catch, and the text is anchored but still a heuristic.
+    # Agreement between them is the evidence that the number is right.
+    ld_price, ld_reason = (None, "no structured block")
     if ld:
-        price, reason = ld_price_toman(ld.get("offers"))
-        tr.price_source = "jsonld" if price is not None else "none"
-    elif body_from is not None:
+        ld_price, ld_reason = ld_price_toman(ld.get("offers"), BAMA_TO_TOMAN)
+
+    text_price = None
+    if body_from is not None:
         for i in range(body_from, len(lines)):
             if normalize(lines[i]) in ("تومان", "تومن") and i:
-                price = parse_price(lines[i - 1])
-                if price:
-                    tr.price_source = "text"
-                    reason = None
+                text_price = parse_price(lines[i - 1])
+                if text_price:
                     break
-        else:
-            reason = "no price line below the article anchor"
-    else:
-        reason = "no article anchor found"
-    tr.price_reason = reason
     # There is deliberately no page-wide `parse_price(blob)` fallback. A
     # wrong price is worse than a missing one: the missing one shows up in
     # the inventory and is excluded from fitting; the wrong one is neither.
+
+    price, agreement = reconcile_price(ld_price, text_price)
+    tr.price_agreement = agreement
+    if price is None:
+        tr.price_source = "none"
+        tr.price_reason = (ld_reason if agreement == "none"
+                           else f"structured and displayed prices disagree "
+                                f"({ld_price} vs {text_price})")
+    elif agreement == "agree":
+        tr.price_source = "jsonld+text"
+        tr.price_reason = None
+    elif agreement == "ld_only":
+        tr.price_source = "jsonld"
+        tr.price_reason = None
+    elif agreement == "text_only":
+        tr.price_source = "text"
+        tr.price_reason = ld_reason
+    else:                                   # a mislabelled currency
+        tr.price_source = "text"
+        tr.price_reason = None
 
     # ---- mileage ----------------------------------------------------------
     mileage = ld_mileage_km(ld) if ld else None

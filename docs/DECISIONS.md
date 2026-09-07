@@ -272,3 +272,61 @@ The block's `itemCondition` is `UsedCondition` on every car on the site and
 says nothing about paint, replacement or accident history. The field the
 risk layer actually needs lives in the spec table, so the parser stays
 hybrid: structured for the spine, text for the condition.
+
+## D20 — Bama's declared currency is wrong, and the fix is a cross-check
+
+Every Bama detail page declares `"priceCurrency": "IRR"` and publishes a
+**toman** figure. Verified 2026-09-07 against the number rendered to buyers on
+the same page:
+
+    JSON-LD   "price": "850000000", "priceCurrency": "IRR"
+    page      ۸۵۰,۰۰۰,۰۰۰ تومان
+
+Reading the label literally divides every price by ten. This is the worst
+shape a bug can take here, because the currency whitelist added in D19 cannot
+catch it: `IRR` *is* a recognised code, so nothing raises, nothing is counted,
+and the whole corpus is uniformly wrong by an order of magnitude — a state in
+which every model still fits, every metric still looks reasonable, and every
+recommendation is nonsense.
+
+Three parts to the decision.
+
+1. **The observed convention overrides the declared one.** `BAMA_TO_TOMAN`
+   maps `IRR → 1.0` for this source, with the evidence and date in the
+   comment. `_TO_TOMAN` keeps the ISO-correct reading for everyone else.
+2. **The override is continuously verified, not trusted.** `reconcile_price()`
+   compares the structured price against the price rendered on the page, and
+   the run report prints the agreement counts. On the 2026-09-07 corpus: 66
+   `agree`, 0 `label_wrong_*`. If Bama ever fixes the label, those 66 flip to
+   `label_wrong_ld_10x_high` on the very next run and the report says so.
+3. **An unexplained disagreement yields no price.** One listing in 100 was an
+   instalment offer whose only visible numbers were a deposit (400M) and a
+   monthly payment, against a JSON-LD price of 580M. Neither displayed number
+   is a cash asking price, so the row carries `price=None` rather than a
+   deposit dressed up as a valuation.
+
+The general lesson, and the reason this is a design record rather than a bug
+fix: a structured source is more *reliable* than scraped text, not more
+*true*. Its self-description is still a claim. The number a buyer sees is the
+one they act on, so that is the ground truth the metadata gets checked
+against — and the disagreement between two sources is itself the signal.
+
+## D21 — Mileage is checked for plausibility, not just for range
+
+The 2026-09-07 corpus contained three odometer readings that are present,
+in-range, and false:
+
+    999,990 km on a 1384 Pride     the 999999 placeholder
+          1 km on a 1385 Pride     "ask me", typed as a digit
+      6,000 km on a 1385 Pride     a 21-year-old car at ~300 km/year
+
+A min/max check passes all three. Left uncounted they enter the appraiser as
+genuine low-mileage cars and drag the mileage coefficient toward zero — the
+cheapest available way to make a model confidently wrong, and one that no
+error metric on the same corpus would reveal, because the corrupted rows are
+in both the training and the test half.
+
+`_garbage()` therefore flags anything at or above 900,000 km, and anything
+under 1,500 km/year sustained over a car at least three years old. Genuinely
+unused cars say «صفر» and are almost always current-model-year. The rate is
+reported as garbage rather than dropped silently: 4% of this corpus.
