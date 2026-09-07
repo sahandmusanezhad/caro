@@ -43,6 +43,7 @@ that Prides are informative about Prides. That distinction is exactly what
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Sequence
 
 import numpy as np
@@ -461,6 +462,28 @@ class HierarchicalGate:
     mae_tolerance: float = 1.10          # may be up to 10% worse than baseline
     require_trace_observable: bool = True
 
+    def verdict(self, slices: Sequence[SliceMetrics], *,
+                baseline_mae: float, model_mae: float,
+                population_weighted: bool = False
+                ) -> tuple["GateVerdict", list[str], list[str]]:
+        """(verdict, demonstrated failures, unanswered questions).
+
+        Ordering is deliberate: a demonstrated failure on a slice we COULD
+        judge outranks an unjudgeable one. Being measurably wrong is worse
+        news than being unmeasured, and reporting UNJUDGEABLE when a real
+        failure is already visible would understate what is known.
+        """
+        ok, all_reasons = self.check(
+            slices, baseline_mae=baseline_mae, model_mae=model_mae,
+            population_weighted=population_weighted)
+        unjudged = [r for r in all_reasons if "cannot judge" in r]
+        failed = [r for r in all_reasons if r not in unjudged]
+        if failed:
+            return GateVerdict.REJECTED, failed, unjudged
+        if unjudged:
+            return GateVerdict.UNJUDGEABLE, [], unjudged
+        return GateVerdict.ACCEPTED, [], []
+
     def check(self, slices: Sequence[SliceMetrics], *,
               baseline_mae: float, model_mae: float,
               population_weighted: bool = False) -> tuple[bool, list[str]]:
@@ -512,6 +535,24 @@ class HierarchicalGate:
                 "from the sample's own shape")
 
         return (not fails), fails
+
+
+class GateVerdict(str, Enum):
+    """Three outcomes, and the third is not a shade of the other two.
+
+    REJECTED   the model was measured and found wanting.
+    UNJUDGEABLE the corpus cannot answer the question. NOT a model failure —
+               and emphatically not a pass. Folding it into either would let
+               a model be accepted where it was never tested, or condemned
+               for evidence nobody has.
+
+    CARO already reports uncertainty about prices. This reports uncertainty
+    about its own ability to assess uncertainty, which is the layer that
+    normally goes unstated and is exactly where an unearned claim hides.
+    """
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+    UNJUDGEABLE = "UNJUDGEABLE_SLICE"
 
 
 class NotAccepted(RuntimeError):

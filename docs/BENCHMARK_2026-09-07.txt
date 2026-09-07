@@ -1,0 +1,30 @@
+BENCHMARK — partial pooling on the Run 3 corpus
+==============================================================================
+  parsed listings        221
+  appraisal-eligible     155
+  distinct trims         43
+  split                  held-out TRIMS (single snapshot: no
+                         temporal split is possible, so this says
+                         nothing about temporal generalisation)
+
+  slice                     n          MAE        medAE     cover      err  shrink  extrap
+  ----------------------------------------------------------------------------------------
+  well-observed trim       75   64,072,026   53,917,027       69%       1%    0.93      0%
+  thin trim                54   63,738,855   35,903,188       70%       0%    0.84    100%   (thin — metrics are noise)
+  held-out trim            26  115,525,217   57,135,721       77%       7%    0.00    100%   (thin — metrics are noise)
+
+  calibration verdicts need n ≥ 58 (2.5 SE on a 15-point deviation)
+
+VERDICT 
+------------------------------------------------------------------------------
+  UNJUDGEABLE_SLICE
+  MAE 63,932,559 vs parent-median baseline 133,372,093  (-52.1%)
+    ? 'thin trim' has n=54, below the 58 a calibration verdict needs. NOT a model failure — the corpus cannot judge this slice, and the gate does not pass on an unanswered question
+    ? 'held-out trim' has n=26, below the 58 a calibration verdict needs. NOT a model failure — the corpus cannot judge this slice, and the gate does not pass on an unanswered question
+
+  This is a failure of the EVIDENCE for this claim, not of
+  the model. The aggregate MAE above is real and says nothing
+  about whether conditional appraisal is valid — concluding
+  otherwise from it is the inference D30 refused. W1 stays
+  locked, and the fix is a corpus that can judge, not a
+  tuning pass that makes the question go away.

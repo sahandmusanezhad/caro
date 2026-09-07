@@ -383,6 +383,31 @@ check("A REJECTED MODEL SERVES NOTHING — no quiet pooled fallback", raised,
 check("  while an accepted one serves traced estimates",
       len(serve_or_refuse(m_train, te2[:2], accepted=True)) == 2)
 
+print("\nthree verdicts — UNJUDGEABLE is not a shade of pass or fail")
+from caro.hierarchical import GateVerdict                            # noqa: E402
+
+v_ok, f_ok, u_ok = g.verdict(ben_sl, baseline_mae=1e9, model_mae=1e8)
+check("an accepted model is ACCEPTED", v_ok is GateVerdict.ACCEPTED,
+      f"{v_ok} {f_ok} {u_ok}")
+v_bad, f_bad, _ = g.verdict(adv_sl, baseline_mae=1e9, model_mae=1e8)
+check("a measured failure is REJECTED", v_bad is GateVerdict.REJECTED,
+      str(f_bad))
+v_small, f_small, u_small = g.verdict(sl, baseline_mae=1e9, model_mae=1e8)
+check("A CORPUS THAT CANNOT JUDGE RETURNS ITS OWN VERDICT",
+      v_small is GateVerdict.UNJUDGEABLE, f"{v_small} {u_small}")
+check("  with no demonstrated failures attached to the model",
+      not f_small,
+      "condemning a model for evidence nobody has is as wrong as passing it")
+check("  and the unanswered questions listed separately", len(u_small) >= 1)
+
+mixed = [SliceMetrics(s_.name, s_.n, s_.mae, s_.median_ae, 0.10, 0.60,
+                      s_.mean_shrinkage, s_.extrapolation_rate)
+         if s_.name == "well-observed trim" else s_ for s_ in sl]
+v_mix, f_mix, u_mix = g.verdict(mixed, baseline_mae=1e9, model_mae=1e8)
+check("a demonstrated failure OUTRANKS an unjudgeable slice",
+      v_mix is GateVerdict.REJECTED and f_mix and u_mix,
+      "being measurably wrong is worse news than being unmeasured")
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

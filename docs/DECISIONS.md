@@ -899,3 +899,62 @@ are sized for it, and the model is confident exactly where it has no
 information. The gate rejects that and accepts the on-distribution twin, so
 it discriminates rather than always refusing — a gate that always fails being
 exactly as useless as one that always passes.
+
+## D34 — The benchmark ran. The verdict is UNJUDGEABLE, and that is a result.
+
+Partial pooling against the Run 3 corpus, 155 appraisal-eligible listings
+across 43 trims, held-out-trim split:
+
+    slice                   n          MAE     cover   err  shrink  extrap
+    well-observed trim     75   64,072,026      69%    1%    0.93      0%
+    thin trim              54   63,738,855      70%    0%    0.84    100%
+    held-out trim          26  115,525,217      77%    7%    0.00    100%
+
+    MAE 63,932,559 vs parent-median baseline 133,372,093   (−52.1%)
+
+    VERDICT: UNJUDGEABLE_SLICE
+
+The numbers look good. **That is exactly why the verdict matters.** A 52%
+improvement over the baseline, coverage within a point of nominal on the
+slices we can measure, shrinkage behaving as designed — and none of it
+licenses serving a conditional appraisal, because the two slices the claim
+depends on carry n = 54 and n = 26 against the 58 a calibration verdict
+requires. Their coverage figures are not evidence; they are noise that
+happens to look reassuring.
+
+Publishing on this would have been easy and defensible-sounding: the
+aggregate is genuinely strong. It is also the precise inference D30 refused —
+concluding from a corpus-wide number that a *conditional* claim holds, when
+the conditioning is exactly where the evidence runs out.
+
+Three separate, measured reasons W1 is locked, none of them a judgement call:
+
+1. **D30** — conditional-scope condition 3 fails at 55% against 70%.
+2. **D31** — the acquisition ceiling is 63%, proved from the source's own
+   trim census. No crawling reaches 70%.
+3. **D34** — the corpus cannot calibrate the estimator that would have made
+   trim-level conditioning defensible anyway.
+
+The third subsumes neither of the others and is not implied by them. A corpus
+could satisfy D30 and still be too small to calibrate; this one fails both,
+independently.
+
+### What would change the verdict
+
+Not tuning. `MIN_SLICE_N = 58` is arithmetic — 2.5 binomial standard errors
+on a 15-point coverage deviation — so lowering it does not buy information,
+it buys the appearance of one. What is needed is a thin-trim slice of ~58 and
+a held-out-trim slice of ~58, i.e. roughly 400–500 eligible listings rather
+than 155. Run 3's route can supply that: 1,862 published trim pages at ~10
+listings each, well beyond what four model families were sampled for here.
+
+That is a straightforward, bounded collection job with a known cost, and it
+is the honest next step. What it is not is a modelling problem.
+
+### The property this establishes
+
+CARO reports uncertainty about prices. It now also reports **uncertainty
+about its own ability to assess uncertainty** — and refuses on it. The
+distinction between "the model is wrong" and "we cannot tell whether the
+model is wrong" is the one a benchmark normally erases, and it is the one an
+appraisal product most needs to keep.
