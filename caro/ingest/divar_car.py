@@ -1,0 +1,371 @@
+"""
+Divar car-listing adapter.
+
+Adapted from the Divar collection approach in SorinFlow
+(Tecso-Dev/SorinFlow-DaTA-mAmager, MIT) — that project scrapes property
+listings; this one scrapes cars. Two things carried over, and three
+deliberately did not.
+
+CARRIED OVER
+    · Playwright over the public listing pages, because Divar renders
+      client-side and a plain HTTP fetch returns an empty shell.
+    · Persian numeral, separator and amount-word normalisation, which is the
+      genuinely reusable half of any Iranian marketplace scraper.
+    · Heavy-tailed jittered delays between requests.
+
+DELIBERATELY LEFT BEHIND
+    · **Contact reveal.** The source project reveals and stores advertiser
+      phone numbers. CARO's ingest contract says no adapter may emit a
+      personal identifier, and `seller_fingerprint` is a salted hash for
+      deduplication only. Porting contact extraction would make that
+      contract a lie, and a corpus of phone numbers is a liability in a
+      public repository whatever the licence says.
+    · **Account rotation and session replay.** The source rotates logged-in
+      Divar accounts to spread reveal budgets and avoid blocking. That is
+      evasion, and `caro/ingest/base.py` states that CARO builds none: if a
+      source blocks us, we stop and record it. Rotating accounts to keep
+      going is precisely the behaviour that rule forbids.
+    · **OTP handling.** Follows from the above — nothing here authenticates,
+      so nothing here needs to solve a login challenge.
+
+The cost of leaving those behind is real: no contact details, lower ceiling
+on volume, and we stop when Divar says stop. That is the correct trade for a
+system whose entire pitch is that it does not overclaim.
+
+FIELD MAPPING
+Property fields do not transfer at all. Area, rooms, floor and rent/deposit
+are replaced by make, model, trim, year, mileage, gearbox, fuel and — the
+field that actually decides a used car's value — body condition, which on
+Divar lives in free text rather than in any structured field.
+"""
+
+from __future__ import annotations
+
+import random
+import re
+import time
+from dataclasses import dataclass, field
+from datetime import date
+from typing import Callable, Iterable, Iterator
+
+from caro.ingest.base import salted_fingerprint
+from caro.ingest.persian import (
+    normalize, parse_mileage_km, parse_price, parse_year_jalali,
+)
+from caro.tracking import FetchOutcome, FetchStatus, classify_http
+
+# Divar's car categories. Kept as data so a new one is a line, not a patch.
+CATEGORIES = {
+    "light": "https://divar.ir/s/{city}/light",           # سواری
+    "car": "https://divar.ir/s/{city}/car",
+}
+
+USER_AGENT = ("CARO-research/0.3 (used-car price research; "
+              "contact: sahand.mosanejad4488@gmail.com)")
+
+# Politeness. These are floors, not targets.
+DELAY_MIN_S = 2.0
+DELAY_MAX_S = 5.0
+MAX_CONSECUTIVE_FAILURES = 3
+
+
+# ---------------------------------------------------------------------------
+# Car field extraction — the domain half, which shares nothing with property
+# ---------------------------------------------------------------------------
+
+MAKE_MODEL: dict[str, tuple[str, ...]] = {
+    ("Peugeot", "206"): ("پژو 206", "206", "پژو206"),
+    ("Peugeot", "207"): ("پژو 207", "207i", "207"),
+    ("Peugeot", "405"): ("پژو 405", "405"),
+    ("Peugeot", "Pars"): ("پژو پارس", "پارس"),
+    ("Saipa", "Pride"): ("پراید", "سایپا 131", "131", "111", "132"),
+    ("Saipa", "Tiba"): ("تیبا",),
+    ("Saipa", "Quik"): ("کوییک", "کوئیک"),
+    ("Saipa", "Saina"): ("ساینا",),
+    ("Saipa", "Shahin"): ("شاهین",),
+    ("IKCO", "Dena"): ("دنا",),
+    ("IKCO", "Runna"): ("رانا",),
+    ("IKCO", "Samand"): ("سمند",),
+    ("IKCO", "Tara"): ("تارا",),
+}
+
+TRIM_CUES = ("تیپ 2", "تیپ 3", "تیپ 5", "تیپ 6", "SD", "ELX", "LX", "TU5",
+             "XU7", "پانوراما", "پلاس", "plus", "اتوماتیک", "دنده ای")
+
+GEARBOX = {"automatic": ("اتوماتیک", "اتومات", "گیربکس اتومات"),
+           "manual": ("دنده ای", "دنده‌ای", "معمولی", "مکانیکی")}
+
+FUEL = {"dual": ("دوگانه سوز", "دوگانه", "cng", "گازسوز"),
+        "hybrid": ("هیبرید", "هیبریدی"),
+        "ev": ("برقی", "الکتریکی"),
+        "petrol": ("بنزینی", "بنزین")}
+
+COLORS = ("سفید", "مشکی", "نقره ای", "خاکستری", "نوک مدادی", "آبی", "قرمز",
+          "سبز", "بژ", "قهوه ای", "نقرآبی", "زرد", "بادمجانی", "سربی")
+
+# Body condition. This is the field that decides a used car's value and the
+# one no marketplace filter exposes, because it lives in prose. Ordered most
+# to least severe — the first match wins, so a listing that says both
+# «تصادفی» and «بدون رنگ» is classified by the worse claim.
+BODY_CONDITION: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("accident", ("تصادفی", "چپ کرده", "شاسی خورده", "شاسی تعویض",
+                  "سگدست", "اتاق تعویض")),
+    ("replaced_part", ("تعویض شده", "تعویضی", "درب تعویض", "گلگیر تعویض",
+                       "کاپوت تعویض", "صندوق تعویض")),
+    ("multi_paint", ("دور رنگ", "دوررنگ", "کامل رنگ", "تمام رنگ",
+                     "چند لکه رنگ", "چندلکه رنگ")),
+    ("minor_paint", ("لکه رنگ", "خط و خش", "خط وخش", "صافکاری",
+                     "در حد خط و خش", "رودری رنگ")),
+    ("intact", ("بدون رنگ", "بی رنگ", "فول بدون رنگ", "بدون خط و خش",
+                "سالم و بدون رنگ")),
+)
+
+DOC_ISSUE_CUES = ("در گرو", "وکالتی", "سند در رهن", "سند نداره", "کارخانه ای")
+
+
+def extract_make_model(text: str) -> tuple[str | None, str | None]:
+    s = normalize(text)
+    for (make, model), aliases in MAKE_MODEL.items():
+        if any(normalize(a) in s for a in aliases):
+            return make, model
+    return None, None
+
+
+def extract_trim(text: str) -> str | None:
+    s = normalize(text)
+    hits = [t for t in TRIM_CUES if normalize(t) in s]
+    return " ".join(hits[:2]) if hits else None
+
+
+def _first_match(text: str, table: dict[str, tuple[str, ...]]) -> str | None:
+    s = normalize(text)
+    for key, cues in table.items():
+        if any(normalize(c) in s for c in cues):
+            return key
+    return None
+
+
+def extract_gearbox(text: str) -> str | None:
+    return _first_match(text, GEARBOX)
+
+
+def extract_fuel(text: str) -> str | None:
+    return _first_match(text, FUEL)
+
+
+def extract_color(text: str) -> str | None:
+    s = normalize(text)
+    for c in COLORS:
+        if normalize(c) in s:
+            return c
+    return None
+
+
+def extract_body_condition(text: str) -> str:
+    """Severity-ordered, so the worst disclosed claim wins.
+
+    A listing whose title says «بدون رنگ» and whose body says «گلگیر تعویض»
+    is a replaced-part car. Taking the title at face value is exactly the
+    mistake a filter makes and a buyer regrets.
+    """
+    s = normalize(text)
+    for label, cues in BODY_CONDITION:
+        if any(normalize(c) in s for c in cues):
+            return label
+    return "unknown"
+
+
+def has_document_issue(text: str) -> bool | None:
+    s = normalize(text)
+    if any(normalize(c) in s for c in DOC_ISSUE_CUES):
+        return True
+    if re.search(r"(سند آزاد|سند تک برگ|سند دست اول)", s):
+        return False
+    return None
+
+
+@dataclass
+class CarListing:
+    """One parsed Divar car listing. Deliberately close to `FetchOutcome`."""
+    listing_id: str
+    url: str
+    title: str
+    description: str
+    price_irr: int | None
+    make: str | None
+    model: str | None
+    trim: str | None
+    year_jalali: int | None
+    mileage_km: int | None
+    gearbox: str | None
+    fuel: str | None
+    color: str | None
+    body_condition: str
+    document_issue: bool | None
+    city: str | None
+    seller_raw: str | None = None      # hashed on the way out, never stored
+    image_urls: tuple[str, ...] = ()
+
+    def to_fetch_outcome(self, source: str = "divar",
+                         salt: str | None = None) -> FetchOutcome:
+        return FetchOutcome(
+            listing_id=f"{source}:{self.listing_id}",
+            status=FetchStatus.OK,
+            http_status=200,
+            price_irr=self.price_irr,
+            make=self.make, model=self.model, trim=self.trim,
+            year_jalali=self.year_jalali, color=self.color,
+            province=self.city, mileage_km=self.mileage_km,
+            # The raw seller value dies here. Only the salted hash continues.
+            seller_fingerprint=(salted_fingerprint(self.seller_raw, salt)
+                                if self.seller_raw else None),
+        )
+
+
+def parse_listing(listing_id: str, url: str, title: str, description: str,
+                  *, price_text: str = "", mileage_text: str = "",
+                  year_text: str = "", city: str | None = None,
+                  seller_raw: str | None = None,
+                  image_urls: Iterable[str] = ()) -> CarListing:
+    """Structured fields first, then free text — never the other way round.
+
+    Divar's structured fields are cheap and usually right; the description is
+    where the condition lives. Both are searched for make/model because
+    sellers frequently put the trim only in the title.
+    """
+    blob = f"{title} {description}"
+    make, model = extract_make_model(blob)
+    return CarListing(
+        listing_id=listing_id, url=url, title=title, description=description,
+        price_irr=parse_price(price_text) or parse_price(blob),
+        make=make, model=model, trim=extract_trim(blob),
+        year_jalali=parse_year_jalali(year_text) or parse_year_jalali(title),
+        mileage_km=(parse_mileage_km(mileage_text)
+                    if mileage_text else parse_mileage_km(blob)),
+        gearbox=extract_gearbox(blob), fuel=extract_fuel(blob),
+        color=extract_color(blob),
+        body_condition=extract_body_condition(blob),
+        document_issue=has_document_issue(blob),
+        city=city, seller_raw=seller_raw, image_urls=tuple(image_urls),
+    )
+
+
+# ---------------------------------------------------------------------------
+# The adapter
+# ---------------------------------------------------------------------------
+
+@dataclass
+class PolitenessPolicy:
+    """Delays and stop conditions, stated rather than tuned in secret.
+
+    Heavy-tailed by design: a fixed sleep is a fingerprint, and a source that
+    can identify a bot by its metronome is entitled to block it. This is
+    about being a well-behaved client, not about being hard to detect — the
+    difference matters, and the stop-on-failure rule below is what keeps it
+    honest.
+    """
+    delay_min_s: float = DELAY_MIN_S
+    delay_max_s: float = DELAY_MAX_S
+    max_consecutive_failures: int = MAX_CONSECUTIVE_FAILURES
+    user_agent: str = USER_AGENT
+
+    def sleep(self, rng: random.Random | None = None) -> float:
+        r = rng or random
+        d = r.uniform(self.delay_min_s, self.delay_max_s)
+        if r.random() < 0.15:                    # occasional longer pause
+            d *= r.uniform(1.5, 3.0)
+        return d
+
+
+class SourceBlocked(RuntimeError):
+    """Raised when the source stops answering. We stop too."""
+
+
+@dataclass
+class DivarCarAdapter:
+    """Collects public car listings. No login, no contact reveal, no rotation.
+
+    `page_fetcher` is injected so the adapter is testable without a browser
+    and without the network: pass a callable returning (status_code, html).
+    The Playwright implementation lives in `playwright_fetcher` and is only
+    imported when actually used.
+    """
+    city: str = "tehran"
+    category: str = "light"
+    max_pages: int = 5
+    name: str = "divar"
+    policy: PolitenessPolicy = field(default_factory=PolitenessPolicy)
+    salt: str | None = None
+    page_fetcher: Callable[[str], tuple[int, str]] | None = None
+    parse_page: Callable[[str], list[CarListing]] | None = None
+    sleeper: Callable[[float], None] = time.sleep
+
+    def search_url(self, page: int = 1) -> str:
+        base = CATEGORIES[self.category].format(city=self.city)
+        return base if page <= 1 else f"{base}?page={page}"
+
+    def fetch_all(self, on: date) -> Iterator[FetchOutcome]:
+        if self.page_fetcher is None or self.parse_page is None:
+            raise RuntimeError(
+                "DivarCarAdapter needs a page_fetcher and parse_page. Use "
+                "playwright_fetcher() for live collection, or inject fixtures "
+                "in tests. Refusing to guess.")
+
+        consecutive = 0
+        for page in range(1, self.max_pages + 1):
+            url = self.search_url(page)
+            try:
+                status, html = self.page_fetcher(url)
+            except Exception:
+                status, html = None, ""
+
+            fs = classify_http(status)
+            if fs is FetchStatus.OK and html:
+                consecutive = 0
+                for listing in self.parse_page(html):
+                    yield listing.to_fetch_outcome(self.name, self.salt)
+            else:
+                consecutive += 1
+                # An unresolved page is ignorance about that page, not
+                # absence of its listings. Emitting ABSENT here would
+                # fabricate disappearances downstream.
+                yield FetchOutcome(
+                    listing_id=f"__page__:{self.name}:{page}",
+                    status=FetchStatus.UNKNOWN, http_status=status)
+                if consecutive >= self.policy.max_consecutive_failures:
+                    # We stop. We do not rotate, retry harder, or change
+                    # identity. A blocked source is a documented gap in
+                    # coverage, not a puzzle to solve.
+                    raise SourceBlocked(
+                        f"{self.name} stopped answering after {consecutive} "
+                        f"consecutive failures at page {page}; halting")
+
+            if page < self.max_pages:
+                self.sleeper(self.policy.sleep())
+
+
+def playwright_fetcher(policy: PolitenessPolicy | None = None):
+    """Live fetcher. Imported lazily so the package works without Playwright.
+
+    Divar renders client-side, so a plain HTTP GET returns a shell with no
+    listings — this is the one place a real browser is required rather than
+    merely convenient.
+    """
+    p = policy or PolitenessPolicy()
+
+    def fetch(url: str) -> tuple[int, str]:
+        from playwright.sync_api import sync_playwright     # noqa: PLC0415
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
+            try:
+                ctx = browser.new_context(user_agent=p.user_agent,
+                                          locale="fa-IR")
+                page = ctx.new_page()
+                resp = page.goto(url, wait_until="domcontentloaded",
+                                 timeout=30_000)
+                page.wait_for_timeout(1500)
+                return (resp.status if resp else 0), page.content()
+            finally:
+                browser.close()
+
+    return fetch
