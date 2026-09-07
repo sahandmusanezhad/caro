@@ -1236,10 +1236,26 @@ The honest verdict on a surface that could not be read is not "clean", it is
 
 **The scan set is verified, not declared.** The suite says it covers
 `caro/**/*.py`; an independent `os.walk` enumeration is compared against
-what the glob actually produced, so the scope in the docstring and the
-scope in the code cannot drift apart. Two ways of listing the same files,
-compared — the same move as reading the instance numbers out of this file
-rather than copying them.
+what the glob actually produced, and compared for *equality* — a subset
+check would only catch the glob missing a file, while a scope that picked
+up something os.walk does not see has also stopped matching its own
+description. Two ways of listing the same files, compared: the same move as
+reading the instance numbers out of this file rather than copying them.
+
+The scope is also stated at its real size. It is "every reader-facing
+surface currently in the scan set", not "everywhere a reader looks" — a
+`CHANGELOG.txt` or a `.rst` added tomorrow falls outside it and this guard
+would say nothing. Widening the set is one line when a surface appears;
+describing it as already general would be the entry's own pattern, in the
+entry.
+
+Two limits are named rather than closed. The quotation exemption is
+**syntactic** — quote marks are not evidence that the quoted text is a
+historical citation, so a sentence asserting a retired claim while quoting
+it goes free. And the Python split is a statement-level string heuristic,
+not AST docstring detection; `tokenize` cannot tell a docstring from any
+other bare string in those positions. Both could be closed by making this a
+parser, and neither is worth becoming one.
 
 The shipped demo is checked separately and differently. `demo/index.html`
 and `demo/demo_data.json` are *generated* — written once and committed, so

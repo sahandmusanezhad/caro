@@ -205,7 +205,9 @@ RETIRED = [
     ),
 ]
 
-# Everything a reader of this repository could reasonably encounter. Scanning
+# Every reader-facing surface currently declared in this scan set — which is
+# not the same as everything a reader could encounter, and the difference is
+# the kind of thing this file exists to keep honest. Scanning
 # widely is not thoroughness theatre: of the instances in D36, one was a test
 # label, two were in the design record, one was a module docstring in the
 # shipped package and one was in a test fixture. A scan limited to the README
@@ -289,11 +291,12 @@ def quoted_spans(text: str) -> list[tuple[int, int]]:
 def unquoted_hits(text: str, pattern: str) -> list[str]:
     """Occurrences outside the narrow quotation forms this guard permits.
 
-    Deliberately not called "not a citation". The rule sees quote delimiters,
-    not intent — a phrase between double quotes is exempt whether it is
-    genuinely a citation or merely happens to be quoted. That gap is the
-    price of a mechanical rule, and `code_and_prose` narrows it where it
-    mattered most.
+    Deliberately not called "not a citation". Quotation marks are a
+    SYNTACTIC exemption, not evidence that the quoted text is historically
+    cited: "the seller has already accepted this price" is exempt in any
+    prose sentence, including one that is asserting it and merely happens to
+    quote. That gap is the price of a mechanical rule, and `code_and_prose`
+    narrows it where it mattered most.
 
     The exemption exists at all because D36 and D18 have to be able to
     catalogue the claims they retire. Without it the fix would be to stop
@@ -348,7 +351,12 @@ def code_and_prose(src: str) -> tuple[str, str] | None:
         if t.type == tokenize.COMMENT:
             prose.append(t.string)
             continue
-        # A bare string statement is a docstring: module, class or function.
+        # A statement-level string HEURISTIC, not an AST docstring. tokenize
+        # cannot tell a module/class/function docstring from any other bare
+        # string in those token positions, and this does not try to. The
+        # boundary it draws is good enough for the question being asked and
+        # cheap enough not to drag a parser in; calling it docstring
+        # detection would claim more than it does.
         if t.type == tokenize.STRING and prev in (
                 tokenize.INDENT, tokenize.DEDENT, tokenize.NEWLINE,
                 tokenize.NL, tokenize.ENCODING):
@@ -362,8 +370,14 @@ def code_and_prose(src: str) -> tuple[str, str] | None:
     return " ".join(code), "\n".join(prose)
 
 
-def hits_in(rel: str, text: str, pattern: str) -> list[str]:
+def hits_in(rel: str, text: str, pattern: str,
+            failures: set[str] | None = None) -> list[str]:
     """Own-voice occurrences in one surface, with Python treated as code.
+
+    `failures` is the set unreadable filenames are recorded in; it defaults
+    to the module-level one used by the real scan. Probes pass their own, so
+    a deliberately broken fixture cannot contaminate the summary assertion
+    and no cleanup line has to run in the right order to undo it.
 
     An untokenizable Python file is reported as an offender rather than
     scanned by the prose rule or skipped.
@@ -385,7 +399,7 @@ def hits_in(rel: str, text: str, pattern: str) -> list[str]:
         return unquoted_hits(text, pattern)
     split = code_and_prose(text)
     if split is None:
-        TOKENIZE_FAILURES.add(rel)
+        (TOKENIZE_FAILURES if failures is None else failures).add(rel)
         return ["[UNSCANNED — this file does not tokenize, so it was "
                 "neither checked nor cleared]"]
     code, prose = split
@@ -533,11 +547,9 @@ check("  every Python surface was actually tokenized",
       f"unscanned, and reported as offenders above: "
       f"{sorted(TOKENIZE_FAILURES)}")
 check("  an unreadable surface fails rather than reading clean",
-      hits_in("broken.py", "def f(:\n", RETIRED[0]["pattern"]) != [],
+      hits_in("broken.py", "def f(:\n", RETIRED[0]["pattern"],
+              failures=set()) != [],
       "unknown must be as loud as a hit")
-# That probe registers a failure for a file that does not exist. Undo it, so
-# the assertion above cannot start depending on running before this line.
-TOKENIZE_FAILURES.discard("broken.py")
 
 # ---------------------------------------------------------------------------
 # The scan set says `caro/**/*.py`. Does it mean it?
@@ -556,9 +568,15 @@ _walked = {str(Path(dp, f).relative_to(ROOT))
 _nested = {p for p in _walked if p.count("/") > 1}
 check(f"caro/ has nested python to find ({len(_nested)} below the top level)",
       _nested)
-check("  and the recursive glob reaches every file os.walk sees",
-      _walked <= set(SURFACES),
-      f"declared caro/**/*.py but missed: {sorted(_walked - set(SURFACES))}")
+# Equality, not containment. A subset check only catches the glob missing a
+# file; the declaration says `caro/**/*.py`, so a surface list that picked up
+# something os.walk does not see is also a scope that no longer matches what
+# the file says about itself.
+_globbed = {p for p in SURFACES if p.startswith("caro/")}
+check("  the recursive glob is EXACTLY the os.walk set",
+      _walked == _globbed,
+      f"declared caro/**/*.py — missed: {sorted(_walked - _globbed)}; "
+      f"unexpected: {sorted(_globbed - _walked)}")
 
 # ---------------------------------------------------------------------------
 # Runtime semantic guardrails — NOT the D36 catalogue
@@ -611,6 +629,15 @@ if _xs:
               word not in _copy, _copy)
     check("  and it does state what was observed",
           "منتشر شده" in _copy, _copy)
+else:
+    # Without this, a broken fixture reports one failure — "no cluster" —
+    # and the five probes below it simply never run. The suite still goes
+    # red, so nothing passes silently, but the transcript would suggest the
+    # copy was checked and found clean. Not exercised is its own result and
+    # says so.
+    check("  runtime copy probes were exercised at all", False,
+          "no cross-source cluster was built, so NONE of the Persian "
+          "guardrails ran — this is unchecked copy, not clean copy")
 
 # ---------------------------------------------------------------------------
 # The shipped demo, as it sits on disk
