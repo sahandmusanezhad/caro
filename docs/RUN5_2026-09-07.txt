@@ -1,0 +1,119 @@
+RUN 5 v2 — bama.ir, collected 2026-09-07
+==============================================================================
+Registered in RUN5_SPEC.md v2 before collection. Cap 640 requests. Spent 615.
+
+VERDICT:  REJECTED
+          "The frozen benchmark rejected the estimator for the tested
+          conditional scope."  (§12, registered wording, not composed after
+          seeing the result.)
+
+The estimator lost to its own baseline: MAE 606,996,397 against a
+parent-median baseline of 526,344,633, 15.3% WORSE. That is a judgeable
+failure and it does not depend on any slice being large enough.
+
+
+ACQUISITION
+------------------------------------------------------------------------------
+  sitemap + probes                    4
+  trim pages surveyed               208   (166 deep-slug, 42 from the wider pool)
+  detail pages                      403   (137 thin-trim, 266 well-observed)
+  ------------------------------------------------
+  total requests                    615   of 640 registered, 25 unspent
+
+  generic-feed slugs rejected         3   by the §9 slug-validation guard
+  phone-number leaks                  0   by the extractor's own check
+  failed fetches                      0
+
+Stopped 25 short of the cap. Not §3 case 1 (the shape was not met) and not
+case 2 (the cap did not bind). The honest reason: at ~1.7 requests per
+eligible listing, 25 requests could not close a 7-row gap in the held-out
+slice, and the MAE criterion had already decided the verdict.
+
+
+THE CORPUS
+------------------------------------------------------------------------------
+  collected                         403
+  parsed                            403   (100%)
+  appraisal-eligible                228   (56.6%)
+  distinct trims                    100
+  distinct makes                     44
+
+  Registered conversion was 0.701, measured on Run 3. Actual: 0.566. The
+  pre-flight's 6-of-7 sample said "nothing suggests the tail converts worse",
+  and §10 recorded that as the only defensible reading. It was too weak a
+  reading of too small a sample. The tail converts materially worse, and the
+  reason is visible in the losses:
+
+      126  no mileage_km            new/near-new cars publish no odometer
+       98  price is absent          «توافقی», or instalment-only listings
+       11  mileage is suspicious
+        1  mileage is impossible
+
+  Both dominant losses concentrate in the same place — dealer listings of
+  current-model-year cars, which are exactly what a thin trim page returns.
+
+
+THE SHAPE — two of three targets met
+------------------------------------------------------------------------------
+                        target    actual
+  thin slice              ≥ 58        87   MET       training trims, ≤4 listings
+  held-out slice          ≥ 58        51   short 7   the held-out trims
+  conditional coverage    ≥ 70%      47%   short     whole eligible corpus, 5+
+
+  D37 predicted this tension and named it. The mixed strategy did reach the
+  thin slice — for the first time, that slice is judgeable — and it did so by
+  collecting 100 trims where D37's model assumed 62, which pushed coverage
+  DOWN rather than up. Thin and coverage are complements; buying one with
+  acquisition spends the other.
+
+
+WHY THE ESTIMATOR LOST, AND WHY THAT IS NOT A BUG
+------------------------------------------------------------------------------
+  Run 3's corpus was four Saipa models. Run 5's spans 44 makes:
+
+      min     350,000,000
+      median  2,600,000,000
+      max     50,000,000,000        max/min = 143x
+
+  Partial pooling shrinks a thin trim's estimate toward its parent and, where
+  the parent is itself thin, toward the global level. Across a 143x price
+  range that shrinkage is not a mild correction, it is a large error, and the
+  parent-median baseline — which never pools past `make|model` — is simply
+  better behaved on this corpus.
+
+  So the result is real and the mechanism is legible. What it is NOT is a
+  finding that partial pooling is the wrong estimator for Iranian used cars.
+  It is a finding about THIS corpus, whose composition my acquisition chose.
+
+
+THE PRE-REGISTRATION'S OWN GAP
+------------------------------------------------------------------------------
+  This is the part worth keeping. RUN5_SPEC.md §2 constrained the trim-size
+  distribution in detail — counts, floors, slice sizes — and said NOTHING
+  about price heterogeneity or make composition. Both corpora satisfy the
+  registered shape; they are not comparable estimation problems.
+
+  Nothing was violated. The registration was simply blind to the variable
+  that turned out to dominate the outcome, and it was blind to it in advance,
+  which is the only way that fact could have been established.
+
+  A REJECT obtained on a corpus the registration did not constrain is a valid
+  result about the registered question and a weak one about the interesting
+  question. Both halves of that sentence have to survive into whatever is
+  written next.
+
+
+WHAT MUST NOT HAPPEN NEXT
+------------------------------------------------------------------------------
+  Not: retune the estimator until it beats the baseline on this corpus.
+  Not: re-run on a narrower corpus and report the better number.
+  Not: describe this as "partial pooling does not work".
+
+  D35 is unchanged and now applies in the other direction: acquisition and
+  estimator do not move in the same run. A comparison stratified by price
+  band, or a corpus registered for homogeneity as well as shape, is a NEW
+  experiment with its own registration — and it has to say which question it
+  is answering, because it is not this one.
+
+  D12 already covers the shipping decision: if the baseline wins, ship the
+  baseline and say so. On this corpus, the baseline wins.
