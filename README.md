@@ -244,23 +244,43 @@ These bands are calibrated by judgement, not fitted to data. That is stated in t
 |---|---|
 | Tracking, appraisal, decision layer | ✅ built, tested |
 | Adversarial review, evidence ledger | ✅ built, tested |
-| Demo page, fed from live pipeline output | ✅ built |
+| Demo page, fed from pipeline output | ✅ built |
 | Source adapter contract + CSV adapter | ✅ built |
-| Intent parsing + ranking, beating sort-by-price | ✅ built, benchmarked |
+| Intent parsing + ranking, beating sort-by-price | ✅ built, benchmarked on a synthetic task |
 | Divar + Bama adapters, robots-verified | ✅ built, tested offline |
 | Cross-source identity and supply correction | ✅ built, tested |
+| **Real Bama corpus** | ✅ 4 live runs; 221 parsed, 155 appraisal-eligible |
+| **Real conditional-appraisal validation** | ❌ `UNJUDGEABLE_SLICE` — W1 locked (D34) |
 | **Live collection run against Divar** | ❌ the network path is unexercised here |
-| **Real corpus** | ❌ every number here comes from a synthetic corpus |
 
-**Synthetic validation proves the implementation is correct. It does not prove the product is right about the market.** Those are different claims and this repo only makes the first one.
+Two kinds of validation, and they support different claims.
+
+**Synthetic validation proves the implementation and the ranking behaviour.**
+The win-rate benchmark, the leakage-free split, the quantile machinery — all
+of it runs against a world whose true prices are known, which is the only way
+to check that the code does what it says.
+
+**The real Bama corpus tests the pipeline against market-shaped data**, and
+is where every finding in the section above came from — the currency label,
+the placeholder odometers, the silent redirects. But it does **not** yet
+establish conditional serving: D34 finds the thin and held-out slices too
+small to judge calibration. The honest result there is `UNJUDGEABLE_SLICE`,
+which is not a positive claim about the market.
+
+What this repo does *not* claim: that CARO prices Iranian used cars
+correctly. Nothing here has been checked against a transaction, only against
+asking prices — and the appraiser is not serving.
 
 ## Repository layout
 
 ```
-caro/            ingest · tracking (W0) · appraisal (W1) · ranking (W3) · agents (W2)
-tests/           349 assertions across the five layers
-demo/            export_demo.py regenerates index.html from real output
-docs/            architecture, decisions, evaluation, roadmap
+caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
+                 ranking (W3) · agents (W2) · quality · coverage · stratification
+tests/           556 assertions across six suites
+scripts/         live runs, replays, the benchmark, the run-3/4 experiment plans
+data/snapshots/  the collected corpora, replayable offline
+demo/            export_demo.py regenerates index.html from pipeline output
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D35) · eval
 ```
 
 ## Sources, and what each is for
