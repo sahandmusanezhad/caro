@@ -132,6 +132,8 @@ class PartialPoolingQuantiles:
     _raw: dict[str, float] = None
     _parent_of_trim: dict[str, str] = None
     _resid_q: np.ndarray | None = None
+    _tau2: float = 0.0
+    _resid_var: float = 1.0
 
     # -- design ----------------------------------------------------------
     def _design(self, rows: Sequence[Row], fit: bool = False) -> np.ndarray:
@@ -180,8 +182,11 @@ class PartialPoolingQuantiles:
             self._raw[t] = m
             self._offsets[t] = float(lam * m)
 
+        self._tau2 = float(tau2)
         fitted = self._raw_predict(rows)
-        self._resid_q = np.quantile(y - fitted, self.quantiles)
+        resid_after = y - fitted
+        self._resid_q = np.quantile(resid_after, self.quantiles)
+        self._resid_var = float(np.var(resid_after)) or 1e-12
         return self
 
     def _raw_predict(self, rows: Sequence[Row]) -> np.ndarray:
@@ -190,10 +195,43 @@ class PartialPoolingQuantiles:
         off = np.array([self._offsets.get(r.model_key, 0.0) for r in rows])
         return base + off
 
+    def _interval_scale(self, rows: Sequence[Row]) -> np.ndarray:
+        """Widen the band by the trim offset we did NOT get to observe.
+
+        The tests caught this, and it is the second real flaw they have found
+        here. Training residuals are computed AFTER each trim's offset has
+        been applied, so they describe within-trim scatter for trims we have
+        seen. For a trim we have not seen — or have shrunk heavily — the
+        offset itself is unknown, and its variance belongs in the predictive
+        interval.
+
+            predictive variance ≈ σ²_within + (1 − λ_t)² · τ²
+
+        Held-out-trim coverage was 12% against a nominal 70% before this: the
+        point estimate fell back to the parent, correctly, while the band
+        stayed as tight as if the trim were fully observed. That is precisely
+        "more confident and less right", and the gate rejected it.
+
+        Widening rather than refusing is right here because the uncertainty
+        is real and quantified: an unseen trim genuinely can be priced from
+        its parent, as long as the interval admits how much it might differ.
+        """
+        lam = np.array([self._lam.get(r.model_key, 0.0) for r in rows])
+        extra = ((1.0 - lam) ** 2) * self._tau2
+        return np.sqrt(1.0 + extra / self._resid_var)
+
     def predict(self, rows: Sequence[Row]) -> np.ndarray:
+        """Bare quantiles. For BENCHMARKING only — see `predict_traced`."""
         mu = self._raw_predict(rows)
-        out = np.exp(mu[:, None] + self._resid_q[None, :])
+        scale = self._interval_scale(rows)
+        out = np.exp(mu[:, None] + self._resid_q[None, :] * scale[:, None])
         return rearrange_monotone(out)
+
+    def predict_traced(self, rows: Sequence[Row]) -> list["TracedEstimate"]:
+        """The serving path: every number arrives attached to its provenance."""
+        preds = self.predict(rows)
+        return [TracedEstimate(preds[i], self.trace(r))
+                for i, r in enumerate(rows)]
 
     # -- the part that must not be optional -------------------------------
     def trace(self, row: Row) -> PoolingTrace:
@@ -255,3 +293,244 @@ def held_out_trim_split(rows: Sequence[Row], fraction: float = 0.2,
     out = set(trims[:n_out])
     return ([r for r in rows if r.model_key not in out],
             [r for r in rows if r.model_key in out])
+
+
+# ---------------------------------------------------------------------------
+# The trace is part of the OUTPUT, not a log line
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class TracedEstimate:
+    """A prediction that cannot be separated from how it was made.
+
+    `predict()` returns bare numbers and is kept only for benchmarking, where
+    the caller is a metric function that has no user to mislead. Anything
+    that serves a person goes through `predict_traced()`, because a
+    downstream that CAN drop the trace eventually will — not maliciously, but
+    because an array is easier to pass around than a pair, and the version
+    that drops it looks like it works.
+    """
+    quantiles: np.ndarray       # the prices
+    trace: PoolingTrace
+
+    @property
+    def median(self) -> float:
+        return float(self.quantiles[len(self.quantiles) // 2])
+
+    def __str__(self) -> str:
+        return f"{self.median:,.0f} toman\n  {self.trace.explain()}"
+
+
+# ---------------------------------------------------------------------------
+# Slice metrics — an average over a corpus dominated by fat trims sees nothing
+# ---------------------------------------------------------------------------
+
+# Derived, not chosen. To detect a 15-point coverage deviation at 2.5 binomial
+# standard errors you need 2.5·sqrt(0.7·0.3/n) < 0.15, i.e. n > 58. Below that
+# a slice cannot support a calibration verdict at all — and the honest
+# response is to say so, not to lower z until a small slice starts producing
+# opinions. W1 reached the same conclusion at MIN_SLICE_N = 150 for its own
+# error metric; this is the same arithmetic at a looser tolerance.
+MIN_SLICE_N = 58
+NOMINAL_COVERAGE = 0.70  # the [q15, q85] band
+
+
+@dataclass(frozen=True)
+class SliceMetrics:
+    name: str
+    n: int
+    mae: float
+    median_ae: float
+    coverage: float          # share of truths inside [q15, q85]
+    coverage_error: float    # |coverage - nominal|
+    mean_shrinkage: float
+    extrapolation_rate: float
+
+    @property
+    def reliable(self) -> bool:
+        return self.n >= MIN_SLICE_N
+
+    @property
+    def coverage_se(self) -> float:
+        """Binomial standard error of the coverage estimate itself."""
+        import math
+        if self.n <= 0:
+            return 1.0
+        t = NOMINAL_COVERAGE
+        return math.sqrt(max(t * (1 - t), 1e-9) / self.n)
+
+    def significant_coverage_error(self, z: float = 2.5) -> float:
+        """Coverage error beyond what sampling noise explains.
+
+        The same correction W1 needed and for the same reason — and this
+        module repeated the mistake before the tests caught it. On an
+        18-listing slice the coverage estimate carries a standard error of
+        about 11 points, so a 19-point deviation is under two SE and is not
+        evidence of anything. Judging several slices on raw deviation picks
+        the noisiest one every time (winner's curse), which on a corpus with
+        a long thin tail means the gate would reject every model, including
+        correct ones.
+
+        A gate that always fails is exactly as useless as one that always
+        passes.
+        """
+        excess = self.coverage_error - z * self.coverage_se
+        return max(0.0, excess)
+
+    def line(self) -> str:
+        flag = "" if self.reliable else "   (thin — metrics are noise)"
+        return (f"  {self.name:<22}{self.n:>5}{self.mae:>13,.0f}"
+                f"{self.median_ae:>13,.0f}{self.coverage:>10.0%}"
+                f"{self.coverage_error:>9.0%}{self.mean_shrinkage:>8.2f}"
+                f"{self.extrapolation_rate:>8.0%}{flag}")
+
+
+def slice_metrics(model, rows: Sequence[Row], name: str) -> SliceMetrics | None:
+    if not rows:
+        return None
+    preds = model.predict(rows)
+    truth = np.array([r.asking_price_toman for r in rows], dtype=float)
+    med = preds[:, len(model.quantiles) // 2]
+    lo, hi = preds[:, 0], preds[:, -1]
+    cov = float(np.mean((truth >= lo) & (truth <= hi)))
+    traces = [model.trace(r) for r in rows]
+    return SliceMetrics(
+        name=name, n=len(rows),
+        mae=float(np.mean(np.abs(med - truth))),
+        median_ae=float(np.median(np.abs(med - truth))),
+        coverage=cov, coverage_error=abs(cov - NOMINAL_COVERAGE),
+        mean_shrinkage=float(np.mean([t.shrinkage for t in traces])),
+        extrapolation_rate=float(np.mean(
+            [t.material_extrapolation for t in traces])))
+
+
+def four_slices(model, test: Sequence[Row], train_counts: dict[str, int],
+                held_out: Sequence[Row] = ()) -> list[SliceMetrics]:
+    """The four questions, each of which the aggregate cannot answer.
+
+        well-observed   does pooling BREAK anything that already worked?
+        thin            does shrinkage help without hiding the data's weakness?
+        held-out trim   does the parent actually generalise?
+        worst model×trim where is the worst slice we can still trust?
+    """
+    out = []
+    fat = [r for r in test if train_counts.get(r.model_key, 0) > THIN_TRIM_MAX]
+    thin = [r for r in test if 0 < train_counts.get(r.model_key, 0) <= THIN_TRIM_MAX]
+    for rows, nm in ((fat, "well-observed trim"), (thin, "thin trim"),
+                     (list(held_out), "held-out trim")):
+        m = slice_metrics(model, rows, nm)
+        if m:
+            out.append(m)
+
+    by_key: dict[str, list[Row]] = {}
+    for r in test:
+        by_key.setdefault(r.model_key, []).append(r)
+    per = [m for m in (slice_metrics(model, v, k.split("|")[-1] or k)
+                       for k, v in by_key.items()) if m and m.reliable]
+    if per:
+        worst = max(per, key=lambda m: m.coverage_error)
+        out.append(SliceMetrics(f"worst reliable: {worst.name}"[:22], worst.n,
+                                worst.mae, worst.median_ae, worst.coverage,
+                                worst.coverage_error, worst.mean_shrinkage,
+                                worst.extrapolation_rate))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Acceptance — conjunctive, and with NO silent fallback
+# ---------------------------------------------------------------------------
+
+@dataclass
+class HierarchicalGate:
+    """Every condition must hold. Failing any of them means NOT ACCEPTED.
+
+    Deliberately not `hierarchical_mae < baseline_mae`. A model that improves
+    the average while breaking interval coverage has become more confident
+    and less right, which for an appraisal product is a worse failure than
+    being a little further off with honest bands.
+
+    The last clause is the one that matters most in practice: when this gate
+    rejects, the answer is NOT_ACCEPTED — never a quiet re-run of the pooled
+    estimator whose output is then served as a conditional appraisal. That
+    substitution would undo D30, D31 and D32 in one line of orchestration
+    code, and it is the kind of line that gets written to make a demo work.
+    """
+    max_coverage_error: float = 0.15
+    max_worst_slice_coverage_error: float = 0.25
+    z: float = 2.5               # SEs a deviation must clear to count
+    mae_tolerance: float = 1.10          # may be up to 10% worse than baseline
+    require_trace_observable: bool = True
+
+    def check(self, slices: Sequence[SliceMetrics], *,
+              baseline_mae: float, model_mae: float,
+              population_weighted: bool = False) -> tuple[bool, list[str]]:
+        fails: list[str] = []
+
+        if model_mae > baseline_mae * self.mae_tolerance:
+            fails.append(
+                f"MAE {model_mae:,.0f} is worse than the baseline "
+                f"{baseline_mae:,.0f} by more than "
+                f"{(self.mae_tolerance - 1):.0%}")
+
+        reliable = [s for s in slices if s.reliable]
+        for s in reliable:
+            if s.significant_coverage_error(self.z) > self.max_coverage_error:
+                fails.append(
+                    f"'{s.name}' interval coverage is {s.coverage:.0%} "
+                    f"against a nominal {NOMINAL_COVERAGE:.0%} "
+                    f"(±{s.coverage_se:.0%} noise on n={s.n}) — a better "
+                    "average with broken bands is more confident and less "
+                    "right")
+        worst = max((s.significant_coverage_error(self.z) for s in reliable),
+                    default=0.0)
+        if worst > self.max_worst_slice_coverage_error:
+            fails.append(f"worst reliable slice is off by {worst:.0%}")
+
+        by_name = {s.name: s for s in slices}
+        if self.require_trace_observable:
+            for needed in ("thin trim", "held-out trim"):
+                s = by_name.get(needed)
+                if s is None:
+                    fails.append(
+                        f"'{needed}' behaviour was not measured — the gate "
+                        "cannot pass on evidence it does not have")
+                elif not s.reliable:
+                    # The distinction that matters: this is not "the model
+                    # failed", it is "the corpus cannot answer". Passing here
+                    # would let a model be accepted precisely where it was
+                    # never tested.
+                    fails.append(
+                        f"'{needed}' has n={s.n}, below the {MIN_SLICE_N} a "
+                        "calibration verdict needs. NOT a model failure — "
+                        "the corpus cannot judge this slice, and the gate "
+                        "does not pass on an unanswered question")
+
+        if population_weighted:
+            fails.append(
+                "the estimator introduced population weighting; "
+                "P(inclusion) is unknown (D29) and no weight may be derived "
+                "from the sample's own shape")
+
+        return (not fails), fails
+
+
+class NotAccepted(RuntimeError):
+    """The hierarchical estimator failed its gate.
+
+    Raised INSTEAD of returning a pooled estimate. There is no fallback path
+    on purpose: a conditional appraisal that quietly becomes a pooled one is
+    the exact claim D30 refused, and it would be indistinguishable in the
+    output.
+    """
+
+
+def serve_or_refuse(model, rows: Sequence[Row], accepted: bool
+                    ) -> list[TracedEstimate]:
+    if not accepted:
+        raise NotAccepted(
+            "the partial-pooling estimator did not pass its gate. No "
+            "conditional appraisal is available, and the pooled estimator is "
+            "NOT substituted — it answers a different question (D30/D32).")
+    preds = model.predict(rows)
+    return [TracedEstimate(preds[i], model.trace(r))
+            for i, r in enumerate(rows)]

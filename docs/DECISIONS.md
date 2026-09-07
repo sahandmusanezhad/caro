@@ -837,3 +837,65 @@ W1 stays locked. D32 supplies the estimator; it does not benchmark it on the
 real corpus, and until `AcceptanceGate` is run with the thin-trim and
 held-out-trim slices reported alongside the aggregate, nothing here is
 evidence that the approach works on Bama data rather than on a fixture.
+
+## D33 — What writing the gate's tests changed about the estimator
+
+Three real defects, each found by a test rather than by review, and each
+worth recording because the pattern repeats.
+
+**1. λ is not evidence sufficiency.** The extrapolation flag first fired on
+shrinkage alone, and a one-listing trim came out at λ = 0.58 — above
+threshold, passing as an ordinary conditional estimate. Empirical Bayes was
+right: with large between-trim variance one observation *is* informative. But
+λ says how much the model should weight a trim; it says nothing about whether
+a buyer should be told the number rests on a single advert. The flag now
+fires on either trigger, sharing `MIN_PER_TRIM_FLOOR` with the data contract.
+
+**2. The intervals were sized for trims we had seen.** Training residuals are
+computed *after* each trim's offset is applied, so they describe within-trim
+scatter. For an unseen or heavily-shrunk trim the offset itself is unknown
+and its variance belongs in the band:
+
+    predictive variance ≈ σ²_within + (1 − λ_t)² · τ²
+
+Held-out-trim coverage was **12% against a nominal 70%** before this. The
+point estimate correctly fell back to the parent while the band stayed as
+tight as if the trim were fully observed — textbook "more confident and less
+right", and the gate caught it.
+
+**3. The gate repeated a mistake W1 had already fixed.** It judged slice
+coverage on raw deviation. On an 18-listing slice the coverage estimate
+carries about 11 points of standard error, so a 19-point miss is under two SE
+and means nothing; judging several slices that way picks the noisiest one
+every time. Significance testing at 2.5 SE was added — the same correction,
+for the same reason, as W1's `significant_coverage_error`. Third time this
+project has met the winner's curse.
+
+That correction exposed the honest constraint underneath. To detect a
+15-point coverage deviation at 2.5 SE requires **n > 58**, so `MIN_SLICE_N`
+is derived rather than chosen. Slices below it cannot support a calibration
+verdict, and the gate treats a required-but-unjudgeable slice as a failure
+with a distinct message: *not a model failure — the corpus cannot judge this
+slice*. Passing there would accept a model precisely where it was never
+tested.
+
+**The consequence for the real corpus is direct.** Run 3's 221 listings split
+into thin and held-out slices of roughly 14–44 rows. None reaches 58. So the
+2026-09-07 corpus **cannot calibrate a hierarchical estimator per slice at
+all** — which is a fact about the data, stated as a verdict, and another
+measured reason W1 stays locked.
+
+### Two adversarial fixtures that failed to break it
+
+Worth recording because the passes were informative. A uniform thin-trim
+premium does not break calibration: it inflates τ² and the bands widen
+correctly. Nor does a highly dispersed tail, because τ² is estimated over all
+trims including the thin ones. The estimator is better behaved than either
+guess assumed.
+
+What does break it is narrower: **held-out trims drawn from somewhere the
+training trims never went.** τ² then measures the variation we saw, the bands
+are sized for it, and the model is confident exactly where it has no
+information. The gate rejects that and accepts the on-distribution twin, so
+it discriminates rather than always refusing — a gate that always fails being
+exactly as useless as one that always passes.
