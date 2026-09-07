@@ -1,8 +1,8 @@
 PY := PYTHONPATH=. python3
 
-.PHONY: test test-w0 test-w1 test-w2 demo policy clean
+.PHONY: test test-w0 test-w1 test-w2 test-w3 demo policy winrate clean
 
-test: test-w0 test-w1 test-w2
+test: test-w0 test-w1 test-w2 test-w3
 
 test-w0:
 	@$(PY) tests/test_tracking.py
@@ -12,6 +12,12 @@ test-w1:
 
 test-w2:
 	@$(PY) tests/test_agents.py
+
+test-w3:
+	@$(PY) tests/test_ranking.py
+
+winrate:
+	@$(PY) tests/test_ranking.py 2>&1 | grep -A2 "THE NUMBER"
 
 demo:
 	@$(PY) demo/export_demo.py
