@@ -107,6 +107,17 @@ RETIRED = [
         instead="when the prices differ",
     ),
     dict(
+        id="oracle-ceiling",
+        pattern=r"(the )?upper bound on performance",
+        where="D36 #9 — the Oracle's docstring in tests/test_appraisal.py",
+        why="the Oracle reads quantiles out of the fixture's own generating "
+            "formula. It is a ceiling for that formula and those three "
+            "features, not for performance. Unscoped, it invites putting "
+            "D34's real MAE beside a synthetic number and calling the gap "
+            "headroom — a comparison with no meaning.",
+        instead="a reference ceiling for THIS synthetic benchmark",
+    ),
+    dict(
         id="fa-negotiate-above",
         pattern=r"جای چانه‌?زنی دارد|فروشنده خودش این خودرو",
         where="D36 #7 — the retired Persian copy, still printed in the "
@@ -138,7 +149,15 @@ SURFACES = [
                 + sorted(str(p.relative_to(ROOT)) for p in
                          ROOT.glob("scripts/*.py"))
                 + sorted(str(p.relative_to(ROOT)) for p in
-                         ROOT.glob("tests/*.py")))
+                         ROOT.glob("tests/*.py"))
+                # The demo is the surface most people will actually look at,
+                # and index.html / demo_data.json are GENERATED — so a guard
+                # that only inspects a live response cannot see them. A
+                # regenerated artefact carries whatever the code said on the
+                # day it ran, which is precisely how a retired string ships.
+                + sorted(str(p.relative_to(ROOT)) for p in
+                         ROOT.glob("demo/*")
+                         if p.suffix in {".py", ".html", ".json", ".md"}))
     if s != SELF]
 
 _QUOTED = re.compile(r'"[^"]*"' r"|«[^»]*»" r"|'[^'\n]{12,}'")
@@ -274,6 +293,38 @@ if _xs:
               word not in _copy, _copy)
     check("  and it does state what was observed",
           "منتشر شده" in _copy, _copy)
+
+# ---------------------------------------------------------------------------
+# The shipped demo, as it sits on disk
+# ---------------------------------------------------------------------------
+#
+# `tests/test_agents.py` already asserts that no GENERATED response says
+# «فروخته» or «قیمت واقعی». That guard runs against a live orchestrator. The
+# demo artefacts are frozen output — written once, committed, and read by
+# everyone who opens the project without running anything. If a guard is added
+# after an export, the committed file keeps the old words and every test still
+# passes.
+#
+# So the artefacts are checked as artefacts. These are not retired claims;
+# they are the tiers D36 forbids outright, in the language the demo speaks.
+
+print()
+NEVER_IN_OUTPUT = {
+    "قیمت واقعی": "a transaction price CARO has never observed",
+    "ارزش واقعی": "a true value, which is not an estimand here",
+    "کف بازار": "a market floor, inferred from asks alone",
+    "فروخته": "a sale; disappearance is not sale (D3)",
+    "قبول می‌کند": "what the seller will accept — D36 #1",
+    "می‌ارزد": "what the car is worth, rather than what it is asked at",
+    "قطعاً": "certainty this project does not have",
+}
+_artefacts = [p for p in ROOT.glob("demo/*")
+              if p.suffix in {".html", ".json"}]
+check(f"demo artefacts present to check ({len(_artefacts)})", _artefacts)
+for p in _artefacts:
+    body = p.read_text(encoding="utf-8")
+    for word, why in NEVER_IN_OUTPUT.items():
+        check(f"  {p.name} never says «{word}»  — {why}", word not in body)
 
 print()
 if FAILS:

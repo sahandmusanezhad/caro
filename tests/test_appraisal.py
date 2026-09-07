@@ -69,7 +69,19 @@ def make_rows(n=2400, *, reposts=True):
 
 
 class Oracle:
-    """Knows the true conditional quantiles. The upper bound on performance."""
+    """Reads the conditional quantiles straight out of the generating formula.
+
+    A reference ceiling for THIS synthetic benchmark — this data-generating
+    process, these three features, this σ. An earlier docstring called it
+    "the upper bound on performance", which it is not: a real estimator with
+    information the fixture does not model (photos, service history, the
+    seller's description) could beat it on real data, and no result here
+    bears on that either way.
+
+    Reading it as a general ceiling would put a real MAE next to a synthetic
+    one and call the gap headroom. That comparison has no meaning, and D36 is
+    where this kind of sentence keeps coming back.
+    """
     def fit(self, rows):
         return self
 

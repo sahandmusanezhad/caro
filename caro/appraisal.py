@@ -379,11 +379,21 @@ class ComparableQuantiles:
 
     Deliberately dull. It is explainable to a user in one sentence
     («۸۷ آگهی مشابه با این مدل، سال و کارکرد»), it produces the quantiles the
-    ranking rule needs directly, its comparable count IS the confidence
-    signal, and on a few thousand rows it is a genuinely hard baseline.
+    ranking rule needs directly, it reports the rung of the relaxation ladder
+    it had to fall back to, and on a few thousand rows it is a genuinely hard
+    baseline.
 
     If a gradient-boosted model cannot beat this, the professional move is
     to ship this and say so.
+
+    An earlier version of this docstring said the comparable count "IS the
+    confidence signal". It is not, and D9 is the record of finding that out:
+    tier and count were once *added*, so a strict match on 5 comparables
+    scored below a relaxed match on any number of them. Tier now sets a
+    ceiling and count earns a fraction of it, and W2 widens that to six
+    dimensions — evidence, comparables, temporal, calibration, data quality,
+    anomaly risk (D8). Count is one input to one of the six. The sentence
+    survived the fix it describes.
     """
     quantiles: Sequence[float] = QUANTILES
     year_tolerance: int = 1

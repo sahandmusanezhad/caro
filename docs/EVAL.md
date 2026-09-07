@@ -23,7 +23,7 @@ from that formula. A perfect model must show coverage exactly equal to τ:
 broken W1 silently:
 
 1. **Slicing on the target selected on the dependent variable.** Coverage was
-   sliced by `asking_asking_price_toman`; inside a "price ≥ 2B" bucket only rows whose
+   sliced by `asking_price_toman`; inside a "price ≥ 2B" bucket only rows whose
    *y* landed high survive, so even a perfectly calibrated estimator shows
    wrecked coverage. The Oracle was rejected with a 0.40 error. Slices are now
    defined by features or by the model's own prediction — never by the target.

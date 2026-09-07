@@ -1002,12 +1002,15 @@ Three text fixes in a row turned out to be one error wearing three
 costumes. Writing this entry found a fourth in the test suite and a fifth in
 the very paragraph of D18 the entry was being cross-referenced from. Running
 this entry's test for the first time found three more, including one in the
-shipped package. Eight is enough to stop calling it a proofreading miss.
+shipped package. A later review found a ninth, in the synthetic benchmark.
+Nine is enough to stop calling it a proofreading miss.
 
 The count is worth stating in that order, because the order is the argument.
 Careful reading found two. A twenty-line regression test found three more in
 one second, one of which had survived being read past twice in the same
-week.
+week. Review then found a ninth that the test could not have — it was
+phrased in words no catalogue held. Neither method subsumes the other, and
+the entry ends by saying which one is load-bearing for what.
 
 **The pattern.** A mechanism the design supports gets restated as an
 observed fact about the market.
@@ -1040,8 +1043,10 @@ Nothing in the corpus, the benchmark or the estimator establishes it.
                           printed as a sample of CARO's output
     8  caro/ranking.py   "the cheapest listing is usually the       TEST
                           most damaged one" — the module docstring
+    9  test_appraisal    the Oracle described as "the upper bound   review
+                          on performance"
 
-Four of these are worth more than a note.
+Five of these are worth more than a note.
 
 (4) is the mildest and the same inference: `min(prices)` is the lowest
 number the seller has *published*, and calling it a floor asserts they will
@@ -1066,16 +1071,40 @@ opening docstring of `caro/ranking.py`, stating the market fact as the
 module's stated thesis, which makes it the version a reader of the code
 meets first. Three rounds of documentation review never opened that file.
 
+(9) is the pattern in its synthetic form, and the most dangerous shape it
+has, because it is *almost* true. The Oracle reads quantiles out of the
+fixture's own generating formula, so within the fixture nothing can beat it
+— which is exactly why calling it "the upper bound on performance" reads as
+harmless. It is a ceiling for one data-generating process and three
+features. Unscoped, it licenses putting D34's real MAE beside a synthetic
+number and calling the difference headroom, and that comparison has no
+meaning at all. The synthetic tier exists in the table below for this.
+
+**What does not belong in this catalogue.** The same review flagged
+`ComparableQuantiles` for saying its comparable count "IS the confidence
+signal". That sentence is wrong and was fixed in the same commit — but it is
+not this pattern, and filing it here would make D36 a bin for every
+inaccurate sentence in the project. It is a docstring that predates its own
+correction: D9 records finding that tier and count were being *added*, so a
+strict match on five comparables scored below a relaxed match on any number;
+tier became a ceiling, count a fraction of it, and W2 later widened
+confidence to six dimensions (D8). The docstring simply never caught up.
+
+The distinction is worth holding. D36 is about claims that outrun their
+evidence. A stale docstring is about a claim that outran its own codebase.
+Both are real; only one of them is a pattern, and a decision that covers
+everything constrains nothing.
+
 **Why prose alone did not stop it.** CARO already owns a machine for this.
 `EvidenceLedger.unsupported_claims()` refuses to let W2 tell a buyer
 anything the ledger cannot source, and `tests/test_agents.py` asserts the
-list is empty for every generated response. It works. All eight instances
+list is empty for every generated response. It works. All nine instances
 landed just outside its scope: assembled template copy, a design record, a
 README, a test label, a design record again, the README twice more, a module
 docstring.
 
 So the failure is not an absent mechanism. It is a mechanism with a boundary
-and eight recurrences on the far side of it. That is the finding worth
+and nine recurrences on the far side of it. That is the finding worth
 keeping, and it is not specific to this project: the
 surface where a system speaks to its users tends to be governed carefully,
 and the surface where it explains *itself* tends not to be governed at
@@ -1100,8 +1129,24 @@ sit in that tier today.
 
 A mechanism does not become an empirical claim by being plausible, by
 being load-bearing, or by recurring in the architecture until it feels
-settled. The last is how all eight happened — each was true as a mechanism
+settled. The last is how all nine happened — each was true as a mechanism
 somewhere upstream and lost its qualifier on the way down.
+
+**Sourced is not the same as tiered, and the ledger only checks the first.**
+`EvidenceLedger` asks whether a claim can be traced to an observation. D36
+asks whether the claim says no more than that observation supports. They are
+different questions and both can fail alone:
+
+    evidence   38 comparable listings, tier=strict, observed 2026-09-07
+    claim      «۳۸ آگهی مشابه»                      sourced ✓   tiered ✓
+    claim      "so this car is worth 1.4B"          sourced ✓   tiered ✗
+
+The second claim passes the ledger. Its evidence id resolves, the count is
+real, the observation happened. What fails is the *step* from a count of
+asks to a statement about worth — and no provenance check can see a step,
+because provenance is about where a number came from and tiering is about
+what a sentence does with it. So the two mechanisms sit side by side, and
+neither is redundant.
 
 **The check.** `tests/test_claims.py` asserts the retired phrasings do not
 return, across every surface a reader meets — the README, the design record,
@@ -1118,11 +1163,38 @@ project's own voice. Cite the mistake; do not commit it. "Is this an
 overclaim?" is semantic and cannot be tested. "Is this inside quotation
 marks?" is not.
 
+The rule has one consequence worth knowing before it surprises someone: a
+*denial* is not an exemption. The first replacement for (9) read "it is not
+an upper bound on performance" and the test rejected it, correctly by its
+own rule and annoyingly in the moment. Writing it as "an earlier docstring
+called it `the upper bound on performance`, which it is not" passes. That is
+the right outcome for a reason worth more than the inconvenience: a reader
+skimming a denial and a claim sees the same words, and the quotation marks
+are what tell them which one they are looking at.
+
+The shipped demo is checked separately and differently. `demo/index.html`
+and `demo/demo_data.json` are *generated* — written once and committed, so
+`tests/test_agents.py`, which guards live orchestrator output, cannot see
+them. Add a guard after an export and the committed artefact keeps the old
+words while every test still passes. They are therefore scanned as files,
+against the tiers rather than the catalogue: «قیمت واقعی», «ارزش واقعی»,
+«کف بازار», «فروخته», «قبول می‌کند», «می‌ارزد», «قطعاً». All clean today;
+the point is that this is now checked rather than believed.
+
 Its limits, stated here rather than discovered later: it is a regression
-test, not a lint. It knows the eight claims that have already been caught.
-It cannot recognise a ninth overclaim phrased in new words, and no
+test, not a lint. It knows the nine claims that have already been caught.
+It cannot recognise a tenth overclaim phrased in new words, and no
 reasonable test can, because the judgement is semantic. What it buys is
 that the specific failure this decision is about — **recurrence** — is now
 mechanical instead of depending on who reads the file next.
 
-The tier vocabulary is the part a human still has to apply.
+The tier vocabulary is the part a human still has to apply. Instance (9) is
+the proof: it was phrased in words no catalogue held, and only a reader
+noticed. The test prevents recurrence; a reader is still what finds the
+first one.
+
+One last thing this entry does **not** claim. `tests/test_claims.py` does not
+govern what CARO says to a buyer — `EvidenceLedger` does, and the section
+above explains why both are needed. Reading D36 as "overclaiming is now
+handled" would be a mechanism restated as a guarantee, which is the pattern
+this entry is about, applied to the entry itself.
