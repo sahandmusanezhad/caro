@@ -71,6 +71,24 @@ EXTRACTION PROVENANCE  (how the fields were obtained)
   price cross-check  agree:66  ld_only:20  none:13  unexplained_disagreement:1
   ⚠ 1 page(s) gave two prices that differ by something other than a factor of ten. Those rows carry NO price rather than a chosen one — read a couple by hand before fitting.
 
+COMPARABLE-SET VARIATION  (size is not coverage)
+--------------------------------------------------------------
+  Saipa Tiba            8 eligible   years:6   km-iqr:119%   price-iqr:32%   
+  IKCO Tara             7 eligible   years:3   km-iqr:86%    price-iqr:23%   
+      ⚠ 86% share one body condition (intact) — the risk layer has nothing to discriminate on
+  IKCO Runna            7 eligible   years:4   km-iqr:72%    price-iqr:35%   
+      ⚠ 86% share one body condition (intact) — the risk layer has nothing to discriminate on
+  Saipa Quik            7 eligible   years:4   km-iqr:132%   price-iqr:20%   
+  IKCO Dena             6 eligible   years:5   km-iqr:202%   price-iqr:21%   
+      ⚠ 100% share one body condition (intact) — the risk layer has nothing to discriminate on
+  IKCO Samand           6 eligible   years:5   km-iqr:125%   price-iqr:25%   
+  Saipa Pride           5 eligible   years:5   km-iqr:62%    price-iqr:25%   
+  Saipa Saina           5 eligible   years:4   km-iqr:190%   price-iqr:3%    
+      ⚠ 100% share one body condition (intact) — the risk layer has nothing to discriminate on
+      ⚠ asking prices are near-uniform (IQR 3% of median) — check this is a market and not one seller's inventory
+  No model reaches 30 eligible listings, so none is ready regardless of spread.
+  5 of them ALREADY show the homogeneity above at this size. Deeper pagination on the same query will not fix that — it is a property of the query, not of the sample size.
+
 VERDICT
 --------------------------------------------------------------
   NOT READY for appraisal — no model reaches 30 appraisal-eligible listings; the best has 8 (Saipa Tiba).

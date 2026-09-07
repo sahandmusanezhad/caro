@@ -40,6 +40,7 @@ from caro.ingest.bama import (                                       # noqa: E40
 from caro.ingest.divar_car import (                                     # noqa: E402
     DivarCarAdapter, SourceBlocked, parse_listing, playwright_fetcher,
 )
+from caro.ingest import coverage as cov_mod                           # noqa: E402
 from caro.ingest.quality import (                                     # noqa: E402
     classify_mileage, classify_price_value, eligibility,
 )
@@ -226,6 +227,8 @@ def inventory(listings: list, traces: list | None = None,
 
     L += funnel(fetched if fetched is not None else len(listings), listings)
     L += provenance(traces or [])
+    covs = cov_mod.assess(listings)
+    L += cov_mod.report(covs)
 
     L += ["", "VERDICT", "-" * 62]
     ok_price = sum(1 for x in listings if x.asking_price_toman
@@ -236,7 +239,13 @@ def inventory(listings: list, traces: list | None = None,
     # not meet.
     eligible_models = Counter(f"{x.make} {x.model}" for x in listings
                               if x.model and eligibility(x)[0])
-    big_models = [m for m, c in eligible_models.items() if c >= 30]
+    # Both gates, deliberately. A model that clears the count but fails the
+    # variation check is the case this whole section exists to refuse: it
+    # would fit, and it would report a NARROWER interval for being
+    # homogeneous. See caro.ingest.coverage.
+    big_models = [m for m, c in covs.items() if c.sufficient]
+    padded = [m for m, c in covs.items()
+              if c.n_eligible >= cov_mod.MIN_ELIGIBLE and not c.sufficient]
     if ok_price < 0.8:
         L.append("  NOT READY — under 80% usable prices. Fix extraction "
                  "before fitting anything.")
@@ -247,6 +256,15 @@ def inventory(listings: list, traces: list | None = None,
                  f"appraisal-eligible listings; the best has {have}.")
         L.append("  This is a SAMPLING problem, not an extraction one: go "
                  "deeper on 2-3 models rather than wider across many.")
+    elif padded and not big_models:
+        L.append(f"  NOT READY for appraisal — {len(padded)} model(s) reach "
+                 f"{cov_mod.MIN_ELIGIBLE}+ eligible listings but are too "
+                 "homogeneous to price against: "
+                 f"{', '.join(sorted(padded))}.")
+        L.append("  Count was met and coverage was not. Fetching more of the "
+                 "same page makes this WORSE, not better — a homogeneous "
+                 "slice yields a narrower interval, so the gate would pass "
+                 "on false confidence.")
     else:
         L.append(f"  Ready to benchmark on {len(big_models)} model(s) with "
                  f"30+ eligible listings: {', '.join(sorted(big_models))}.")

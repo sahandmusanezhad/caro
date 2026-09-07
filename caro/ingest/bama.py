@@ -107,6 +107,30 @@ _SM_NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 # The boundary between this listing and the five unrelated cars below it.
 RELATED_MARKER = "آگهی های مرتبط"
 
+# Marks a trade seller. These are things the page states about the *business*
+# — a tenure badge Bama itself awards, a showroom address, union membership —
+# never anything about a person. CARO does not read the phone number, so this
+# is the only seller signal available, and it is deliberately coarse.
+#
+# It matters for one reason: thirty listings from one dealer are not thirty
+# independent observations of a market. Without some seller signal, a
+# comparable set can look varied on year and mileage while being one
+# forecourt's inventory. See caro.ingest.coverage.
+DEALER_MARKERS = (
+    "فعالیت مداوم در باما",              # Bama's own tenure badge
+    "اتحادیه نمایشگاه داران",            # dealers' union membership
+    "عاملیت فروش",                       # agency sales
+)
+
+
+def detect_seller_type(lines: Sequence[str]) -> str:
+    text = normalize(" ".join(lines))
+    if any(normalize(m) in text for m in DEALER_MARKERS):
+        return "dealer"
+    # Absence of a badge is not proof of a private seller — small dealers
+    # post like individuals — so this stays "unknown" rather than "private".
+    return "unknown"
+
 # Slug → make/model/trim/year, from the observed url shape.
 _SLUG = re.compile(
     r"detail-(?P<id>[a-z0-9]+)-(?P<make>[a-z]+)-(?P<rest>[a-z0-9-]*?)"
@@ -631,6 +655,7 @@ def parse_detail_page(url: str, html: str,
         price_provenance=tr.price_source,
         mileage_status=km_judgement.status.value,
         mileage_note=km_judgement.reason,
+        seller_type=detect_seller_type(lines),
     )
 
 

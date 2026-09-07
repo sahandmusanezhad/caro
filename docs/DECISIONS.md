@@ -412,3 +412,61 @@ Renamed to `asking_price_toman`, with the inputs kept alongside it:
 the displayed price when the source's label disagreed. Without the inputs, a
 corrected price is indistinguishable from a raw one, and the correction is
 neither auditable nor replayable after the rule changes.
+
+## D25 — A comparable set must be varied, not merely large
+
+Thirty appraisal-eligible listings unlock the estimator mechanically. Thirty
+listings that are the same car thirty times unlock nothing, and this failure
+is worse than having no data, because it points the wrong way.
+
+The appraiser fits price on year, mileage and condition, and a coefficient is
+identified only if its predictor varies in the sample. In a degenerate slice:
+
+- the mileage term is estimated from almost no spread — noise wearing a
+  number;
+- the output is close to the slice mean but is presented as a *conditional*
+  estimate; and
+- residuals inside a homogeneous slice are small, so the prediction interval
+  comes out **narrower**.
+
+Degeneracy therefore manufactures confidence rather than destroying it, and
+`AcceptanceGate` would see a well-calibrated model. **No metric computed on
+the same corpus can catch this**, because the held-out half is degenerate in
+exactly the same way — the same structural blindness as D6's selection bias
+and D21's placeholder odometers, and the third time this project has met it.
+It has to be checked on the inputs, before fitting.
+
+`caro/ingest/coverage.py` therefore gates readiness on count **and** spread:
+no more than 80% sharing one model year or body condition, and a mileage IQR
+of at least 15% of the median. Policy constants, in the same sense as
+`DAMAGE_COST_FACTOR` — they encode how homogeneous is too homogeneous to
+price against, which is a judgement about what a buyer is owed rather than a
+quantity estimable from data.
+
+The 2026-09-07 corpus already fails it at n=5–8: Saina's eligible listings are
+100% `intact` with an asking-price IQR of **3%** of the median, which is not a
+market, it is one narrow slice. That matters for the run that comes next: a
+slice already homogeneous at n=8 will usually still be homogeneous at n=40,
+because more pages of one query return more of one kind of car. Homogeneity
+is a property of the query, not of the sample size — so the report says so
+rather than recommending more pages.
+
+## D26 — Seller type is inferred from the business, never from the person
+
+`coverage` needs some signal of sample independence: thirty listings from one
+dealer are not thirty observations of a market. The obvious key is the phone
+number, and CARO does not read it — not hashed, not masked, not at all
+(D-privacy, `salted_fingerprint`).
+
+So `seller_type` is inferred only from what the page states about the
+*business*: Bama's own tenure badge («فعالیت مداوم در باما»), dealers' union
+membership, agency-sales language. Two consequences are deliberate:
+
+- absence of a badge yields `unknown`, never `private` — small dealers post
+  like individuals, and asserting otherwise would invent a fact; and
+- the signal is coarse enough that thirty listings from thirty different
+  dealers still pass as diverse. That limit is written into
+  `docs/DATA_CONTRACT.md` rather than left for a reader to discover.
+
+A weaker signal that touches no personal data is the right trade here. The
+alternative is not a better feature — it is a phone number in a model.

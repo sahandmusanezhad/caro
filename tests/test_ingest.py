@@ -656,6 +656,76 @@ check("a genuine make is still read as one",
       == ("Peugeot", "206"),
       "the two url shapes must not be confused in either direction")
 
+# ---------------------------------------------------------------------------
+print("\ncomparable-set variation — size is not coverage")
+from caro.ingest.coverage import (                                   # noqa: E402
+    MIN_ELIGIBLE, assess_model, relative_iqr, top_share,
+)
+
+
+def fake(year, km, price, cond="intact", seller="unknown"):
+    return CarListing(
+        listing_id=f"x{year}{km}{price}", url="u", title="t", description="",
+        asking_price_toman=price, make="Saipa", model="Tiba", trim=None,
+        year_jalali=year, mileage_km=km, gearbox="manual", fuel="petrol",
+        color="سفید", body_condition=cond, document_issue=False, city="تهران",
+        price_status="display_confirmed", mileage_status="plausible",
+        seller_type=seller)
+
+
+# Forty listings, every one the same car. Mechanically this clears the count
+# gate; statistically there is nothing in it to fit.
+clone = assess_model("Saipa Tiba", [fake(1399, 85_000 + i * 50,
+                                         900_000_000 + i * 100_000)
+                                    for i in range(40)])
+check(f"{MIN_ELIGIBLE}+ listings is NOT sufficient on its own",
+      clone.n_eligible >= MIN_ELIGIBLE and not clone.sufficient,
+      "forty near-identical cars would fit and report a narrow interval")
+check("  the degenerate year is named", any("model year" in f
+                                            for f in clone.findings))
+check("  and so is the flat mileage", any("mileage IQR" in f
+                                          for f in clone.findings))
+check("  and the single body condition", any("body condition" in f
+                                             for f in clone.findings),
+      "the risk layer would have nothing to discriminate on")
+
+varied = assess_model("Saipa Tiba", [
+    fake(1393 + (i % 8), 20_000 + (i % 10) * 30_000,
+         600_000_000 + (i % 9) * 90_000_000,
+         cond=["intact", "minor_paint", "multi_paint", "replaced_part"][i % 4])
+    for i in range(40)])
+check("a genuinely varied set of the same size IS sufficient",
+      varied.sufficient, str(varied.findings))
+
+thin_but_varied = assess_model("Saipa Tiba", [
+    fake(1393 + i, 20_000 + i * 40_000, 600_000_000 + i * 120_000_000,
+         cond=["intact", "minor_paint", "accident"][i % 3]) for i in range(9)])
+check("spread without count is still not sufficient",
+      not thin_but_varied.degenerate and not thin_but_varied.sufficient,
+      "both gates, or neither counts")
+
+check("relative IQR compares across price scales",
+      relative_iqr([100, 100, 100, 100]) == 0.0
+      and (relative_iqr([50, 100, 150, 200]) or 0) > 0.5)
+check("top_share reports the dominant level",
+      top_share(["a", "a", "a", "b"]) == (0.75, "a"))
+check("relative IQR refuses to guess from too few points",
+      relative_iqr([1, 2]) is None)
+
+# The seller signal exists to catch one forecourt posing as a market, and it
+# is inferred from the business, never from a person.
+from caro.ingest.bama import detect_seller_type                      # noqa: E402
+check("a dealership badge marks the listing as trade",
+      detect_seller_type(["اتو شرکت", "1 سال فعالیت مداوم در باما"]) == "dealer")
+check("  and union membership does too",
+      detect_seller_type(["عضو رسمی اتحادیه نمایشگاه داران"]) == "dealer")
+check("no badge is UNKNOWN, never asserted to be private",
+      detect_seller_type(["توضیحات", "ماشین سالم"]) == "unknown",
+      "small dealers post like individuals; absence of a badge proves nothing")
+check("the seller signal reads no personal identifier",
+      detect_seller_type(["نمایش شماره", "۰۹۱۲۳۴۵۶۷XX"]) == "unknown",
+      "a phone number must never become a seller feature")
+
 pages = {"https://bama.ir/sitemap/car": (200, SITEMAP),
          "https://bama.ir/car/peugeot": (200, CATEGORY),
          "https://bama.ir/car/saipa": (200, "")}

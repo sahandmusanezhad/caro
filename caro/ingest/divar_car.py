@@ -223,6 +223,13 @@ class CarListing:
     mileage_status: str = "unknown"         # quality.Validity
     mileage_note: str | None = None
 
+    # dealer | private | unknown — inferred ONLY from a dealership block the
+    # page publishes about itself (a trade badge, a showroom address). Never
+    # from a phone number, which CARO does not read. It is a coarse proxy for
+    # sample independence: thirty listings from one dealer are not thirty
+    # observations of a market.
+    seller_type: str = "unknown"
+
     def to_fetch_outcome(self, source: str = "divar",
                          salt: str | None = None) -> FetchOutcome:
         return FetchOutcome(
