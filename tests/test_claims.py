@@ -2,20 +2,35 @@
 
 Run: PYTHONPATH=. python3 tests/test_claims.py
 
-Five times now, a mechanism the design supports has been restated as an
-observed fact about the Iranian used-car market. D36 catalogues them. This
-suite is the mechanical half of that decision.
+Repeatedly now, a mechanism the design supports has been restated as an
+observed fact about the Iranian used-car market. D36 catalogues every
+occurrence. This suite is the mechanical half of that decision.
+
+**Patterns and instances are different counts, and both are printed.** D36
+numbers *instances* — one claim in one place at one time. This file holds
+*patterns*, and a pattern can cover more than one instance: the README and
+`caro/ranking.py` carried the same sentence about damaged cars, and D18 and
+the README carried the same sentence about differing prices. So there are
+fewer regexes here than numbered entries in D36, permanently and by
+construction.
+
+Neither number is written down twice. The header prints both from the
+catalogue below, and `check_catalogue_covers_d36()` reads the instance
+numbers straight out of `docs/DECISIONS.md` and fails if the two files stop
+agreeing — because a hand-copied count going stale is how five of the nine
+instances got written in the first place.
 
 **What it is.** A regression test over every surface a reader sees — the
-README, the design record, the data contract, the package, the scripts and
-the other suites. It knows the five claims that have already been caught and
+README, the design record, the data contract, the package, the scripts, the
+other suites, and the generated demo. It knows the claims already caught and
 asserts none of them returns.
 
-**What it is not.** A lint for overclaiming in general. It cannot recognise a
-sixth claim phrased in new words; that judgement is semantic and belongs to
-whoever writes the sentence, using D36's five-tier vocabulary. Saying this
-plainly matters more here than anywhere else in the project: a test that
-claimed to prevent overclaiming would itself be an overclaim.
+**What it is not.** A lint for overclaiming in general. It cannot recognise
+the next claim phrased in new words; that judgement is semantic and belongs
+to whoever writes the sentence, using D36's five-tier vocabulary. Instance
+(9) is the standing proof — a reader found it, and no catalogue could have.
+Saying this plainly matters more here than anywhere else in the project: a
+test that claimed to prevent overclaiming would itself be an overclaim.
 
 **The rule it enforces.** A retired claim may appear only *in quotation
 marks*. Every one of these sentences has to stay quotable — D18 and D36 both
@@ -57,10 +72,15 @@ def check(name, cond, detail=""):
 #
 # `where` is the instance from D36's catalogue, so a failure points at the
 # history rather than at a regex.
+#
+# `instances` is the machine-readable version of `where`: the D36 entry
+# numbers this pattern covers. It is what lets the two files be checked
+# against each other instead of trusted to match.
 
 RETIRED = [
     dict(
         id="accepted",
+        instances=(1, 3),
         pattern=r"the seller has already accepted",
         where="D36 #1 — price_gap_fa(), and again #3 in the README",
         why="a published price is not a transaction. It may be stale, "
@@ -72,6 +92,7 @@ RETIRED = [
     ),
     dict(
         id="refuse",
+        instances=(2,),
         pattern=r"cannot credibly refuse it elsewhere",
         where="D36 #2 — D18",
         why="asserts what the seller would do, from one number they "
@@ -80,6 +101,7 @@ RETIRED = [
     ),
     dict(
         id="cheapest",
+        instances=(3, 8),
         pattern=r"cheapest listing is (usually|typically|often) the most "
                 r"damaged",
         where="D36 #3 — README",
@@ -90,6 +112,7 @@ RETIRED = [
     ),
     dict(
         id="floor",
+        instances=(4,),
         pattern=r"negotiation floor",
         where="D36 #4 — a label in tests/test_ingest.py",
         why="min(prices) is the lowest price the seller has published. "
@@ -98,6 +121,7 @@ RETIRED = [
     ),
     dict(
         id="usually-differ",
+        instances=(5, 6),
         pattern=r"prices differ, which they usually do",
         where="D36 #5 — D18, and #6 — the same sentence copied into the "
               "README",
@@ -108,6 +132,7 @@ RETIRED = [
     ),
     dict(
         id="oracle-ceiling",
+        instances=(9,),
         pattern=r"(the )?upper bound on performance",
         where="D36 #9 — the Oracle's docstring in tests/test_appraisal.py",
         why="the Oracle reads quantiles out of the fixture's own generating "
@@ -119,6 +144,7 @@ RETIRED = [
     ),
     dict(
         id="fa-negotiate-above",
+        instances=(7,),
         pattern=r"جای چانه‌?زنی دارد|فروشنده خودش این خودرو",
         where="D36 #7 — the retired Persian copy, still printed in the "
               "README as a sample of what CARO says",
@@ -131,9 +157,10 @@ RETIRED = [
 ]
 
 # Everything a reader of this repository could reasonably encounter. Scanning
-# widely is not thoroughness theatre: of the eight instances in D36, one was a
-# test label, two were in the design record and one was a module docstring.
-# A scan limited to the README would have found three.
+# widely is not thoroughness theatre: of the instances in D36, one was a test
+# label, two were in the design record, one was a module docstring in the
+# shipped package and one was in a test fixture. A scan limited to the README
+# would have found three of nine.
 #
 # This file is the single exclusion. It has to contain every retired claim
 # verbatim — that is what a catalogue is — so treating the definition as an
@@ -210,7 +237,37 @@ def unquoted_hits(text: str, pattern: str) -> list[str]:
     return out
 
 
+def d36_instance_numbers() -> set[int]:
+    """The entry numbers in D36's own catalogue, read from the design record.
+
+    The alternative is to write the count here as well, and this project's
+    record on numbers written down twice is poor: `MIN_PER_TRIM_FLOOR` was
+    two constants before it was one, `asking_asking_price_toman` survived a
+    rename in EVAL.md, and this very file said "five claims" for two commits
+    after there were nine.
+
+    Parsing is deliberately narrow — a catalogue row is four spaces, an
+    integer, two spaces, a source. If the format changes the parse returns
+    nothing and the caller fails loudly. A cross-file check that silently
+    passes when it can no longer see one of the files is worse than no check,
+    because it reads as coverage.
+    """
+    txt = (ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8")
+    start = txt.find("## D36")
+    if start < 0:
+        return set()
+    end = txt.find("\n## D", start + 6)
+    body = txt[start:end if end > 0 else len(txt)]
+    return {int(m) for m in re.findall(r"(?m)^ {4}(\d+) {2}\S", body)}
+
+
+_covered = sorted({i for c in RETIRED for i in c["instances"]})
+_d36 = sorted(d36_instance_numbers())
+
 print("D36 — retired claims do not return")
+print(f"  {len(RETIRED)} patterns covering {len(_covered)} instances "
+      f"(a pattern can cover several: the same sentence has twice been "
+      f"caught in two places)")
 print(f"  scanning {len(SURFACES)} surfaces "
       f"({sum(1 for s in SURFACES if s.endswith('.md'))} prose, "
       f"{sum(1 for s in SURFACES if s.endswith('.py'))} source)")
@@ -231,12 +288,32 @@ for claim in RETIRED:
           f"{claim['why']}\n      instead: {claim['instead']}")
 
 # ---------------------------------------------------------------------------
+# The catalogue and the design record must not drift apart
+# ---------------------------------------------------------------------------
+#
+# Adding an instance to D36 and forgetting the pattern here leaves a claim
+# retired in prose and unguarded in fact — the exact gap this suite exists to
+# close, reopened by the act of documenting it. The check runs in both
+# directions, so a pattern for an instance D36 never recorded fails too.
+
+print()
+check(f"D36's catalogue parses ({len(_d36)} numbered instances found)", _d36)
+check("  every D36 instance has a pattern here",
+      set(_d36) <= set(_covered),
+      f"unguarded: {sorted(set(_d36) - set(_covered))}")
+check("  every pattern here maps to a D36 instance",
+      set(_covered) <= set(_d36),
+      f"not in the design record: {sorted(set(_covered) - set(_d36))}")
+check("  the instance numbers run 1..N with no gaps",
+      _d36 == list(range(1, len(_d36) + 1)), str(_d36))
+
+# ---------------------------------------------------------------------------
 # The test's own escape hatch, tested
 # ---------------------------------------------------------------------------
 #
 # The quotation exemption is the one thing that could silently disable this
 # suite: if `quoted_spans` ever matched too much, every claim would count as
-# a citation and all five checks would pass while testing nothing. So the
+# a citation and every check above would pass while testing nothing. So the
 # exemption is exercised in both directions on a fixture.
 
 print()

@@ -1172,6 +1172,24 @@ the right outcome for a reason worth more than the inconvenience: a reader
 skimming a denial and a claim sees the same words, and the quotation marks
 are what tell them which one they are looking at.
 
+**Patterns and instances are different counts.** This entry numbers
+*instances* — one claim, one place, one time. The test holds *patterns*, and
+one pattern covers several instances whenever the same sentence turned up
+twice: (1) and (3) are one regex, so are (3) and (8), so are (5) and (6).
+Nine instances, seven patterns, permanently. A reader comparing the two
+counts and finding them unequal is looking at the design, not a gap.
+
+Neither count is written down twice. The suite prints both from its own
+catalogue, and reads the instance numbers straight out of *this file* to
+assert the two agree in both directions — a D36 entry with no pattern fails,
+and a pattern for an instance never recorded here fails too. The parse is
+strict and returns nothing if the catalogue's format changes, which the
+first assertion turns into a loud failure; a cross-file check that passes
+silently once it can no longer see one of the files is worse than no check,
+because it reads as coverage. This project has lost that bet before —
+`MIN_PER_TRIM_FLOOR` was two constants meaning one thing, and a renamed
+field survived in EVAL.md for a week.
+
 The shipped demo is checked separately and differently. `demo/index.html`
 and `demo/demo_data.json` are *generated* — written once and committed, so
 `tests/test_agents.py`, which guards live orchestrator output, cannot see
