@@ -27,10 +27,17 @@ could appear in, including a denial. A vocabulary hit is a policy violation,
 not a finding that the surrounding sentence is an overclaim — the regex does
 not read sentences and this file does not pretend otherwise.
 
-**What it is.** A regression test over every surface a reader sees — the
-README, the design record, the data contract, the package, the scripts, the
-other suites, and the generated demo. It knows the claims already caught and
-asserts none of them returns.
+**What it is.** A regression test over the surfaces in its scan set —
+`README.md`, `docs/*.md`, `caro/**/*.py`, `scripts/*.py`, `tests/*.py`, and
+`demo/*.{py,html,json,md}`. It knows the claims already caught and asserts
+none of them returns.
+
+That list is the scope, not a synonym for "everywhere a reader looks". A
+`CHANGELOG.txt` or a `docs/*.rst` added tomorrow is outside it and this
+guard would say nothing — which is worth stating plainly in a file whose
+subject is claims that outrun what is actually checked. Widening it is a
+one-line change when a new surface appears; pretending it is already
+general is the mistake.
 
 **What it is not.** A lint for overclaiming in general. It cannot recognise
 the next claim phrased in new words; that judgement is semantic and belongs
@@ -55,7 +62,9 @@ inside quotation marks?" is not.
 
 from __future__ import annotations
 
+import io
 import re
+import tokenize
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -201,10 +210,12 @@ RETIRED = [
 # shipped package and one was in a test fixture. A scan limited to the README
 # would have found three of nine.
 #
-# This file is the single exclusion. It has to contain every retired claim
-# verbatim — that is what a catalogue is — so treating the definition as an
-# occurrence is a category error, and the quotation exemption would be doing
-# the work of an exclusion anyway, less legibly.
+# This file is the single exclusion, for one narrow reason: the catalogue
+# must contain the retired strings themselves, so scanning it would be
+# scanning the definition. The quotation exemption would mostly cover that
+# on its own, but a file that is largely quoted strings is a poor place to
+# lean on a quote heuristic, and an explicit exclusion says what is
+# happening.
 SELF = "tests/test_claims.py"
 SURFACES = [
     s for s in (["README.md"]
@@ -275,11 +286,17 @@ def quoted_spans(text: str) -> list[tuple[int, int]]:
 
 
 def unquoted_hits(text: str, pattern: str) -> list[str]:
-    """Occurrences asserted in the project's own voice.
+    """Occurrences outside the narrow quotation forms this guard permits.
 
-    An occurrence inside quotation marks is a citation and is allowed —
-    without that exemption D36 could not catalogue the very claims it
-    retires, and the fix would be to stop writing down our mistakes.
+    Deliberately not called "not a citation". The rule sees quote delimiters,
+    not intent — a phrase between double quotes is exempt whether it is
+    genuinely a citation or merely happens to be quoted. That gap is the
+    price of a mechanical rule, and `code_and_prose` narrows it where it
+    mattered most.
+
+    The exemption exists at all because D36 and D18 have to be able to
+    catalogue the claims they retire. Without it the fix would be to stop
+    writing our mistakes down.
     """
     flat = normalise(text)
     spans = quoted_spans(flat)
@@ -289,6 +306,75 @@ def unquoted_hits(text: str, pattern: str) -> list[str]:
             continue
         lo, hi = max(0, m.start() - 60), min(len(flat), m.end() + 60)
         out.append("…" + flat[lo:hi] + "…")
+    return out
+
+
+TOKENIZE_FAILURES: set[str] = set()
+
+
+def code_and_prose(src: str) -> tuple[str, str] | None:
+    """Split Python into (executable code, comments-and-docstrings).
+
+    In prose, quotation marks mean citation closely enough to test. In source
+    code they mean "this is a string", which is a different thing entirely —
+    and a string in code is frequently something a user will READ: a Persian
+    template, a printed label, an error message. Exempting those because they
+    sit between quotes turns the guard off exactly where output lives.
+
+    This was not a theoretical hole. Applying the split found "negotiation
+    floor" in a `check(...)` label in tests/test_ingest.py — retired
+    vocabulary, printed on every run, exempted by the quote rule, in the very
+    file whose label was corrected for instance (4). The correction had kept
+    the term and moved the sentence around it.
+
+    So for Python: citations are honoured in comments and docstrings, and
+    code gets no exemption at all. `tokenize` decides which is which.
+
+    Returns None when the file cannot be tokenized, rather than a value the
+    caller has to guess about. An earlier version signalled failure by
+    returning `(src, "")` and the caller detected it with `code is text` —
+    which fired on every empty `__init__.py`, because CPython interns the
+    empty string. A scanner that quietly stops scanning is the failure mode
+    this whole suite exists against, so the signal is explicit.
+    """
+    prose, code = [], []
+    try:
+        toks = list(tokenize.generate_tokens(io.StringIO(src).readline))
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return None
+    prev = tokenize.INDENT
+    for t in toks:
+        if t.type == tokenize.COMMENT:
+            prose.append(t.string)
+            continue
+        # A bare string statement is a docstring: module, class or function.
+        if t.type == tokenize.STRING and prev in (
+                tokenize.INDENT, tokenize.DEDENT, tokenize.NEWLINE,
+                tokenize.NL, tokenize.ENCODING):
+            prose.append(t.string)
+        elif t.type not in (tokenize.NEWLINE, tokenize.NL, tokenize.INDENT,
+                            tokenize.DEDENT, tokenize.ENDMARKER,
+                            tokenize.ENCODING):
+            code.append(t.string)
+        if t.type not in (tokenize.NL, tokenize.COMMENT):
+            prev = t.type
+    return " ".join(code), "\n".join(prose)
+
+
+def hits_in(rel: str, text: str, pattern: str) -> list[str]:
+    """Own-voice occurrences in one surface, with Python treated as code."""
+    if not rel.endswith(".py"):
+        return unquoted_hits(text, pattern)
+    split = code_and_prose(text)
+    if split is None:
+        TOKENIZE_FAILURES.add(rel)
+        return unquoted_hits(text, pattern)
+    code, prose = split
+    out = unquoted_hits(prose, pattern)
+    flat = normalise(code)
+    for m in re.finditer(pattern, flat, re.I):
+        lo, hi = max(0, m.start() - 60), min(len(flat), m.end() + 60)
+        out.append("[in code, no exemption] …" + flat[lo:hi] + "…")
     return out
 
 
@@ -334,8 +420,8 @@ for claim in RETIRED:
         p = ROOT / rel
         if not p.exists():
             continue
-        for hit in unquoted_hits(p.read_text(encoding="utf-8"),
-                                 claim["pattern"]):
+        for hit in hits_in(rel, p.read_text(encoding="utf-8"),
+                           claim["pattern"]):
             offenders.append(f"{rel}: {hit}")
     check(f"{claim['id']:<16} [{claim['kind']:<10}] not in own voice  "
           f"({claim['where']})",
@@ -363,6 +449,32 @@ check("  every pattern here maps to a D36 instance",
 check("  the instance numbers run 1..N with no gaps",
       _d36 == list(range(1, len(_d36) + 1)), str(_d36))
 
+# A set() hides a repeated number, so the coverage checks above would pass
+# happily on `instances=(1, 1, 3)`. Two different repeats are possible and
+# only one of them is ever right.
+_flat = [i for c in RETIRED for i in c["instances"]]
+_dupe_within = sorted({i for c in RETIRED
+                       for i in c["instances"]
+                       if list(c["instances"]).count(i) > 1})
+check("  no entry lists the same instance twice", not _dupe_within,
+      f"a typo, always: {_dupe_within}")
+
+# Across entries it CAN be right. README instance (3) carried two separate
+# claims in one place — "the cheapest listing is usually the most damaged
+# one" and "a number the seller has already accepted" — so it maps to two
+# patterns. That is a fact about the instance, not a mistake, and it has to
+# be declared here rather than inferred, or the check below means nothing.
+MULTI_CLAIM_INSTANCES = {3}
+_dupe_across = {i for i in _flat if _flat.count(i) > 1}
+check("  instances mapped by several patterns are declared ones",
+      _dupe_across <= MULTI_CLAIM_INSTANCES,
+      f"undeclared: {sorted(_dupe_across - MULTI_CLAIM_INSTANCES)} — either "
+      f"a typo, or an instance that really did carry two claims, in which "
+      f"case say so in MULTI_CLAIM_INSTANCES")
+check("  and every declared one is actually mapped twice",
+      MULTI_CLAIM_INSTANCES <= _dupe_across,
+      f"stale declaration: {sorted(MULTI_CLAIM_INSTANCES - _dupe_across)}")
+
 # ---------------------------------------------------------------------------
 # The test's own escape hatch, tested
 # ---------------------------------------------------------------------------
@@ -386,6 +498,20 @@ check("  a claim wrapped across two lines is still caught",
 check("  a blockquote marker does not hide it",
       len(unquoted_hits("> the seller has already\n> accepted this price.",
                         RETIRED[0]["pattern"])) == 1)
+
+_PY_PROBE = '''"""A docstring citing "the seller has already accepted"."""
+LABEL = "the seller has already accepted this price"
+'''
+check("  in Python, a docstring citation is still exempt",
+      not unquoted_hits(code_and_prose(_PY_PROBE)[1], RETIRED[0]["pattern"]))
+check("  a file that cannot be tokenized reports it",
+      code_and_prose("def broken(:\n") is None)
+check("  but the same words in a code string are NOT",
+      len(hits_in("probe.py", _PY_PROBE, RETIRED[0]["pattern"])) == 1,
+      "a quoted string in code is output, not a citation")
+check("  every Python surface was actually tokenized",
+      not TOKENIZE_FAILURES, f"fell back to the prose rule: "
+      f"{TOKENIZE_FAILURES}")
 
 # ---------------------------------------------------------------------------
 # Runtime semantic guardrails — NOT the D36 catalogue
@@ -424,8 +550,10 @@ check("fixture builds a cross-source cluster to read copy from", len(_xs) == 1)
 
 if _xs:
     _copy = " ".join(filter(None, [_xs[0].claim_fa(), _xs[0].price_gap_fa()]))
-    # Words that would push a sentence across the tier boundary, whatever
-    # sentence it is. Not retired claims — a guardrail on live copy.
+    # Probes for THIS fixture's two sentences — the cross-source claim and
+    # the price gap, the strings instance (1) lived in. They are not the
+    # standing demo wordlist further down, and not D36 catalogue entries:
+    # three separate lists doing three separate jobs, kept apart on purpose.
     _RED_FLAGS = {"پذیرفته": "says the seller accepted it",
                   "قبول کرده": "says the seller accepted it",
                   "تأیید": "calls one seller in several places corroboration",

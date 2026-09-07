@@ -1199,14 +1199,31 @@ sentence overclaims. The regex does not read sentences and the catalogue
 says so per entry, because a guard that quietly implies more precision than
 it has is the failure this whole entry is about.
 
-The quotation exemption was narrowed for the same reason. It once also
-covered long single-quoted runs, so `'an ordinary python string'` counted as
-a citation. Removing that was measured rather than argued: across all forty
-surfaces and every pattern, the narrow and wide rules return identical
-verdicts, so it bought nothing and could only ever have hidden something.
-The safe direction for a heuristic here is to exempt *less* — a missed
-exemption is a false alarm someone clears in a minute, an over-broad one
-retires the guard silently.
+The quotation exemption has been narrowed twice, both times because the
+safe direction for a heuristic here is to exempt *less*: a missed exemption
+is a false alarm someone clears in a minute, an over-broad one retires the
+guard silently.
+
+First, long single-quoted runs, so that `'an ordinary python string'` no
+longer counts as a citation. That was measured rather than argued — across
+every surface and every pattern the narrow and wide rules returned identical
+verdicts, so it bought nothing and could only have hidden something.
+
+Second, and this one was not free. **In prose, quotation marks mean
+citation; in source code they mean "this is a string"** — often a string a
+user will read: a Persian template, a printed label, an error message.
+Exempting those turns the guard off exactly where output lives. Python
+surfaces are now split with `tokenize`: citations count in comments and
+docstrings, and code gets no exemption at all. That split immediately found
+"negotiation floor" in a `check(...)` label in `tests/test_ingest.py` —
+retired vocabulary, printed on every run, in the very file whose label had
+been corrected for instance (4). The correction had kept the term and
+rearranged the sentence around it.
+
+That is the tenth occurrence and it is not numbered, because it is the same
+term as (4) in the same file rather than a new claim. It is recorded here
+because of what found it: not review, not the catalogue, but narrowing an
+exemption and re-running.
 
 The shipped demo is checked separately and differently. `demo/index.html`
 and `demo/demo_data.json` are *generated* — written once and committed, so
@@ -1221,7 +1238,23 @@ Those words are **not** D36 entries and must never be cited as such. They
 carry no instance numbers and take no part in the pattern/instance
 accounting — they are a standing wordlist enforcing the same boundary, kept
 in the same file for convenience and labelled apart from the catalogue on
-purpose. This decision is worth something because it is narrow. A decision
+purpose.
+
+There are in fact three lists in that file, doing three jobs, and conflating
+them is the obvious way to misread it: the **catalogue** (nine instances,
+seven patterns, scanned across every surface), the **demo wordlist** above
+(seven Persian terms, scanned against the two committed artefacts), and a
+handful of **fixture probes** on the cross-source strings instance (1) lived
+in — «پذیرفته», «قبول کرده», «تأیید», «قطعاً», «حتماً» — which run against
+live output from `cluster_across_sources()` and nothing else. Only the first
+is D36.
+
+The catalogue's own accounting has one wrinkle worth recording. Instance (3)
+maps to two patterns, because that one README paragraph carried two separate
+claims. Repeats like that are legitimate and are declared in the suite
+rather than inferred; an undeclared repeat, or the same number listed twice
+inside one entry, fails. Without that the set-based coverage checks would
+swallow a typo silently. This decision is worth something because it is narrow. A decision
 that absorbs every adjacent good idea ends up asserting nothing, and the
 temptation to grow this one will be constant, since almost any careless
 sentence in the project is *adjacent* to it.
