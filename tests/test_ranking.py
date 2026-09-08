@@ -15,7 +15,7 @@ from caro.appraisal import (
 from caro.ranking import (
     IntentSpec, RankingPipeline, Ranker, RuleIntentParser, Weights,
     diversify, normalize_fa, parse_amount, retrieve, winrate_vs_price_sort,
-    LEDGER_INPUTS, CONDITION_RISK, decision_ledger,
+    LEDGER_INPUTS, CONDITION_RISK, IMPUTED_MARK, decision_ledger,
     features_from_listing, risk_from_condition, _passes,
 )
 
@@ -308,6 +308,37 @@ check("  and completeness falls accordingly",
 check("hard_filter_pass is always recorded — it needs nothing external",
       all("hard_filter_pass" in r.values for r in bare2))
 check("the ledger declares its inputs", len(LEDGER_INPUTS) == 9)
+
+
+# ---------------------------------------------------------------------------
+print("\nobserved vs imputed vs absent")
+# The three-state rule. `unknown` is FILLED rather than left out, because
+# Ranker.score reads risk with .get("risk", 0.0) and an absent key would score
+# silence as a perfect car — the one failure CONDITION_RISK exists to prevent.
+# Filling it silently would have been the other failure: a number we chose,
+# indistinguishable downstream from one Bama printed. So: filled AND flagged.
+f_known = features_from_listing(_L("minor_paint"))
+f_unk = features_from_listing(_L("unknown"))
+check("a stated condition is not marked imputed", IMPUTED_MARK not in f_known)
+check("an unstated one IS", f_unk.get(IMPUTED_MARK) == ["risk"])
+check("  and it still has a value — absence would score silence as perfect",
+      f_unk["risk"] == CONDITION_RISK["unknown"])
+
+_R = lambda i, feats: Row(listing_id=f"i{i}", cluster_id=f"i{i}",
+                          first_seen_ordinal=0, model_key="pride",
+                          year_jalali=1398, mileage_km=100_000.0,
+                          asking_price_toman=5e8, features=feats)
+spec_i = IntentSpec(raw_query="", budget_max_toman=2_000_000_000)
+lr_known, lr_unk = decision_ledger([_R(0, f_known), _R(1, f_unk)], spec_i)
+check("the ledger reports an imputed input separately",
+      not lr_known.imputed and set(lr_unk.imputed) == {"risk_score"})
+check("  and says whose number it is",
+      "this project chose" in lr_unk.imputed["risk_score"])
+check("completeness counts imputed values",
+      lr_unk.completeness == lr_known.completeness)
+check("  and observed_completeness does not",
+      lr_unk.observed_completeness < lr_known.observed_completeness,
+      "the stricter number is the one to quote when it matters")
 
 # ---------------------------------------------------------------------------
 print("\nscoring and shortlist")

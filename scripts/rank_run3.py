@@ -118,7 +118,15 @@ def main() -> int:
         mark = "present" if c == n else ("absent " if c == 0 else "partial")
         print(f"    {name:<26} {mark}  {c:>3}/{n}   {what}")
     comp = sum(l.completeness for l in ledger) / n
-    print(f"\n  mean completeness  {comp:.0%}   (Run 5, same query: 38%)")
+    obs = sum(l.observed_completeness for l in ledger) / n
+    imp = sum(1 for l in ledger if l.imputed)
+    print(f"\n  mean completeness           {comp:.0%}   (Run 5, same query: 38%)")
+    print(f"  mean OBSERVED completeness  {obs:.0%}   the stricter number")
+    print(f"  rows with an imputed input  {imp}/{n}")
+    if imp:
+        ex = next(l for l in ledger if l.imputed)
+        for k, why in ex.imputed.items():
+            print(f"    {k}\n      → {why}")
     print("\n  The gap between those two numbers is what one lost field costs")
     print("  the decision layer — D45. It is not a claim that the ranking is")
     print("  better here; a fed term is not a correct term.")

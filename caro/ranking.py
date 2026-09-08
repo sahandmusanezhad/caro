@@ -477,23 +477,47 @@ def risk_from_condition(body_condition: str | None) -> float:
                               CONDITION_RISK["unknown"])
 
 
+# Keys whose value was IMPUTED rather than observed. See the note below.
+IMPUTED_MARK = "_imputed"
+
+
 def features_from_listing(listing) -> dict[str, float]:
     """Ranking inputs a real listing can actually supply today.
 
-    Deliberately partial and deliberately silent about what it cannot supply.
-    A key that is absent here lands in the decision ledger's `missing` with a
-    reason; a key present but wrong would be invisible. So `ownership_risk` and
-    `liquidity` are NOT invented from make or model — no observation in this
-    repository supports either, and a plausible-looking constant would turn a
-    missing input into a fake one.
+    Deliberately partial and deliberately explicit about the difference between
+    three states, which is this project's UNKNOWN-vs-ABSENT rule (D4) applied
+    one level deeper than it was:
+
+        OBSERVED   the page stated it. `risk` from a real condition label.
+        IMPUTED    the page did not state it, and leaving the key out would be
+                   worse than filling it — `Ranker.score` reads risk with
+                   `.get("risk", 0.0)`, so an absent key scores silence as a
+                   PERFECT car. That is the one failure the whole table exists
+                   to prevent, so unknown is filled at 0.35 and marked.
+        ABSENT     nothing supports a value at all. `ownership_risk` and
+                   `liquidity` are NOT invented from make or model, because a
+                   plausible-looking constant turns a missing input into a fake
+                   one the ledger can no longer report.
+
+    The middle state is the one that needed adding. Filling `unknown` silently
+    would have been exactly the error this module names two paragraphs earlier
+    — a value I chose, indistinguishable downstream from a value Bama printed.
+    So it is filled AND flagged: `features["_imputed"]` carries the keys whose
+    value nobody observed, and the decision ledger reports them separately.
     """
     feats: dict[str, float] = {}
+    imputed: list[str] = []
     cond = getattr(listing, "body_condition", None)
     if cond:
         feats["risk"] = risk_from_condition(cond)
         feats["has_accident"] = 1.0 if cond == "accident" else 0.0
+        if cond == "unknown":
+            # The page carried no condition line. The number below is ours.
+            imputed.append("risk")
     if getattr(listing, "document_issue", None):
         feats["has_unclear_documents"] = 1.0
+    if imputed:
+        feats[IMPUTED_MARK] = imputed          # type: ignore[assignment]
     return feats
 
 
@@ -658,19 +682,30 @@ LEDGER_INPUTS: tuple[tuple[str, str], ...] = (
 class LedgerRow:
     """One candidate, and which decision inputs really existed for it.
 
-    `values` holds what was present. `missing` names what was not, with the
-    reason — the distinction UNKNOWN-vs-ABSENT that D4 insists on, applied to
-    the ranker's own inputs rather than to a listing's fields.
+    Three states, not two. `values` holds what the ranker had; `imputed` names
+    the subset of those the SOURCE never stated and this project supplied;
+    `missing` names what had no value at all, with the reason. The middle set
+    is the one worth having — a number we chose and a number Bama printed are
+    indistinguishable downstream, and a ledger that cannot tell them apart is
+    reporting our own assumptions back to us as observations.
     """
     candidate_id: str
     values: dict[str, float | int | bool]
     missing: dict[str, str]
     final_rank: int | None
+    imputed: dict[str, str] = field(default_factory=dict)
 
     @property
     def completeness(self) -> float:
+        """Share of inputs that had a value, imputed ones INCLUDED."""
         n = len(LEDGER_INPUTS) - 1          # data_completeness is derived
         return len(self.values) / n if n else 0.0
+
+    @property
+    def observed_completeness(self) -> float:
+        """The stricter number: share whose value the source actually stated."""
+        n = len(LEDGER_INPUTS) - 1
+        return (len(self.values) - len(self.imputed)) / n if n else 0.0
 
 
 def decision_ledger(rows: Sequence[Row], spec: IntentSpec,
@@ -698,6 +733,8 @@ def decision_ledger(rows: Sequence[Row], spec: IntentSpec,
     for i, r in enumerate(rows):
         values: dict[str, float | int | bool] = {}
         missing: dict[str, str] = {}
+        imputed: dict[str, str] = {}
+        marked = set(r.features.get(IMPUTED_MARK) or ())
 
         values["hard_filter_pass"] = _passes(r, spec)
         values["mileage"] = r.mileage_km
@@ -717,6 +754,11 @@ def decision_ledger(rows: Sequence[Row], spec: IntentSpec,
                            ("liquidity", "reliability_signals")):
             if key in r.features:
                 values[label] = float(r.features[key])
+                if key in marked:
+                    imputed[label] = (
+                        "the listing stated no condition; this is CONDITION_RISK"
+                        "['unknown'], a value this project chose and the source "
+                        "never published")
             else:
                 missing[label] = f"features['{key}'] absent — ingest does not populate it"
 
@@ -726,7 +768,7 @@ def decision_ledger(rows: Sequence[Row], spec: IntentSpec,
             missing["recency"] = "first_seen_ordinal is 0 — single snapshot, no observation history"
 
         out.append(LedgerRow(candidate_id=r.listing_id, values=values,
-                             missing=missing,
+                             missing=missing, imputed=imputed,
                              final_rank=order.get(r.listing_id)))
     return out
 

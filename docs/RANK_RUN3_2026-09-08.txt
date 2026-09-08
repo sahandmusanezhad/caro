@@ -37,7 +37,11 @@ THE DECISION LEDGER
     reliability_signals        absent     0/147   liquidity / resale proxy
     recency                    absent     0/147   how long the listing has been observed
 
-  mean completeness  50%   (Run 5, same query: 38%)
+  mean completeness           50%   (Run 5, same query: 38%)
+  mean OBSERVED completeness  49%   the stricter number
+  rows with an imputed input  7/147
+    risk_score
+      → the listing stated no condition; this is CONDITION_RISK['unknown'], a value this project chose and the source never published
 
   The gap between those two numbers is what one lost field costs
   the decision layer — D45. It is not a claim that the ranking is
