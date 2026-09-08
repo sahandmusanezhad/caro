@@ -591,4 +591,61 @@ if (WIRED) (function(){
        عوضش کند.</p>`;
 })();
 
+/* the real corpus — ledger only, never a shortlist (D43) */
+if (WIRED) (function(){
+  const r = R.real, n = r.candidates || 1;
+  const rows = r.inputs.map(inp => {
+    const has = inp.present > 0;
+    const imp = inp.name === 'risk_score' && r.imputed_rows > 0;
+    const st = !has ? ['abs', 'ABSENT'] : imp ? ['imp', 'OBSERVED + IMPUTED'] : ['obs', 'OBSERVED'];
+    return `<tr>
+      <td>${inp.what}<br><span class="mono" style="font-size:11px;color:var(--ink-3)">${inp.name}</span></td>
+      <td class="cnt">${num(inp.present)} / ${num(inp.of)}</td>
+      <td><span class="st ${st[0]}">${st[1]}</span></td>
+      <td class="rsn">${r.missing[inp.name] || (imp
+        ? `${r.imputed_rows} of ${inp.of} rows imputed — ${r.imputed_reason.risk_score}` : '')}</td>
+    </tr>`;
+  }).join('');
+
+  const cond = Object.entries(r.condition)
+    .sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+    `<div><div class="k${k === 'unknown' ? ' unk' : ''}">${COND_FA[k] || k}</div>
+       <div class="v${k === 'unknown' ? ' unk' : ''}">${num(v)}</div>
+       <div class="r">risk ${r.condition_risk[k]}</div></div>`).join('');
+
+  $('#realdec').innerHTML = corner('real')
+    + `<div class="refuse"><b>no shortlist is shown here</b>
+        روی هیچ کورپوس واقعی‌ای برآوردگری از دروازه‌ی پذیرش عبور نکرده (D43)، پس
+        <span class="mono">Ranker.score</span> استثنا می‌اندازد و شورت‌لیستی وجود ندارد که
+        نشان داده شود. چیزی که <em>واقعی</em> است، دفترچه است: اینکه هر کاندیدا واقعاً
+        چه ورودی‌هایی داشت.</div>`
+    + `<p class="q">${r.query}</p>`
+    + `<div class="meters">
+         <div class="meter"><div class="k">کامل‌بودن دفترچه</div>
+           <div class="v">${(r.completeness * 100).toFixed(0)}٪</div>
+           <div class="t"><i style="width:${r.completeness * 100}%"></i></div>
+           <div class="c">${num(r.candidates)} کاندیدا از ${num(r.corpus.eligible)} سطر واجد شرایط</div></div>
+         <div class="meter"><div class="k">فقط مشاهده‌شده</div>
+           <div class="v">${(r.observed_completeness * 100).toFixed(1)}٪</div>
+           <div class="t"><i class="imp" style="width:${r.observed_completeness * 100}%"></i></div>
+           <div class="c">${num(r.imputed_rows)} سطر ریسکِ جای‌گذاری‌شده دارند</div></div>
+         <div class="meter"><div class="k">حذف‌شده با شرط قطعی</div>
+           <div class="v">${num(r.excluded_by_deal_breaker)}</div>
+           <div class="t"><i style="width:${r.excluded_by_deal_breaker / n * 100}%"></i></div>
+           <div class="c">«تصادفی نباشه» — قبل از بازیابی بلوک وضعیت، صفر بود</div></div>
+       </div>`
+    + `<table class="lg"><thead><tr><th>ورودی تصمیم</th><th>موجود</th>
+         <th>حالت</th><th>چرا</th></tr></thead><tbody>${rows}</tbody></table>`
+    + `<p class="note">تفاوت <b>کامل‌بودن</b> و <b>فقط مشاهده‌شده</b> عمدی است: ماژول از
+       ساختنِ <span class="mono">ownership_risk</span> امتناع می‌کند، ولی برای آگهی‌هایی که
+       وضعیت بدنه را اعلام نکرده‌اند <span class="mono">risk</span> را بی‌صدا جای‌گذاری
+       می‌کرد. حالا سه حالت جدا هست و ستون سوم می‌گوید کدام است.</p>`
+    + `<p class="eyebrow" style="margin:20px 0 8px">توزیع وضعیت بدنه · ${r.corpus.source}</p>`
+    + `<div class="cond">${cond}</div>`
+    + `<p class="note">جدول <span class="mono">CONDITION_RISK</span> منتشرشده است، نه برازش‌شده.
+       مقدار <span class="mono">unknown = ${r.condition_risk.unknown}</span> عددی است که این
+       پروژه انتخاب کرده و منبع هرگز منتشرش نکرده — به همین دلیل هر سطری که از آن تغذیه
+       شده، در ستون حالت علامت خورده است.</p>`;
+})();
+
 </script>
