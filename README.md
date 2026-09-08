@@ -286,19 +286,31 @@ These bands are calibrated by judgement, not fitted to data. That is stated in t
 
 ## What is real, and what is not
 
+Every claim below carries the *kind* of evidence behind it, because "built"
+and "validated on real data" are not the same sentence and this project has
+blurred them before (D41). Five levels, weakest last:
+
+| | | Claim |
+|---|---|---|
+| **VALIDATED** | evidence on real data | ingestion and retrieval reach real Bama listings; parsing and normalisation to the level the 274 ingest assertions reach; the relaxation ladder; the refusal and uncertainty policy |
+| **EVALUATED** | measured on real data, and it did not pass | conditional appraisal — Run 3 `UNJUDGEABLE_SLICE`, Run 5 `REJECTED` with D39's interval attached; the baseline class, which fails the gate on Run 5's corpus at 0.206 coverage error |
+| **AUDITABLE** | traceable on real data, no ground truth required | the decision ledger — which inputs each ranking decision actually had. On Run 5 it reports 38% mean completeness with a reason for every absence (`scripts/rank_run5.py`) |
+| **NOT VALIDATED** | correct within a contract this project wrote | ranking correctness — the win-rate beats price-sort on a synthetic corpus whose generating process this repository defines. It says the ranker responds correctly in a world built to have that property; it is not evidence about Iran |
+| **NO GROUND TRUTH** | not measurable here, and no substitute is honest | whether CARO's ordering is *better for a buyer* than the baseline on real listings. Disappearance is not a sale (D2); a rubric written here is the same self-written utility; an LLM asked to judge the ordering has only moved that utility into a prompt |
+
+And the specific gaps behind those rows:
+
 | | Status |
 |---|---|
 | Tracking, appraisal, decision layer | ✅ built, tested |
 | Adversarial review, evidence ledger | ✅ built, tested |
 | Demo page, fed from pipeline output | ✅ built |
 | Source adapter contract + CSV adapter | ✅ built |
-| Intent parsing + ranking, beating sort-by-price | ✅ built, benchmarked on a synthetic task |
 | Divar + Bama adapters, robots-verified | ✅ built, tested offline |
 | Cross-source identity and supply correction | ✅ built, tested |
 | **Real Bama corpus** | ✅ 5 live runs; Run 5 = 403 parsed, 228 appraisal-eligible |
-| **Real conditional-appraisal validation** | ❌ `UNJUDGEABLE_SLICE` — W1 locked (D34) |
-| **The decision path, on real listings** | ⚠️ audited (D41), never evaluated — the shortlist refuses: no estimator clears the gate on any real corpus yet |
-| **Four of six ranking terms, on real data** | ❌ constant — W4 does not populate risk, ownership cost or liquidity from Bama |
+| **A shortlist over real listings** | ❌ does not exist — no estimator clears the gate on any real corpus, so `Ranker.score` raises and every shortlist refuses |
+| **Four of six ranking terms, on real data** | ❌ constant. Bama publishes «وضعیت بدنه», both colours and gearbox on the detail page; Run 5 did not record them (D41 addendum) |
 | **Live collection run against Divar** | ❌ the network path is unexercised here |
 
 Two kinds of validation, and they support different claims.
