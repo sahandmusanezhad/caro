@@ -1903,3 +1903,59 @@ plausible reading of a true number, written without checking what the number
 measured. The catalogue in D36 does not catch new instances and says so; this
 is one, in the entry that extended D36, written by the same author in the same
 session.
+
+## D44 — Stop here: the evidence ceiling, not the finish line
+
+Three things could have come next: a fresh collection that records the
+condition block (raising the ledger's 38%), more diagnosis of the gate, or
+neither — record the video and submit. The decision is the third, and the
+reason is worth stating precisely because "we ran out of time" and "we reached
+the limit of what this evidence can support" are different claims and only the
+second one is true.
+
+**More diagnosis has nothing left to find.** The question was *why is coverage
+0.206*, and D43 answers it: not estimator-specific; comparable collapses to
+global because support vanishes under the frozen split; and the coverage
+failure tracks the train/test price-distribution shift. Another pass produces
+the same three lines.
+
+**A fresh collection is the dangerous one, and it is dangerous precisely
+because it is attractive.** It costs no extra requests, it would light up two
+dead ranking terms, and it would make the demo's real-data section look
+better. But it starts a chain with no natural stopping point:
+
+    collect → parser fix → corpus changes → benchmark changes →
+    ranking changes → new failure → new interpretation
+
+Every link is reasonable on its own. Together, in the last hours before a
+submission, they replace a coherent record with a half-rebuilt one, and the
+final claim rests on a corpus assembled after seeing which corpus produced the
+unwelcome result. That is D35's loop with better manners.
+
+**And the gap is worth more open than closed, for this submission.** COND is
+a named, reproducible, zero-cost defect with a guard that fails the moment
+someone fixes it. A slightly higher completeness figure would say less about
+how this project works than the gap plus the guard does.
+
+**What the ceiling actually looks like, and it is the closing slide.**
+
+    real data     ingestion                     VALIDATED
+                  extraction contracts          VALIDATED / AUDITABLE
+                  snapshot completeness         AUDITABLE
+                  ranking inputs                AUDITABLE
+                  appraisal                     NOT VALIDATED
+                  ranking quality               NOT VALIDATED
+                  ground truth for ranking      NO GROUND TRUTH
+
+    synthetic     pipeline behaviour            observable
+                  ranking mechanics             runnable
+                  decision ledger               observable
+                  explanation / evidence path   demonstrable
+
+**The line that makes this a product decision rather than an apology.** On
+real data CARO does not quietly fail in the video. It reaches the appraisal
+boundary and says *I do not have enough evidence to make this claim* — and a
+system that can say that is worth more than a shortlist that cannot. Every
+other row above is what earns that sentence the right to be believed.
+
+Remaining work is the recording. The technical record stops here on purpose.
