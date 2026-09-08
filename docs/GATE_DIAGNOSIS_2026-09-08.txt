@@ -40,12 +40,12 @@ WHY THE GATE REFUSES — the arithmetic under 0.206
 WHAT THIS CHANGES, AND WHAT IT DOES NOT
 ------------------------------------------------------------------------------
   Corrects D41. 'The baseline class does not clear the gate either'
-  reads as a fact about the baseline, and it is not: under this
-  split EVERY estimator is the same estimator, and it is being
-  scored against trims it has never seen at prices it has never
-  seen. The refusal is real and correct — CARO still may not serve
-  an estimate here — but the reason is the corpus and the split,
-  not the model.
+  reads as a fact about the baseline's quality, and it is not:
+  under this split the comparables ladder degenerates to global,
+  and that one estimator is scored against trims it has never seen
+  at prices it has never seen. The refusal is real and correct —
+  CARO still may not serve an estimate here — but the number
+  carries no information about how good this baseline is.
 
   Does NOT establish that no estimator can pass here. What is
   shown is that comparable- and global-quantiles are one estimator
