@@ -6,180 +6,235 @@ are a swap of this one file).
 
 Every number below is in the repository and reproducible with no network:
 `python3 tests/run_all.py`, `scripts/benchmark_run3.py`,
-`scripts/benchmark_run5.py`.
-
-**The one decision that shapes this script.** The obvious cut ends on the
-−52% number and stops. That video would be dishonest by omission: a later,
-larger, pre-registered benchmark rejected the same estimator. So the ending
-is REJECTED, and the argument is that a system which can produce that ending
-is worth more than one that cannot. If that reads as a weaker submission, the
-whole project was pointless.
+`scripts/benchmark_run5.py`, `scripts/run5_significance.py`,
+`scripts/rank_run5.py`.
 
 ---
 
-## 0:00–0:35 · The premise, and why the obvious product fails
+## The two decisions that shape this script
+
+**It is centred on the decision, not on the estimator.** The earlier cut
+centred on two benchmarks that disagree. That is a statistics talk, and a
+judge who has watched it for a minute can fairly ask what the product is.
+CARO's thesis is a decision engine: intent, retrieval, priced risk, ranking,
+an evidence ledger, and a refusal state. The market estimate is one input to
+it. So the estimator's story moves to 3:40 and stops being the spine.
+
+**And every frame is labelled with what it runs on.** This is the constraint
+the rewrite had to solve, and it is not cosmetic. D41: on *every* real corpus
+this project has collected, CARO refuses to serve a market estimate — Run 3
+returns UNJUDGEABLE_SLICE → DO NOT SERVE, Run 5 returns REJECTED, and the
+baseline class fails the gate on Run 5's corpus too. `Ranker.score` calls
+`estimator.predict`, which raises. **A ranked shortlist over real Bama
+listings is not filmable today, and no cut of this video may imply it is.**
+
+So the demo shows the decision path on the synthetic corpus with the word
+SYNTHETIC on screen, shows the same pipeline refusing on real listings, and
+says which is which out loud. That is a weaker-looking demo than the one that
+quietly films the synthetic corpus and calls it Bama. It is the only one this
+project is allowed to make.
+
+---
+
+## 0:00–0:30 · Why the obvious product fails
 
 > **VO (fa):** ترب یک کار را عالی انجام می‌دهد: یک کالای مشخص را در چند
-> فروشگاه پیدا می‌کند و ارزان‌ترین را نشان می‌دهد. این کار وقتی جواب می‌دهد
-> که همهٔ فروشنده‌ها **یک چیز** را می‌فروشند.
+> فروشگاه پیدا می‌کند و ارزان‌ترین را نشان می‌دهد. این وقتی جواب می‌دهد که
+> همهٔ فروشنده‌ها **یک چیز** را می‌فروشند.
 >
 > در خودروی دست‌دوم چنین چیزی وجود ندارد. دو پراید ۹۵ با یک قیمت، دو کالای
-> متفاوت‌اند — کارکرد، رنگ‌شدگی، سند، شهر. پس «ترب برای ماشین» می‌شود یک
-> لیست با دکمهٔ مرتب‌سازی، و مرتب‌سازی بر اساس قیمت می‌تواند خریدار را
-> سیستماتیک به سمت خراب‌ترین ماشین ببرد.
+> متفاوت‌اند. پس «ترب برای ماشین» می‌شود یک لیست با دکمهٔ مرتب‌سازی — و
+> مرتب‌سازی بر اساس قیمت می‌تواند خریدار را سیستماتیک به سمت خراب‌ترین ماشینِ
+> همان بودجه ببرد.
 
-**Screen:** two near-identical Pride listings side by side, same price,
-different condition fields. Then a price-sorted list with the cheapest
-highlighted.
+**Screen:** two real Bama Pride listings side by side, same price, different
+condition fields. Then a price-sorted list, cheapest highlighted.
 
 **Note to self:** «می‌تواند» is load-bearing — D36. Not «همیشه».
 
 ---
 
-## 0:35–1:20 · What CARO does instead
+## 0:30–2:10 · One decision, end to end · **SYNTHETIC CORPUS**
 
-> **VO:** پس CARO به‌جای مرتب‌کردن، سه چیز را جدا می‌کند و بعد کم می‌کند:
-> برآوردی از قیمت، خودِ قیمت خواسته‌شده، و ریسکی که در ریال قیمت‌گذاری شده.
+The centre of the video. The label sits in the corner for all 100 seconds.
 
-**Screen:** the thesis as one line, then the pipeline:
+> **VO:** پس CARO به‌جای مرتب‌کردن، تصمیم می‌گیرد — و تصمیمش را قابل بازرسی
+> نگه می‌دارد. این بخش روی پیکرهٔ ساختگی پروژه اجرا می‌شود، جایی که می‌دانیم
+> جواب درست چیست. چرا، را دو دقیقهٔ بعد می‌گویم.
 
-```
-value = estimate − asking − risk_discount
+**Query:** «ماشین اول خانواده، تصادفی نباشه، بودجه ۱.۵ میلیارد»
 
-W4 ingest → W0 tracking → W1 appraisal → W3 ranking → W2 decision
-```
+> **VO:** اول نیت: بودجه، مدل، و چیزی که **استنباط** شده — «خانواده» یعنی
+> ریسک‌گریز. استنباط روی صفحه نوشته می‌شود، چون فرضی که کاربر نبیند، فرضی
+> است که نمی‌تواند اصلاحش کند. و «تصادفی نباشه» یک ترجیح نیست، یک شرط قطعی
+> است و هیچ‌وقت شل نمی‌شود.
 
-> **VO:** چهار لایه، و فقط **یک جای** آن مدل زبانی است: تبدیل جملهٔ فارسی
-> کاربر به یک نیت ساختاریافته. بعد از آن همه‌چیز قطعی و تکرارپذیر است —
-> رتبه‌بندی، ریسک، توضیح. مدل زبانی پایین‌دستِ یک تصمیمِ منجمد می‌نشیند و
-> اجازه ندارد عدد یا تصمیم را عوض کند.
+**Screen:** `IntentSpec` — budget, weights, `assumptions`, `deal_breakers`,
+and `unparsed` (what the parser saw and could not map, kept rather than
+dropped).
 
-**Screen:** highlight the LLM boundary on the diagram.
+> **VO:** بعد رتبه‌بندی. هر عدد جداگانه نگه داشته می‌شود: ارزش، ریسکی که در
+> تومان قیمت‌گذاری شده، کارکرد، نقدشوندگی. یک نمرهٔ مبهم وجود ندارد.
+
+**Screen:** the three-card shortlist with the term breakdown open on the top
+pick — `value`, `risk`, `mileage` visible as separate rows, each in tomans.
+
+> **VO:** و ریسک **ضرب** نمی‌شود، **کم** می‌شود. یک تخمین نامطمئن یک فرصت
+> کوچک‌تر نیست، یک شرط پرریسک‌تر است.
+
+**Screen:** `opportunity = conservative − asking − expected_damage_toman`.
+
+**Then move a weight, live:** «قابلیت اطمینان برایم مهم‌تر است.» The order
+changes on screen with no round trip.
+
+> **VO:** وزن‌ها مال کاربر است، نه مال ما.
 
 ---
 
-## 1:20–2:15 · One listing, end to end
+## 2:10–2:50 · The part that refuses · **SYNTHETIC CORPUS**
 
-Live in `demo/index.html`. Case **A**, then case **F**.
+**Query:** «پراید کم‌کارکرد تا ۸۰۰ میلیون»
 
-> **VO:** یک آگهی. CARO دامنهٔ قیمت را می‌دهد، و کنارش شواهدی که هر جمله از
-> آن آمده. هر ادعا به یک مشاهده وصل است؛ ادعای بی‌پشتوانه اصلاً رندر
-> نمی‌شود.
+> **VO:** حالا یک درخواست که جواب کافی ندارد. CARO لیست خالی نمی‌دهد و در
+> عین حال چیزی از خودش نمی‌سازد. می‌گوید چه چیزی را شل کرد، به زبان خود
+> کاربر.
 
-**Screen:** case A — estimate range, evidence ledger, seven-stage trace.
+**Screen:** the relaxation ladder's Persian line, verbatim from
+`RelaxationReport.text_fa()`.
 
-> **VO:** و مهم‌تر: CARO می‌تواند بگوید نمی‌دانم.
+> **VO:** و در سطح بالاتر، وقتی شواهد کافی نیست، اصلاً عدد نمی‌دهد.
 
-**Screen:** switch to case F — `INSUFFICIENT_EVIDENCE`, reasons listed.
+**Screen:** case F — `INSUFFICIENT_EVIDENCE`, reasons listed; then
+`NotBenchmarked` raised in the code, one line.
 
 > **VO:** این یک پیام خطا نیست، یک حالت محصول است. تا وقتی برآوردگر از
-> دروازهٔ ارزیابی رد نشده، فراخوانی‌اش یک استثنای برنامه‌نویسی می‌دهد، نه یک
-> عدد. صداقت اینجا یک قاعده در مستندات نیست، در تایپ‌سیستم است.
-
-**Screen:** `NotBenchmarked` raised in the code, one line.
+> دروازهٔ ارزیابی رد نشده، فراخوانی‌اش یک استثنا می‌دهد، نه یک عدد. صداقت
+> اینجا یک قاعده در مستندات نیست، در تایپ‌سیستم است.
 
 ---
 
-## 2:15–3:25 · Two benchmarks that disagree
+## 2:50–3:40 · What happens on real Bama listings · **REAL DATA**
 
-The centre of the video. Do not rush it.
+The label changes on screen. This transition is the honest heart of the video
+and it must be visible, not narrated away.
 
-> **VO:** حالا بخش سخت. ما این برآوردگر را دو بار روی دادهٔ واقعی باما
-> سنجیدیم.
+> **VO:** حالا همان خط لوله، روی ۴۰۳ آگهی واقعی که خودمان از باما جمع کردیم.
+
+**Screen:** `scripts/rank_run5.py` running live.
+
+> **VO:** نیت درست خوانده می‌شود. بازیابی کار می‌کند — شش تا ۲۰۶ واقعی داخل
+> بودجه. نردبان شل‌سازی کار می‌کند. و بعد:
+
+**Screen:** hold on the line `shortlist — refused: estimator is not gated`.
+
+> **VO:** رد می‌کند. روی **هر** پیکرهٔ واقعی که تا امروز جمع کرده‌ایم، CARO
+> حاضر نیست یک برآورد بازار سرو کند. Run 3 گفت شواهدِ سرو کردن کافی نیست؛
+> Run 5 مدل را رد کرد؛ و روی پیکرهٔ Run 5 حتی baselineی که قرار بود جایش
+> برود هم از دروازه رد نمی‌شود.
+>
+> و دو چیز دیگر که همین اجرا نشان داد: از شش ترمِ رتبه‌بندی، **چهارتا روی
+> دادهٔ واقعی ثابت‌اند** — ریسک، هزینهٔ نگهداری و نقدشوندگی را W4 اصلاً پر
+> نمی‌کند. یعنی چهار تا از شش اسلایدری که همین الان نشانتان دادم، روی دادهٔ
+> باما هیچ کاری نمی‌کنند.
+
+**Screen:** the term-liveness table, `LIVE` / `CONSTANT` column visible.
+
+> **VO:** این را می‌شد نشان نداد. ولی تفاوت بین یک محصول و یک دموی محصول
+> دقیقاً همین است.
+
+---
+
+## 3:40–4:20 · The estimator, and a rejection that failed too · **REAL DATA**
+
+> **VO:** و حالا کوتاه، داستان برآوردگر — چون یک درس دارد.
 
 **Screen:**
 
 ```
-Run 3   155 آگهی · ۴۳ trim · ۴ مدل سایپا
-        MAE  63.9M   baseline 133.4M    −52.1%   UNJUDGEABLE_SLICE
-
-Run 5   228 آگهی · ۱۰۰ trim · ۴۴ برند
-        MAE 607.0M   baseline 526.3M    +15.3%   REJECTED
+Run 3   155 آگهی · ۴ مدل سایپا      MAE  63.9M  vs 133.4M   −52.1%   UNJUDGEABLE
+Run 5   228 آگهی · ۴۴ برند          MAE 607.0M  vs 526.3M   +15.3%   REJECTED
 ```
 
-> **VO:** همان برآوردگر. همان گیت. همان ثابت‌های منجمد. تنها چیزی که عوض
-> شد، پیکرهٔ داده بود — و دومی، که بزرگ‌تر بود و پیش از اولین درخواست
-> ثبت‌نامهٔ نوشته‌شده داشت، مدل را **رد کرد**.
+> **VO:** همان برآوردگر، همان گیت، همان ثابت‌های منجمد. فقط پیکره عوض شد —
+> و دومی، که ثبت‌نامه‌اش قبل از اولین درخواست نوشته شده بود، مدل را رد کرد.
 >
-> چرا؟ Run 3 چهار مدل سایپا بود. Run 5 چهل‌وچهار برند، با بازهٔ قیمتی
-> **۱۴۳ برابری** — از ۳۵۰ میلیون تا ۵۰ میلیارد. partial pooling تخمین یک
-> trim کم‌داده را به سمت پارِنتش جمع می‌کند؛ روی ۱۴۳ برابر، این یک تصحیح
-> ملایم نیست، یک خطای بزرگ است.
+> بعد عدم‌قطعیت خودِ آن رد را اندازه گرفتیم.
 
-**Screen:** the price histogram of each corpus, side by side. This single
-image explains the whole result.
+**Screen:**
+
+```
+ΔMAE  +80.7M  (+15.3%)      95% CI  [−324M, +436M]
+P(worse by more than the gate's 10%)  =  58%
+```
+
+> **VO:** پنجاه‌وهشت درصد. یعنی همان گزاره‌ای که گیت رویش رد کرد، از پرتاب
+> سکه قابل تفکیک نیست. معیارِ MAE در گیت هیچ کنترل عدم‌قطعیتی نداشت — و ما
+> این را در سه جای دیگرِ همین پروژه درست کرده بودیم و کنارش را ندیده بودیم.
+>
+> پس Run 5 فقط حق دارد هر دو نیمه را با هم بگوید: گیتِ منجمد طبق معیار
+> ثبت‌شده‌اش رد کرد؛ و آن معیار نمی‌توانست این را از نویز جدا کند. برآوردگر
+> نه بهتر از baseline نشان داده شده، نه بدتر.
+
+**Screen:** `EVAL_CONTRACT_V2.md`, frozen, with the falsifier line visible.
+
+> **VO:** معیار را قبل از آزمایش بعدی درست کردیم، نه بعدش. و نوشتیم چه چیزی
+> این ادعا را باطل می‌کند: اگر نسخهٔ بعدیِ این قرارداد پذیرش را شل کند نه
+> سخت، دقیقاً همان چیزی است که ادعا می‌کند نیست.
 
 ---
 
-## 3:25–4:20 · What the disagreement taught
+## 4:20–5:00 · What is measured, and what is not
 
-> **VO:** و اینجا چیزی پیدا شد که از خودِ نتیجه مهم‌تر است.
+> **VO:** پس صادقانه‌ترین جمع‌بندی این است:
+
+**Screen, three columns, held:**
+
+```
+اندازه‌گیری‌شده روی دادهٔ واقعی   برآوردگر — دو بار، مقابل baseline واقعی،
+                                  با ثبت‌نامهٔ قبلی و فاصلهٔ اطمینان
+اندازه‌گیری‌شده روی دادهٔ ساختگی  رتبه‌بندی — برد در برابر مرتب‌سازی قیمت
+                                  روی پیکره‌ای که خودِ پروژه ساخته
+هنوز اندازه‌گیری‌نشده             همین برد روی دادهٔ واقعی. جایگزین صادقش
+                                  یک پنل کور انسانی است، نه یک اسکریپت.
+```
+
+> **VO:** بیشترین شواهد را جایی گذاشته‌ایم که تز محصول کمترین نیازش را دارد.
+> این خودش یک یافته است و ثبت شده — D41.
 >
-> ثبت‌نامهٔ Run 5 توزیع اندازهٔ trim را با جزئیات مقید کرده بود — شمارش‌ها،
-> کف‌ها، اندازهٔ برش‌ها. و دربارهٔ **ناهمگنی قیمت هیچ نگفته بود**.
->
-> هر دو پیکره شکل ثبت‌شده را برآورده می‌کنند. و مسئلهٔ تخمین یکسانی
-> نیستند.
-
-**Screen:** the spec's §2 shape constraints, then a red annotation on what
-it does *not* constrain.
-
-> **VO:** هیچ قاعده‌ای نقض نشد. ثبت‌نامه نسبت به متغیری که نتیجه را تعیین
-> کرد نابینا بود — و **از قبل** نابینا بود. این تنها راهی است که چنین چیزی
-> اثبات می‌شود. اگر معیار را بعد از دیدن نتیجه انتخاب کنیم، هیچ‌وقت
-> نمی‌فهمیم.
-
-**Screen:** `docs/RUN5_SPEC.md`, header: *"FROZEN, NOT STARTED"*, with the
-commit date visibly before the run.
-
-> **VO:** و یک چیز دیگر: pre-flight ما با هفت نمونه نتیجه گرفته بود نرخ
-> تبدیل بدتر نیست. واقعیت ۰.۵۶۶ بود، نه ۰.۷۰۱. با n=۷ آن نتیجه‌گیری از
-> ظرفیت نمونه‌اش جلو زده بود — و این ثبت شده، چون همان خطاست در مقیاس
-> کوچک‌تر.
-
----
-
-## 4:20–5:00 · The decision
-
-> **VO:** پس تصمیم چیست؟
->
-> از روز اول در سند تصمیم‌ها نوشته شده بود: **اگر baseline ببرد، baseline را
-> بفرست و بگو.** روی این پیکره، baseline بُرد. پس همان می‌رود روی خط.
-
-**Screen:** D12, with its original commit date.
-
-> **VO:** CARO تخمین‌گر شرطی را سرو نمی‌کند. نه چون کار نمی‌کند — چون
-> شواهدی که اجازهٔ آن را بدهد نداریم، و سیستم طوری ساخته شده که نتواند
-> وانمود کند داریم.
->
-> این نمی‌گوید partial pooling برای بازار ایران بد است. می‌گوید روی این
-> پیکره، با این سؤال ثبت‌شده، باخت. سؤال بعدی یک آزمایش تازه است، با
-> ثبت‌نامهٔ خودش — چون «مدل باخت، پیکره را عوض کنیم، مدل بُرد» دقیقاً همان
-> حلقه‌ای است که این پروژه برای رد کردنش ساخته شده.
+> کار بعدی هم از همین بیرون می‌آید: قبل از آزمایش ششم روی برآوردگر، آن چهار
+> ترمِ مرده را از دادهٔ خودِ باما پر کن، و بفهم چرا baseline روی دادهٔ واقعی
+> از دروازه رد نمی‌شود. یک محصولی که اصلاً نمی‌تواند برآورد سرو کند، مسئلهٔ
+> بزرگ‌تری از این است که کدام برآوردگر را سرو می‌کرد.
 
 **Screen, final, held for four seconds:**
 
 ```
-۶۱۱ assertion · ۷ suite · ۳۹ decision · ۵ اجرای زنده روی باما
+۶۱۷ assertion · ۷ suite · ۴۱ decision · ۵ اجرای زنده روی باما
 ۰ ادعای بدون شواهد در خروجی
 
 github.com/sahandmusanezhad/caro
 ```
 
-> **VO (last line):** چیزی که ساختیم یک مدل قیمت نیست. سیستمی است که
-> مرزِ دانستنِ خودش را هم اجرا می‌کند.
+> **VO (last line):** چیزی که ساختیم یک مدل قیمت نیست. سیستمی است که مرزِ
+> دانستنِ خودش را اجرا می‌کند — حتی وقتی آن مرز، خودش را رد می‌کند.
 
 ---
 
 ## Production notes
 
-- **Total 5:00.** If it runs over, cut from 0:35–1:20 (the architecture
-  tour), never from 2:15–3:25. The two-benchmark section is the submission.
-- Screen-record `demo/index.html` at 1440p; the Persian copy must be legible
-  at half size.
-- Terminal recordings: run the real commands. `benchmark_run5.py` takes a
-  few seconds and printing live is more convincing than a still.
+- **Total 5:00.** If it runs over, cut from 3:40–4:20 (compress the estimator
+  story to the two-line table and the 58%). Never cut 2:50–3:40. That section
+  is the difference between this submission and one that films a synthetic
+  corpus and lets the judge assume it is Bama.
+- **The SYNTHETIC / REAL DATA label is on screen for every frame of
+  0:30–3:40.** Not a title card at the start — a persistent corner label. A
+  viewer who joins at 1:20 must be able to tell.
 - Do not show a slide that says "−52%" without "+15.3%" in the same frame.
-  That is the one editing mistake that would undo the argument, and it is
-  the most tempting one.
-- No music under 2:15–3:25. Let the numbers sit.
+  That remains the most tempting editing mistake in the project.
+- Do not show a ranked shortlist over real Bama listings. It does not exist;
+  the pipeline refuses. If a future run gets the gate to pass on real data,
+  this note is what has to be deleted first, deliberately.
+- Screen-record `demo/index.html` at 1440p; the Persian copy must be legible
+  at half size. Terminal sections run the real commands — `rank_run5.py`
+  printing the refusal live is more convincing than a still of it.
+- No music under 2:50–3:40. Let the refusal sit.
