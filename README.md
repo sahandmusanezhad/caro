@@ -134,7 +134,7 @@ its own ability to assess uncertainty**, and refuses on it.
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 
-python3 tests/run_all.py            # 556 assertions, no API key, no network
+python3 tests/run_all.py            # 617 assertions, no API key, no network
 python3 scripts/benchmark_run3.py   # the benchmark above, from the stored corpus
 python3 tests/run_all.py ranking    # just the win-rate benchmark
 python3 demo/export_demo.py         # regenerate demo/index.html from live output
@@ -295,8 +295,10 @@ These bands are calibrated by judgement, not fitted to data. That is stated in t
 | Intent parsing + ranking, beating sort-by-price | ✅ built, benchmarked on a synthetic task |
 | Divar + Bama adapters, robots-verified | ✅ built, tested offline |
 | Cross-source identity and supply correction | ✅ built, tested |
-| **Real Bama corpus** | ✅ 4 live runs; 221 parsed, 155 appraisal-eligible |
+| **Real Bama corpus** | ✅ 5 live runs; Run 5 = 403 parsed, 228 appraisal-eligible |
 | **Real conditional-appraisal validation** | ❌ `UNJUDGEABLE_SLICE` — W1 locked (D34) |
+| **The decision path, on real listings** | ⚠️ audited (D41), never evaluated — the shortlist refuses: no estimator clears the gate on any real corpus yet |
+| **Four of six ranking terms, on real data** | ❌ constant — W4 does not populate risk, ownership cost or liquidity from Bama |
 | **Live collection run against Divar** | ❌ the network path is unexercised here |
 
 Two kinds of validation, and they support different claims.
@@ -322,7 +324,7 @@ asking prices — and the appraiser is not serving.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · quality · coverage · stratification
-tests/           556 assertions across six suites
+tests/           617 assertions across seven suites
 scripts/         live runs, replays, the benchmark, the run-3/4 experiment plans
 data/snapshots/  the collected corpora, replayable offline
 demo/            export_demo.py regenerates index.html from pipeline output
