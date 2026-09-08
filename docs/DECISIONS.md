@@ -1551,3 +1551,46 @@ interval — the part D8 and D32 exist for. A comparison that judged both on
 what each is *for* would need pinball loss and interval width beside it, and
 the baseline would have to forfeit those columns rather than win them. That
 is a gap in how this benchmark reports, not a result.
+
+## D40 — Fix the criterion before running another experiment
+
+D39 showed the gate's MAE criterion is a bare comparison of point estimates.
+Running Run 6 against it would produce a second result with the same defect,
+so the criterion is registered first, in `docs/EVAL_CONTRACT_V2.md`, and Run
+6 is registered against that afterwards — separate documents, separate
+commits, in that order, so the corpus cannot be shaped to the criterion.
+
+    primary       ΔMAE on Q50, paired cluster bootstrap, 95% CI
+                  CI below 0 → beats · CI above tolerance → loses ·
+                  spans either → UNJUDGEABLE
+    diagnostics   mean pinball loss; interval coverage AND width, as a pair
+                  reported every run, gating nothing
+
+**The timing is the problem and it has to be argued, not asserted.** A rule
+rewritten after a loss is the exact move D35 forbids. The defence is
+structural: **v2 is strictly harder than v1 in both directions.** v1 accepted
+anything within 1.10× of the baseline; v2 accepts only when the interval lies
+entirely below zero. Applied to Run 5's own numbers, v2 returns UNJUDGEABLE
+— it does not hand the previous run a win. A rule written to rescue an
+estimator would loosen acceptance; this one tightens it. And what would
+falsify that claim is written into the contract: if a later version loosens
+acceptance, it is the thing it says it is not.
+
+Run 5's verdict is untouched. It stands as REJECTED under v1, with D39's
+interval attached. v2 governs Run 6 onward and is not retroactive.
+
+**Why the diagnostics do not gate.** Three gates give a 2-of-3 vote, and a
+candidate losing the primary criterion can be declared a winner by two
+diagnostics — choosing the metric after seeing the result, one step removed.
+Coverage and width are also reported only as a pair, because coverage alone
+is gameable by widening the interval until it contains everything.
+
+**Recorded against my own design, from the same review.** The strongest
+objection raised was not about statistics: *this project may have spent more
+effort proving the estimator is scientific than establishing that the
+estimator is a necessary part of the product.* CARO's thesis is a decision
+engine — normalisation, intent-aware ranking, priced risk, an evidence
+ledger, and a refusal state. The market estimate is one input to that. If
+parent-median turns out to be the best available estimate, the product is not
+diminished; only the ML pricing model is. Those two have been allowed to
+blur, and the README's framing is where that shows.
