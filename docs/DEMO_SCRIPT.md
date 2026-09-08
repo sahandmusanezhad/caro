@@ -187,19 +187,27 @@ P(worse by more than the gate's 10%)  =  58%
 
 > **VO:** پس صادقانه‌ترین جمع‌بندی این است:
 
-**Screen, three columns, held:**
+**Screen, held for six seconds — this is the closing slide (D44):**
 
 ```
-اندازه‌گیری‌شده روی دادهٔ واقعی   برآوردگر — دو بار، مقابل baseline واقعی،
-                                  با ثبت‌نامهٔ قبلی و فاصلهٔ اطمینان
-اندازه‌گیری‌شده روی دادهٔ ساختگی  رتبه‌بندی — برد در برابر مرتب‌سازی قیمت
-                                  روی پیکره‌ای که خودِ پروژه ساخته
-هنوز اندازه‌گیری‌نشده             همین برد روی دادهٔ واقعی. جایگزین صادقش
-                                  یک پنل کور انسانی است، نه یک اسکریپت.
+REAL DATA    ingestion                    VALIDATED
+             extraction contracts         VALIDATED / AUDITABLE
+             snapshot completeness        AUDITABLE
+             ranking inputs               AUDITABLE   (38% complete)
+             appraisal                    NOT VALIDATED
+             ranking quality              NOT VALIDATED
+             ground truth for ranking     NO GROUND TRUTH
+
+SYNTHETIC    pipeline behaviour · ranking mechanics ·
+             decision ledger · explanation and evidence path
 ```
 
 > **VO:** بیشترین شواهد را جایی گذاشته‌ایم که تز محصول کمترین نیازش را دارد.
 > این خودش یک یافته است و ثبت شده — D41.
+>
+> و روی دادهٔ واقعی، CARO در ویدیو بی‌سروصدا شکست نمی‌خورد. به مرزِ ارزیابی
+> می‌رسد و می‌گوید **شواهد کافی برای این ادعا ندارم**. هر سطر بالای این
+> اسلاید، چیزی است که به آن جمله حق می‌دهد باور شود.
 >
 > کار بعدی هم از همین بیرون می‌آید: قبل از آزمایش ششم روی برآوردگر، آن چهار
 > ترمِ مرده را از دادهٔ خودِ باما پر کن، و بفهم چرا baseline روی دادهٔ واقعی
