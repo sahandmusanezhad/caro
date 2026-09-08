@@ -1,0 +1,60 @@
+WHY THE GATE REFUSES — the arithmetic under 0.206
+==============================================================================
+
+1. THE TWO ESTIMATORS ARE THE SAME ESTIMATOR HERE
+------------------------------------------------------------------------------
+  comparable vs global predictions identical   True   (max |diff| 0)
+  trims    train  75   test  25   overlap 0
+  parents  train  57   test  21   overlap 6
+
+  The split holds out whole TRIMS, so no test row has a comparable
+  in training. The ladder falls through to `global` on every row,
+  and a comparables estimator with no comparables IS the global
+  estimator. Under this split the gate cannot tell them apart —
+  and it did not: both reported the same 0.206.
+
+2. THE HELD-OUT TRIMS ARE A DIFFERENT PRICE POPULATION
+------------------------------------------------------------------------------
+  train  n= 177  median    2,300,000,000  p15     876,000,000  p85   6,772,000,000  spread  143x
+  test   n=  51  median    3,200,000,000  p15   1,440,000,000  p85   7,485,000,000  spread   53x
+
+  share of TEST rows below TRAIN p15      0.000
+  share of TEST rows below TRAIN median   0.294
+
+3. THOSE TWO NUMBERS *ARE* THE COVERAGE FAILURE
+------------------------------------------------------------------------------
+  tau 0.15   empirical 0.000   err -0.150   CI [0.00, 0.07]   nominal OUTSIDE 95% CI
+  tau 0.35   empirical 0.275   err -0.075   CI [0.17, 0.41]
+  tau 0.50   empirical 0.294   err -0.206   CI [0.19, 0.43]   nominal OUTSIDE 95% CI
+  tau 0.85   empirical 0.824   err -0.026   CI [0.70, 0.90]
+
+  worst error 0.206, and past 2.5 SE it is still 0.206
+
+  Read them together: 0.000 coverage at tau=0.15 is the same fact
+  as 'no test row is cheaper than the train p15', and 0.294 at the
+  median is the same fact as 'only 29% of test rows are below the
+  train median'. The coverage failure is not a property of the
+  estimator. It is what happens when a distribution fitted on one
+  price population is asked to be calibrated on another.
+
+WHAT THIS CHANGES, AND WHAT IT DOES NOT
+------------------------------------------------------------------------------
+  Corrects D41. 'The baseline class does not clear the gate either'
+  reads as a fact about the baseline, and it is not: under this
+  split EVERY estimator is the same estimator, and it is being
+  scored against trims it has never seen at prices it has never
+  seen. The refusal is real and correct — CARO still may not serve
+  an estimate here — but the reason is the corpus and the split,
+  not the model.
+
+  Does NOT rescue the estimator. Run 5's REJECT stands as
+  registered, with D39's interval attached, and nothing here is
+  evidence that partial pooling would have passed under a kinder
+  split. Choosing a kinder split now, after seeing this, is exactly
+  the D35 move — so the split is untouched and this is a finding.
+
+  It is the third appearance of D38's blind spot: a registration
+  that constrained trim COUNTS and said nothing about price
+  heterogeneity. First it decided the benchmark; then it explained
+  the thin-slice tension; now it turns out to have decided whether
+  a market estimate can be served at all.

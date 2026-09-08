@@ -1639,6 +1639,14 @@ in its place does not clear the gate either. So on real Bama listings today,
 every shortlist refuses. The refusal path is not a demonstrated feature of
 the product — it is currently the *only* path that runs.
 
+> **Corrected by D43.** The sentence above reads as a fact about the baseline
+> and it is not one. Under a held-out-TRIM split the comparables estimator has
+> no comparables and becomes bit-identical to the global estimator, and the
+> held-out trims are a different price population from the training trims. The
+> refusal stands; its cause is the corpus and the split, not the model. This
+> was my own overclaim, of exactly the kind D36 catalogues, written into the
+> entry that opened D36 one level up.
+
 *Retrieval matched a bare slug against a full `make|model|trim` key*, so
 every model-constrained query returned zero while matching cars sat inside
 the stated budget, and the relaxation ladder then explained a trade-off it
@@ -1805,3 +1813,67 @@ fed. It would not say the ordering is right. Construct validity is a
 precondition for outcome validity, never a substitute, and quoting a
 completeness figure as though it were a quality figure would be D36's error
 with a new number attached.
+
+
+## D43 — The gate was not measuring the estimator
+
+D41 said the baseline class fails the acceptance gate on Run 5's corpus at a
+coverage error of 0.206, and read that as a fact about the baseline. Checking
+it produced the opposite conclusion, and two facts settle it.
+
+**The two estimators are the same estimator under this split.**
+`ComparableQuantiles` and `GlobalQuantiles` produce *bit-identical*
+predictions on the held-out set — max absolute difference 0.0. The reason is
+structural: the split holds out whole trims, so of 75 training trims and 25
+test trims the overlap is zero, and only 6 of 21 test parents appear in
+training at all. A comparables ladder with no comparables falls through to
+`global` on every row. The gate could not have distinguished them, and did
+not: both reported the same 0.206.
+
+**And the held-out trims are a different price population.**
+
+    train   n=177   median 2,300,000,000   p15   876,000,000   spread 143x
+    test    n= 51   median 3,200,000,000   p15 1,440,000,000   spread  53x
+
+    share of test rows below the train p15       0.000
+    share of test rows below the train median    0.294
+
+Those two shares *are* the coverage failure, arithmetically:
+
+    tau 0.15   empirical 0.000   error −0.150
+    tau 0.50   empirical 0.294   error −0.206      ← the number the gate quoted
+    tau 0.85   empirical 0.824   error −0.026
+
+The gate reported the calibration of a distribution fitted on one price
+population against a disjoint one. That is not a property of any estimator.
+
+**What this changes.** The refusal is correct and stands — CARO still may not
+serve a market estimate on this corpus. What was wrong is the *reason* D41
+gave, and the difference matters for what to do next: no better model clears
+this gate, because the model is not what is being measured. The paths that
+would are a corpus where held-out trims share a price world with training
+ones, or an evaluation that conditions on price level. Both are registration
+questions, not modelling ones.
+
+**What this does not change.** It does not rescue the estimator. Run 5's
+REJECT stands as registered with D39's interval attached, and nothing here is
+evidence that partial pooling would have passed under a kinder split.
+Choosing a kinder split now, having seen this, is precisely the D35 move —
+so `held_out_trim_split`, the fraction and the seed are untouched, and this is
+recorded rather than acted on. The next registration decides.
+
+**Third appearance of the same blind spot.** D38 recorded that Run 5's
+registration constrained trim counts, floors and slice sizes and said nothing
+about price heterogeneity. That blindness decided the benchmark (D38), then
+explained the thin-slice tension (D37), and now turns out to have decided
+whether a market estimate can be served at all. A registration is blind to
+what it does not name, and the same unnamed variable has now produced three
+different results.
+
+**And a note on how this was found, because it is the point of D36.** D41 is
+the entry that named the project's tendency to let a mechanism be read as a
+fact — and it contained one. "The baseline does not clear the gate" was a
+plausible reading of a true number, written without checking what the number
+measured. The catalogue in D36 does not catch new instances and says so; this
+is one, in the entry that extended D36, written by the same author in the same
+session.
