@@ -1157,6 +1157,57 @@ check(f"a page at {TRIM_PAGE_CAP} links reports it is at the page cap",
       cap.at_page_cap, "30 means 'at least 30', never 'exactly 30'")
 check("  a shorter page does not", not tp.at_page_cap)
 
+# ---------------------------------------------------------------------------
+print("\nsnapshot integrity — reserved fields that no run ever filled")
+# D41's addendum. `data/snapshots/run5` carries an eleven-field record per
+# listing, and COND — body condition — is the empty string on all 403 of
+# them. Nothing failed: the format reserves the field, the parser reads it
+# correctly, and the run simply never wrote it. 272 assertions above this
+# line and not one of them asks whether a field the format reserves is ever
+# non-empty on real data.
+#
+# So this is that question, with the gaps named. A field listed in
+# KNOWN_EMPTY is one we have DECIDED about; anything else empty across a
+# whole snapshot is a collection bug nobody has noticed yet. When a future
+# run fills COND the assertion below fails on purpose, and the fix is to
+# delete the entry — the same shape as D36's retired-claim guard, where a
+# gap has to be removed deliberately rather than fading out.
+KNOWN_EMPTY = {
+    "DESC": "excluded on purpose — descriptions carry masked phone numbers "
+            "and no eligibility or estimator rule reads them",
+    "COND": "NOT on purpose. Bama publishes «وضعیت بدنه» on the detail page "
+            "and Run 5 did not record it, which is why four of six ranking "
+            "terms are constant on real data (D41 addendum)",
+}
+SNAP = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "data", "snapshots", "run5", "listings.json")
+if os.path.exists(SNAP):
+    from scripts.replay_run3 import (
+        ANCHORED, COND, CUR, DEALER, DESC, KM, KM_LINE, PRICE, PRICE_TEXT,
+        SLUG, YEAR,
+    )
+    NAMES = {SLUG: "SLUG", ANCHORED: "ANCHORED", DEALER: "DEALER",
+             YEAR: "YEAR", KM: "KM", PRICE: "PRICE", CUR: "CUR",
+             KM_LINE: "KM_LINE", PRICE_TEXT: "PRICE_TEXT", COND: "COND",
+             DESC: "DESC"}
+    recs = json.load(open(SNAP, encoding="utf-8"))
+    empty = {NAMES[i] for i in range(len(recs[0]))
+             if all(r[i] in (None, "") for r in recs)}
+    check("every reserved snapshot field is either filled or a NAMED gap",
+          empty == set(KNOWN_EMPTY),
+          f"empty={sorted(empty)} named={sorted(KNOWN_EMPTY)} — an unnamed "
+          f"one is a collection bug; a named one that filled up means the "
+          f"gap closed and the entry should be deleted")
+    check("  and COND is still the open one",
+          "COND" in empty,
+          "if this fails, Bama's condition block is being recorded now: "
+          "remove COND from KNOWN_EMPTY and re-check the ranking terms")
+    for name in sorted(empty):
+        print(f"      {name}: {KNOWN_EMPTY.get(name, 'UNEXPLAINED')}")
+else:
+    print("      (run5 snapshot absent — skipped)")
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
