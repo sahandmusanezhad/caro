@@ -197,8 +197,17 @@ VERDICT
   NOT READY — under 80% usable prices. Fix extraction before fitting anything.
 ```
 
-Raw responses land in `data/snapshots/`, so `--replay` re-parses offline and
-asks the site for nothing.
+Structured snapshot records land in `data/snapshots/` — one `FetchOutcome`
+per listing, not the raw HTTP response. That directory is **operational and
+never published**; a run whose numbers are published needs a publishable
+artifact under `data/corpora/`, written by `scripts/promote_corpus.py`, which
+redacts seller-authored text and validates against
+[DATA_CONTRACT](docs/DATA_CONTRACT.md).
+
+`--replay` does not currently close that loop. It reads a top-level
+`listings` key and `write_snapshot` emits `outcomes`, so replaying a snapshot
+this script wrote yields zero listings — quietly, without failing. The formats
+have never matched. It is recorded here rather than described away.
 
 ---
 

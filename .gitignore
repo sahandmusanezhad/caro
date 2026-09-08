@@ -5,6 +5,15 @@ venv/
 .env
 *.egg-info/
 .pytest_cache/
+# Two data directories, two lifecycles (docs/DATA_CONTRACT.md).
+#
+#   data/snapshots/   OPERATIONAL. What a collection run writes. May hold
+#                     seller-authored prose, so it is never published.
+#   data/corpora/     PUBLICATION-GRADE. Written only by
+#                     scripts/promote_corpus.py, which redacts and validates.
+#                     It is NOT listed here and must not be: D46 is what
+#                     happens when the evidence behind a published number is
+#                     ignored out of the repository.
 data/raw/
 data/snapshots/
 .DS_Store

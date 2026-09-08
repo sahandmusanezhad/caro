@@ -4,7 +4,7 @@ First live collection, and the inventory report that decides what comes next.
 
     python3 scripts/first_run.py --source bama --limit 50
     python3 scripts/first_run.py --source divar --city tehran --pages 2
-    python3 scripts/first_run.py --replay data/snapshots/2026-09-07-bama.json
+    python3 scripts/first_run.py --replay <file with a top-level "listings">
 
 This is deliberately small. The point of a first run is not volume — it is
 finding out how much of what the parser expects is actually there. A field
@@ -16,9 +16,17 @@ comparable-tier coverage, and the condition distribution. Those numbers
 decide whether the corpus can support an estimate at all, and they should be
 read before any model is fitted.
 
-Raw responses are written to data/snapshots/ so every later run can be
-replayed offline. Re-parsing a saved snapshot costs nothing and asks the site
-for nothing.
+Structured snapshot records are written to data/snapshots/ — one FetchOutcome
+per listing, not the raw HTTP response. That directory is operational and
+never published; the publishable artifact is produced separately by
+scripts/promote_corpus.py into data/corpora/ (docs/DATA_CONTRACT.md).
+
+KNOWN DEFECT, recorded rather than described away: `--replay` reads
+`raw["listings"]`, and write_snapshot emits `outcomes`. Replaying a snapshot
+this script wrote therefore yields zero listings and says so without failing.
+The two formats have never matched. Fixing it is a behaviour change and is not
+this docstring's business, but a reader should not be told the loop closes
+when it does not.
 """
 
 from __future__ import annotations
