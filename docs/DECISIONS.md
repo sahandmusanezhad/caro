@@ -1639,13 +1639,15 @@ in its place does not clear the gate either. So on real Bama listings today,
 every shortlist refuses. The refusal path is not a demonstrated feature of
 the product — it is currently the *only* path that runs.
 
-> **Corrected by D43.** The sentence above reads as a fact about the baseline
-> and it is not one. Under a held-out-TRIM split the comparables estimator has
-> no comparables and becomes bit-identical to the global estimator, and the
-> held-out trims are a different price population from the training trims. The
-> refusal stands; its cause is the corpus and the split, not the model. This
-> was my own overclaim, of exactly the kind D36 catalogues, written into the
-> entry that opened D36 one level up.
+> **Corrected by D43.** The sentence above reads as a fact about the
+> baseline's quality and it is not one. Under a held-out-TRIM split the
+> comparables estimator has no comparables and becomes bit-identical to the
+> global estimator, and the held-out trims are a different price population
+> from the training trims. The refusal stands; the 0.206 simply carries no
+> information about how good this baseline is. This was my own overclaim, of
+> exactly the kind D36 catalogues, written into the entry that opened D36 one
+> level up — and D43's own first draft then overclaimed in the other
+> direction. Both corrections are left visible there.
 
 *Retrieval matched a bare slug against a full `make|model|trim` key*, so
 every model-constrained query returned zero while matching cars sat inside
