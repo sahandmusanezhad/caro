@@ -1849,11 +1849,27 @@ population against a disjoint one. That is not a property of any estimator.
 
 **What this changes.** The refusal is correct and stands — CARO still may not
 serve a market estimate on this corpus. What was wrong is the *reason* D41
-gave, and the difference matters for what to do next: no better model clears
-this gate, because the model is not what is being measured. The paths that
-would are a corpus where held-out trims share a price world with training
+gave: the 0.206 is not a fact about the baseline's quality, it is the
+arithmetic of a price-shifted test set applied to an estimator that has
+collapsed to the global distribution.
+
+> **The first draft of this paragraph overclaimed and it is worth leaving the
+> correction visible.** It said *no better model clears this gate, because the
+> model is not what is being measured.* The first half does not follow from
+> the second. What is established is that `ComparableQuantiles` and
+> `GlobalQuantiles` are the same estimator here; an estimator using other
+> available signal — parent, model family, year, mileage, price band, the
+> observed market structure — could in principle predict the held-out
+> distribution better and cover it better. That this baseline degenerates is
+> not evidence that every estimator must. Writing it that way turned a
+> diagnostic finding into an alibi, which is the exact move D43 exists to
+> refuse, made inside D43.
+
+The narrower true statement is that the gate's verdict here carries no
+information about *this* baseline's quality. What would produce an informative
+verdict is a corpus where held-out trims share a price world with the training
 ones, or an evaluation that conditions on price level. Both are registration
-questions, not modelling ones.
+questions.
 
 **What this does not change.** It does not rescue the estimator. Run 5's
 REJECT stands as registered with D39's interval attached, and nothing here is
