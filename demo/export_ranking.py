@@ -42,7 +42,17 @@ QUERIES = [
     "ماشین اول خانواده، تصادفی نباشه، بودجه ۱.۵ میلیارد",
     "ماشین برای اسنپ، کم‌مصرف، قطعاتش ارزون باشه، زیر ۸۰۰ میلیون",
 ]
-TIGHT = "پراید بدون رنگ، مدل ۱۴۰۱ به بالا، کارکرد زیر ۲۰ هزار، تا ۵۰۰ میلیون"
+# The query DEMO_SCRIPT.md:97 registers for the refusal scene. The exporter
+# had drifted to a harder one — «پراید بدون رنگ، مدل ۱۴۰۱ به بالا، کارکرد زیر
+# ۲۰ هزار، تا ۵۰۰ میلیون» — which parses budget_max as 20,000,000 rather than
+# 500,000,000 (ranking.py:208 takes the first زیر/تا/حداکثر in the string as
+# the budget clause, and here that trigger sits inside the mileage clause).
+# It returned zero candidates for a reason it did not state, which is why the
+# panel is currently held out of the recording.
+#
+# This one parses correctly: budget 800M, «کم‌کارکرد» read as 120,000 km with
+# the assumption stated, and nothing left in `unparsed`.
+TIGHT = "پراید کم‌کارکرد تا ۸۰۰ میلیون"
 
 
 def card(s, rank: int) -> dict:
