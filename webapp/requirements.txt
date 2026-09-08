@@ -1,0 +1,9 @@
+# The web layer's dependencies, kept OUT of the core.
+#
+# README says numpy is CARO's only hard dependency, and that sentence is worth
+# protecting: a reviewer who has to install a web stack before running the test
+# suite usually just doesn't. `caro/` and `tests/` still need nothing but
+# numpy. Everything here is for serving the site.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
