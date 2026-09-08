@@ -648,4 +648,16 @@ if (WIRED) (function(){
        شده، در ستون حالت علامت خورده است.</p>`;
 })();
 
+/* the relaxation panel is on hold — see the note; it is not a product claim */
+$('#relax').innerHTML = corner('syn')
+  + `<p class="eyebrow">Held — not for recording</p>`
+  + `<div class="refuse"><b>internal · do not film</b>
+       این پنل معلق است. کوئری‌اش <span class="mono">«… کارکرد زیر ۲۰ هزار، تا ۵۰۰ میلیون»</span>
+       است و صفر کاندیدا برمی‌گرداند — ولی نه به دلیلی که نشان می‌دهد.
+       <span class="mono">budget_max</span> به‌جای ۵۰۰٬۰۰۰٬۰۰۰ برابر ۲۰٬۰۰۰٬۰۰۰ پارس می‌شود،
+       چون <span class="mono">ranking.py:208</span> اولین ماشه‌ی «زیر/تا/حداکثر» در کل رشته را
+       بند بودجه فرض می‌کند و اینجا آن ماشه داخل بند کارکرد است.
+       نمایش این نردبان به‌عنوان امتناعِ طراحی‌شده، همان الگوی D36 است.
+       تا اصلاح پارسر و اجرای دوباره‌ی خروجی‌گیر، اینجا می‌ماند.</div>`;
+
 </script>
