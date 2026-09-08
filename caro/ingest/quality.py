@@ -219,14 +219,30 @@ def eligibility(listing) -> tuple[bool, list[str]]:
         if getattr(listing, f, None) is None:
             missing.append(f"no {f}")
 
+    # Absence of a provenance field is UNKNOWN, and unknown fails CLOSED.
+    #
+    # Both reads below are getattr-with-default, which means this function
+    # accepts objects that never set the field — and until this was written it
+    # let them through, because `None in UNUSABLE_PRICE` is False. Nothing
+    # exploits that today: CarListing defaults price_status to "absent", which
+    # is already unusable, so the guarantee rested on a dataclass default
+    # rather than on this gate. A gate whose correctness depends on every
+    # caller remembering a default is not a gate, and D1's rule is the whole
+    # reason: a fetch we could not make is not an absence, and a provenance we
+    # never recorded is not a clean one.
     ps = getattr(listing, "price_status", None)
-    if ps in UNUSABLE_PRICE or (isinstance(ps, str)
-                                and ps in {s.value for s in UNUSABLE_PRICE}):
+    if ps is None:
+        missing.append("price provenance unknown — no price_status recorded")
+    elif ps in UNUSABLE_PRICE or (isinstance(ps, str)
+                                  and ps in {s.value for s in UNUSABLE_PRICE}):
         missing.append(f"price is {ps.value if hasattr(ps, 'value') else ps}")
 
     ms = getattr(listing, "mileage_status", None)
-    ms_val = ms.value if hasattr(ms, "value") else ms
-    if ms_val in (Validity.SUSPICIOUS.value, Validity.IMPOSSIBLE.value):
-        missing.append(f"mileage is {ms_val}")
+    if ms is None:
+        missing.append("mileage provenance unknown — no mileage_status recorded")
+    else:
+        ms_val = ms.value if hasattr(ms, "value") else ms
+        if ms_val in (Validity.SUSPICIOUS.value, Validity.IMPOSSIBLE.value):
+            missing.append(f"mileage is {ms_val}")
 
     return (not missing), missing

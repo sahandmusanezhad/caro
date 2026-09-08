@@ -625,6 +625,70 @@ check("a sound listing IS appraisal-eligible", eligibility(good)[0],
       str(eligibility(good)[1]))
 check("the instalment listing is not", not eligibility(I)[0])
 
+# ---------------------------------------------------------------------------
+# UNKNOWN PROVENANCE FAILS CLOSED
+#
+# eligibility() reads both status fields with getattr-and-default, so it
+# accepts objects that never set them. It used to let those through: `None in
+# UNUSABLE_PRICE` is False and the mileage branch only rejects two named
+# values. Nothing exploited it — CarListing defaults price_status to "absent",
+# which is already unusable — so the guarantee rested on a dataclass default
+# rather than on the gate. D1's rule is why that is not good enough: a fetch
+# we could not make is not an absence, and a provenance we never recorded is
+# not a clean one.
+#
+# The three-way check is the point. It is not enough that None is refused; it
+# has to be refused WITHOUT collapsing into one of the valid statuses, and a
+# genuinely sound listing has to stay eligible.
+from dataclasses import dataclass as _dc                            # noqa: E402
+
+
+@_dc
+class _Prov:
+    """The appraisal-required fields, with provenance varied one at a time."""
+    asking_price_toman: int = 700_000_000
+    year_jalali: int = 1395
+    mileage_km: int = 90_000
+    model: str = "pride"
+    price_status: object = PriceStatus.DISPLAY_CONFIRMED.value
+    mileage_status: object = "plausible"
+
+
+ok_v, _ = eligibility(_Prov())
+ok_neg, why_neg = eligibility(_Prov(price_status=PriceStatus.NEGOTIABLE.value))
+ok_non, why_non = eligibility(_Prov(price_status=None))
+
+check("a recorded, usable price provenance IS eligible", ok_v)
+check("  a NEGOTIABLE price is not", not ok_neg and any("negotiable" in w for w in why_neg),
+      str(why_neg))
+check("  and an ABSENT price_status is not either",
+      not eligibility(_Prov(price_status=PriceStatus.ABSENT.value))[0])
+check("UNRECORDED price provenance is refused, not assumed clean",
+      not ok_non, str(why_non))
+check("  and it says so in its own words, not by collapsing into another status",
+      any("provenance unknown" in w for w in why_non), str(why_non))
+check("  which is the difference between this gate and a dataclass default",
+      ok_v and not ok_non,
+      "the same listing, differing only in whether provenance was recorded")
+
+ok_ms, why_ms = eligibility(_Prov(mileage_status=None))
+check("UNRECORDED mileage provenance is refused on the same grounds",
+      not ok_ms and any("provenance unknown" in w for w in why_ms), str(why_ms))
+check("  and a recorded suspicious reading still refuses for ITS own reason",
+      any("mileage is suspicious" in w
+          for w in eligibility(_Prov(mileage_status="suspicious"))[1]))
+
+# Not changed here, and recorded rather than fixed in passing: mileage_status
+# == "unknown" is CarListing's default and still passes this gate. It is
+# covered in practice because APPRAISAL_REQUIRED rejects a missing mileage_km,
+# so the state only arises if a reading was taken and never judged. That is a
+# narrower question than the one this commit answers, and folding it in would
+# make the fix hard to review.
+check("KNOWN ASYMMETRY: mileage_status 'unknown' still passes, unlike an "
+      "absent price_status",
+      eligibility(_Prov(mileage_status="unknown"))[0],
+      "recorded so it cannot change silently; see the note above")
+
 check("price status records that the display confirmed it",
       good.price_status == PriceStatus.DISPLAY_CONFIRMED.value,
       good.price_status)
