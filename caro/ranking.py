@@ -90,6 +90,43 @@ def parse_amount(text: str) -> int | None:
     return int(total)
 
 
+# A number that is an amount of MONEY, as opposed to a number that merely
+# exists. The distinction is not pedantic: `parse_amount` answers "what number
+# is this?" and will happily answer it for an odometer reading or a model
+# year, because a bare `206` and a bare `800` are the same object to it. This
+# regex answers the prior question — *is this number money at all?* — and the
+# only evidence it accepts is a scale word attached to the number.
+#
+# Four measured failures motivate it, all of them silent:
+#
+#     «کارکرد زیر ۹۰ هزار، تا ۸۰۰ میلیون»    budget became 90,000,000
+#     «۲۰۶ زیر ۱۰۰ هزار کیلومتر، بودجه ۹۰۰ میلیون»  budget became 100,000,000
+#     «تیبا مدل ۹۵»                            budget became 95,000,000
+#     «۲۰۶»                                    budget became 206,000,000
+#
+# The last is the one that matters most for the product: a buyer who types a
+# model name and nothing else was handed an invisible ceiling that filtered
+# out most of the cars they had just asked for.
+#
+# `هزار` is deliberately NOT a money word. In these queries it counts
+# kilometres, and treating it as currency is how «زیر ۹۰ هزار» became a
+# budget. `م` is accepted only when no letter follows it, so «۸۰۰م» is an
+# amount and the «م» of «مشکی» in «مدل ۹۵ مشکی» is not.
+#
+# What this deliberately does not do is guess. «۸۰۰ تومان» sets no budget,
+# because a currency word with no scale is genuinely ambiguous at these
+# magnitudes; the text stays in `unparsed`, where the user can see it.
+_MONEY = re.compile(
+    r"\d+(?:[.,]\d+)?\s*"
+    r"(?:(?:میلیارد|ملیارد|میلیون|ملیون)(?:\s*و\s*\d+)?|م(?!\w))")
+
+
+def money_amount(text: str) -> int | None:
+    """The first amount of money in `text`, or None if it names none."""
+    m = _MONEY.search(text)
+    return parse_amount(m.group(0)) if m else None
+
+
 # Model aliases. Sellers and buyers type the same car a dozen ways; the
 # taxonomy is data, not code, so a new model is one line.
 MODEL_ALIASES: dict[str, tuple[str, ...]] = {
@@ -205,12 +242,23 @@ class RuleIntentParser:
 
         budget_max = budget_min = None
         hard = True
-        m = re.search(r"(?:زیر|تا|حداکثر|کمتر از)\s*([^،]*)", q)
-        if m:
-            budget_max = parse_amount(m.group(1))
-            consumed.append(m.group(0))
+        # Every budget-ish clause, not just the first one in the string. The
+        # first clause is frequently about something else — «کارکرد زیر ۹۰
+        # هزار، تا ۸۰۰ میلیون» opens with an odometer — so a clause is taken
+        # only once it is shown to name an amount of money.
+        for m in re.finditer(r"(?:زیر|تا|حداکثر|کمتر از|بودجه|قیمت)\s*([^،]*)",
+                             q):
+            got = money_amount(m.group(1))
+            if got is not None:
+                budget_max = got
+                consumed.append(m.group(0))
+                break
         if budget_max is None:
-            budget_max = parse_amount(q)
+            # No clause said it, but the query may still name a price. This
+            # is an inference, so it is recorded as one; what it may not do
+            # is read a model number or a year as a budget, which is why it
+            # goes through `money_amount` rather than `parse_amount`.
+            budget_max = money_amount(q)
             if budget_max is not None:
                 assumptions.append("عدد قیمت را سقف بودجه فرض کردیم")
         m = re.search(r"(?:بالای|از)\s*([^،]*?)\s*(?:به بالا)", q)

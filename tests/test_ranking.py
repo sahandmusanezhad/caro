@@ -155,6 +155,44 @@ check("weights always normalise to 1",
 
 
 # ---------------------------------------------------------------------------
+# A number is not a budget just because it is a number.
+#
+# All four of these were measured wrong, and the reason they survived is that
+# a wrong budget is invisible: it silently shrinks the candidate set, and a
+# short shortlist looks like a thin market rather than a parser fault. The
+# bare-model case is the product-critical one — a buyer who types «۲۰۶» and
+# nothing else was handed a 206,000,000 ceiling and shown almost no 206s.
+print("\na budget is only taken from a number that is money")
+for text, want, why in [
+    ("۲۰۶", None, "a model number is not a price"),
+    ("206", None, "  nor in Latin digits"),
+    ("پراید", None, "a model name alone sets no budget"),
+    ("تیبا مدل ۹۵", None, "a model year is not a price"),
+    ("تیبا مدل ۹۵ مشکی", None, "  and «م» of a following word is not «میلیون»"),
+    ("مدل ۹۸ به بالا، کارکرد زیر ۹۰ هزار", None, "an odometer is not a price"),
+    ("کارکرد زیر ۹۰ هزار، تا ۸۰۰ میلیون", 800_000_000,
+     "the budget clause is found even when another clause comes first"),
+    ("۲۰۶ زیر ۱۰۰ هزار کیلومتر، بودجه ۹۰۰ میلیون", 900_000_000,
+     "  including when the first clause is an explicit km cap"),
+    ("۲۰۶ زیر ۸۰۰ میلیون", 800_000_000, "the ordinary case still works"),
+    ("پراید ۸۰۰م", 800_000_000, "«م» is a scale word when nothing follows it"),
+    ("۲۰۶ تا ۱ میلیارد و ۴۸۰", 1_480_000_000, "the «و» tail survives"),
+]:
+    got_b = P.parse(text).budget_max_toman
+    check(f"«{text}» → {'—' if want is None else f'{want:,}'}  ({why})",
+          got_b == want, "None" if got_b is None else f"{got_b:,}")
+
+# The inference, when it happens, is still disclosed. This is the property
+# that makes the strictness above safe to add: a budget CARO guessed is
+# labelled as a guess, so tightening the guess cannot hide anything.
+check("an inferred budget is still disclosed as an inference",
+      any("سقف بودجه" in a for a in
+          P.parse("یه ماشین خوب میخوام حدود ۱ میلیارد").assumptions))
+check("  and an explicit budget clause is not labelled a guess",
+      not any("سقف بودجه" in a for a in P.parse("تا ۳ میلیارد").assumptions))
+
+
+# ---------------------------------------------------------------------------
 print("\nretrieval and the relaxation ladder")
 tight = IntentSpec(raw_query="", budget_max_toman=100_000_000,
                    model_hints=("206",), year_min=1402,
