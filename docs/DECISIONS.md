@@ -2052,3 +2052,119 @@ codebase with 629 assertions, during a run whose registration nobody violated.
 Nothing failed. The only thing that would have surfaced it is a test that
 asserts a field the format reserves is ever populated — which is exactly the
 class of test that feels redundant to write.
+
+## D46 — The corpus was never in the repository, and those numbers are not reproducible
+
+The README tells a reader to run `scripts/benchmark_run3.py` and calls it "the
+benchmark above, from the stored corpus". `DEMO_SCRIPT.md` opens by saying
+every number in the script is "in the repository and reproducible with no
+network" and names five scripts. On a clean clone, all six fail:
+
+    scripts/benchmark_run3.py        FileNotFoundError  data/snapshots/run3/listings.json
+    scripts/benchmark_run5.py        FileNotFoundError  data/snapshots/run5/listings.json
+    scripts/run5_significance.py     FileNotFoundError
+    scripts/rank_run3.py             FileNotFoundError
+    scripts/rank_run5.py             FileNotFoundError
+    demo/export_ranking.py           FileNotFoundError
+
+`.gitignore` line 8 is `data/snapshots/`. The raw corpora were never committed,
+so no clone has ever had them, and the sentence describing them as stored was
+never true for anyone but the machine that collected them.
+
+**The search, and what it settles.** Every place that could hold them was
+checked before this entry was written:
+
+    git history, all refs        92 commits · 262 blobs · 0 paths under data/
+    working tree                 one file: data/snapshots/2026-09-07/
+                                 bama-2026-09-07.json — 231 bytes,
+                                 integrity "suspect", counts.total 0
+    git stash                    no refs/stash
+    every bundle on the machine  ancestors of that same history, which holds
+                                 no blob under data/ — so none can carry it
+    both repo tarballs           0 entries under data/
+    the run-output directory     summaries and reports only
+    Downloads / Desktop /        64 CARO artifacts, all bundles, archives,
+    Documents                    docs and summaries; no listings.json
+
+**The cause is not established, and does not need to be.** Several accounts
+fit the evidence; none is confirmed, and the engineering decision is the same
+under all of them. This entry records the state, not a story about how it
+arose.
+
+**What survives, and what it is worth.** The verbatim output of every run is
+committed and stays committed: `RUN3_2026-09-07.txt`, `RUN5_2026-09-07.txt`,
+`BENCHMARK_2026-09-07.txt`, `BENCHMARK_RUN5_2026-09-07.txt`,
+`RUN5_SIGNIFICANCE_2026-09-07.txt`, `RANK_RUN3_2026-09-08.txt`,
+`RANK_RUN5_2026-09-08.txt`, `GATE_DIAGNOSIS_2026-09-08.txt`. These are
+**evidence that the runs executed and what they printed**. They do not, by
+themselves, establish that the committed code, inputs, and environment would
+produce those outputs again. A transcript fixes what one execution printed; it
+cannot close the loop from *committed code + exact input corpus + exact
+configuration* back to that output, and without the corpus nothing else in the
+repository closes it either. `demo/ranking_data.json` is committed and inlined
+into `demo/index.html`, so the decision panel still renders without the missing
+corpus.
+
+**What may no longer be claimed.** Three phrasings are now retired, and the
+files carrying them are wrong until they are changed:
+
+- "from the stored corpus" — `README.md:138`
+- "629 assertions, no API key, no network" is fine; "reproducible with no
+  network" applied to the *run* scripts is not — `DEMO_SCRIPT.md:7-10`
+- any frame implying a clean clone can re-derive Run 3 or Run 5, including
+  filming `scripts/rank_run5.py` running live — `DEMO_SCRIPT.md:124`
+
+The replacement is a status, not a deletion. The numbers stay; what changes is
+the grade attached to them, and the grade has five rows rather than one,
+because "not reproducible" collapses distinctions this project needs:
+
+    execution evidence          ✓   the run happened, on a dated corpus
+    result transcript           ✓   committed, verbatim, in docs/
+    repository replay           ✗   the input is not in the repository
+    independent reproduction    ✗   no third party can re-derive the numbers
+    full provenance             ✗   code + input + configuration → output
+                                    cannot be closed from what is committed
+
+**Re-collection is not recovery, and calling it that would be D35.** The
+collection path still works and `RUN5_SPEC.md` is frozen, so a new run under
+the same specification is possible. It would be a **new run with new numbers**.
+Run 5's corpus was a particular 403 listings observed on a particular day;
+nothing collected later reconstitutes it. Publishing a fresh collection as
+though it re-derived Run 5's figures would be relabelling a second experiment
+as the first — the exact move D35 exists to refuse, and it would be worse here
+than in the case D35 was written for, because the original could no longer be
+consulted to catch it.
+
+Rebuilding a corpus from the reported summaries is barred under a separate and
+stricter rule: **a corpus reconstructed from reported aggregates or outputs
+cannot be treated as the original experimental input, even if it reproduces the
+same headline numbers.** Matching figures would establish that the
+reconstruction was fitted well, not that it is the corpus the experiment ran
+on. Corpus identity is not inferable from agreement of results.
+
+**What follows.** The requirement is on the artifact, not on the storage
+mechanism: *any run whose numbers are published must have an immutable,
+repository-addressable input artifact sufficient for independent replay.* For
+this project, at this size, that artifact should be committed under
+`data/snapshots/` unless a stronger versioned artifact mechanism is introduced
+— a content-addressed store or artifact registry would satisfy the requirement
+equally, and would be the better answer once a corpus outgrows a git object.
+The ignore rule is therefore the current remedy rather than an architectural
+invariant, and changing it is worth more than this entry: a decision record can
+say the corpus should have been retained, and only the rule can stop the next
+one from going the same way.
+
+**The pattern this belongs to.** D36 is a claim outrunning its evidence. D41 is
+tests for a mechanism read as a working product. D45 is a correct fix quietly
+removing an unrelated capability. This one is the same family and the most
+consequential member of it, because the broken claim concerns the project's
+central reproducibility promise: everything here is built to stop a number from
+being asserted beyond what supports it, and the README invited a reviewer to
+verify the headline numbers with a command that has never worked for them.
+
+Nothing in the existing suites failed, because no existing test exercised the
+repository's own replay commands against a clean clone. The suites pass because
+they build their own corpora, which is exactly why they are silent about a
+corpus that is missing. The missing check was not a property of the model; it
+was a repository-integrity check: run the commands the documentation tells a
+reviewer to run, from a clean clone, with network disabled.
