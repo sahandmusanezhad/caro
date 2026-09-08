@@ -194,6 +194,137 @@ so the flattering one cannot travel alone:
     evidence for conditional serving   insufficient
     decision                           do not serve
 
+## The publishable corpus artifact
+
+Added after D46, which found that the corpora behind every published number
+were never in the repository and are not recoverable. Nothing above this
+section is relaxed by it: this is a contract for a stage that did not
+previously exist, not a threshold moved to let a run pass.
+
+**Two directories, because there are two lifecycles and conflating them is
+what went wrong.**
+
+```
+data/
+├── snapshots/    operational. Working output of a collection run. Ignored by
+│                 git. May hold whatever the run needed, including
+│                 seller-authored prose. Never published.
+└── corpora/      publication-grade. Committed. The only path a README, a
+                  benchmark or a replay command may point at.
+```
+
+A file does not move between them by hand. **Promotion is a deterministic,
+validated, redacting step**, and it is the only writer of `data/corpora/`.
+Copying a snapshot across manually is the failure mode this section exists to
+remove: everything D46 records was process failure, not a missing `.gitignore`
+line, and a rule a person has to remember is the same failure waiting again.
+
+### What a published corpus artifact must be
+
+| | |
+|---|---|
+| **deterministic** | replaying it reproduces the run's reported numbers exactly |
+| **immutable by run identity** | one artifact per run id; a changed artifact is a new run, never an edit of the old one |
+| **free of seller-authored text** | see below — this is the semantic rule, not a field list |
+| **free of contact identifiers** | no phone number, no messaging handle, no address, in any field |
+| **free of credential material** | no cookies, tokens, session state, salts, or headers carrying any of them |
+| **bounded and addressable** | an artifact too large for the repository is a storage decision, not a reason to weaken replayability or retention — see below |
+
+**Storage medium is an implementation choice.** What must hold is that the
+artifact stays immutable, addressable and independently replayable; where the
+bytes physically live does not. An artifact too large for the repository must
+either be reduced by a **pre-declared** sampling policy — declared before the
+run, not chosen after seeing which rows are inconvenient — or stored in an
+immutable, content-addressed artifact store, with the repository holding the
+reference and the expected digest. Either satisfies D46. What does not satisfy
+it is an artifact that exists only on the machine that made it.
+
+For CARO at its current size, `data/corpora/` in git is the default, and the
+external-store path is not yet exercised.
+
+### The seller-text rule is semantic, not a field list
+
+> **No free-form seller-authored text may appear in a published corpus
+> artifact.**
+
+The fields that carry it today are `description`, `desc`, `title` and
+`km_line`. Those are **instances, not the definition** — a rename does not
+create an exemption, and a new adapter that introduces `notes` or `summary`
+is covered from the day it is written.
+
+The reason is narrow and specific. `caro/ingest/base.py` states that raw phone
+numbers must not reach CARO or disk, and no redaction step has ever enforced
+it: `salted_fingerprint()` protects the seller identifier and nothing protects
+the prose. D45 records the one time this was noticed in passing — `km_line`
+picking up dealer ad copy on listings with no odometer, "the one place a phone
+number could have ridden along". Bama masks the number it renders; a seller
+typing one into a description is not masked by anyone.
+
+### What is explicitly allowed
+
+The rule is about seller-authored prose, **not about identifiers as a
+category**, and it must not drift into the second thing:
+
+- `seller_fingerprint` — a salted hash, used only for dedup. Allowed.
+  `salted_fingerprint()` already refuses to run without `CARO_SELLER_SALT`,
+  because an unsalted hash of a phone number is a phone number.
+- `payload_sha` — a content hash for traceability. Allowed.
+- `image_phashes` — perceptual hashes for repost identity. Allowed.
+- Structured extracted fields — price, mileage, year, make, model, trim,
+  colour, province, body condition, dealer badge. Allowed; these are what a
+  corpus is for.
+
+A guard that flags any identifier-shaped string would flag all four and be
+switched off within a week. The line is authorship: a value the seller wrote
+in prose is out, a value the pipeline derived is in.
+
+### Two guards, because one is not enough
+
+**Schema guard.** A published artifact may not contain a key drawn from the
+forbidden set, at any nesting depth. Cheap, exact, and evadable by renaming —
+which is why it is only the first of two.
+
+**Content guard.** No personal contact identifier may occur anywhere in a
+published corpus artifact, *regardless of field name*. A field called `notes`,
+`raw`, `meta` or `text` gets the same scan as `description`.
+
+Three properties the content guard must have, each because the obvious
+implementation would miss something:
+
+- It runs on the **serialized artifact after it is written**, not on the
+  object before serialization. A serializer that flattens a nested structure,
+  or a field added downstream of the check, defeats an in-memory scan.
+- It **normalises before matching** — Persian and Arabic digits to ASCII,
+  ZWNJ and NBSP removed, `ك→ک` and `ي→ی` — so `۰۹۱۲…` is caught as readily as
+  `0912…`. `normalize_persian_digits()` already does exactly this.
+- It **fails the suite**, not a log line. A warning about a file that is about
+  to be committed to a public repository is not a control.
+
+### What these guards cannot check
+
+Stated plainly, because an unstated limit reads as a covered one.
+
+- **A contact written in words or deliberately obfuscated.** `صفر نه یک دو…`,
+  a number split across a sentence, or one spelled with letters substituted
+  for digits will pass both guards. The guards raise the cost of an accident;
+  they do not defeat an intent, and the seller-text rule is what actually
+  carries the guarantee. The guards exist to catch the case where prose was
+  admitted by mistake — which is the case that has actually happened.
+- **Whether the artifact reproduces the run.** Determinism is asserted by
+  replaying it, not by inspecting it. That is a separate check and it belongs
+  to the replay path.
+- **Anything about a corpus that was never promoted.** A run whose artifact
+  does not exist has no evidence in this repository, whatever its transcript
+  says (D46).
+
+### The replay path points here, and only here
+
+`--replay` reads a published artifact from `data/corpora/`, validates it
+against this schema, and parses it. It does not read `data/snapshots/`.
+Documentation that says otherwise is describing an architecture in which the
+operational area and the published evidence are the same thing — which is the
+arrangement this section replaces, and the one under which D46 happened.
+
 ## What this contract cannot check
 
 Stated plainly, because an unstated limit reads as a covered one.
