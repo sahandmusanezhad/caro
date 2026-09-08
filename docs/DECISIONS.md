@@ -1736,3 +1736,72 @@ What is *not* claimed: that populating these fields would make the estimator
 clear the gate, or make the ranking better. Those are separate questions and
 neither is answered here. The claim is narrower and checkable — the evidence
 Bama publishes is richer than what Run 5 kept, and the gap is ours.
+
+## D42 — When outcome validity is unavailable, measure construct validity
+
+D41 ended on an open question and it was the real one: with no blind human
+panel, is there any evidence for ranking quality on real listings that does
+not rest on disappearance-as-sale, and does not collapse back into a utility
+function this project wrote for itself?
+
+The answer is no, and it is worth stating flatly because the temptation runs
+the other way. Three substitutes suggest themselves and all three fail:
+
+    "the listing vanished, so the car sold"     D2. Disappearance is not a
+                                                sale, and building the
+                                                ranking's ground truth on the
+                                                inference this project exists
+                                                to refuse is worse than
+                                                having no ground truth.
+    "I will write a rubric and label 50 cars"   That is the synthetic utility
+                                                function with a clipboard.
+                                                Same author, same assumptions,
+                                                fewer samples.
+    "an LLM judges which shortlist is better"   The most seductive one, and
+                                                the emptiest. It does not
+                                                obtain ground truth from
+                                                anywhere; it moves the utility
+                                                function from code into a
+                                                prompt, where it is harder to
+                                                inspect.
+
+So **"ranking quality on real listings is not validated" is the ceiling of
+what this submission may claim**, and the README's status table says exactly
+that rather than filling the cell with a weak criterion.
+
+**But a different claim is available, and it needs no ground truth at all.**
+Instead of *was this car really the better choice*, ask: *are the inputs the
+ranking says it uses actually present, observable and traceable in real
+listings?* That is construct validity rather than outcome validity, and it is
+measurable today. `decision_ledger()` records, per candidate, which of the
+scoring function's inputs existed — and for each one that did not, the reason.
+
+On Run 5's 58 candidates the answer is 38% mean completeness: the hard filter,
+mileage and year are present; the price delta, the risk score, the running-cost
+and reliability proxies and the observation history are all absent, each with
+a named cause. The ledger runs without a gated estimator on purpose — a ledger
+that refused when the estimator refuses would hide the most informative line
+it has.
+
+**Three reasons this is worth having rather than a consolation prize.**
+
+*It is the first thing the decision layer can show on real Bama listings
+beyond a refusal.* D41 left the real-data section of the demo with nothing but
+a `NotBenchmarked`. Now it has a table of what the decision actually had.
+
+*It makes a specific class of overclaim structurally hard.* An absent input is
+recorded as absent with its reason, never as a zero. A term scored at zero and
+a term with no input are indistinguishable in a weighted sum and completely
+different facts about the product — this is D4's UNKNOWN-vs-ABSENT rule turned
+on the ranker's own inputs instead of a listing's fields.
+
+*And the number is unflattering, which is the point.* 38% is a low figure to
+publish. It is also the honest description of a ranking layer that has been
+tested only against corpora built to feed it.
+
+**What it is not, and this belongs in the record because the failure mode is
+obvious.** A ledger showing every input present would say the ranker is well
+fed. It would not say the ordering is right. Construct validity is a
+precondition for outcome validity, never a substitute, and quoting a
+completeness figure as though it were a quality figure would be D36's error
+with a new number attached.
