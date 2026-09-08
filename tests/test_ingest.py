@@ -1159,6 +1159,11 @@ check("  a shorter page does not", not tp.at_page_cap)
 
 # ---------------------------------------------------------------------------
 print("\nsnapshot integrity — reserved fields that no run ever filled")
+# SCOPE, stated because this check is easy to read as more than it is. It is
+# pinned to the frozen Run 5 snapshot, so what it enforces is a FROZEN
+# SNAPSHOT CONTRACT — "this corpus's reserved fields are filled or named" —
+# and NOT universal ingestion correctness. A future collection is not covered
+# by it. Registering one means writing the same check against that snapshot.
 # D41's addendum. `data/snapshots/run5` carries an eleven-field record per
 # listing, and COND — body condition — is the empty string on all 403 of
 # them. Nothing failed: the format reserves the field, the parser reads it
