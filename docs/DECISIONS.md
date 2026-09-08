@@ -1867,11 +1867,19 @@ collapsed to the global distribution.
 > diagnostic finding into an alibi, which is the exact move D43 exists to
 > refuse, made inside D43.
 
-The narrower true statement is that the gate's verdict here carries no
-information about *this* baseline's quality. What would produce an informative
-verdict is a corpus where held-out trims share a price world with the training
-ones, or an evaluation that conditions on price level. Both are registration
-questions.
+The narrower true statement, and it is worth stating as a property of the
+*gate* rather than of any model:
+
+> This split is so far out of support that it collapses the comparable and
+> global baselines into a single predictor, and as a consequence the gate had
+> no power to distinguish models in Run 5 at all.
+
+That is stronger and more useful than "the number says nothing about this
+baseline", because it names what was lost: discriminating power. A gate that
+cannot separate two estimators it was built to compare is not returning a
+verdict about either of them. What would restore that power is a corpus where
+held-out trims share a price world with the training ones, or an evaluation
+that conditions on price level. Both are registration questions.
 
 **What this does not change.** It does not rescue the estimator. Run 5's
 REJECT stands as registered with D39's interval attached, and nothing here is
