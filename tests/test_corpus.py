@@ -231,6 +231,77 @@ code, exists, _ = promote(REFUSE)
 check("a row whose only mileage evidence is tainted is refused", code == 1)
 check("  and again nothing is written", not exists)
 
+# ---------------------------------------------------------------------------
+print("\nmigration property — a corpus may be stricter, never more permissive")
+# ---------------------------------------------------------------------------
+# NOT equality. The published artifact deliberately holds less than the
+# snapshot did: no prose, and no parse-time price provenance. So the property
+# that has to hold is one-directional — a corpus can refuse a listing the
+# legacy path admitted, and must never admit one the legacy path refused.
+
+from caro.corpus_reader import (                                    # noqa: E402
+    CorpusUnavailable, listing_from_record, listings_from_corpus, load_corpus,
+)
+from caro.ingest.bama import ParseTrace, parse_detail_page          # noqa: E402
+from caro.ingest.quality import eligibility as _elig                # noqa: E402
+from scripts.replay_run3 import rebuild                             # noqa: E402
+
+# One listing, expressed both ways. Positional order is replay_run3's:
+# SLUG ANCHORED DEALER YEAR KM PRICE CUR KM_LINE PRICE_TEXT COND DESC
+LEGACY_REC = ["saipa-pride-ex", True, False, 1393, 174538, 592984063, "IRR",
+              "کارکرد ۱۷۴٬۵۳۸ کیلومتر", "۵۹۲٬۹۸۴٬۰۶۳", "بدون رنگ",
+              "ماشین سالم، سند آزاد"]
+SNAP_REC = {"listing_id": "saipa", "make": "Saipa", "model": "Pride",
+            "trim": "ex",
+            "year_jalali": 1393, "mileage_km": 174538,
+            "asking_price_toman": 592984063, "price_currency_raw": "IRR",
+            "km_line": "کارکرد ۱۷۴٬۵۳۸ کیلومتر",
+            "description": "ماشین سالم، سند آزاد", "condition": "intact"}
+
+url, page = rebuild(LEGACY_REC)
+legacy = parse_detail_page(url, page, trace=ParseTrace())
+check("the legacy path still parses the shared fixture", legacy is not None)
+legacy_ok = _elig(legacy)[0] if legacy else False
+check("  and admits it to W1", legacy_ok, str(_elig(legacy)[1]) if legacy else "")
+
+code, exists, text = promote({"taken_on": "2026-09-07", "listings": [SNAP_REC]})
+check("the same listing promotes to a corpus artifact", code == 0 and exists)
+corpus_listing = listings_from_corpus(json.loads(text))[0]
+corpus_ok, corpus_why = _elig(corpus_listing)
+
+check("THE PROPERTY: corpus is not more permissive than legacy",
+      not (corpus_ok and not legacy_ok),
+      "a corpus admitting what the legacy path refused is the failure this "
+      "migration must not have")
+check("  here it is strictly stricter — provenance is unavailable",
+      legacy_ok and not corpus_ok, f"legacy={legacy_ok} corpus={corpus_ok}")
+check("  and it says which provenance, rather than borrowing another reason",
+      all("provenance unknown" in w for w in corpus_why), str(corpus_why))
+
+# The other direction, so the property is not satisfied by refusing everything.
+bad_rec = dict(SNAP_REC, asking_price_toman=None, mileage_km=None)
+bad_legacy = parse_detail_page(*rebuild(
+    ["saipa-pride-ex", True, False, 1393, None, None, "IRR", "کارکرد ۱۷۴٬۵۳۸ کیلومتر",
+     "توافقی", "بدون رنگ", ""]), trace=ParseTrace())
+check("a listing the legacy path REFUSES is refused by the corpus too",
+      not _elig(bad_legacy)[0]
+      and not _elig(listing_from_record(bad_rec))[0])
+
+check("prose the contract forbids is empty, not reconstructed",
+      corpus_listing.title == "" and corpus_listing.description == "",
+      "the reader must not invent what the artifact does not carry")
+check("  while the values DERIVED from that prose survive",
+      corpus_listing.body_condition == "intact",
+      str(corpus_listing.body_condition))
+
+for run in ("run3", "run5"):
+    try:
+        load_corpus(run)
+        check(f"{run} raises CorpusUnavailable", False, "it did not raise")
+    except CorpusUnavailable as e:
+        check(f"{run} has no corpus, and says so as a prerequisite not a bug",
+              "D46" in str(e), str(e)[:60])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

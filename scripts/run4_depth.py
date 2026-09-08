@@ -175,17 +175,10 @@ def plan(before) -> str:
     return "\n".join(L)
 
 
-def _load(d: Path):
-    from scripts.replay_run3 import rebuild                          # noqa: E402
-    from caro.ingest.bama import ParseTrace, parse_detail_page       # noqa: E402
-    rows = json.loads((d / "listings.json").read_text(encoding="utf-8"))
-    out = []
-    for rec in rows:
-        url, page = rebuild(rec)
-        got = parse_detail_page(url, page, trace=ParseTrace())
-        if got is not None:
-            out.append(got)
-    return out
+def _load(run_id: str):
+    """Listings from a PUBLISHED corpus, by run id (DATA_CONTRACT)."""
+    from caro.corpus_reader import load_corpus, listings_from_corpus  # noqa: E402
+    return listings_from_corpus(load_corpus(str(run_id)))
 
 
 def main() -> int:
@@ -199,7 +192,7 @@ def main() -> int:
         print(compare(_load(args.compare[0]), _load(args.compare[1])))
         return 0
 
-    before = _load(ROOT / "data" / "snapshots" / "run3")
+    before = _load("run3")
     print(plan(before))
     return 0
 

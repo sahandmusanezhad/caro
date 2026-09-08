@@ -83,16 +83,9 @@ def baseline_mae(train: list[Row], test: list[Row]) -> float:
 
 
 def main() -> int:
-    from scripts.replay_run3 import rebuild                          # noqa: E402
-    from caro.ingest.bama import ParseTrace, parse_detail_page       # noqa: E402
+    from caro.corpus_reader import load_corpus, listings_from_corpus  # noqa: E402
 
-    snap = ROOT / "data" / "snapshots" / "run3" / "listings.json"
-    listings = []
-    for rec in json.loads(snap.read_text(encoding="utf-8")):
-        url, page = rebuild(rec)
-        got = parse_detail_page(url, page, trace=ParseTrace())
-        if got is not None:
-            listings.append(got)
+    listings = listings_from_corpus(load_corpus("run3"))
     rows = to_rows(listings)
 
     print("BENCHMARK — partial pooling on the Run 3 corpus")

@@ -35,31 +35,20 @@ from caro.ranking import (                                         # noqa: E402
     features_from_listing, retrieve,
 )
 
-SNAP = ROOT / "data" / "snapshots" / "run3"
+from caro.corpus_reader import load_corpus, rows_from_corpus  # noqa: E402
+
+RUN_ID = "run3"
 QUERY = "ماشین اول خانواده، تصادفی نباشه، بودجه ۱.۵ میلیارد"
 
 
 def load():
-    from scripts.replay_run3 import rebuild                        # noqa: E402
-    recs = json.loads((SNAP / "listings.json").read_text(encoding="utf-8"))
-    listings, rows = [], []
-    for rec in recs:
-        url, page = rebuild(rec)
-        got = parse_detail_page(url, page, trace=ParseTrace())
-        if got is None:
-            continue
-        listings.append(got)
-        if not eligibility(got)[0]:
-            continue
-        rows.append(Row(
-            listing_id=got.listing_id, cluster_id=got.listing_id,
-            first_seen_ordinal=0,
-            model_key=f"{got.make}|{got.model}|{got.trim or ''}",
-            year_jalali=int(got.year_jalali),
-            mileage_km=float(got.mileage_km),
-            asking_price_toman=float(got.asking_price_toman),
-            features=features_from_listing(got)))
-    return listings, rows
+    """The published corpus, not the operational snapshot (DATA_CONTRACT).
+
+    The old body rebuilt an HTML page from a positional record and re-parsed
+    it. A published artifact carries derived fields instead, so the mapping
+    lives once in caro/corpus_reader.py and no consumer reconstructs a page.
+    """
+    return rows_from_corpus(load_corpus(RUN_ID))
 
 
 def main() -> int:

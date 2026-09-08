@@ -235,7 +235,7 @@ SYNTHETIC    pipeline behaviour · ranking mechanics ·
 **Screen, final, held for four seconds:**
 
 ```
-۷۰۵ assertion · ۸ suite · ۴۶ decision · ۵ اجرای زنده روی باما
+۷۱۶ assertion · ۸ suite · ۴۶ decision · ۵ اجرای زنده روی باما
 ۰ ادعای بدون شواهد در خروجی
 
 github.com/sahandmusanezhad/caro

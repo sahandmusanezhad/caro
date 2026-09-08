@@ -94,28 +94,10 @@ RUN3_DETAIL_FETCHED = 221
 
 
 def load_run3():
-    from scripts.replay_run3 import rebuild                        # noqa: E402
-    from caro.ingest.bama import ParseTrace, parse_detail_page     # noqa: E402
-    from caro.appraisal import Row                                 # noqa: E402
-    from caro.ingest.quality import eligibility                    # noqa: E402
+    from caro.corpus_reader import load_corpus, rows_from_corpus   # noqa: E402
 
-    snap = ROOT / "data" / "snapshots" / "run3" / "listings.json"
-    rows, parsed = [], 0
-    for rec in json.loads(snap.read_text(encoding="utf-8")):
-        url, page = rebuild(rec)
-        got = parse_detail_page(url, page, trace=ParseTrace())
-        if got is None:
-            continue
-        parsed += 1
-        if not eligibility(got)[0]:
-            continue
-        rows.append(Row(
-            listing_id=got.listing_id, cluster_id=got.listing_id,
-            first_seen_ordinal=0,
-            model_key=f"{got.make}|{got.model}|{got.trim or ''}",
-            year_jalali=int(got.year_jalali),
-            mileage_km=float(got.mileage_km),
-            asking_price_toman=float(got.asking_price_toman)))
+    listings, rows = rows_from_corpus(load_corpus("run3"))
+    parsed = len(listings)
     return rows, parsed
 
 
