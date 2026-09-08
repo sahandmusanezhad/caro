@@ -20,6 +20,19 @@ Run 5   228 eligible, 100 trims, 44 makes          607.0M      526.3M    +15.3%
         pre-registered before any request                                REJECTED
 ```
 
+**Neither figure can be re-derived from this repository.** Both runs happened
+and the verbatim output of each is committed under `docs/`; their input
+corpora were never committed and are not recoverable. D46 records the search
+and what follows from it. The status has five rows rather than one, because
+"not reproducible" collapses distinctions this project needs:
+
+    execution evidence          ✓   the run happened, on a dated corpus
+    result transcript           ✓   committed, verbatim, in docs/
+    repository replay           ✗   the input is not in the repository
+    independent reproduction    ✗   no third party can re-derive the numbers
+    full provenance             ✗   code + input + configuration → output
+                                    cannot be closed from what is committed
+
 Same estimator. Same gate. Same frozen constants — `MIN_SLICE_N=58`,
 `MIN_PER_TRIM_FLOOR=5`, hold-out 0.25, seed 0. The only thing that changed
 is the corpus, and the second one is larger, was collected against a
@@ -135,10 +148,18 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 
 python3 tests/run_all.py            # 629 assertions, no API key, no network
-python3 scripts/benchmark_run3.py   # the benchmark above, from the stored corpus
 python3 tests/run_all.py ranking    # just the win-rate benchmark
 python3 demo/export_demo.py         # regenerate demo/index.html from live output
 ```
+
+Those three run on a clean clone with no network. The run scripts do not:
+`scripts/benchmark_run3.py`, `benchmark_run5.py`, `run5_significance.py`,
+`rank_run3.py`, `rank_run5.py` and `demo/export_ranking.py` all raise
+`FileNotFoundError`, because the corpora they read were never committed (D46).
+Read their committed output in `docs/` instead — `RUN3_2026-09-07.txt`,
+`RUN5_2026-09-07.txt`, `BENCHMARK_RUN5_2026-09-07.txt`,
+`RUN5_SIGNIFICANCE_2026-09-07.txt`, `RANK_RUN5_2026-09-08.txt`,
+`GATE_DIAGNOSIS_2026-09-08.txt`.
 
 **numpy is the only hard dependency.** Ridge regression is written out in
 four lines of linear algebra rather than imported, because depending on
@@ -338,7 +359,7 @@ caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · quality · coverage · stratification
 tests/           629 assertions across seven suites
 scripts/         live runs, replays, the benchmark, the run-3/4 experiment plans
-data/snapshots/  the collected corpora, replayable offline
+data/snapshots/  NOT in the repository — see D46; a clone has no corpora
 demo/            export_demo.py regenerates index.html from pipeline output
 docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D35) · eval
 ```

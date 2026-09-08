@@ -4,10 +4,20 @@ Written for the Torob AI Product Engineer submission. Persian narration,
 English on screen (the repo is English; subtitles or a re-record in English
 are a swap of this one file).
 
-Every number below is in the repository and reproducible with no network:
-`python3 tests/run_all.py`, `scripts/benchmark_run3.py`,
-`scripts/benchmark_run5.py`, `scripts/run5_significance.py`,
-`scripts/rank_run5.py`.
+Every number below is either reproducible from the repository or preserved as
+a committed run transcript. Those are two different things and the script must
+not blur them.
+
+The synthetic figures are **reproducible with no network**: `python3
+tests/run_all.py` and `python3 tests/run_all.py ranking` re-derive them on any
+clean clone.
+
+The Run 3 and Run 5 figures are **transcripts, not reproductions**. Their
+corpora were never committed and are not recoverable (D46), so
+`benchmark_run3.py`, `benchmark_run5.py`, `run5_significance.py`,
+`rank_run3.py` and `rank_run5.py` cannot run here. Their committed output in
+`docs/` is what may be filmed, and no frame may imply it is being re-derived
+on camera.
 
 ---
 
@@ -121,7 +131,13 @@ and it must be visible, not narrated away.
 
 > **VO:** حالا همان خط لوله، روی ۴۰۳ آگهی واقعی که خودمان از باما جمع کردیم.
 
-**Screen:** `scripts/rank_run5.py` running live.
+**Screen:** `docs/RANK_RUN5_2026-09-08.txt` — the committed transcript of
+that run, opened as a file. **Not run live.** Run 5's corpus is gone (D46), so
+`rank_run5.py` raises here; filming a terminal would either fail on camera or
+require a corpus that no longer exists. The transcript carries both frames this
+section needs — the term-liveness table and the refusal line — so nothing is
+lost but the keystrokes. The corner label stays REAL DATA: the run was real.
+What the narration may not say, in any wording, is that it is happening now.
 
 > **VO:** نیت درست خوانده می‌شود. بازیابی کار می‌کند — شش تا ۲۰۶ واقعی داخل
 > بودجه. نردبان شل‌سازی کار می‌کند. و بعد:
