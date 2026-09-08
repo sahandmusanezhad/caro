@@ -55,7 +55,42 @@ THE DECISION PATH ON REAL DATA — audit, no verdict
     candidates   1   relaxed=True   با شرایط دقیق شما گزینه‌ی کافی نبود، پس: بودجه ۱۰٪ افزایش یافت
     shortlist  — refused: estimator is not gated
 
-4. WHAT THIS DOES NOT SETTLE
+4. THE DECISION LEDGER — which inputs actually exist here
+------------------------------------------------------------------------------
+  No ground truth is needed for this and none is used. It asks a
+  different question: are the inputs the ranking says it uses
+  actually present and traceable in real listings?
+
+  58 candidates for «family first car, no accident, 1.5B»
+
+    hard_filter_pass           present   58/58   did this candidate satisfy the stated constraints
+    price_delta_to_estimate    absent     0/58   asking price against the market estimate
+    risk_score                 absent     0/58   priced body/accident risk
+    mileage                    present   58/58   odometer reading
+    year                       present   58/58   model year
+    running_cost_signals       absent     0/58   ownership cost proxy
+    reliability_signals        absent     0/58   liquidity / resale proxy
+    recency                    absent     0/58   how long the listing has been observed
+
+  mean completeness  38%   of the inputs the scoring function reads
+
+  and every absence carries its reason, not a blank:
+    price_delta_to_estimate
+      → no gated estimator: the acceptance gate has not approved one on this corpus, so no market estimate may be served
+    risk_score
+      → features['risk'] absent — ingest does not populate it
+    running_cost_signals
+      → features['ownership_risk'] absent — ingest does not populate it
+    reliability_signals
+      → features['liquidity'] absent — ingest does not populate it
+    recency
+      → first_seen_ordinal is 0 — single snapshot, no observation history
+
+  This is construct validity, not ranking quality. A ledger with
+  every input present would say the ranker is well fed — never
+  that its ordering is right.
+
+5. WHAT THIS DOES NOT SETTLE
 ------------------------------------------------------------------------------
   No win-rate is printed. `winrate_vs_price_sort` needs ground
   truth about what the buyer gains, which exists on the synthetic

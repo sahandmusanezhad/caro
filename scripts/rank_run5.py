@@ -23,6 +23,7 @@ Nothing is fitted, tuned, or gated here. No frozen constant is touched.
 from __future__ import annotations
 
 import sys
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -36,7 +37,8 @@ from caro.appraisal import (                                       # noqa: E402
 )
 from caro.hierarchical import held_out_trim_split                  # noqa: E402
 from caro.ranking import (                                         # noqa: E402
-    RankingPipeline, Ranker, RuleIntentParser, retrieve,
+    LEDGER_INPUTS, RankingPipeline, Ranker, RuleIntentParser,
+    decision_ledger, retrieve,
 )
 
 HOLDOUT_FRACTION = 0.25
@@ -157,7 +159,38 @@ def main() -> int:
             print(f"      {r.model_key:<34} {r.year_jalali}  "
                   f"{r.mileage_km:>9,.0f}km  {r.asking_price_toman:>15,.0f}")
 
-    print("\n4. WHAT THIS DOES NOT SETTLE")
+    print("\n4. THE DECISION LEDGER — which inputs actually exist here")
+    print("-" * 78)
+    print("  No ground truth is needed for this and none is used. It asks a")
+    print("  different question: are the inputs the ranking says it uses")
+    print("  actually present and traceable in real listings?\n")
+    spec = parser.parse("\u0645\u0627\u0634\u06cc\u0646 \u0627\u0648\u0644 \u062e\u0627\u0646\u0648\u0627\u062f\u0647\u060c \u062a\u0635\u0627\u062f\u0641\u06cc \u0646\u0628\u0627\u0634\u0647\u060c \u0628\u0648\u062f\u062c\u0647 \u06f1.\u06f5 \u0645\u06cc\u0644\u06cc\u0627\u0631\u062f")
+    cands, _, _ = retrieve(rows, spec)
+    ledger = decision_ledger(cands, spec, estimator=est if ok else None)
+    present = Counter()
+    for lr in ledger:
+        for k in lr.values:
+            present[k] += 1
+    n = len(ledger)
+    print(f"  {n} candidates for \u00abfamily first car, no accident, 1.5B\u00bb\n")
+    for name, what in LEDGER_INPUTS:
+        if name == "data_completeness":
+            continue
+        c = present.get(name, 0)
+        mark = "present" if c == n else ("absent " if c == 0 else "partial")
+        print(f"    {name:<26} {mark}  {c:>3}/{n}   {what}")
+    print(f"\n  mean completeness  {sum(l.completeness for l in ledger) / n:.0%}"
+          f"   of the inputs the scoring function reads")
+    if ledger:
+        why = ledger[0].missing
+        print("\n  and every absence carries its reason, not a blank:")
+        for k, v in why.items():
+            print(f"    {k}\n      \u2192 {v}")
+    print("\n  This is construct validity, not ranking quality. A ledger with")
+    print("  every input present would say the ranker is well fed \u2014 never")
+    print("  that its ordering is right.")
+
+    print("\n5. WHAT THIS DOES NOT SETTLE")
     print("-" * 78)
     print("  No win-rate is printed. `winrate_vs_price_sort` needs ground")
     print("  truth about what the buyer gains, which exists on the synthetic")

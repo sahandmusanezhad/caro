@@ -554,6 +554,123 @@ def diversify(scored: Sequence[ScoredRow], k: int = 5) -> list[ScoredRow]:
     return picks[:k]
 
 
+# ---------------------------------------------------------------------------
+# The decision ledger — what the ranker actually had to work with
+# ---------------------------------------------------------------------------
+#
+# There is no ground truth for ranking quality on real listings. Buyer utility
+# is not published, disappearance is not a sale (D2), and a rubric written
+# here — or handed to a language model as a judging prompt — is the same
+# self-written utility function wearing a different coat. So "CARO's ranking
+# beats price-sort on Iranian used cars" is not a claim this project can
+# support today, and D41 says so in the status table.
+#
+# A different claim IS supportable, and it is the one this ledger measures:
+#
+#     are the inputs the ranking says it uses actually PRESENT, observable
+#     and traceable in real listings?
+#
+# That is a question about construct validity rather than outcome quality. It
+# needs no ground truth, it runs on real data with no estimator, and it fails
+# loudly when the answer is no — which on this corpus it largely is. Four of
+# six scoring terms have no input on Bama data (D41), so a ledger over real
+# listings is mostly `missing`, and printing that is the point: an absent
+# input is a term that cannot move a ranking however its weight is set.
+#
+# What this is NOT: evidence that the ordering is good. A ledger showing every
+# input present would say the ranker is well-fed, not that it is right.
+
+
+LEDGER_INPUTS: tuple[tuple[str, str], ...] = (
+    ("hard_filter_pass", "did this candidate satisfy the stated constraints"),
+    ("price_delta_to_estimate", "asking price against the market estimate"),
+    ("risk_score", "priced body/accident risk"),
+    ("mileage", "odometer reading"),
+    ("year", "model year"),
+    ("running_cost_signals", "ownership cost proxy"),
+    ("reliability_signals", "liquidity / resale proxy"),
+    ("recency", "how long the listing has been observed"),
+    ("data_completeness", "share of the above that is present"),
+)
+
+
+@dataclass(frozen=True)
+class LedgerRow:
+    """One candidate, and which decision inputs really existed for it.
+
+    `values` holds what was present. `missing` names what was not, with the
+    reason — the distinction UNKNOWN-vs-ABSENT that D4 insists on, applied to
+    the ranker's own inputs rather than to a listing's fields.
+    """
+    candidate_id: str
+    values: dict[str, float | int | bool]
+    missing: dict[str, str]
+    final_rank: int | None
+
+    @property
+    def completeness(self) -> float:
+        n = len(LEDGER_INPUTS) - 1          # data_completeness is derived
+        return len(self.values) / n if n else 0.0
+
+
+def decision_ledger(rows: Sequence[Row], spec: IntentSpec,
+                    estimator: MarketEstimator | None = None,
+                    ranked: Sequence[ScoredRow] = ()) -> list[LedgerRow]:
+    """Record, per candidate, which ranking inputs were actually available.
+
+    Deliberately runs WITHOUT an estimator. When one is absent or ungated the
+    price-delta input is recorded as missing with the reason, rather than the
+    whole ledger refusing — because "the estimate was not available" is the
+    single most informative line this can print on real data, and refusing to
+    print it would hide exactly the thing worth seeing.
+    """
+    order = {s.row.listing_id: i + 1 for i, s in enumerate(
+        sorted(ranked, key=lambda s: s.score, reverse=True))}
+
+    preds = None
+    if estimator is not None:
+        try:
+            preds = estimator.predict(rows)
+        except NotBenchmarked:
+            preds = None
+
+    out: list[LedgerRow] = []
+    for i, r in enumerate(rows):
+        values: dict[str, float | int | bool] = {}
+        missing: dict[str, str] = {}
+
+        values["hard_filter_pass"] = _passes(r, spec)
+        values["mileage"] = r.mileage_km
+        values["year"] = r.year_jalali
+
+        if preds is not None:
+            mid = preds.shape[1] // 2
+            values["price_delta_to_estimate"] = float(
+                preds[i, mid] - r.asking_price_toman)
+        else:
+            missing["price_delta_to_estimate"] = (
+                "no gated estimator: the acceptance gate has not approved one "
+                "on this corpus, so no market estimate may be served")
+
+        for key, label in (("risk", "risk_score"),
+                           ("ownership_risk", "running_cost_signals"),
+                           ("liquidity", "reliability_signals")):
+            if key in r.features:
+                values[label] = float(r.features[key])
+            else:
+                missing[label] = f"features['{key}'] absent — ingest does not populate it"
+
+        if r.first_seen_ordinal:
+            values["recency"] = int(r.first_seen_ordinal)
+        else:
+            missing["recency"] = "first_seen_ordinal is 0 — single snapshot, no observation history"
+
+        out.append(LedgerRow(candidate_id=r.listing_id, values=values,
+                             missing=missing,
+                             final_rank=order.get(r.listing_id)))
+    return out
+
+
 @dataclass
 class Shortlist:
     spec: IntentSpec

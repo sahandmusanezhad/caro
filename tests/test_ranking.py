@@ -15,7 +15,7 @@ from caro.appraisal import (
 from caro.ranking import (
     IntentSpec, RankingPipeline, Ranker, RuleIntentParser, Weights,
     diversify, normalize_fa, parse_amount, retrieve, winrate_vs_price_sort,
-    _passes,
+    LEDGER_INPUTS, decision_ledger, _passes,
 )
 
 FAILS: list[str] = []
@@ -210,6 +210,56 @@ check("bare-slug keys still match (the synthetic corpora)",
                   asking_price_toman=1.0),
               IntentSpec(raw_query="", model_hints=("206",))))
 
+
+
+def replace_row(r: Row) -> Row:
+    """The same car as Bama actually gives it to us: no derived features."""
+    return Row(listing_id=r.listing_id, cluster_id=r.cluster_id,
+               first_seen_ordinal=0, model_key=r.model_key,
+               year_jalali=r.year_jalali, mileage_km=r.mileage_km,
+               asking_price_toman=r.asking_price_toman, features={})
+
+
+
+# ---------------------------------------------------------------------------
+print("\nthe decision ledger — construct validity, not ranking quality")
+# There is no ground truth for ranking quality on real listings, so the ledger
+# answers a different question that needs none: were the inputs the scoring
+# function reads actually PRESENT? On the synthetic corpus everything is
+# present by construction — which is exactly why the interesting assertions
+# below are the ones about absence.
+spec_l = IntentSpec(raw_query="", budget_max_toman=2_000_000_000)
+cands_l, _, _ = retrieve(POOL, spec_l)
+rows_l = decision_ledger(cands_l[:20], spec_l, estimator=EST)
+check("a ledger row per candidate", len(rows_l) == 20)
+check("with a gated estimator the price delta is recorded",
+      all("price_delta_to_estimate" in r.values for r in rows_l))
+check("the synthetic corpus is fully fed", 
+      all(r.completeness == 1.0 for r in rows_l),
+      f"{rows_l[0].values.keys()}")
+
+# The real case: no estimator. The ledger must still produce rows, and must
+# name the reason rather than leave a blank — refusing to print here would
+# hide the single most informative line it has.
+bare = decision_ledger(cands_l[:5], spec_l, estimator=None)
+check("without an estimator the ledger still runs", len(bare) == 5)
+check("  and the price delta is MISSING, with a reason",
+      all("price_delta_to_estimate" in r.missing
+          and "gate" in r.missing["price_delta_to_estimate"] for r in bare))
+check("  an absent input is never silently zero",
+      all("price_delta_to_estimate" not in r.values for r in bare))
+
+featureless = [replace_row(r) for r in cands_l[:5]]
+bare2 = decision_ledger(featureless, spec_l, estimator=None)
+check("a row with no features reports every proxy missing",
+      all({"risk_score", "running_cost_signals", "reliability_signals"}
+          <= set(r.missing) for r in bare2))
+check("  and completeness falls accordingly",
+      all(r.completeness < 0.5 for r in bare2),
+      f"{bare2[0].completeness:.0%}")
+check("hard_filter_pass is always recorded — it needs nothing external",
+      all("hard_filter_pass" in r.values for r in bare2))
+check("the ledger declares its inputs", len(LEDGER_INPUTS) == 9)
 
 # ---------------------------------------------------------------------------
 print("\nscoring and shortlist")
