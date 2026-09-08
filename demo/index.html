@@ -479,4 +479,93 @@ if (!WIRED) {
     .forEach(s => { $(s).innerHTML = todo; });
 }
 
+function facts(it){
+  const f = [];
+  if (it.budget_max) f.push(`<span class="fact">سقف بودجه <b>${toman(it.budget_max)}</b></span>`);
+  if (it.use_case && it.use_case !== 'unspecified')
+    f.push(`<span class="fact">کاربری <b>${USE_FA[it.use_case] || it.use_case}</b></span>`);
+  f.push(`<span class="fact">پروفایل ریسک <b>${RISK_FA[it.risk_profile] || it.risk_profile}</b></span>`);
+  if (it.year_min) f.push(`<span class="fact">مدل از <b>${yr(it.year_min)}</b></span>`);
+  if (it.max_km) f.push(`<span class="fact">کارکرد تا <b>${num(it.max_km)}</b> کیلومتر</span>`);
+  it.models.forEach(m => f.push(`<span class="fact">مدل <b>${m}</b></span>`));
+  it.deal_breakers.forEach(d =>
+    f.push(`<span class="fact db">شرط قطعی · ${DB_FA[d] || d}</span>`));
+  it.assumptions.forEach(a => f.push(`<span class="fact as">فرض: ${a}</span>`));
+  return `<div class="facts">${f.join('')}</div>`;
+}
+
+function weights(w, other){
+  return Object.keys(w).map(k => {
+    const moved = other && Math.abs(w[k] - other[k]) > 1e-9;
+    return `<div class="wt${moved ? ' moved' : ''}"><div class="k">${TERM_FA[k] || k}</div>
+      <div class="v">${w[k].toFixed(2)}</div>
+      ${moved ? `<div class="from">از ${other[k].toFixed(2)}</div>` : ''}
+      <div class="bar"><i style="width:${(w[k] * 100).toFixed(0)}%"></i></div></div>`;
+  }).join('');
+}
+
+function termRows(terms, max){
+  return Object.entries(terms).map(([k, v]) => {
+    const w = max ? Math.abs(v) / max * 50 : 0;
+    return `<div class="term"><span>${TERM_FA[k] || k}</span>
+      <span class="tb"><i class="${v >= 0 ? 'pos' : 'neg'}" style="width:${w.toFixed(1)}%"></i></span>
+      <span class="tv">${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(3)}</span></div>`;
+  }).join('');
+}
+
+function cardHTML(it, max){
+  return `<div class="card${it.rank === 1 ? ' top' : ''}">
+    <div class="role">${it.role}</div>
+    <div class="who">${it.model} · ${yr(it.year)}</div>
+    <div class="spec">${num(Math.round(it.km))} کیلومتر · ${it.id}</div>
+    <dl>
+      <dt>قیمت پیشنهادی</dt><dd>${toman(it.asking)}</dd>
+      <dt>برآورد محافظه‌کارانه</dt><dd>${toman(it.estimate)}</dd>
+      <dt>صرفه پس از ریسک</dt>
+        <dd class="${it.opportunity >= 0 ? 'pos' : 'neg'}">${toman(it.opportunity)}</dd>
+      <dt>خسارت مورد انتظار</dt><dd class="neg">${toman(it.damage)}</dd>
+      <dt>امتیاز</dt><dd>${it.score.toFixed(4)}</dd>
+    </dl>
+    <div class="terms">${termRows(it.terms, max)}</div>
+  </div>`;
+}
+
+const QKEYS = [['shortlist', 'ماشین اول خانواده'], ['second', 'ماشین برای اسنپ']];
+
+function renderQuery(i){
+  const p = R.synthetic[QKEYS[i][0]];
+  document.querySelectorAll('#qtabs .case-btn')
+    .forEach((b, j) => b.setAttribute('aria-selected', j === i));
+
+  $('#intent').innerHTML = corner('syn')
+    + `<p class="eyebrow">Intent · rule parser</p>`
+    + `<p class="q">${p.query}</p>` + facts(p.intent)
+    + `<div class="wts">${weights(p.intent.weights)}</div>`
+    + (p.intent.unparsed.length
+        ? `<p class="note">بخش‌هایی که پارسر نتوانست بفهمد و صریحاً ثبتشان کرده —
+           ${p.intent.unparsed.map(u => u.trim()).filter(Boolean)
+              .map(u => `<span class="unp">${u}</span>`).join('')}
+           ثبت‌شدنشان عمدی است: پارسری که ندانسته‌اش را بی‌صدا دور بیندازد،
+           بدتر از پارسری است که خالی برگردد.</p>`
+        : '');
+
+  const max = Math.max(...p.items.flatMap(x => Object.values(x.terms).map(Math.abs)), 1e-9);
+  $('#short').innerHTML = corner('syn')
+    + `<p class="eyebrow">Shortlist · ${num(p.items.length)} از ${num(p.candidates)} کاندیدا</p>`
+    + `<div class="cards">${p.items.map(x => cardHTML(x, max)).join('')}</div>`
+    + `<p class="note">از <b>${num(p.considered)}</b> آگهی، <b>${num(p.candidates)}</b> تا از
+       فیلترهای سخت رد شدند. سه گزینه با نقش‌های متفاوت انتخاب می‌شوند تا شورت‌لیست
+       سه نسخه از یک ماشین نباشد. نوار هر ترم سهم همان ترم در امتیاز نهایی است —
+       منفی یعنی آن ترم علیه این گزینه رأی داده.</p>`;
+}
+
+if (WIRED) {
+  $('#qtabs').innerHTML = QKEYS.map(([, t], i) =>
+    `<button class="case-btn" role="tab" aria-selected="${i === 0}">
+       <span class="tag">Q${i + 1}</span>${t}</button>`).join('');
+  document.querySelectorAll('#qtabs .case-btn')
+    .forEach((b, i) => b.addEventListener('click', () => renderQuery(i)));
+  renderQuery(0);
+}
+
 </script>
