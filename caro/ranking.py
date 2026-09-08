@@ -312,12 +312,47 @@ class RelaxationReport:
         return "با شرایط دقیق شما گزینه‌ی کافی نبود، پس: " + "؛ ".join(self.steps)
 
 
+def _model_matches(model_key: str, hints: Sequence[str]) -> bool:
+    """Does this row's model_key satisfy any of the parsed model hints?
+
+    Two vocabularies meet here and they were never the same one. The parser
+    emits a bare canonical slug — `206`, `pride` — from `MODEL_ALIASES`.
+    Ingest emits `make|model|trim`: `Peugeot|206|type1`, `Saipa|Pride|111 ex`.
+    The original test was `row.model_key not in spec.model_hints`, an exact
+    equality against the WHOLE key, so on real data every model-constrained
+    query retrieved nothing — six real 206s inside the stated budget, all
+    filtered out, and the relaxation ladder then loosened a budget that was
+    never the binding constraint.
+
+    Nothing caught it because every ranking test builds its corpus with
+    `model_key=m` where m is already the canonical slug. The ranker was being
+    tested against its own vocabulary; W3 and W4 had never been run against
+    each other. That is the general lesson and it is bigger than this line:
+    a passing suite over a corpus the code shaped is not evidence about data
+    the code did not shape.
+
+    Compare the MODEL SEGMENT, case-folded, against the canonical slug and
+    its latin aliases. Persian aliases are the query's vocabulary, not the
+    key's, so they are not matched here. Keys without a separator (the
+    synthetic corpora) are their own model segment.
+    """
+    seg = model_key.split("|")[1] if "|" in model_key else model_key
+    seg = seg.casefold()
+    for h in hints:
+        if seg == h.casefold():
+            return True
+        for alias in MODEL_ALIASES.get(h, ()):
+            if alias.isascii() and seg == alias.casefold():
+                return True
+    return False
+
+
 def _passes(row: Row, spec: IntentSpec) -> bool:
     if spec.budget_max_toman and row.asking_price_toman > spec.budget_max_toman:
         return False
     if spec.budget_min_toman and row.asking_price_toman < spec.budget_min_toman:
         return False
-    if spec.model_hints and row.model_key not in spec.model_hints:
+    if spec.model_hints and not _model_matches(row.model_key, spec.model_hints):
         return False
     if spec.year_min and row.year_jalali < spec.year_min:
         return False

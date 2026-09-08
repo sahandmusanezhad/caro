@@ -15,6 +15,7 @@ from caro.appraisal import (
 from caro.ranking import (
     IntentSpec, RankingPipeline, Ranker, RuleIntentParser, Weights,
     diversify, normalize_fa, parse_amount, retrieve, winrate_vs_price_sort,
+    _passes,
 )
 
 FAILS: list[str] = []
@@ -174,6 +175,40 @@ got3, used3, _ = retrieve(POOL, db)
 check("a deal-breaker is never relaxed away",
       all(r.features.get("has_accident", 0) < 0.5 for r in got3))
 check("  and it actually excluded cars", len(got3) < len(got2))
+
+# The corpus above is built with model_key = the parser's own slug, so it
+# could never have caught this: ingest emits `make|model|trim`, and the
+# retrieval filter compared a hint against the WHOLE key. On Run 5's real
+# rows every model-constrained query returned zero while six matching cars
+# sat inside the stated budget. These rows carry Bama's key shape verbatim.
+INGEST_SHAPED = [
+    Row(listing_id=f"r{i}", cluster_id=f"r{i}", first_seen_ordinal=0,
+        model_key=k, year_jalali=1398, mileage_km=120_000.0,
+        asking_price_toman=float(p), features={})
+    for i, (k, p) in enumerate([
+        ("Peugeot|206|type1", 495_000_000),
+        ("Peugeot|206|type2", 540_000_000),
+        ("Saipa|Pride|111 ex", 488_000_000),
+        ("Saipa|Quik|r automatic", 700_000_000),
+        ("BMW|3seriesconvertible|320i 2011", 9_000_000_000),
+    ])]
+for hint, want in [("206", 2), ("pride", 1), ("quik", 1)]:
+    spec = IntentSpec(raw_query="", budget_max_toman=2_000_000_000,
+                      model_hints=(hint,))
+    hits = [r for r in INGEST_SHAPED if _passes(r, spec)]
+    check(f"hint '{hint}' matches make|model|trim keys", len(hits) == want,
+          f"got {len(hits)}, want {want}")
+check("a hint does not match an unrelated model",
+      not _passes(INGEST_SHAPED[4], IntentSpec(raw_query="",
+                                               model_hints=("206",))))
+check("case is folded, not assumed",
+      _passes(INGEST_SHAPED[2], IntentSpec(raw_query="",
+                                           model_hints=("pride",))))
+check("bare-slug keys still match (the synthetic corpora)",
+      _passes(Row(listing_id="s", cluster_id="s", first_seen_ordinal=0,
+                  model_key="206", year_jalali=1398, mileage_km=1.0,
+                  asking_price_toman=1.0),
+              IntentSpec(raw_query="", model_hints=("206",))))
 
 
 # ---------------------------------------------------------------------------
