@@ -1677,3 +1677,62 @@ real listings, because a product that cannot serve an estimate at all is a
 larger problem than which estimator it would have served. EVAL_CONTRACT_V2
 stays frozen and Run 6 stays registered against it whenever it happens. It
 just stops being next.
+
+### D41 addendum — the four dead terms are a collection gap, not a source limit
+
+D41 said the constant ranking terms are "a W4 ingest gap: the fields exist in
+the Row and nothing populates them". That was true but not specific enough to
+act on, because it did not say *why* nothing populates them. There were two
+possibilities and they have opposite consequences: Bama does not publish this,
+or Bama publishes it and Run 5 did not record it.
+
+The snapshot said where to look. `data/snapshots/run5/listings.json` carries a
+`COND` field — body condition — in its eleven-field record, and it is the
+empty string on **all 403 records**. `DESC` is empty too, but deliberately:
+descriptions carry masked phone numbers and are excluded on purpose. `COND`
+was not excluded on purpose. It is a field the format reserves and the run
+never filled. And `parse_detail_page` reads it correctly: it looks for a
+labelled «وضعیت بدنه» in the page text, because JSON-LD does not carry it.
+
+Two live Bama detail pages, opened through the browser and read (not crawled),
+settle it. Both publish a condition block above the description:
+
+    وضعیت بدنه     بدون رنگ
+    رنگ بدنه       (a colour)
+    رنگ داخل       (a colour)
+    گیربکس         اتوماتیک
+
+and the city sits in the header beside the date. One was a zero-kilometre car
+where «بدون رنگ» is trivially true; the other a 2018 import at 26,000km, where
+it is not. The block is on the page either way.
+
+**So the answer is the second possibility.** Bama publishes body condition,
+both colours, gearbox and city on the detail page CARO already fetches. Run
+5's detail extractor recorded the price/kilometre/year spine and dropped the
+condition block beside it. That is why `risk` and `ownership_risk` are absent
+on all 228 eligible rows — not because the market does not publish the
+evidence, but because the run did not keep it.
+
+Three things follow.
+
+*The cost of fixing it is zero additional requests.* The condition block is on
+pages the crawl already downloads. This is a change to what gets written into
+the snapshot, not to what gets fetched — which matters, because D35 governs
+acquisition changes and this is not one.
+
+*It changes what the ranking demo is waiting on.* Four inert sliders were the
+strongest argument that the decision layer is unfinished. They are not
+unfinished; they are unfed, from a source that publishes the feed.
+
+*And it is the same error as the retrieval bug, in the other direction.* There
+the code compared two vocabularies that had never met. Here the snapshot
+format and the crawl that fills it had never been checked against each other:
+a reserved field, silently empty, on every record, through a full
+pre-registered run. Nothing failed. `tests/test_ingest.py` has 272 assertions
+and none of them assert that a field the format reserves is ever non-empty on
+real data.
+
+What is *not* claimed: that populating these fields would make the estimator
+clear the gate, or make the ranking better. Those are separate questions and
+neither is answered here. The claim is narrower and checkable — the evidence
+Bama publishes is richer than what Run 5 kept, and the gap is ours.
