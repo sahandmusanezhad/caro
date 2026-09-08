@@ -1719,7 +1719,12 @@ it is not. The block is on the page either way.
 **So the answer is the second possibility.** Bama publishes body condition,
 both colours, gearbox and city on the detail page CARO already fetches. Run
 5's detail extractor recorded the price/kilometre/year spine and dropped the
-condition block beside it. That is why `risk` and `ownership_risk` are absent
+condition block beside it.
+
+> **Sharpened by D45.** This understates it. Run 3's snapshot fills COND on
+> 214 of 221 records with five real condition classes. The capability existed
+> and was lost in Run 5's mid-run extractor rewrite, beside a deliberate and
+> correct decision to drop descriptions. It is a regression, not a gap. That is why `risk` and `ownership_risk` are absent
 on all 228 eligible rows — not because the market does not publish the
 evidence, but because the run did not keep it.
 
@@ -1987,3 +1992,63 @@ worth naming: **the decision about whether there is time belongs to the
 project owner, not to me or to a reviewer.** What I can do is make sure that
 if it is ever run, it is run against rules written before the data existed.
 D44's stop stands until that decision is made.
+
+## D45 — The condition block is not a missing capability, it is a lost one
+
+The D41 addendum established that Bama publishes «وضعیت بدنه» and Run 5 did
+not record it, and treated that as a gap to be closed by a future collection.
+Checking the earlier snapshot before spending a single request on that
+collection produced a sharper and less comfortable fact.
+
+    snapshot          COND non-empty       through the parser
+    run3 (221 rows)   214 / 221            intact 108 · minor_paint 45 ·
+                                           multi_paint 37 · replaced_part 12 ·
+                                           accident 4 · unknown 15
+    run5 (403 rows)     0 / 403            —
+
+Same eleven-field format. Same field index. Same `parse_detail_page`, which
+reads the label correctly and always did. **Run 3 collected body condition and
+Run 5 did not.** This is a regression in the collection, not a limitation of
+the source and not an unexplored corner.
+
+**Where it was lost.** Run 5's detail extractor was rewritten mid-run to fix a
+real bug: `kmLine` was picking up dealer ad copy on listings with no odometer,
+which is the one place a phone number could have ridden along. The fix
+validated the mileage line against a pattern and dropped descriptions
+entirely. Dropping `DESC` was deliberate and correct. Dropping `COND` was not
+deliberate at all — it went out beside it, in the same edit, for no stated
+reason, and nothing in the repository noticed for an entire pre-registered
+run.
+
+**Three consequences, and the middle one is the useful one.**
+
+*The D41 addendum understates it and is amended.* "Bama publishes it and we
+did not record it" is true. "We recorded it, then a bug fix removed the
+capability and 272 ingest assertions did not see it go" is the same fact with
+the part that matters left in.
+
+*The risk term can be fed today, from data already on disk.* Run 3's corpus
+carries condition on 206 of 221 parsed listings across five real classes. The
+first objective of `SNAPSHOT2_PROTOCOL.md` — demonstrate that a dead ranking
+term can be brought to life from what Bama publishes — is therefore
+demonstrable **offline, at zero request cost, before the collection runs**.
+That is the right order: prove the capability on data we have, then collect.
+A protocol whose first objective is already met by existing data is a cheaper
+and better-specified protocol.
+
+*And the guard added under the D41 addendum is the test that would have caught
+it.* That is not a happy coincidence; it is the only reason to write such a
+guard. It is also worth being precise about what it would and would not have
+done: it fires on a field that is empty across a whole snapshot, so it would
+have caught this the moment Run 5's snapshot was written. It would not have
+caught a partial loss — condition recorded on half the rows — and nothing in
+the repository would.
+
+**The pattern this belongs to.** D36 is about a claim outrunning its evidence.
+D41 is about tests supporting a mechanism being read as a working product.
+This one is smaller and more ordinary and probably more common than either: a
+correct fix for a real bug quietly removed an unrelated capability, in a
+codebase with 629 assertions, during a run whose registration nobody violated.
+Nothing failed. The only thing that would have surfaced it is a test that
+asserts a field the format reserves is ever populated — which is exactly the
+class of test that feels redundant to write.
