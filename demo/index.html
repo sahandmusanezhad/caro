@@ -160,6 +160,116 @@ footer{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);
   color:var(--ink-3);font-size:12.5px;max-width:62ch}
 h2.sec{font-size:13px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-3);margin:30px 0 12px;font-weight:400;direction:ltr;text-align:right}
+/* ══ W3 · decision ═══════════════════════════════════════════════════════
+   The corner label is a standing production rule (docs/DEMO_SCRIPT.md): it
+   is persistent, not a title card, so no frame of the recording can be cut
+   out of the panel that says which corpus it came from. */
+.panel{position:relative}
+.corner{position:absolute;top:0;left:0;font-family:var(--mono);font-size:10px;
+  letter-spacing:.12em;padding:3px 9px;border-radius:0 3px 0 3px;direction:ltr;
+  border-inline-end:1px solid;border-block-end:1px solid;pointer-events:none}
+.corner.syn{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.corner.real{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+
+.q{font-size:16px;font-weight:500;background:var(--sunk);border:1px solid var(--line);
+  border-radius:2px;padding:13px 15px;margin:0 0 15px;line-height:1.75}
+.q::before{content:"» ";color:var(--accent);font-family:var(--mono)}
+
+.facts{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 6px}
+.fact{font-size:12px;border:1px solid var(--line-2);border-radius:2px;padding:3px 9px;
+  color:var(--ink-2);background:var(--surface)}
+.fact b{font-family:var(--mono);font-weight:500;color:var(--ink);direction:ltr;
+  unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+.fact.db{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.fact.as{color:var(--ink-3);border-style:dashed}
+.note{font-size:12.5px;color:var(--ink-3);margin:12px 0 0;line-height:1.9;max-width:64ch}
+/* an unparsed fragment is Persian the parser could not read — it stays RTL;
+   forcing it to var(--mono)'s ltr scrambled it into nonsense. */
+.unp{display:inline-block;border:1px dashed var(--line-2);border-radius:2px;
+  padding:0 7px;margin:0 3px;color:var(--ink-2);background:var(--sunk);
+  white-space:nowrap}
+
+.wts{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);margin:15px 0 0}
+.wt{background:var(--surface);padding:9px 11px}
+.wt .k{font-size:11.5px;color:var(--ink-3)}
+.wt .v{font-family:var(--mono);font-size:15px;direction:ltr;margin-top:1px}
+.wt .bar{height:3px;background:var(--sunk);margin-top:6px;position:relative}
+.wt .bar i{position:absolute;inset-block:0;right:0;background:var(--accent);display:block}
+.wt.moved{background:var(--warn-soft)}
+.wt.moved .v{color:var(--warn)} .wt.moved .bar i{background:var(--warn)}
+.wt .from{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);direction:ltr;
+  text-align:right;margin-top:-2px}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:3px;padding:14px;background:var(--surface)}
+.card.top{border-color:var(--accent)}
+.card .role{font-size:12px;color:var(--accent);font-weight:500}
+.card .who{font-family:var(--mono);font-size:14px;direction:ltr;text-align:right;margin-top:3px}
+.card .spec{font-size:11.5px;color:var(--ink-3);margin:1px 0 10px;direction:ltr;text-align:right}
+.card dl{display:grid;grid-template-columns:1fr auto;gap:3px 10px;margin:0;font-size:12.5px}
+.card dt{color:var(--ink-3)}
+.card dd{margin:0;font-family:var(--mono);direction:ltr;text-align:left;
+  font-variant-numeric:tabular-nums}
+.card dd.pos{color:var(--good)} .card dd.neg{color:var(--bad)}
+.terms{margin-top:11px;border-top:1px solid var(--line);padding-top:9px}
+.term{display:grid;grid-template-columns:82px 1fr 50px;gap:8px;align-items:center;
+  font-size:11.5px;color:var(--ink-3);padding:1.5px 0}
+.term .tb{height:8px;background:var(--sunk);position:relative}
+.term .tb::before{content:"";position:absolute;top:-1px;bottom:-1px;left:50%;
+  width:1px;background:var(--line-2)}
+.term .tb i{position:absolute;top:0;bottom:0;display:block}
+.term .tb i.pos{left:50%;background:var(--good)}
+.term .tb i.neg{right:50%;background:var(--bad)}
+.term .tv{font-family:var(--mono);direction:ltr;text-align:left;
+  font-variant-numeric:tabular-nums}
+
+.swap{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;margin-top:15px}
+.swap h4{margin:0 0 8px;font-size:11px;font-family:var(--mono);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);direction:ltr;text-align:right;font-weight:400}
+.swap ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.swap li{font-family:var(--mono);font-size:12px;direction:ltr;text-align:right;
+  border:1px solid var(--line);padding:7px 10px;border-radius:2px;background:var(--surface)}
+.swap li.chg{border-color:var(--warn);background:var(--warn-soft);color:var(--warn)}
+.swap .mid{font-family:var(--mono);color:var(--ink-3);font-size:16px;padding-top:30px}
+@media (max-width:620px){.swap{grid-template-columns:1fr}.swap .mid{display:none}}
+
+.refuse{border:1px solid var(--bad);background:var(--bad-soft);color:var(--bad);
+  border-radius:2px;padding:13px 15px;font-size:13.5px;line-height:1.75;margin:0 0 16px}
+.refuse b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:5px;direction:ltr;text-align:right}
+.refuse code{font-size:12px;color:inherit}
+
+.lg{width:100%;border-collapse:collapse;font-size:12.5px}
+.lg th,.lg td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:right;
+  vertical-align:top}
+.lg tr:last-child td{border-bottom:0}
+.st{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:2px 7px;
+  border:1px solid;border-radius:2px;direction:ltr;white-space:nowrap;display:inline-block}
+.st.obs{color:var(--good);border-color:var(--good);background:var(--good-soft)}
+.st.imp{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+.st.abs{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.lg .rsn{font-size:11.5px;color:var(--ink-3);line-height:1.6;direction:ltr;text-align:left;
+  max-width:44ch}
+.lg .cnt{font-family:var(--mono);direction:ltr;text-align:left;color:var(--ink-2)}
+
+.meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;
+  margin:4px 0 18px}
+.meter .k{font-size:12px;color:var(--ink-3)}
+.meter .v{font-family:var(--mono);font-size:19px;direction:ltr;margin-top:1px}
+.meter .t{height:6px;background:var(--sunk);border:1px solid var(--line);position:relative;
+  margin-top:7px}
+.meter .t i{position:absolute;inset-block:0;right:0;display:block;background:var(--accent)}
+.meter .t i.imp{background:var(--warn)}
+.meter .c{font-size:11px;color:var(--ink-3);margin-top:4px}
+
+.cond{display:grid;grid-template-columns:repeat(auto-fit,minmax(116px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);margin-top:4px}
+.cond div{background:var(--surface);padding:9px 11px}
+.cond .k{font-size:11.5px;color:var(--ink-3)}
+.cond .v{font-family:var(--mono);font-size:16px;direction:ltr;margin-top:1px}
+.cond .r{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);direction:ltr;margin-top:2px}
+.cond .unk{color:var(--warn)}
 </style>
 <div class="wrap">
 <header>
@@ -187,6 +297,27 @@ h2.sec{font-size:13px;font-family:var(--mono);letter-spacing:.14em;text-transfor
 
 <h2 class="sec">Confidence policy — published rules, not a fitted score</h2>
 <section class="panel"><pre class="policy" id="policy"></pre></section>
+
+<!-- ══ W3 · decision ═══════════════════════════════════════════════════
+     Everything above is W1/W2: one listing, appraised. Everything below is
+     W3: a Persian sentence in, a ranked decision out — which is what the
+     product thesis actually claims to be. The two corpora are never mixed
+     and every panel carries its own corner label. -->
+
+<h2 class="sec">Decision — یک جمله‌ی فارسی، یک انتخاب قابل دفاع</h2>
+
+<div class="cases" role="tablist" id="qtabs"></div>
+<section class="panel" id="intent"></section>
+<section class="panel" id="short"></section>
+
+<h2 class="sec">پروفایل وزن عوض می‌شود — ترتیب عوض می‌شود</h2>
+<section class="panel" id="swapp"></section>
+
+<h2 class="sec">وقتی گزینه‌ای نیست — نردبان تخفیف شرط‌ها</h2>
+<section class="panel" id="relax"></section>
+
+<h2 class="sec">Decision ledger — روی داده‌ی واقعی، بدون شورت‌لیست</h2>
+<section class="panel" id="realdec"></section>
 
 <footer>
   همه‌ی اعداد این صفحه خروجی واقعی همان کدی است که تست‌ها را اجرا می‌کند — هیچ مقداری دستی نوشته نشده.
@@ -310,4 +441,42 @@ $('#bench').innerHTML = `<thead><tr><th>estimator</th><th>pinball</th>
 
 $('#policy').textContent = D.policy;
 render(3);
+
+/* ══ W3 · decision ═══════════════════════════════════════════════════════
+   R is demo/ranking_data.json, inlined by demo/wire_ranking.py so the page
+   still opens with no server. Re-run `python3 demo/export_ranking.py`, then
+   `python3 demo/wire_ranking.py`. Nothing below is hand-written. */
+const R = /*W3-DATA-START*/{}/*W3-DATA-END*/;
+
+const WIRED = !!(R.synthetic && R.real);
+
+const TERM_FA = {value:'ارزش', risk:'ریسک', running_cost:'هزینه‌ی نگهداری',
+  liquidity:'نقدشوندگی', mileage:'کارکرد', recency:'تازگی'};
+const USE_FA = {family_first_car:'ماشین اول خانواده', ride_hailing:'مسافرکشی',
+  unspecified:'نامشخص'};
+const RISK_FA = {risk_averse:'ریسک‌گریز', balanced:'متعادل', risk_tolerant:'ریسک‌پذیر'};
+const COND_FA = {intact:'بدون رنگ', minor_paint:'رنگ جزئی', multi_paint:'چند لکه رنگ',
+  replaced_part:'قطعه‌ی تعویضی', accident:'تصادفی', unknown:'اعلام‌نشده'};
+const DB_FA = {accident:'تصادفی نباشد', repaint:'رنگ‌شدگی نباشد'};
+
+const corner = k => k === 'syn'
+  ? '<span class="corner syn">SYNTHETIC</span>'
+  : '<span class="corner real">REAL DATA</span>';
+const num = n => (n == null ? '—' : n.toLocaleString('fa-IR'));
+// a model year is a label, not a quantity — ۱۳۹۳, never ۱٬۳۹۳
+const yr = y => (y == null ? '—' : y.toLocaleString('fa-IR', {useGrouping: false}));
+const toman = t => t == null ? '—'
+  : (t >= 1e9 ? (t/1e9).toLocaleString('fa-IR',{maximumFractionDigits:2}) + ' میلیارد'
+              : Math.round(t/1e6).toLocaleString('fa-IR') + ' میلیون');
+
+/* Until demo/wire_ranking.py has run there is no data to render. Say so in
+   the panels rather than throwing: an unwired page should look unwired. */
+if (!WIRED) {
+  const todo = `<p class="note">داده‌ی این بخش هنوز داخل صفحه اینلاین نشده. اجرا کن:
+    <span class="unp">python3 demo/export_ranking.py</span>
+    <span class="unp">python3 demo/wire_ranking.py</span></p>`;
+  ['#intent', '#short', '#swapp', '#relax', '#realdec']
+    .forEach(s => { $(s).innerHTML = todo; });
+}
+
 </script>
