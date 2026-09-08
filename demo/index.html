@@ -568,4 +568,27 @@ if (WIRED) {
   renderQuery(0);
 }
 
+/* the weight shift — same query, same corpus, one weight moved */
+if (WIRED) (function(){
+  const a = R.synthetic.shortlist, b = R.synthetic.reweighted;
+  const baseIds = a.items.map(x => x.id);
+  const li = (items, mark) => items.map(x =>
+    `<li class="${mark && baseIds[x.rank - 1] !== x.id ? 'chg' : ''}">${x.rank}. ${x.model} ·
+      ${x.id}<span style="opacity:.55"> ${x.score.toFixed(3)}</span></li>`).join('');
+  $('#swapp').innerHTML = corner('syn')
+    + `<p class="eyebrow">Same query · same corpus · weights reprofiled</p>`
+    + `<div class="wts">${weights(b.intent.weights, a.intent.weights)}</div>`
+    + `<div class="swap">
+         <div><h4>reliability first · risk 0.65</h4><ol>${li(b.items, true)}</ol></div>
+         <div class="mid">←</div>
+         <div><h4>default · risk 0.40</h4><ol>${li(a.items, false)}</ol></div>
+       </div>`
+    + `<p class="note">کوئری و کورپوس دست‌نخورده‌اند؛ آنچه عوض شد پروفایل وزن‌هاست.
+       ریسک از ۰٫۴۰ به ۰٫۶۵ رفت و چون وزن‌ها نرمال می‌شوند، پنج وزن دیگر هم به تناسب
+       پایین آمدند — هر شش سلول بالا علامت خورده‌اند، چون هر شش واقعاً تغییر کرده‌اند.
+       نتیجه: رتبه‌ی دوم از پراید به ۲۰۶ رفت. یعنی «بهترین» یک واقعیت نیست، تابعی است
+       از چیزی که خریدار برایش ارزش قائل است — و کاربر می‌تواند آن تابع را ببیند و
+       عوضش کند.</p>`;
+})();
+
 </script>
