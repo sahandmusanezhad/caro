@@ -36,6 +36,8 @@ SUITES = [
      "empirical-bayes shrinkage, visible extrapolation, held-out trims"),
     ("--  claims", "tests/test_claims.py",
      "retired overclaims do not return (D36)"),
+    ("--  corpus", "tests/test_corpus.py",
+     "publishable artifact guards, and the laundering regression"),
 ]
 
 TTY = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
