@@ -147,7 +147,7 @@ its own ability to assess uncertainty**, and refuses on it.
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 
-python3 tests/run_all.py            # 629 assertions, no API key, no network
+python3 tests/run_all.py            # 653 assertions, no API key, no network
 python3 tests/run_all.py ranking    # just the win-rate benchmark
 python3 demo/export_demo.py         # regenerate demo/index.html from live output
 ```
@@ -357,11 +357,11 @@ asking prices — and the appraiser is not serving.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · quality · coverage · stratification
-tests/           629 assertions across seven suites
+tests/           653 assertions across seven suites
 scripts/         live runs, replays, the benchmark, the run-3/4 experiment plans
 data/snapshots/  NOT in the repository — see D46; a clone has no corpora
 demo/            export_demo.py regenerates index.html from pipeline output
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D35) · eval
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D46) · eval
 ```
 
 ## Sources, and what each is for
