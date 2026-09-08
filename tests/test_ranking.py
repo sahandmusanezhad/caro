@@ -15,7 +15,8 @@ from caro.appraisal import (
 from caro.ranking import (
     IntentSpec, RankingPipeline, Ranker, RuleIntentParser, Weights,
     diversify, normalize_fa, parse_amount, retrieve, winrate_vs_price_sort,
-    LEDGER_INPUTS, decision_ledger, _passes,
+    LEDGER_INPUTS, CONDITION_RISK, decision_ledger,
+    features_from_listing, risk_from_condition, _passes,
 )
 
 FAILS: list[str] = []
@@ -220,6 +221,53 @@ def replace_row(r: Row) -> Row:
                asking_price_toman=r.asking_price_toman, features={})
 
 
+
+
+# ---------------------------------------------------------------------------
+print("\ncondition → risk, the published table")
+# The table that took features["risk"] from absent-on-every-real-row to a
+# six-valued column (D45). It is policy, not a fit, so what is testable is its
+# ORDERING and its treatment of silence — not its calibration, which no data
+# in this repository could check.
+order = ["intact", "minor_paint", "unknown", "multi_paint",
+         "replaced_part", "accident"]
+vals = [CONDITION_RISK[k] for k in order]
+check("risk is monotone across the declared ordering",
+      all(a < b for a, b in zip(vals, vals[1:])), str(vals))
+check("intact is not zero — a clean car is not a certainty", vals[0] > 0)
+check("accident is not one — a damaged car is not a total loss", vals[-1] < 1)
+
+# The row that matters most, and the one it would be easiest to get wrong.
+check("UNKNOWN is not treated as intact",
+      CONDITION_RISK["unknown"] > CONDITION_RISK["intact"],
+      "silence would otherwise rank undisclosed cars above disclosed ones")
+check("  and it sits between the good and bad disclosures",
+      CONDITION_RISK["minor_paint"] < CONDITION_RISK["unknown"]
+      < CONDITION_RISK["multi_paint"])
+check("an unrecognised label falls back to unknown, not to zero",
+      risk_from_condition("something new") == CONDITION_RISK["unknown"])
+check("  and so does None", risk_from_condition(None) == CONDITION_RISK["unknown"])
+
+
+class _L:
+    def __init__(self, cond, doc=None):
+        self.body_condition, self.document_issue = cond, doc
+
+
+f = features_from_listing(_L("accident"))
+check("an accident listing sets both risk and the deal-breaker flag",
+      f["risk"] == CONDITION_RISK["accident"] and f["has_accident"] == 1.0)
+check("  a clean one sets the flag to 0, not absent",
+      features_from_listing(_L("intact"))["has_accident"] == 0.0)
+check("a listing with no condition at all yields NO risk key",
+      "risk" not in features_from_listing(_L(None)),
+      "absent must stay absent so the ledger can report it — "
+      "defaulting here would turn a missing input into a fake one")
+check("ownership_risk and liquidity are never invented",
+      not ({"ownership_risk", "liquidity"} & set(f)),
+      "no observation in this repository supports either")
+check("a document issue is carried through",
+      features_from_listing(_L("intact", True))["has_unclear_documents"] == 1.0)
 
 # ---------------------------------------------------------------------------
 print("\nthe decision ledger — construct validity, not ranking quality")

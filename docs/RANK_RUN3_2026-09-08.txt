@@ -1,0 +1,60 @@
+THE DECISION PATH ON RUN 3 — the corpus that kept condition
+==============================================================================
+  corpus                 221 parsed, 155 appraisal-eligible
+
+  body condition, as Bama printed it:
+    intact            108
+    minor_paint        45
+    multi_paint        37
+    unknown            15
+    replaced_part      12
+    accident            4
+
+THE RISK INPUT, NOW THAT IT EXISTS
+------------------------------------------------------------------------------
+  rows carrying a risk value   155/155
+  distinct values              6   [0.05, 0.2, 0.35, 0.5, 0.65, 0.85]
+  A term with six distinct values can change an ordering. On Run 5
+  this column had none, so the slider over it moved nothing.
+
+  «ماشین اول خانواده، تصادفی نباشه، بودجه ۱.۵ میلیارد»
+    eligible rows      155
+    over budget        5
+    has_accident       3
+    candidates         147   relaxed=False
+    same, no deal-breaker  150
+    → the deal-breaker excluded 3 car(s). On Run 5 it excluded 0, because has_accident was never set —
+      a deal-breaker with no input does not fail loudly, it just never fires.
+
+THE DECISION LEDGER
+------------------------------------------------------------------------------
+    hard_filter_pass           present  147/147   did this candidate satisfy the stated constraints
+    price_delta_to_estimate    absent     0/147   asking price against the market estimate
+    risk_score                 present  147/147   priced body/accident risk
+    mileage                    present  147/147   odometer reading
+    year                       present  147/147   model year
+    running_cost_signals       absent     0/147   ownership cost proxy
+    reliability_signals        absent     0/147   liquidity / resale proxy
+    recency                    absent     0/147   how long the listing has been observed
+
+  mean completeness  50%   (Run 5, same query: 38%)
+
+  The gap between those two numbers is what one lost field costs
+  the decision layer — D45. It is not a claim that the ranking is
+  better here; a fed term is not a correct term.
+
+STILL MISSING, AND WHY
+------------------------------------------------------------------------------
+    price_delta_to_estimate
+      → no gated estimator: the acceptance gate has not approved one on this corpus, so no market estimate may be served
+    running_cost_signals
+      → features['ownership_risk'] absent — ingest does not populate it
+    reliability_signals
+      → features['liquidity'] absent — ingest does not populate it
+    recency
+      → first_seen_ordinal is 0 — single snapshot, no observation history
+
+  ownership_risk and liquidity stay absent on purpose. No
+  observation in this repository supports either, and inventing a
+  plausible constant from make or model would turn a missing input
+  into a fake one — which the ledger could not then report.

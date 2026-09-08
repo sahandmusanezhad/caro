@@ -437,6 +437,66 @@ RISK_PROFILE_QUANTILE = {"risk_averse": 0.15, "balanced": 0.35,
 DAMAGE_COST_FACTOR = 0.60
 
 
+# ---------------------------------------------------------------------------
+# Body condition → the risk input, as a published table
+# ---------------------------------------------------------------------------
+#
+# `features["risk"]` was absent on every real row until this existed, which is
+# why four of six scoring terms were constant on Bama data (D41). The evidence
+# was there the whole time: Bama publishes «وضعیت بدنه» on the detail page and
+# Run 3 recorded it on 214 of 221 listings, in the five classes below. Run 5's
+# extractor lost it (D45).
+#
+# These numbers are a PUBLISHED POLICY, calibrated by judgement, and that is
+# stated here rather than implied — the same rule the confidence bands follow.
+# They are not fitted, and no data in this repository could fit them: fitting a
+# damage probability needs inspection outcomes, and CARO has never observed
+# one. What they encode is an ordering the market agrees on and a rough spacing
+# between its steps, which is enough for a ranking input and is not enough to
+# be quoted as a probability of anything.
+#
+# UNKNOWN is the interesting row. It is not zero. A listing that does not state
+# its condition is not a listing with no damage — treating silence as "intact"
+# would systematically rank undisclosed cars above disclosed ones, which is
+# exactly backwards, and would reward sellers for saying less. It sits between
+# minor_paint and multi_paint: worse than the good disclosures, better than the
+# bad ones, because it could be either.
+CONDITION_RISK: dict[str, float] = {
+    "intact":        0.05,   # «بدون رنگ» — stated and specific
+    "minor_paint":   0.20,   # a spot or a scratch, disclosed
+    "unknown":       0.35,   # nothing said: see above, NOT 0.0
+    "multi_paint":   0.50,   # «دور رنگ» / several panels
+    "replaced_part": 0.65,   # a panel has been changed
+    "accident":      0.85,   # «تصادفی» / chassis
+}
+
+
+def risk_from_condition(body_condition: str | None) -> float:
+    """The one place a condition label becomes a number. Unknown is not zero."""
+    return CONDITION_RISK.get(body_condition or "unknown",
+                              CONDITION_RISK["unknown"])
+
+
+def features_from_listing(listing) -> dict[str, float]:
+    """Ranking inputs a real listing can actually supply today.
+
+    Deliberately partial and deliberately silent about what it cannot supply.
+    A key that is absent here lands in the decision ledger's `missing` with a
+    reason; a key present but wrong would be invisible. So `ownership_risk` and
+    `liquidity` are NOT invented from make or model — no observation in this
+    repository supports either, and a plausible-looking constant would turn a
+    missing input into a fake one.
+    """
+    feats: dict[str, float] = {}
+    cond = getattr(listing, "body_condition", None)
+    if cond:
+        feats["risk"] = risk_from_condition(cond)
+        feats["has_accident"] = 1.0 if cond == "accident" else 0.0
+    if getattr(listing, "document_issue", None):
+        feats["has_unclear_documents"] = 1.0
+    return feats
+
+
 def _norm(v: np.ndarray) -> np.ndarray:
     """Min-max to [0,1]; a constant column contributes nothing rather than NaN."""
     if v.size == 0:
