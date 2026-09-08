@@ -1594,3 +1594,86 @@ ledger, and a refusal state. The market estimate is one input to that. If
 parent-median turns out to be the best available estimate, the product is not
 diminished; only the ML pricing model is. Those two have been allowed to
 blur, and the README's framing is where that shows.
+
+## D41 — The evidence is concentrated on the component the thesis needs least
+
+D40 recorded the review's strongest objection: this project may have spent
+more effort proving the estimator is scientific than establishing that the
+estimator is a necessary part of the product. That was accepted as a framing
+problem. It is worse than a framing problem, and pointing the decision path
+at Run 5's own listings for the first time is what showed it.
+
+    measured on real Bama data     the estimator. Twice. Against a real
+                                   baseline, under a pre-registered gate,
+                                   with a bootstrap interval attached.
+    measured on synthetic data     the ranking. `winrate_vs_price_sort`
+                                   is called in exactly one place —
+                                   tests/test_ranking.py — over a corpus
+                                   this repository generates, against a
+                                   utility function this repository writes.
+    measured on nothing            retrieval, relaxation, refusal, the
+                                   evidence ledger, the adversarial pass.
+
+Five live runs, two registrations, forty entries above this one, all aimed at
+the component the thesis calls one input among several. The component the
+thesis says *is* the product has never been evaluated on data the project did
+not create. `scripts/rank_run5.py` is the audit, and it deliberately prints no
+win-rate: on real data there is no ground truth for what a buyer gains, and
+the honest substitute is a blind panel over shuffled unlabelled shortlists,
+which is a person, not a script.
+
+**Three things the audit found, none of which a passing suite could show.**
+
+*Four of six ranking terms are constant on real data.* `risk`,
+`ownership_risk` and `liquidity` are absent on all 228 eligible rows;
+`first_seen_ordinal` is 0 for every one of them. Only value and mileage vary.
+A constant term contributes an identical amount to every score, so it cannot
+change an ordering — the weight slider over it moves nothing. Four of the six
+sliders the product offers are inert on Bama data. This is a W4 ingest gap:
+the fields exist in the Row and nothing populates them.
+
+*The gate refuses even the baseline class here.* `comparable-quantiles` fails
+on this corpus at a coverage error of 0.206 against a 0.07 limit. Run 5
+rejected the conditional estimator; this says the thing D12 promised to ship
+in its place does not clear the gate either. So on real Bama listings today,
+every shortlist refuses. The refusal path is not a demonstrated feature of
+the product — it is currently the *only* path that runs.
+
+*Retrieval matched a bare slug against a full `make|model|trim` key*, so
+every model-constrained query returned zero while matching cars sat inside
+the stated budget, and the relaxation ladder then explained a trade-off it
+had not made. Fixed in its own commit. The reason it survived 611 assertions
+is the general lesson: every ranking test builds its corpus with `model_key`
+already set to the parser's own slug. W3 was tested against its own
+vocabulary and had never been run against W4's.
+
+**Why this is the same error as D36, one level up.** D36 is about a mechanism
+the design supports being narrated as an observed market fact. This is a
+mechanism the *tests* support being read as a working product. The nine D36
+instances were sentences; this one is an architecture. And it was invisible
+for the same reason: nothing failed. Six hundred and eleven assertions passed
+over corpora shaped to the code that consumes them.
+
+**What this changes about the demo, and it is the reason the entry exists.**
+The review's recommendation — centre the video on the decision, with ranking,
+refusal and the evidence ledger as its parts, and the estimator as one input
+— is right about the product and cannot be filmed against real data today.
+On Bama listings the shortlist refuses, four sliders are inert, and the only
+number that says ranking beats price-sort was measured on a corpus this
+project generated. A video centred there would move the submission's weight
+from a claim that was measured and lost onto a claim that has not been
+measured at all. So the demo does both and says which is which, on camera:
+what runs on real listings, what runs on synthetic, and what has no evidence
+yet. `docs/DEMO_SCRIPT.md` is rewritten to that shape.
+
+**And it reorders the next experiment.** Run 6 is another estimator
+comparison, and after D39 and EVAL_CONTRACT_V2 it is a well-designed one. It
+is also not the most valuable thing this project could do next, because it
+adds a sixth measurement to the component that already has five. The cheaper
+and more informative work is upstream of it: populate the risk, ownership and
+liquidity fields from data Bama actually publishes, so the ranking has more
+than two live terms; and find out why the baseline class fails the gate on
+real listings, because a product that cannot serve an estimate at all is a
+larger problem than which estimator it would have served. EVAL_CONTRACT_V2
+stays frozen and Run 6 stays registered against it whenever it happens. It
+just stops being next.
