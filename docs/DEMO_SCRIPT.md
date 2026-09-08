@@ -23,9 +23,10 @@ it. So the estimator's story moves to 3:40 and stops being the spine.
 **And every frame is labelled with what it runs on.** This is the constraint
 the rewrite had to solve, and it is not cosmetic. D41: on *every* real corpus
 this project has collected, CARO refuses to serve a market estimate — Run 3
-returns UNJUDGEABLE_SLICE → DO NOT SERVE, Run 5 returns REJECTED, and the
-baseline class fails the gate on Run 5's corpus too. `Ranker.score` calls
-`estimator.predict`, which raises. **A ranked shortlist over real Bama
+returns UNJUDGEABLE_SLICE → DO NOT SERVE, Run 5 returns REJECTED, and on Run
+5's corpus the gate returns no usable verdict at all: the split is so far out
+of support that comparable- and global-quantiles collapse into one predictor
+(D43). `Ranker.score` calls `estimator.predict`, which raises. **A ranked shortlist over real Bama
 listings is not filmable today, and no cut of this video may imply it is.**
 
 So the demo shows the decision path on the synthetic corpus with the word
@@ -129,8 +130,9 @@ and it must be visible, not narrated away.
 
 > **VO:** رد می‌کند. روی **هر** پیکرهٔ واقعی که تا امروز جمع کرده‌ایم، CARO
 > حاضر نیست یک برآورد بازار سرو کند. Run 3 گفت شواهدِ سرو کردن کافی نیست؛
-> Run 5 مدل را رد کرد؛ و روی پیکرهٔ Run 5 حتی baselineی که قرار بود جایش
-> برود هم از دروازه رد نمی‌شود.
+> Run 5 مدل را رد کرد؛ و روی پیکرهٔ Run 5 خودِ دروازه هم قدرت تفکیک ندارد —
+> split آن‌قدر بیرون از پشتیبانی است که دو baseline به یک برآوردگر تبدیل
+> می‌شوند.
 >
 > و دو چیز دیگر که همین اجرا نشان داد: از شش ترمِ رتبه‌بندی، **چهارتا روی
 > دادهٔ واقعی ثابت‌اند** — ریسک، هزینهٔ نگهداری و نقدشوندگی را W4 اصلاً پر
