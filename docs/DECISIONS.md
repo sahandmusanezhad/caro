@@ -1959,3 +1959,31 @@ system that can say that is worth more than a shortlist that cannot. Every
 other row above is what earns that sentence the right to be believed.
 
 Remaining work is the recording. The technical record stops here on purpose.
+
+**One amendment, and the reasoning that changed it.** The review revised its
+own advice after reading D43, and the revision is better than the position it
+replaced — including better than mine. It separates the collection I rejected
+into two different things that I had merged:
+
+    an estimator rescue          collect until the gate passes.   Forbidden.
+    an ingestion observation     collect to find out whether the
+                                 condition block records, and what
+                                 the natural overlap is.          Registerable.
+
+The second is not the D35 loop, and the difference is not sincerity but
+permission: an ingestion observation **may not feed a benchmark**. Its success
+criterion is `COND: empty → populated`, which is an ingestion fact that stands
+or falls independently of every appraisal question.
+
+So `docs/SNAPSHOT2_PROTOCOL.md` is written and frozen, and **not executed**.
+It carries the stop conditions, the positive conditions a future benchmark
+design would have to meet, the rule that the two snapshots are not merged
+before their five geometry numbers are published, and a hard stop that does
+not depend on the result: if the collection does not fit the time available,
+the benchmark is not touched again and the video gets recorded.
+
+Registering it without running it is the correct output here for a reason
+worth naming: **the decision about whether there is time belongs to the
+project owner, not to me or to a reviewer.** What I can do is make sure that
+if it is ever run, it is run against rules written before the data existed.
+D44's stop stands until that decision is made.
