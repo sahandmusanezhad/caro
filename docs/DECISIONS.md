@@ -2233,3 +2233,69 @@ acquisition with bounded adapters; PostgreSQL for product state; the file
 artifact for evidence; Docker Compose; no Kubernetes; anonymous-first auth.
 A new feature is now required to show it does not cross these lines, and the
 line most worth watching is the projection arrow.
+
+## D48 — SorinFlow is ported from, not vendored
+
+A working Persian scraper already exists in the owner's other project
+(`Tecso-Dev/SorinFlow-DaTA-mAmager`, MIT). The obvious move is to vendor it and
+write a car adapter on top, and the obvious move is wrong. This entry records
+why, because the pressure to reuse working code is highest exactly when a
+deadline is near, and "we already have a scraper" is the sentence that would
+undo it.
+
+**Most of that scraper is forbidden by an obligation this repository already
+carries.** `caro/ingest/base.py` binds every adapter:
+
+> Build no anti-bot evasion — if a source blocks you, stop and record it.
+> Raw phone numbers must not reach CARO or disk.
+
+`app/scraper/` contains, measured rather than assumed:
+
+    captcha_solver.py      PuzzleCaptchaSolver — an OpenCV slider-CAPTCHA
+                           solver with a confidence threshold. Not a stub.
+    stealth.py             StealthConfig — browser fingerprint, locale,
+                           timezone, geolocation. Anti-detection by name.
+    contact_extractor.py   988 lines. "Extracts phone numbers from a Divar
+                           listing page", including click-to-reveal.
+    auth.py, otp_store.py, divar_session.py
+                           login, SMS codes, session rotation.
+
+Vendoring these would put a CAPTCHA solver and a phone-number extractor in a
+repository whose own site tells a reviewer, in Persian, that it does neither.
+The cost is not that a rule is broken quietly; it is that the reviewer who
+finds it has grounds to disbelieve every other claim in the project, and most
+of those claims are load-bearing.
+
+**It is also not a library.** `app/main.py` is 969 lines, `crm.py` is 2395, and
+the tree carries its own routes for SMS, GCP and proxies, plus `init.sql`,
+`migrations/`, `k8s/` and a second `docker-compose.yml`. Reuse here means
+carrying a second product, and that product's deployment opinions would arrive
+with it.
+
+**The portable core was already written.** `caro/ingest/persian.py` is 153
+lines — `normalize`, `parse_price` with toman/rial disambiguation,
+`parse_mileage_km`, `parse_year_jalali` — under 281 assertions in the ingest
+suite. The advice "do not rewrite it" is sound in general and describes, here,
+a decision that was made and executed some time ago.
+
+**What is actually worth porting is five functions, and not the obvious ones.**
+From `parsers.py` (1111 lines, 24 functions):
+
+    panel_says_agency · decide_advertiser_type · is_personal_value
+    agency_name_from_panel · _norm_value
+
+These decide agency-versus-private from the **rendered panel rather than from
+free text**, which is structurally the rule CARO already states for
+`seller_type`: business badges only. The Persian cues differ — «مشاور املاک»
+becomes «نمایشگاه» / «اتوگالری» — and the semantics convert
+`agency / personal → dealer / individual`, but the shape of the decision
+transfers exactly. Each arrives with attribution and its own test.
+
+The remaining nineteen functions are real-estate domain — `detect_corner_type`,
+`extract_rooms_from_text`, `extract_amenities`, `enrich_price_from_features` —
+and do not transfer to vehicles.
+
+**Python stays; Go is not introduced.** The value in this layer is Persian
+heuristics, not throughput, and the binding constraint is the politeness delay,
+which is deliberately slow. Go would speed up the one part of the pipeline that
+is supposed to wait.
