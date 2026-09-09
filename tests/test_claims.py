@@ -665,7 +665,17 @@ NEVER_IN_OUTPUT = {
 }
 _artefacts = [p for p in ROOT.glob("demo/*")
               if p.suffix in {".html", ".json"}]
-check(f"demo artefacts present to check ({len(_artefacts)})", _artefacts)
+
+# The website says these things to actual users, which the demo page does not,
+# so it belongs in the same scan set. It was outside it for as long as it
+# existed: the guard covered `demo/*` because that was the only user-facing
+# surface at the time, and nothing announced when a second one appeared.
+_artefacts += sorted(
+    p for d in ("webapp/web/app", "webapp/web/components")
+    for p in (ROOT / d).rglob("*")
+    if p.is_file() and p.suffix in {".tsx", ".ts"})
+
+check(f"user-facing artefacts present to check ({len(_artefacts)})", _artefacts)
 for p in _artefacts:
     body = p.read_text(encoding="utf-8")
     for word, why in NEVER_IN_OUTPUT.items():
