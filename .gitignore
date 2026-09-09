@@ -25,3 +25,10 @@ data/snapshots/
 data/inbox/
 .DS_Store
 
+# The web client. `node_modules/` and the build output are reproducible from
+# package-lock.json and belong to neither lifecycle above.
+webapp/web/node_modules/
+webapp/web/.next/
+webapp/web/out/
+webapp/web/next-env.d.ts
+webapp/web/tsconfig.tsbuildinfo

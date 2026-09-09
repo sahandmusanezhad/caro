@@ -1,0 +1,132 @@
+/* The palette is `demo/index.html`'s, copied deliberately rather than
+   re-invented: the video and the site must be recognisably one product, and a
+   reviewer who watches the demo and then opens the URL should not wonder
+   whether they are looking at two different things.
+
+   Everything is a CSS variable so `tailwind.config.ts` can name the colours
+   once and the dark scheme can be a redefinition rather than a second set of
+   classes scattered through the components. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ground:#f1f3f0; --surface:#fbfcfa; --sunk:#e7eae6;
+  --ink:#131a1b; --ink-2:#3d4947; --ink-3:#69736f;
+  --line:#d5dbd6; --line-2:#c2cac4;
+  --accent:#1a5f59; --accent-soft:#dbe9e6;
+  --warn:#9a6508; --warn-soft:#f5ead4;
+  --bad:#8f2f2f; --bad-soft:#f6e0dd;
+  --good:#2e6b46; --good-soft:#dcecdf;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --fa:"Vazirmatn",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:#0e1213; --surface:#161c1d; --sunk:#1d2425;
+    --ink:#e4e8e5; --ink-2:#b3bcb8; --ink-3:#7f8a86;
+    --line:#293230; --line-2:#374240;
+    --accent:#5db3a8; --accent-soft:#16302e;
+    --warn:#d9a441; --warn-soft:#32270f;
+    --bad:#e08b83; --bad-soft:#331a18;
+    --good:#7bbd92; --good-soft:#14291c;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:#0e1213; --surface:#161c1d; --sunk:#1d2425;
+  --ink:#e4e8e5; --ink-2:#b3bcb8; --ink-3:#7f8a86;
+  --line:#293230; --line-2:#374240;
+  --accent:#5db3a8; --accent-soft:#16302e;
+  --warn:#d9a441; --warn-soft:#32270f;
+  --bad:#e08b83; --bad-soft:#331a18;
+  --good:#7bbd92; --good-soft:#14291c;
+}
+
+html { direction: rtl; }
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--fa);
+  font-size: 15px;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Two classes, and using the wrong one is a visible bug rather than a matter
+   of taste.
+
+   `.num` forces an LTR run. Correct for something that IS left-to-right — a
+   file path, a listing id, `Σ = 0.283` — and `isolate` keeps the bidi
+   algorithm from dragging an adjacent minus sign or bracket to the far end.
+
+   `.fig` only changes the font. Use it whenever a number sits in a Persian
+   phrase — «۵۹۲٬۹۸۴٬۰۶۳ تومان», «۱۷۲٬۵۳۸ کیلومتر». Wrapping those in `.num`
+   lays the whole phrase out left-to-right, which puts the unit before the
+   number and renders «تومان ۵۹۲٬۹۸۴٬۰۶۳» — read right-to-left by an actual
+   Persian reader, that is the unit first. Left alone, bidi already lays the
+   digit run out correctly inside the RTL line. */
+.num, code, kbd, pre {
+  font-family: var(--mono);
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+.fig {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+::selection { background: var(--accent-soft); color: var(--ink); }
+
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* A few compound patterns that would otherwise be a dozen repeated utility
+   strings. Kept small on purpose — Tailwind is the styling system here. */
+@layer components {
+  .panel {
+    @apply bg-surface border border-line rounded-[3px] p-6;
+  }
+  /* The demo's eyebrows are English, so they are monospaced, letter-spaced
+     and laid out left-to-right. These are Persian. Arabic script is
+     connected, and adding 0.14em between the letters of «چه چیزی این را از
+     یک فیلتر جدا می‌کند» pulls the word apart visually without adding any of
+     the typographic authority the spacing buys in Latin. So: the same size
+     and colour, the Persian face, and no tracking. */
+  .eyebrow {
+    @apply font-fa text-[12px] text-ink-3 mb-3.5;
+  }
+  .chip {
+    @apply font-mono text-[11px] tracking-[0.1em] uppercase px-2.5 py-1
+           rounded-[2px] border inline-block;
+    direction: ltr;
+  }
+  .btn {
+    @apply font-fa text-sm font-medium border border-accent text-accent
+           rounded-[2px] px-4 py-2 transition-colors;
+  }
+  .btn:hover:not(:disabled) { background: var(--accent); color: var(--surface); }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .btn-solid {
+    @apply font-fa text-sm font-medium border border-accent rounded-[2px] px-4 py-2;
+    background: var(--accent);
+    color: #fff;
+  }
+}
