@@ -162,6 +162,13 @@ def search(q: str = Query(..., min_length=2, description="پرسش فارسی"),
         scored = c.pipeline.ranker.score(cands, used)
     except NotBenchmarked as e:
         return {**base, "served": False, "items": [],
+                # `still_available` names three things, so all three are in
+                # the payload. A refusal that advertises evidence it does not
+                # send is a refusal that has to be taken on trust — which is
+                # the posture this whole endpoint exists to avoid. `evidence`
+                # carries no estimate, no score and no ordering: these are the
+                # matching listings as parsed, and nothing more.
+                "evidence": [_row(r) for r in cands[:k]],
                 "refusal": {
                     "reason": "estimator_not_gated",
                     "detail": str(e),
@@ -173,7 +180,7 @@ def search(q: str = Query(..., min_length=2, description="پرسش فارسی"),
                 }}
 
     items = diversify(scored, k=k)
-    return {**base, "served": True, "refusal": None,
+    return {**base, "served": True, "refusal": None, "evidence": [],
             "items": [_scored(s, i + 1) for i, s in enumerate(items)]}
 
 
