@@ -147,7 +147,7 @@ its own ability to assess uncertainty**, and refuses on it.
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 
-python3 tests/run_all.py            # 716 assertions, no API key, no network
+python3 tests/run_all.py            # 906 assertions, no API key, no network
 python3 tests/run_all.py ranking    # just the win-rate benchmark
 python3 demo/export_demo.py         # regenerate demo/index.html from live output
 ```
@@ -161,7 +161,23 @@ Read their committed output in `docs/` instead — `RUN3_2026-09-07.txt`,
 `RUN5_SIGNIFICANCE_2026-09-07.txt`, `RANK_RUN5_2026-09-08.txt`,
 `GATE_DIAGNOSIS_2026-09-08.txt`.
 
-**numpy is the only hard dependency.** Ridge regression is written out in
+**numpy is the only hard dependency of `caro/`.** Two of the ten test suites
+need more, and the runner says so rather than failing:
+
+```
+python3 tests/run_all.py            # 906 assertions across 8 of 10 suites
+pip install scipy                   # + W1 appraisal      →  957
+pip install -r webapp/requirements.txt   # + the API contract  →  1023
+```
+
+A suite whose extra module is absent is skipped by name with the command
+that enables it — skipped is never printed as passed, and the count reads
+"8 of 10". Neither extra is needed by the package: scipy builds an oracle
+inside `tests/test_appraisal.py`, and fastapi is only reachable from
+`webapp/`, which is deliberately outside the core so that the sentence
+below stays true.
+
+Ridge regression is written out in
 four lines of linear algebra rather than imported, because depending on
 scikit-learn for it costs a heavyweight install that lags new Python
 releases by months — the kind of friction that stops a reviewer before they
