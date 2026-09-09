@@ -2168,3 +2168,68 @@ they build their own corpora, which is exactly why they are silent about a
 corpus that is missing. The missing check was not a property of the model; it
 was a repository-integrity check: run the commands the documentation tells a
 reviewer to run, from a clean clone, with network disabled.
+
+## D47 — Two stores, and the projection between them runs one way
+
+The platform needs a database. Introducing one puts the corpus at risk, because
+a table is the obvious place to put listings and the corpus is made of
+listings. This entry fixes which store owns what, before the first migration
+makes the answer implicit.
+
+**Product state lives in PostgreSQL.** Users, saved searches, saved
+comparisons, contact messages, the event log — mutable rows with a lifecycle,
+which is what a relational store is for.
+
+**Evidence state lives in the artifact.** `data/corpora/<run>.json` remains the
+source of truth for anything a published number depends on. Not the corpus in
+a table, not appraisal results in a table, not provenance in a table.
+
+The reason is mechanical rather than aesthetic. The content guard runs over the
+**serialized bytes** of the artifact, deliberately, because a guard that only
+inspects the in-memory object is defeated by renaming a field or by a
+serializer that flattens a structure. `promote_corpus.py` is the only writer of
+that directory and writes nothing at all when either guard fails. A Postgres
+row has none of those properties: it is not immutable, it is not addressable by
+content, there is no single writer, and `UPDATE` leaves no trace. Moving the
+corpus into a table would replace the mechanism D46 exists to protect with one
+that has no equivalent.
+
+**Listings do go into Postgres, as a read model.** Serving a search over a
+growing corpus wants an index. The rule is the direction:
+
+    scrape → snapshot → promote → artifact → Postgres read model → API
+
+and never
+
+    scrape → Postgres → somehow corpus
+
+The scraper does not write to Postgres. Nothing projects into Postgres that has
+not first survived promotion. Two consequences follow and both are the point:
+if Postgres is lost, the artifacts rebuild it; if the Postgres schema changes,
+provenance does not.
+
+**V1 has no cache and no job queue.** Not "not yet configured" — absent, on
+purpose, because each of them can break the property above in a way that is
+invisible.
+
+A cached shortlist is the sharper of the two. It can outlive the corpus it was
+computed from, and at that moment the `SYNTHETIC` / `REAL` label travelling
+with it is false — the one thing the label exists to prevent. If a cache is
+ever added, its key must carry `corpus_sha256`, the gate state, the ranking
+version, the normalized intent and the weights. A key of the shape
+`search:pride` is a provenance bug with a cache in front of it.
+
+A queue is the softer one, and the risk is cultural. D35 makes an acquisition
+run a deliberate event with its own transcript. Infrastructure that makes
+firing a run cheap and unattended erodes that without changing a line of the
+rule. When a queue is warranted the choice is Arq over Celery — the work is
+async (Playwright is), the job set is small, and Celery's process model fights
+asyncio for benefits this project does not need — and every run it starts still
+writes its own transcript.
+
+**What this freezes.** Next.js + TypeScript + Tailwind; FastAPI with Pydantic
+response contracts; CARO as an imported package, not a service; Python
+acquisition with bounded adapters; PostgreSQL for product state; the file
+artifact for evidence; Docker Compose; no Kubernetes; anonymous-first auth.
+A new feature is now required to show it does not cross these lines, and the
+line most worth watching is the projection arrow.
