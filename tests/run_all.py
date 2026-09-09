@@ -40,6 +40,8 @@ SUITES = [
      "retired overclaims do not return (D36)"),
     ("--  corpus", "tests/test_corpus.py",
      "publishable artifact guards, and the laundering regression"),
+    ("--  contract", "tests/test_api_contract.py",
+     "every endpoint, in every corpus state, against the client's types"),
 ]
 
 TTY = sys.stdout.isatty() and not os.environ.get("NO_COLOR")

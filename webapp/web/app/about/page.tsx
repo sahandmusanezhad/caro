@@ -5,15 +5,17 @@ export const metadata = { title: 'درباره‌ی ما — CARO' };
 /* Numbers on this page are reproducible from the repository, and one of them
    was wrong: 47 counted `^## D` HEADINGS, but D31 has a second heading —
    `## D31 (result)` — recording how that decision turned out. Headings are not
-   decisions. The real count of distinct D-numbers is 48.
-   `tests/test_claims.py` now recomputes it from docs/DECISIONS.md and fails if
-   this file disagrees, because a number a human maintains by hand next to a
-   file that grows is a number that will drift again. */
+   decisions.
+   Every number below is now derived from the thing it describes rather than
+   maintained here: `tests/test_claims.py` recomputes the decision count from
+   docs/DECISIONS.md, and `tests/run_all.py` compares the assertion total
+   against its own run. Both fail the build when this file disagrees, because
+   a count a human keeps beside a file that grows is a count that drifts. */
 
 const FACTS: [string, string, string][] = [
-  ['۴۹', 'تصمیم ثبت‌شده', 'docs/DECISIONS.md'],
-  ['۹۵۷', 'گزاره‌ی آزمون', 'tests/run_all.py'],
-  ['۹', 'مجموعه‌ی آزمون', 'یکی از آن‌ها فقط مراقب بازگشت ادعاهای بازنشسته است'],
+  ['۵۰', 'تصمیم ثبت‌شده', 'docs/DECISIONS.md'],
+  ['۱۰۲۳', 'گزاره‌ی آزمون', 'tests/run_all.py'],
+  ['۱۰', 'مجموعه‌ی آزمون', 'یکی از آن‌ها فقط مراقب بازگشت ادعاهای بازنشسته است'],
   ['۰', 'وابستگی سنگین', 'هسته‌ی پروژه فقط به numpy نیاز دارد'],
 ];
 
@@ -50,7 +52,7 @@ export default function About() {
       <section className="panel">
         <p className="eyebrow">دفتر تصمیم‌ها</p>
         <p className="m-0 text-[15px] leading-[1.95] max-w-[64ch]">
-          بیشتر آن ۴۹ تصمیم به این دلیل نوشته شده‌اند که چیزی به‌شکلی نامرئی
+          بیشتر آن ۵۰ تصمیم به این دلیل نوشته شده‌اند که چیزی به‌شکلی نامرئی
           خراب شده بود. دو تا از آن‌ها بیش از بقیه اینجا حضور دارند:
         </p>
         <div className="mt-4 grid gap-px bg-line border border-line
