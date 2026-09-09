@@ -2,14 +2,17 @@ import Link from 'next/link';
 
 export const metadata = { title: 'درباره‌ی ما — CARO' };
 
-/* Numbers on this page are reproducible from the repository: 47 is the count
-   of `^## D` headings in docs/DECISIONS.md, 729 is what tests/run_all.py
-   prints, 8 is the suite count on the same line. If any of them changes, this
-   page is wrong and should be corrected rather than rounded. */
+/* Numbers on this page are reproducible from the repository, and one of them
+   was wrong: 47 counted `^## D` HEADINGS, but D31 has a second heading —
+   `## D31 (result)` — recording how that decision turned out. Headings are not
+   decisions. The real count of distinct D-numbers is 48.
+   `tests/test_claims.py` now recomputes it from docs/DECISIONS.md and fails if
+   this file disagrees, because a number a human maintains by hand next to a
+   file that grows is a number that will drift again. */
 
 const FACTS: [string, string, string][] = [
-  ['۴۷', 'تصمیم ثبت‌شده', 'docs/DECISIONS.md'],
-  ['۷۲۹', 'گزاره‌ی آزمون', 'tests/run_all.py'],
+  ['۴۸', 'تصمیم ثبت‌شده', 'docs/DECISIONS.md'],
+  ['۸۷۱', 'گزاره‌ی آزمون', 'tests/run_all.py'],
   ['۸', 'مجموعه‌ی آزمون', 'یکی از آن‌ها فقط مراقب بازگشت ادعاهای بازنشسته است'],
   ['۰', 'وابستگی سنگین', 'هسته‌ی پروژه فقط به numpy نیاز دارد'],
 ];
@@ -47,7 +50,7 @@ export default function About() {
       <section className="panel">
         <p className="eyebrow">دفتر تصمیم‌ها</p>
         <p className="m-0 text-[15px] leading-[1.95] max-w-[64ch]">
-          بیشتر آن ۴۷ تصمیم به این دلیل نوشته شده‌اند که چیزی به‌شکلی نامرئی
+          بیشتر آن ۴۸ تصمیم به این دلیل نوشته شده‌اند که چیزی به‌شکلی نامرئی
           خراب شده بود. دو تا از آن‌ها بیش از بقیه اینجا حضور دارند:
         </p>
         <div className="mt-4 grid gap-px bg-line border border-line

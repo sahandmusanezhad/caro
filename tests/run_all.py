@@ -124,9 +124,42 @@ def main(argv: list[str]) -> int:
             print(f"{RED}--- {name} ---{OFF}\n{out}")
         print(f"{RED}{BOLD}{failed} suite(s) failed{OFF}  ({total} assertions ran)\n")
         return 1
+
+    # The website advertises this total, and only this file knows it. A count
+    # maintained by hand beside a suite that grows is a count that goes stale —
+    # `/about` said 47 decisions for as long as there were 48, and nobody saw
+    # it. The check lives here rather than inside a suite because a suite that
+    # asserts on the total assertion count changes the number it is asserting.
+    #
+    # When this fires the fix is to edit the page, not to delete the check.
+    drift = _about_disagrees(total)
+    if drift:
+        print(f"{RED}{BOLD}the site advertises a stale number{OFF}  {drift}\n")
+        return 1
+
     print(f"{GREEN}{BOLD}all {total} assertions passed{OFF} "
           f"across {len(suites)} suite(s)\n")
     return 0
+
+
+_FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+
+
+def _about_disagrees(total: int) -> str:
+    """'' if the about page states `total`, else what it says instead."""
+    page = ROOT / "webapp" / "web" / "app" / "about" / "page.tsx"
+    if not page.exists():
+        return ""                       # no site in this checkout; not a fault
+    body = page.read_text(encoding="utf-8")
+    m = re.search(r"\['([۰-۹]+)', 'گزاره‌ی آزمون'", body)
+    if not m:
+        return (f"{page.relative_to(ROOT)} no longer states an assertion "
+                f"count — restore it or drop this check deliberately")
+    want = str(total).translate(_FA)
+    if m.group(1) == want:
+        return ""
+    return (f"{page.relative_to(ROOT)} says «{m.group(1)}», the suites ran "
+            f"{total} → change it to «{want}»")
 
 
 if __name__ == "__main__":

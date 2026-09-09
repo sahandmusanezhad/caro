@@ -54,5 +54,5 @@ enforced. Two rules follow, and both have been broken before:
   gate is never edited after seeing its output. After a loss, changing the
   corpus and re-running is the most natural way to manufacture a win.
 
-Read `docs/DECISIONS.md` before changing anything. It is 40 entries and most
+Read `docs/DECISIONS.md` before changing anything. It is 48 entries and most
 of them exist because something went wrong in a way that was invisible.

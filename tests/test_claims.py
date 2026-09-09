@@ -681,6 +681,35 @@ for p in _artefacts:
     for word, why in NEVER_IN_OUTPUT.items():
         check(f"  {p.name} never says «{word}»  — {why}", word not in body)
 
+# ---------------------------------------------------------------------------
+# A count a human maintains beside a file that grows is a count that drifts.
+#
+# `/about` advertised 48 recorded decisions as 47, because 47 is the number of
+# `^## D` HEADINGS and one decision — D31 — carries a second heading recording
+# how it turned out. Headings are not decisions. Nobody would have noticed:
+# the page is prose, the file is long, and the two are edited months apart.
+#
+# So the page states it and this recomputes it. Same shape as the D36 instance
+# cross-check above, and for the same reason.
+print()
+_decisions = sorted({int(m) for m in re.findall(
+    r"^## D(\d+)",
+    (ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8"),
+    re.MULTILINE)})
+_about = (ROOT / "webapp/web/app/about/page.tsx").read_text(encoding="utf-8")
+
+check(f"docs/DECISIONS.md holds {len(_decisions)} distinct decisions "
+      f"(D1–D{max(_decisions)})",
+      _decisions == list(range(1, max(_decisions) + 1)),
+      f"gaps: {sorted(set(range(1, max(_decisions) + 1)) - set(_decisions))}")
+
+_FA_DIGITS = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
+_want = str(len(_decisions)).translate(_FA_DIGITS)
+check(f"  and /about says «{_want}» in both places it names the count",
+      _about.count(_want) >= 2,
+      f"found {_about.count(_want)} occurrence(s) of «{_want}»")
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
