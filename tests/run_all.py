@@ -5,13 +5,28 @@
     python3 tests/run_all.py ranking    just one
 
 No `make`, no pytest, no arguments needed — the suites are plain scripts and
-this is a plain script, so the project runs anywhere Python does. That
-matters more than it sounds: a reviewer who has to install a build tool
-before seeing a test pass usually just doesn't.
+this is a plain script. That matters more than it sounds: a reviewer who has
+to install a build tool before seeing a test pass usually just doesn't.
+
+Two suites need more than numpy, and that used to be a lie by omission. This
+file claimed "the project runs anywhere Python does" while `test_appraisal`
+imported scipy and `test_api_contract` imported fastapi, so a clean clone
+with only numpy — the setup the README describes — got a red build naming a
+missing module. A reviewer reads that as "the tests are broken", which is
+the same class of failure as D46: the command the documentation gives does
+not work for the person told to run it.
+
+A suite whose extra dependency is absent is now SKIPPED, by name, with the
+command that would enable it. Skipped is not passed and is never printed as
+though it were: the summary says how many ran out of how many exist, and
+lists what did not. The skip is allowed ONLY for a declared optional module
+that is genuinely absent — any other import error is still a failure, so
+this cannot become a way for a broken suite to go quiet.
 """
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import re
 import subprocess
@@ -21,28 +36,44 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# (label, path, blurb, extra modules it needs beyond numpy, how to get them)
 SUITES = [
     ("W4  ingest", "tests/test_ingest.py",
-     "persian parsing, car fields, politeness enforcement"),
+     "persian parsing, car fields, politeness enforcement", (), ""),
     ("W4  seller", "tests/test_seller_type.py",
-     "dealer vs private, the ported primitives, and D26"),
+     "dealer vs private, the ported primitives, and D26", (), ""),
     ("W0  tracking", "tests/test_tracking.py",
-     "observation integrity, repost identity, censoring"),
+     "observation integrity, repost identity, censoring", (), ""),
     ("W1  appraisal", "tests/test_appraisal.py",
-     "leak-free split, baselines, acceptance gate"),
+     "leak-free split, baselines, acceptance gate",
+     ("scipy",), "pip install scipy"),
     ("W3  ranking", "tests/test_ranking.py",
-     "persian intent, relaxation ladder, win-rate vs price sort"),
+     "persian intent, relaxation ladder, win-rate vs price sort", (), ""),
     ("W2  agents", "tests/test_agents.py",
-     "evidence ledger, adversarial review, judge"),
+     "evidence ledger, adversarial review, judge", (), ""),
     ("W1+ pooling", "tests/test_hierarchical.py",
-     "empirical-bayes shrinkage, visible extrapolation, held-out trims"),
+     "empirical-bayes shrinkage, visible extrapolation, held-out trims",
+     (), ""),
     ("--  claims", "tests/test_claims.py",
-     "retired overclaims do not return (D36)"),
+     "retired overclaims do not return (D36)", (), ""),
     ("--  corpus", "tests/test_corpus.py",
-     "publishable artifact guards, and the laundering regression"),
+     "publishable artifact guards, and the laundering regression", (), ""),
     ("--  contract", "tests/test_api_contract.py",
-     "every endpoint, in every corpus state, against the client's types"),
+     "every endpoint, in every corpus state, against the client's types",
+     ("fastapi", "pydantic"), "pip install -r webapp/requirements.txt"),
 ]
+
+
+def absent(mods: tuple[str, ...]) -> list[str]:
+    """Which of `mods` cannot be imported. Checked WITHOUT importing them."""
+    out = []
+    for m in mods:
+        try:
+            if importlib.util.find_spec(m) is None:
+                out.append(m)
+        except (ImportError, ValueError):
+            out.append(m)
+    return out
 
 TTY = sys.stdout.isatty() and not os.environ.get("NO_COLOR")
 GREEN, RED, DIM, BOLD, OFF = (
@@ -99,9 +130,19 @@ def main(argv: list[str]) -> int:
           f"{sys.version.split()[0]}  {provenance()}{OFF}\n")
     total = failed = 0
     outputs: list[tuple[str, str]] = []
+    skipped: list[tuple[str, list[str], str]] = []
     headline = ""
 
-    for name, path, blurb in suites:
+    for name, path, blurb, needs, how in suites:
+        gone = absent(needs)
+        if gone:
+            # Declared optional dependency, genuinely absent. Named here and
+            # again in the summary — never folded into the pass count.
+            skipped.append((name, gone, how))
+            print(f"  {DIM}–{OFF} {name:<16}{'skipped':>15}  "
+                  f"{DIM}needs {', '.join(gone)}{OFF}")
+            continue
+
         # The in-progress line is overwritten with \r, which only works on a
         # terminal — piped or redirected it would print every suite twice.
         if TTY:
@@ -123,6 +164,15 @@ def main(argv: list[str]) -> int:
     print()
     if headline:
         print(f"  {BOLD}ranking vs price-sort{OFF}  {headline}\n")
+
+    if skipped:
+        # Said before the verdict, not after it, so it cannot be read past.
+        print(f"  {BOLD}{len(skipped)} suite(s) did NOT run — skipped is not "
+              f"passed{OFF}")
+        for name, gone, how in skipped:
+            print(f"    {name:<16}needs {', '.join(gone):<18}{DIM}{how}{OFF}")
+        print()
+
     if failed:
         for name, out in outputs:
             print(f"{RED}--- {name} ---{OFF}\n{out}")
@@ -136,13 +186,20 @@ def main(argv: list[str]) -> int:
     # asserts on the total assertion count changes the number it is asserting.
     #
     # When this fires the fix is to edit the page, not to delete the check.
-    drift = _about_disagrees(total)
-    if drift:
-        print(f"{RED}{BOLD}the site advertises a stale number{OFF}  {drift}\n")
-        return 1
+    # Only meaningful when everything ran. With a suite skipped the total is
+    # legitimately lower, and firing here would tell someone whose only fault
+    # is not having scipy that the website is lying to them.
+    if not skipped:
+        drift = _about_disagrees(total)
+        if drift:
+            print(f"{RED}{BOLD}the site advertises a stale number{OFF}  "
+                  f"{drift}\n")
+            return 1
 
-    print(f"{GREEN}{BOLD}all {total} assertions passed{OFF} "
-          f"across {len(suites)} suite(s)\n")
+    ran = len(suites) - len(skipped)
+    scope = (f"across {ran} of {len(suites)} suite(s)" if skipped
+             else f"across {ran} suite(s)")
+    print(f"{GREEN}{BOLD}all {total} assertions passed{OFF} {scope}\n")
     return 0
 
 
