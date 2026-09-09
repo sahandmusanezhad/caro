@@ -2352,3 +2352,52 @@ the site works, one specific artifact will not load, and here is what it said.
 **What this does not change.** The synthetic corpus stays a first-class,
 deliberate mode with its own label and its own note on every screen. Nothing
 here makes it second-rate. What is forbidden is *arriving* at it by accident.
+
+## D50 — The API may not be more informative than the evidence behind it
+
+Every rule in this project so far constrains what CARO computes. This one
+constrains what it *serialises*, because a JSON boundary is the easiest place
+in the system to acquire a fact nothing supports. A field is added because a
+client is awkward without it; the value has to come from somewhere; and the
+somewhere is a default.
+
+Three instances, stated as prohibitions:
+
+    corpus identity is null   → no field anywhere names an evidence id
+    nothing is appraisable    → no estimate, no opportunity, no damage cost
+    the corpus is UNUSABLE    → no rows are presented as real results
+
+None of these is hypothetical. The second nearly shipped: `Ranker.score`
+returns `[]` for an empty candidate set before it reaches the estimator, so a
+real corpus produced `served: true` with an empty list — a *shape* that says a
+ranking happened. One field of aggregate summary on that response and the
+project would have been publishing a ranking claim over zero evidence.
+
+**Enforced by the types first, and tested second.** The ordering matters
+because a check can be deleted and a type cannot be ignored.
+
+    a refusal returns a model with NO estimate fields, so a refusal that
+    carried an estimate would not be a valid response — it is unrepresentable
+    rather than merely wrong
+
+    `identity` is one nullable object, not four nullable scalars, so
+    "there is no evidence identity" is expressible exactly once and cannot be
+    half-answered
+
+    `_unusable()` constructs its corpus with no rows and no listings, so
+    there is nothing for a serialiser to reach for
+
+The contract suite then asserts the invariant across every endpoint in every
+corpus state, which is what catches the fourth instance — the one not
+anticipated here.
+
+**Absence is a value.** `null` is the answer, not an omission and not a
+placeholder. A missing key and a key whose value is null read identically to
+a careless client, and a placeholder digest beside a corpus that has none is
+worse than either: it renders exactly like a real one.
+
+**Why this is not just D36 again.** D36 forbids restating a mechanism as an
+observed market fact, in prose. This forbids a *schema* from implying evidence
+the system does not hold — no sentence is written and no number is invented;
+the shape alone does the claiming. The two failures need different guards
+because they are found in different places: one by reading, one by serialising.
