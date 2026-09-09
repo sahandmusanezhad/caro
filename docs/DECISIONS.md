@@ -2299,3 +2299,56 @@ and do not transfer to vehicles.
 heuristics, not throughput, and the binding constraint is the politeness delay,
 which is deliberately slow. Go would speed up the one part of the pipeline that
 is supposed to wait.
+
+## D49 — A REAL failure must never become a SYNTHETIC success
+
+`webapp/api/corpus.py` chooses a corpus: the published artifact if one exists,
+the generated one if not. The fallback is correct and deliberate — a checkout
+with no corpus should still run the product — and the way it was written made
+one specific failure invisible.
+
+`_real()` caught `(CorpusUnavailable, ValueError)` and returned `None`, which
+`active()` reads as "no real corpus, use the synthetic one". Two very different
+situations arrive at that same `None`:
+
+    the artifact is ABSENT       → synthetic is the honest answer
+    the artifact EXISTS and we   → synthetic is a false answer, delivered
+    could not load it              under a truthful-looking label
+
+The second is the dangerous one, and D46 is why. A corpus that fails
+`validate()` raises ValueError; a mounted volume that `relative_to` cannot
+express raises ValueError; a truncated file, a permission error, a schema
+violation, a tampered artifact — all of them landed in the same `except` and
+all of them produced a working site serving generated data. The
+`SYNTHETIC` badge would be displayed, correctly, in every one of those cases.
+Nothing lies. Nobody is told that a real corpus is sitting on disk being
+refused, and there is no error anywhere to notice.
+
+This is worse than a crash, and the ranking is not close. A crash is loud,
+dated, and gets fixed. A silent downgrade produces a site that looks healthy,
+labels itself honestly, and quietly stops being about the data it was built
+for — which is the failure mode this entire project is organised against, in
+the one place where the evidence grade is chosen rather than reported.
+
+**The rule.** Absence is a fallback. Failure is not.
+
+    corpus_path does not exist   → synthetic, silently, as designed
+    anything else goes wrong     → a third state that serves nothing and
+                                   says what broke
+
+The third state is a corpus with `kind="UNUSABLE"`, no rows, no listings and
+`gated=False`. Every endpoint refuses on it exactly as it refuses on an
+ungated real corpus, and the fault travels in the envelope so the site can
+show it rather than leaving it in a log nobody is reading. Serving nothing is
+a product state this codebase already has and already renders; reaching it by
+a new route costs no new mechanism.
+
+**Why a state and not an exception.** Raising on startup would satisfy the
+invariant and is defensible. It is rejected because the operator who needs to
+see this is looking at the site, not at a terminal — and because a 500 tells a
+visitor that the site is broken, when the truth is narrower and more useful:
+the site works, one specific artifact will not load, and here is what it said.
+
+**What this does not change.** The synthetic corpus stays a first-class,
+deliberate mode with its own label and its own note on every screen. Nothing
+here makes it second-rate. What is forbidden is *arriving* at it by accident.
