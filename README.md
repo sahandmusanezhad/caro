@@ -146,6 +146,7 @@ its own ability to assess uncertainty**, and refuses on it.
 ```
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
+#                                   add --extras for all ten suites
 
 python3 tests/run_all.py            # 906 assertions, no API key, no network
 python3 tests/run_all.py ranking    # just the win-rate benchmark
@@ -166,9 +167,17 @@ need more, and the runner says so rather than failing:
 
 ```
 python3 tests/run_all.py            # 906 assertions across 8 of 10 suites
-pip install scipy                   # + W1 appraisal      →  957
-pip install -r webapp/requirements.txt   # + the API contract  →  1023
+./scripts/setup.sh --extras         # scipy + the API packages
+python3 tests/run_all.py            # 1023 across all ten
 ```
+
+Use `setup.sh --extras` rather than a bare `pip install`: on Debian-family
+systems the system Python is externally managed (PEP 668), so `pip install
+scipy` fails with `externally-managed-environment` — and the venv that the
+error message recommends may itself be unavailable, because `python3-venv`
+is a separate package. The script walks four routes and needs root for none
+of them. Printing the raw pip command here instead would be handing the
+reader an instruction this repository already documents as broken.
 
 A suite whose extra module is absent is skipped by name with the command
 that enables it — skipped is never printed as passed, and the count reads
