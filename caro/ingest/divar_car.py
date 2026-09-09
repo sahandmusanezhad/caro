@@ -223,6 +223,14 @@ class CarListing:
     mileage_status: str = "unknown"         # quality.Validity
     mileage_note: str | None = None
 
+    # Where `body_condition` came from: a spec row the page publishes, the
+    # seller's prose, or nowhere. It lived only on the per-page ParseTrace,
+    # which is printed and discarded — so a value extracted from a
+    # description could not be told apart downstream from one the site
+    # actually stated. Promotion labels provenance, and a label it has to
+    # guess is a label that eventually says "field" about a guess.
+    condition_source: str = "none"          # field | description | none
+
     # dealer | private | unknown — inferred ONLY from a dealership block the
     # page publishes about itself (a trade badge, a showroom address). Never
     # from a phone number, which CARO does not read. It is a coarse proxy for
@@ -240,6 +248,12 @@ class CarListing:
             make=self.make, model=self.model, trim=self.trim,
             year_jalali=self.year_jalali, color=self.color,
             province=self.city, mileage_km=self.mileage_km,
+            # Both halves, or neither. A condition without its provenance is
+            # a value promotion has to label by guessing, and it would guess
+            # "field" — passing a phrase mined out of ad copy off as
+            # something the source stated.
+            body_condition=self.body_condition,
+            condition_source=self.condition_source,
             # The raw seller value dies here. Only the salted hash continues.
             seller_fingerprint=(salted_fingerprint(self.seller_raw, salt)
                                 if self.seller_raw else None),
@@ -259,6 +273,10 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
     """
     blob = f"{title} {description}"
     make, model = extract_make_model(blob)
+    # Divar publishes no «وضعیت بدنه» spec row, so there is one path here and
+    # it is the prose. Saying "description" when nothing was found would
+    # claim evidence that does not exist, so an empty result has no source.
+    condition = extract_body_condition(blob)
     return CarListing(
         listing_id=listing_id, url=url, title=title, description=description,
         asking_price_toman=parse_price(price_text) or parse_price(blob),
@@ -268,7 +286,8 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
                     if mileage_text else parse_mileage_km(blob)),
         gearbox=extract_gearbox(blob), fuel=extract_fuel(blob),
         color=extract_color(blob),
-        body_condition=extract_body_condition(blob),
+        body_condition=condition,
+        condition_source="description" if condition != "unknown" else "none",
         document_issue=has_document_issue(blob),
         city=city, seller_raw=seller_raw, image_urls=tuple(image_urls),
     )

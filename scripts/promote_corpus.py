@@ -126,11 +126,27 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
     if refusal:
         return None, refusal
 
+    # `"unknown"` is what the parser writes when it looked and found nothing.
+    # Treating it as a value would publish `condition_source: "field"` about
+    # an absence, and the fallback below would never run.
     condition = rec.get("condition") or rec.get("COND") or ""
-    condition_source = "field" if condition else "none"
+    if condition == "unknown":
+        condition = ""
+    # A record that carries its own provenance is believed. Only a record
+    # that carries a condition with no provenance is assumed to have got it
+    # from a spec row — that assumption was safe while the only records with
+    # a condition were hand-written fixtures, and stops being safe the moment
+    # a snapshot carries one.
+    recorded_source = rec.get("condition_source") or ""
+    if condition:
+        condition_source = (recorded_source
+                            if recorded_source in ("field", "description")
+                            else "field")
+    else:
+        condition_source = "none"
     if not condition and desc:
         derived = extract_body_condition(desc)
-        if derived:
+        if derived and derived != "unknown":
             condition, condition_source = derived, "description"
 
     out = {

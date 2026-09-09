@@ -729,6 +729,10 @@ def parse_detail_page(url: str, html: str,
         color=(extract_color(ld_color)
                or extract_color(_labelled(lines, "رنگ بدنه") or "")),
         body_condition=condition,
+        # The trace is per-page and is discarded with the run; the record is
+        # what reaches a snapshot. Both carry the same value so that where
+        # the condition came from survives past the console.
+        condition_source=tr.condition_source,
         document_issue=has_document_issue(desc),
         city=_labelled(lines, "موقعیت") or None,
         seller_raw=None,          # the masked phone is never read

@@ -91,6 +91,20 @@ class FetchOutcome:
     image_phashes: tuple[str, ...] = ()
     payload_sha: str | None = None
 
+    # Body condition, carried because a snapshot is what survives the run.
+    # Everything the parser knew and did not put in a FetchOutcome is gone the
+    # moment the process exits, and `promote_corpus` then has nothing to
+    # promote. This field was exactly that: extracted on every page, dropped
+    # at this boundary, and re-derived downstream as `unknown` for every row —
+    # which `ranking.risk_from_condition` prices at 0.35. A corpus in which
+    # every car carries the same invented risk cannot rank on risk at all.
+    #
+    # `None` means this adapter did not record the field. `"unknown"` means it
+    # was looked for and not found. Those are different facts and neither is
+    # a guess, so they get different values.
+    body_condition: str | None = None
+    condition_source: str | None = None      # field | description | none
+
 
 # ---------------------------------------------------------------------------
 # Snapshots
