@@ -104,11 +104,25 @@ export default function SearchResults() {
 
           <div className="flex flex-wrap gap-x-7 gap-y-1 text-[13px]
                           text-ink-2">
-            <span>بررسی‌شده <b className="num">{faNum(data.considered)}</b></span>
-            <span>منطبق <b className="num">{faNum(data.candidates)}</b></span>
+            <span>بررسی‌شده <b className="fig">{faNum(data.considered)}</b></span>
+            {/* The gap between these two is the whole story on a real corpus:
+                a published artifact carries no price/mileage provenance, so
+                eligibility fails closed and nothing is appraisable. Showing
+                only the first number would hide it. */}
+            <span className={data.appraisable === 0 && data.considered > 0
+              ? 'text-warn' : undefined}>
+              قابل ارزش‌گذاری <b className="fig">{faNum(data.appraisable)}</b>
+            </span>
             {data.served && (
-              <span>در فهرست کوتاه <b className="num">
-                {faNum(data.items.length)}</b></span>
+              <>
+                <span>منطبق <b className="fig">{faNum(data.candidates)}</b></span>
+                <span>در فهرست کوتاه <b className="fig">
+                  {faNum(data.items.length)}</b></span>
+              </>
+            )}
+            {!data.served && data.evidence?.length > 0 && (
+              <span>شواهد نمایش‌داده‌شده <b className="fig">
+                {faNum(data.evidence.length)}</b></span>
             )}
           </div>
 

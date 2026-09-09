@@ -28,6 +28,11 @@ export interface CorpusInfo {
   gated: boolean;
   source: string;
   note_fa: string;
+  /* How many of `rows` cleared eligibility and could reach W1. On a published
+     artifact these diverge completely — promotion runs after parsing and
+     cannot carry price/mileage provenance, so eligibility fails closed on all
+     of it. Showing only one of the two would hide that gap. */
+  appraisable: number;
   /* Null for a synthetic corpus — it is generated, so no artifact exists to
      hash. Rendered as an explicit absence, never as a blank: a missing digest
      and a digest nobody displayed look the same on screen otherwise. */
@@ -84,12 +89,21 @@ export interface Listing {
   model: string | null;
   trim: string | null;
   year_jalali: number;
-  mileage_km: number;
-  asking_price_toman: number;
+  /* Null is reachable on the evidence path: a listing can be published with
+     no odometer or no price that survived the guards, and the row is still
+     evidence. The UI renders «ثبت‌نشده», never a zero. */
+  mileage_km: number | null;
+  asking_price_toman: number | null;
   features: Record<string, number | string | boolean | null>;
 }
 
 export interface ScoredListing extends Listing {
+  /* Narrowed back from `Listing`. A row that was scored cleared eligibility,
+     and eligibility is exactly the check that both of these are present and
+     plausible — so on this type they cannot be null, by construction rather
+     than by optimism. */
+  mileage_km: number;
+  asking_price_toman: number;
   rank: number;
   role_fa: string;
   score: number;
@@ -110,6 +124,7 @@ export interface SearchResponse {
   corpus: CorpusInfo;
   intent: Intent;
   considered: number;
+  appraisable: number;
   candidates: number;
   relaxed: boolean;
   relaxation_fa: string;

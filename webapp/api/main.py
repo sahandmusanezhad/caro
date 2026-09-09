@@ -118,6 +118,57 @@ def _envelope(c) -> dict:
     return {"corpus": c.as_dict()}
 
 
+def _listing(x) -> dict:
+    """A parsed listing, with no estimate and no score. Evidence, not a claim."""
+    return {
+        "id": x.listing_id,
+        "url": x.url or "",
+        "model_key": "|".join(p or "" for p in (x.make, x.model, x.trim)),
+        "make": x.make, "model": x.model, "trim": x.trim,
+        "year_jalali": x.year_jalali,
+        "mileage_km": (int(x.mileage_km) if x.mileage_km is not None else None),
+        "asking_price_toman": (int(x.asking_price_toman)
+                               if x.asking_price_toman is not None else None),
+        "gearbox": x.gearbox, "fuel": x.fuel, "color": x.color,
+        "condition": x.body_condition, "province": x.city,
+        "features": {},
+    }
+
+
+def _evidence(c, spec, cands, k: int) -> list[dict]:
+    """What we can still show when no ranking may be served.
+
+    On a corpus whose rows all fail eligibility, `cands` is empty and serving
+    it as the evidence would show an empty table under a heading promising
+    matching listings. So the listings are matched directly, using ONLY the
+    constraints the buyer stated — model, budget, year, odometer. No
+    relaxation ladder, no ordering, no estimate. It is a filter, not a
+    retrieval, and it is not pretending to be the second one.
+    """
+    if cands:
+        return [_row(r) for r in cands[:k]]
+
+    def keeps(x) -> bool:
+        if spec.model_hints and (x.model or "").lower() not in spec.model_hints:
+            return False
+        p = x.asking_price_toman
+        if spec.budget_max_toman is not None and p is not None \
+                and p > spec.budget_max_toman:
+            return False
+        if spec.budget_min_toman is not None and p is not None \
+                and p < spec.budget_min_toman:
+            return False
+        if spec.year_min is not None and x.year_jalali is not None \
+                and x.year_jalali < spec.year_min:
+            return False
+        if spec.max_mileage_km is not None and x.mileage_km is not None \
+                and x.mileage_km > spec.max_mileage_km:
+            return False
+        return True
+
+    return [_listing(x) for x in c.listings if keeps(x)][:k]
+
+
 # ---------------------------------------------------------------------------
 # endpoints
 # ---------------------------------------------------------------------------
@@ -153,12 +204,55 @@ def search(q: str = Query(..., min_length=2, description="پرسش فارسی"),
     """
     c = corpus_mod.active()
     spec = c.pipeline.parser.parse(q)
-    cands, used, rep = retrieve(c.rows, spec)
 
+    # Two counts, because on a published artifact they diverge to 0 and N.
+    # `considered` is what the corpus holds; `appraisable` is how much of it
+    # cleared eligibility and could reach W1 at all.
     base = {
         **_envelope(c),
+        "considered": len(c.listings) or len(c.rows),
+        "appraisable": len(c.rows),
+    }
+
+    # The gate is a property of the CORPUS, not of this query, so it is
+    # answered before the query is retrieved against — and the retrieval
+    # ladder is not run at all.
+    #
+    # Two bugs lived in doing it the other way round. `Ranker.score` returns
+    # [] for an empty candidate set BEFORE it calls `predict()`, so on a real
+    # corpus — where eligibility fails closed on every row and `cands` is
+    # therefore always empty — the refusal never fired and the response said
+    # `served: true` with zero items. "We ranked your query and found nothing"
+    # is a different claim from "we will not rank on this corpus", and the
+    # first one is false. And `retrieve` would then relax the buyer's stated
+    # constraints hunting for a shortlist that cannot be served, so every
+    # query reported «قیدها شل شد» when the constraints were never the
+    # problem.
+    if not c.gated:
+        return {
+            **base,
+            "intent": _intent(spec),        # as stated, not as relaxed
+            "candidates": 0,
+            "relaxed": False,
+            "relaxation_fa": "",
+            "served": False,
+            "items": [],
+            "evidence": _evidence(c, spec, [], k),
+            "refusal": {
+                "reason": "estimator_not_gated",
+                "detail": "no estimator has cleared AcceptanceGate on this "
+                          "corpus, so no ranking may be served on it (D43)",
+                "fa": "برای این پیکره هیچ برآوردگری از دروازه‌ی پذیرش عبور "
+                      "نکرده است، پس رتبه‌بندی سرو نمی‌شود. آنچه داریم شواهد "
+                      "است: آگهی‌های منطبق، ویژگی‌های استخراج‌شده و منبع "
+                      "هرکدام.",
+                "still_available": ["intent", "candidates", "evidence"],
+            },
+        }
+
+    cands, used, rep = retrieve(c.rows, spec)
+    base |= {
         "intent": _intent(used),
-        "considered": len(c.rows),
         "candidates": len(cands),
         "relaxed": rep.relaxed,
         "relaxation_fa": rep.text_fa() if rep.relaxed else "",
@@ -167,6 +261,9 @@ def search(q: str = Query(..., min_length=2, description="پرسش فارسی"),
     try:
         scored = c.pipeline.ranker.score(cands, used)
     except NotBenchmarked as e:
+        # Kept as defence in depth: `gated` is a summary the corpus reports,
+        # `NotBenchmarked` is the mechanism refusing. If the two ever
+        # disagree, the mechanism wins.
         return {**base, "served": False, "items": [],
                 # `still_available` names three things, so all three are in
                 # the payload. A refusal that advertises evidence it does not
@@ -174,7 +271,7 @@ def search(q: str = Query(..., min_length=2, description="پرسش فارسی"),
                 # the posture this whole endpoint exists to avoid. `evidence`
                 # carries no estimate, no score and no ordering: these are the
                 # matching listings as parsed, and nothing more.
-                "evidence": [_row(r) for r in cands[:k]],
+                "evidence": _evidence(c, used, cands, k),
                 "refusal": {
                     "reason": "estimator_not_gated",
                     "detail": str(e),

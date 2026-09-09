@@ -26,7 +26,8 @@ export function faPlain(n: number): string {
   return FA_PLAIN.format(Math.round(n));
 }
 
-export function toman(n: number): string {
+export function toman(n: number | null | undefined): string {
+  if (n == null) return 'ثبت‌نشده';
   return `${faNum(n)} تومان`;
 }
 

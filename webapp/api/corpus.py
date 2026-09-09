@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import contextlib
 import io
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
@@ -43,7 +43,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 class Corpus:
     kind: str                 # "SYNTHETIC" | "REAL"
     label_fa: str
-    rows: list                # caro.appraisal.Row
+    rows: list                # caro.appraisal.Row — the APPRAISABLE subset
     pipeline: object          # caro.ranking.RankingPipeline
     gated: bool               # may an estimate be served at all?
     source: str
@@ -54,10 +54,18 @@ class Corpus:
     # string honestly. The digest is what makes a served number traceable to
     # exact bytes a reviewer can fetch and re-hash.
     identity: object | None = None      # caro.corpus_reader.CorpusIdentity
+    # Every parsed listing, not only the appraisable ones. Kept because the
+    # two counts diverge completely on a published artifact — promotion runs
+    # after parsing and cannot carry price/mileage provenance, so
+    # `eligibility()` fails closed on all of it and `rows` is empty while the
+    # corpus holds hundreds of listings. Reporting only `rows` there would
+    # tell a buyer we looked at nothing.
+    listings: list = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return {"kind": self.kind, "label_fa": self.label_fa,
-                "rows": len(self.rows), "gated": self.gated,
+                "rows": len(self.listings) or len(self.rows),
+                "appraisable": len(self.rows), "gated": self.gated,
                 "source": self.source, "note_fa": self.note_fa,
                 # null, not a placeholder. A synthetic corpus has no artifact,
                 # and minting a digest for it — of the generating module, say
@@ -97,7 +105,7 @@ def _real(run_id: str) -> Corpus | None:
     except (CorpusUnavailable, ValueError):
         return None
 
-    _, rows = rows_from_corpus(artifact)
+    listings, rows = rows_from_corpus(artifact)
 
     # An estimator that has never been benchmarked. `MarketEstimator.predict`
     # raises `NotBenchmarked` until `benchmark()` approves it, so `Ranker` can
@@ -117,6 +125,7 @@ def _real(run_id: str) -> Corpus | None:
         kind="REAL",
         label_fa="داده‌ی واقعی",
         rows=rows,
+        listings=listings,
         # No estimator has ever cleared the acceptance gate on a real corpus
         # (D43), so `Ranker.score` raises and no shortlist exists. The product
         # shows evidence and refuses the ranking rather than inventing one.
