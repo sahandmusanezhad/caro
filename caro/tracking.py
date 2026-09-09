@@ -105,6 +105,19 @@ class FetchOutcome:
     body_condition: str | None = None
     condition_source: str | None = None      # field | description | none
 
+    # Lost at the same boundary, for the same reason, and worth naming
+    # separately because each fails differently downstream.
+    #
+    # `document_issue` is the paperwork flag. Absent, the corpus publishes no
+    # value and every consumer treats the car as though its papers are clean.
+    #
+    # `seller_type` is D26's business-badge inference and the corpus's only
+    # proxy for sample independence: thirty listings from one dealer are not
+    # thirty observations of a market. `None` and `"unknown"` both mean the
+    # badge was not seen — which under D26 must never be read as `private`.
+    document_issue: bool | None = None
+    seller_type: str | None = None           # dealer | private | unknown
+
 
 # ---------------------------------------------------------------------------
 # Snapshots

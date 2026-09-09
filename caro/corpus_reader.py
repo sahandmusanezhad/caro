@@ -184,7 +184,12 @@ def listing_from_record(rec: dict) -> CarListing:
         fuel=rec.get("fuel"),
         color=rec.get("color"),
         body_condition=rec.get("condition", "unknown"),
+        condition_source=rec.get("condition_source", "none"),
         document_issue=rec.get("document_issue"),
+        # D26 again, at the last boundary: a corpus that recorded no seller
+        # type yields `unknown`, which is the dataclass default. Absence never
+        # becomes `private` here either.
+        seller_type=rec.get("seller_type") or "unknown",
         city=rec.get("province"),
         price_currency_raw=rec.get("price_currency_raw"),
         # Parse-time provenance the artifact cannot carry. None means "not

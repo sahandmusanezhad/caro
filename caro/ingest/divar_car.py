@@ -254,6 +254,8 @@ class CarListing:
             # something the source stated.
             body_condition=self.body_condition,
             condition_source=self.condition_source,
+            document_issue=self.document_issue,
+            seller_type=self.seller_type,
             # The raw seller value dies here. Only the salted hash continues.
             seller_fingerprint=(salted_fingerprint(self.seller_raw, salt)
                                 if self.seller_raw else None),

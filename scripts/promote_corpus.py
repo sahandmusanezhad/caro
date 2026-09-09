@@ -161,8 +161,19 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
         "province": rec.get("province"),
         "condition": condition or "unknown",
         "condition_source": condition_source,
-        "document_issue": has_document_issue(desc) if desc else None,
-        "dealer_badge": bool(rec.get("dealer") or rec.get("DEALER")),
+        # The record's own value wins. Re-deriving from prose was the only
+        # option while the prose was the only thing that reached here, and it
+        # silently became "no paperwork issue on any car" once it wasn't.
+        "document_issue": (rec["document_issue"]
+                           if rec.get("document_issue") is not None
+                           else (has_document_issue(desc) if desc else None)),
+        # D26: a badge is evidence, its absence is not. `dealer_badge` stays
+        # a bool because that is what it means — a badge was seen — while
+        # `seller_type` keeps the three-way distinction, so a car with no
+        # badge is never published as `private`.
+        "dealer_badge": bool(rec.get("dealer") or rec.get("DEALER")
+                             or rec.get("seller_type") == "dealer"),
+        "seller_type": rec.get("seller_type"),
         "seller_fingerprint": rec.get("seller_fingerprint"),
         "payload_sha": rec.get("payload_sha"),
         "km_line": None,          # replaced below; the key is forbidden
