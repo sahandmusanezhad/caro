@@ -21,8 +21,13 @@ export function faNum(n: number): string {
   return FA.format(Math.round(n));
 }
 
-/** Years and other bare counts: ۱۳۹۳, not ۱٬۳۹۳. */
-export function faPlain(n: number): string {
+/** Years and other bare counts: ۱۳۹۳, not ۱٬۳۹۳.
+ *
+ *  Accepts null because `EvidenceItem.year_jalali` is nullable: a published
+ *  listing can carry no year that survived the guards, and the row is still
+ *  evidence. «ثبت‌نشده» is the answer; a zero would be a fabricated year. */
+export function faPlain(n: number | null | undefined): string {
+  if (n == null) return 'ثبت‌نشده';
   return FA_PLAIN.format(Math.round(n));
 }
 

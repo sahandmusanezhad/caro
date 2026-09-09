@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
-  api, type CorpusInfo, type Listing, type ScoredListing,
+  api, type CorpusMeta, type EvidenceItem, type ScoredItem,
 } from '@/lib/api';
 import { compact, faNum, faPlain, km, modelLabel, toman } from '@/lib/format';
 import TermBars from '@/components/TermBars';
@@ -25,9 +25,9 @@ import TermBars from '@/components/TermBars';
  * as a loading failure.
  */
 export default function CarDetail({ id }: { id: string }) {
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [corpus, setCorpus] = useState<CorpusInfo | null>(null);
-  const [scored, setScored] = useState<ScoredListing | null>(null);
+  const [listing, setListing] = useState<EvidenceItem | null>(null);
+  const [corpus, setCorpus] = useState<CorpusMeta | null>(null);
+  const [scored, setScored] = useState<ScoredItem | null>(null);
   const [refused, setRefused] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -42,10 +42,10 @@ export default function CarDetail({ id }: { id: string }) {
       })
       .then((c) => {
         if (!alive || !c) return;
-        if (c.served && c.rows.length) {
-          setScored(c.rows[0] as ScoredListing);
+        if (c.status.served && c.rows.length) {
+          setScored(c.rows[0]);
         } else {
-          setRefused(c.refusal?.detail ?? 'رتبه‌بندی روی این پیکره سرو نمی‌شود');
+          setRefused(c.fault?.message ?? 'رتبه‌بندی روی این پیکره سرو نمی‌شود');
         }
       })
       .catch((e) => { if (alive) setErr(String(e.message ?? e)); });
@@ -92,27 +92,22 @@ export default function CarDetail({ id }: { id: string }) {
         <p className="eyebrow">آنچه از آگهی استخراج شد</p>
         <dl className="m-0 grid gap-px bg-line border border-line
                        sm:grid-cols-3">
-          <F k="سازنده" v={listing.make ?? '—'} />
-          <F k="مدل" v={listing.model ?? '—'} />
+          {/* Through modelLabel, like the heading above — a taxonomy key is
+              an internal name and «pride» has no business on the page. */}
+          <F k="سازنده" v={listing.make ? modelLabel(listing.make) : '—'} />
+          <F k="مدل" v={listing.model ? modelLabel(listing.model) : '—'} />
           <F k="تیپ" v={listing.trim ?? 'ثبت‌نشده'} />
           <F k="سال (شمسی)" v={faPlain(listing.year_jalali)} num />
           <F k="کارکرد" v={km(listing.mileage_km)} num />
           <F k="قیمت پیشنهادی" v={toman(listing.asking_price_toman)} num />
-          {Object.entries(listing.features).map(([k, v]) => (
-            <F key={k} k={FEATURE_FA[k] ?? k}
-               v={typeof v === 'number'
-                 ? (v <= 1 && v >= 0 ? `${faNum(v * 100)}٪` : faNum(v))
-                 : String(v ?? '—')}
-               num />
-          ))}
-          {/* Pads the last row so the container's border colour does not show
-              through the 1px gaps as an empty bar. */}
-          {Array.from({
-            length: (3 - ((6 + Object.keys(listing.features).length) % 3)) % 3,
-          }).map((_, i) => (
-            <div key={`pad-${i}`} className="bg-surface hidden sm:block"
-                 aria-hidden />
-          ))}
+          <F k="گیربکس" v={listing.gearbox ?? 'ثبت‌نشده'} />
+          <F k="سوخت" v={listing.fuel ?? 'ثبت‌نشده'} />
+          <F k="رنگ" v={listing.color ?? 'ثبت‌نشده'} />
+          <F k="وضعیت بدنه" v={listing.condition ?? 'ثبت‌نشده'} />
+          <F k="استان" v={listing.province ?? 'ثبت‌نشده'} />
+          <F k="نوع فروشنده"
+             v={SELLER_FA[listing.seller_type ?? 'unknown']
+                ?? (listing.seller_type ?? 'نامشخص')} />
         </dl>
       </section>
 
@@ -143,6 +138,23 @@ export default function CarDetail({ id }: { id: string }) {
                     Math.abs(scored.opportunity_toman))}`}
                   hint="برآورد − قیمت − خسارت" />
           </div>
+
+          {/* Derived, not parsed. These come out of `features_from_listing`
+              during appraisal and exist only on a row that was scored — which
+              is why they sit here and not in the grid above. */}
+          {Object.keys(scored.features).length > 0 && (
+            <dl className="m-0 mt-4 flex flex-wrap gap-x-7 gap-y-1
+                           text-[13px]">
+              {Object.entries(scored.features).map(([k, v]) => (
+                <div key={k} className="flex gap-2">
+                  <dt className="text-ink-3">{FEATURE_FA[k] ?? k}</dt>
+                  <dd className="m-0 fig">
+                    {v <= 1 && v >= 0 ? `${faNum(v * 100)}٪` : faNum(v)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
 
           <TermBars terms={scored.terms} score={scored.score} />
         </section>
@@ -216,6 +228,12 @@ export default function CarDetail({ id }: { id: string }) {
     </div>
   );
 }
+
+const SELLER_FA: Record<string, string> = {
+  dealer: 'نمایشگاه',
+  private: 'شخصی',
+  unknown: 'نامشخص — نشان کسب‌وکاری روی آگهی نبود',
+};
 
 const FEATURE_FA: Record<string, string> = {
   risk: 'ریسک برآوردشده',

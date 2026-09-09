@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, shortSha, type CorpusInfo } from '@/lib/api';
+import { api, shortSha, type CorpusResponse } from '@/lib/api';
 import { faNum } from '@/lib/format';
 
 /* The label that never leaves the screen.
@@ -18,14 +18,14 @@ import { faNum } from '@/lib/format';
  *   loaded    SYNTHETIC or REAL, with the row count and the source path
  */
 export default function CorpusBadge() {
-  const [c, setC] = useState<CorpusInfo | null>(null);
+  const [c, setC] = useState<CorpusResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
     api.corpus()
-      .then((r) => { if (alive) setC(r.corpus); })
+      .then((r) => { if (alive) setC(r); })
       .catch((e) => { if (alive) setErr(String(e.message ?? e)); });
     return () => { alive = false; };
   }, []);
@@ -42,8 +42,8 @@ export default function CorpusBadge() {
     return <span className="chip border-line text-ink-3">…</span>;
   }
 
-  const broken = c.kind === 'UNUSABLE';
-  const real = c.kind === 'REAL';
+  const broken = c.status.kind === 'UNUSABLE';
+  const real = c.status.kind === 'REAL';
   const tone = broken
     ? 'border-bad text-bad bg-bad-soft'
     : real
@@ -59,7 +59,7 @@ export default function CorpusBadge() {
         className={`chip ${tone} cursor-pointer`}
       >
         {broken ? 'CORPUS UNUSABLE'
-          : `${real ? 'REAL DATA' : 'SYNTHETIC'} · ${faNum(c.rows)}`}
+          : `${real ? 'REAL DATA' : 'SYNTHETIC'} · ${faNum(c.corpus.rows)}`}
       </button>
 
       {open && (
@@ -67,22 +67,22 @@ export default function CorpusBadge() {
           className="absolute end-0 top-[calc(100%+8px)] z-20 w-[330px] panel
                      shadow-lg text-[13px] leading-7"
         >
-          <p className="eyebrow">{c.label_fa}</p>
-          <p className="m-0 mb-3 text-ink-2">{c.note_fa}</p>
+          <p className="eyebrow">{c.corpus.label_fa}</p>
+          <p className="m-0 mb-3 text-ink-2">{c.corpus.note_fa}</p>
           {c.fault && (
             <p className="m-0 mb-3 num text-[11px] leading-5 text-bad
                           bg-bad-soft border border-bad/40 rounded-[2px]
-                          px-2.5 py-2 break-all">{c.fault}</p>
+                          px-2.5 py-2 break-all">{c.fault.code} — {c.fault.message}</p>
           )}
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1
                          text-[12.5px]">
             <dt className="text-ink-3">منبع</dt>
-            <dd className="m-0 num text-[11.5px]">{c.source}</dd>
+            <dd className="m-0 num text-[11.5px]">{c.corpus.source}</dd>
             <dt className="text-ink-3">ردیف</dt>
-            <dd className="m-0 fig">{faNum(c.rows)}</dd>
+            <dd className="m-0 fig">{faNum(c.corpus.rows)}</dd>
             <dt className="text-ink-3">دروازه</dt>
             <dd className="m-0">
-              {c.gated
+              {c.status.gated
                 ? <span className="text-good">عبور کرده — رتبه‌بندی سرو می‌شود</span>
                 : <span className="text-bad">عبور نکرده — رتبه‌بندی سرو نمی‌شود</span>}
             </dd>
@@ -91,14 +91,14 @@ export default function CorpusBadge() {
           {/* The digest, or the reason there is none. Both are stated; a
               blank row would leave the reader unable to tell which. */}
           <div className="mt-3 pt-3 border-t border-line">
-            {c.identity ? (
+            {c.corpus.identity ? (
               <>
                 <p className="m-0 text-[11.5px] text-ink-3">
                   شناسه‌ی شواهد
                 </p>
                 <p className="m-0 mt-1 num text-[12px] leading-6 break-all"
-                   title={c.identity.sha256}>
-                  {c.identity.run_id} · SHA-256 {shortSha(c.identity.sha256)}
+                   title={c.corpus.identity.sha256}>
+                  {c.corpus.identity.run_id} · SHA-256 {shortSha(c.corpus.identity.sha256)}
                 </p>
                 <p className="m-0 mt-1.5 text-[11px] text-ink-3 leading-5">
                   همین عدد را با <span className="num">sha256sum</span> روی

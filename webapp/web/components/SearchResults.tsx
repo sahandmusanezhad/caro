@@ -98,8 +98,8 @@ export default function SearchResults() {
           {/* corpus note — the label is in the header, the caveat is here */}
           <p className={`m-0 text-[12.5px] leading-7 border-e-2 ps-0 pe-3
             text-ink-2 ${
-            data.corpus.kind === 'UNUSABLE' ? 'border-e-bad'
-              : data.corpus.kind === 'REAL' ? 'border-e-good'
+            data.status.kind === 'UNUSABLE' ? 'border-e-bad'
+              : data.status.kind === 'REAL' ? 'border-e-good'
                 : 'border-e-warn'}`}>
             {data.corpus.note_fa}
           </p>
@@ -115,14 +115,14 @@ export default function SearchResults() {
               ? 'text-warn' : undefined}>
               قابل ارزش‌گذاری <b className="fig">{faNum(data.appraisable)}</b>
             </span>
-            {data.served && (
+            {data.status.served && (
               <>
                 <span>منطبق <b className="fig">{faNum(data.candidates)}</b></span>
                 <span>در فهرست کوتاه <b className="fig">
                   {faNum(data.items.length)}</b></span>
               </>
             )}
-            {!data.served && data.evidence?.length > 0 && (
+            {!data.status.served && data.evidence?.length > 0 && (
               <span>شواهد نمایش‌داده‌شده <b className="fig">
                 {faNum(data.evidence.length)}</b></span>
             )}
@@ -143,7 +143,7 @@ export default function SearchResults() {
 
           <IntentPanel intent={data.intent} />
 
-          {!data.served ? (
+          {!data.status.served ? (
             <>
               <section className="panel border-bad">
                 <div className="flex items-center gap-3 flex-wrap mb-3">
@@ -153,12 +153,12 @@ export default function SearchResults() {
                   <p className="eyebrow !mb-0">رتبه‌بندی سرو نمی‌شود</p>
                 </div>
                 <p className="m-0 text-[15px] leading-[1.95] max-w-[62ch]">
-                  {data.refusal?.fa}
+                  {data.fault?.fa}
                 </p>
-                {data.refusal?.detail && (
+                {data.fault?.message && (
                   <p className="m-0 mt-3 num text-[11.5px] text-ink-3
                                 leading-6 whitespace-pre-wrap">
-                    {data.refusal.detail}
+                    {data.fault.message}
                   </p>
                 )}
                 {/* Two different situations reach this panel and only one of
@@ -167,7 +167,7 @@ export default function SearchResults() {
                     500, so the operator sees it. Saying «این یک خطا نیست»
                     there would be false. */}
                 <p className="m-0 mt-4 text-[12.5px] text-ink-3 max-w-[62ch]">
-                  {data.corpus.kind === 'UNUSABLE'
+                  {data.status.kind === 'UNUSABLE'
                     ? 'این یک خطای واقعی است و به‌عمد به‌جای ۵۰۰ اینجا نشان '
                       + 'داده می‌شود تا دیده شود. تا وقتی حل نشده، به داده‌ی '
                       + 'ساختگی برنمی‌گردیم — بازگشت بی‌صدا از خودِ خطا بدتر '

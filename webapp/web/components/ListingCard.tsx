@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import type { ScoredListing } from '@/lib/api';
+import type { ScoredItem } from '@/lib/api';
 import { compact, faNum, faPlain, km, modelLabel, toman } from '@/lib/format';
 import TermBars from '@/components/TermBars';
 
@@ -24,7 +24,7 @@ export default function ListingCard({
   selected,
   onToggle,
 }: {
-  item: ScoredListing;
+  item: ScoredItem;
   selected?: boolean;
   onToggle?: (id: string) => void;
 }) {
@@ -89,11 +89,11 @@ export default function ListingCard({
         <Fact k="مدل" v={faPlain(item.year_jalali)} />
         {typeof item.features.risk === 'number' && (
           <Fact k="ریسک برآوردشده"
-                v={`${faNum((item.features.risk as number) * 100)}٪`} />
+                v={`${faNum(item.features.risk * 100)}٪`} />
         )}
         {typeof item.features.liquidity === 'number' && (
           <Fact k="نقدشوندگی"
-                v={`${faNum((item.features.liquidity as number) * 100)}٪`} />
+                v={`${faNum(item.features.liquidity * 100)}٪`} />
         )}
       </dl>
 

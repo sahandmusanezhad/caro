@@ -1,10 +1,19 @@
-/* The typed surface of `webapp/api/main.py`.
+/* The typed surface of `webapp/api/schemas.py`.
  *
- * These interfaces are hand-written against that module rather than generated,
- * and the reason is worth recording: the shapes below are a claim about what
- * the backend returns, and a generated client would make that claim silently.
- * Anything the API does not send is optional here, and the components render
- * the absence rather than a default.
+ * These interfaces are hand-written rather than generated, and that is a real
+ * cost: two hand-written descriptions of one contract drift, and TypeScript
+ * validates this file against its own belief about the server — which is
+ * precisely the belief that goes stale.
+ *
+ * So the duplication is checked instead of trusted. `tests/test_api_contract.py`
+ * reads this file, extracts every interface's field names, and asserts they
+ * are exactly the fields of the matching Pydantic model. Adding a field on one
+ * side and not the other fails the suite rather than surfacing months later as
+ * an `undefined` on a screen.
+ *
+ * Codegen would remove the duplication outright and is the better answer at a
+ * larger size. It is not worth a build step for eleven interfaces, and the
+ * check above closes the gap it would have closed.
  *
  * The one thing this file will not do is invent a fallback. If `/api/search`
  * is unreachable the caller gets a rejected promise and the page says the
@@ -12,6 +21,13 @@
  * cannot tell you where its numbers came from is the failure this whole
  * project is arguing against.
  */
+
+/* ------------------------------------------------------------------ *
+ * The envelope: three questions, three fields.
+ *   corpus  what the data is
+ *   status  what may be done with it
+ *   fault   why we are in that state
+ * ------------------------------------------------------------------ */
 
 /** Which exact bytes a served number rests on. Null when there are none. */
 export interface CorpusIdentity {
@@ -21,33 +37,92 @@ export interface CorpusIdentity {
   bytes: number;
 }
 
-export interface CorpusInfo {
-  /* UNUSABLE means an artifact exists on disk and would not load. It is NOT a
-     fallback to synthetic — see D49: a real failure that quietly becomes a
-     synthetic success is worse than a crash, because the site looks healthy
-     and labels itself honestly while ignoring the evidence it was built for. */
-  kind: 'SYNTHETIC' | 'REAL' | 'UNUSABLE';
+export interface CorpusMeta {
   label_fa: string;
-  rows: number;
-  gated: boolean;
   source: string;
   note_fa: string;
-  /* How many of `rows` cleared eligibility and could reach W1. On a published
-     artifact these diverge completely — promotion runs after parsing and
-     cannot carry price/mileage provenance, so eligibility fails closed on all
-     of it. Showing only one of the two would hide that gap. */
+  /** Everything the corpus holds. */
+  rows: number;
+  /* How much of it cleared eligibility and could reach W1. On a published
+     artifact these are N and 0 — promotion runs after parsing and cannot carry
+     price/mileage provenance — and the gap is the point, not a detail. */
   appraisable: number;
-  /* Null for a synthetic corpus — it is generated, so no artifact exists to
-     hash. Rendered as an explicit absence, never as a blank: a missing digest
-     and a digest nobody displayed look the same on screen otherwise. */
+  /* Null when there is no artifact to hash: a generated corpus, or one that
+     would not load. Never a placeholder — a digest that renders like a real
+     one beside a corpus with no evidence is worse than an absence (D50). */
   identity: CorpusIdentity | null;
-  /** Set only on UNUSABLE: what went wrong loading the artifact. */
-  fault: string | null;
 }
 
-/** `8f3a…c21d`. The full digest stays in the payload for copying. */
-export function shortSha(sha: string): string {
-  return `${sha.slice(0, 4)}…${sha.slice(-4)}`;
+/** UNUSABLE means an artifact exists on disk and would not load. It is NOT a
+ *  fallback to synthetic — D49: a real failure that quietly becomes a
+ *  synthetic success is worse than a crash, because the site looks healthy and
+ *  labels itself honestly while ignoring the evidence it was built for. */
+export type CorpusKind = 'SYNTHETIC' | 'REAL' | 'UNUSABLE';
+
+export interface ServingStatus {
+  kind: CorpusKind;
+  /** Has an estimator cleared AcceptanceGate on this corpus? */
+  gated: boolean;
+  /** Did THIS request produce a ranking? */
+  served: boolean;
+}
+
+export type FaultCode = 'CORPUS_INVALID' | 'ESTIMATOR_NOT_GATED';
+
+export interface Fault {
+  code: FaultCode;
+  /** The specific detail, for a person. */
+  message: string;
+  fa: string;
+  still_available: string[];
+}
+
+export interface Envelope {
+  corpus: CorpusMeta;
+  status: ServingStatus;
+  fault: Fault | null;
+}
+
+/* ------------------------------------------------------------------ *
+ * Payload
+ * ------------------------------------------------------------------ */
+
+/** A listing as parsed. There is no estimate field here, by design (D50):
+ *  a refusal returns these, so a refusal carrying an estimate cannot be
+ *  constructed on either side of the wire. */
+export interface EvidenceItem {
+  id: string;
+  url: string;
+  model_key: string;
+  make: string | null;
+  model: string | null;
+  trim: string | null;
+  year_jalali: number | null;
+  mileage_km: number | null;
+  asking_price_toman: number | null;
+  gearbox: string | null;
+  fuel: string | null;
+  color: string | null;
+  condition: string | null;
+  province: string | null;
+  seller_type: string | null;
+}
+
+export interface ScoredItem extends EvidenceItem {
+  /* Narrowed from `EvidenceItem`: a row that was scored cleared eligibility,
+     and eligibility is exactly the check that these are present and
+     plausible — so they cannot be null, by construction. */
+  year_jalali: number;
+  mileage_km: number;
+  asking_price_toman: number;
+  rank: number;
+  role_fa: string;
+  score: number;
+  estimate_toman: number;
+  opportunity_toman: number;
+  expected_damage_toman: number;
+  terms: Record<string, number>;
+  features: Record<string, number>;
 }
 
 export interface WeightSet {
@@ -58,19 +133,6 @@ export interface WeightSet {
   mileage: number;
   recency: number;
 }
-
-export const WEIGHT_KEYS: (keyof WeightSet)[] = [
-  'value', 'risk', 'running_cost', 'liquidity', 'mileage', 'recency',
-];
-
-export const WEIGHT_FA: Record<keyof WeightSet, string> = {
-  value: 'صرفه',
-  risk: 'ریسک',
-  running_cost: 'هزینه‌ی نگهداری',
-  liquidity: 'نقدشوندگی',
-  mileage: 'کارکرد',
-  recency: 'تازگی',
-};
 
 export interface Intent {
   query: string;
@@ -88,67 +150,46 @@ export interface Intent {
   weights: WeightSet;
 }
 
-export interface Listing {
-  id: string;
-  model_key: string;
-  make: string | null;
-  model: string | null;
-  trim: string | null;
-  year_jalali: number;
-  /* Null is reachable on the evidence path: a listing can be published with
-     no odometer or no price that survived the guards, and the row is still
-     evidence. The UI renders «ثبت‌نشده», never a zero. */
-  mileage_km: number | null;
-  asking_price_toman: number | null;
-  features: Record<string, number | string | boolean | null>;
-}
+/* ------------------------------------------------------------------ *
+ * Responses
+ * ------------------------------------------------------------------ */
 
-export interface ScoredListing extends Listing {
-  /* Narrowed back from `Listing`. A row that was scored cleared eligibility,
-     and eligibility is exactly the check that both of these are present and
-     plausible — so on this type they cannot be null, by construction rather
-     than by optimism. */
-  mileage_km: number;
-  asking_price_toman: number;
-  rank: number;
-  role_fa: string;
-  score: number;
-  estimate_toman: number;
-  opportunity_toman: number;
-  expected_damage_toman: number;
-  terms: Record<string, number>;
-}
-
-export interface Refusal {
-  reason: string;
-  detail: string;
-  fa?: string;
-  still_available?: string[];
-}
-
-export interface SearchResponse {
-  corpus: CorpusInfo;
+export interface SearchResponse extends Envelope {
   intent: Intent;
   considered: number;
   appraisable: number;
   candidates: number;
   relaxed: boolean;
   relaxation_fa: string;
-  served: boolean;
-  refusal: Refusal | null;
-  items: ScoredListing[];
-  /* Present when `served` is false: the matching listings as parsed, with no
-     estimate, no score and no ordering. The refusal says evidence is still
-     available; this is that evidence, rather than a promise of it. */
-  evidence: Listing[];
+  items: ScoredItem[];
+  evidence: EvidenceItem[];
 }
 
-export interface CompareResponse {
-  corpus: CorpusInfo;
-  served: boolean;
-  refusal?: Refusal | null;
-  rows: (Listing | ScoredListing)[];
+export interface ListingResponse extends Envelope {
+  listing: EvidenceItem;
 }
+
+export interface CompareResponse extends Envelope {
+  rows: ScoredItem[];
+  evidence: EvidenceItem[];
+}
+
+export type CorpusResponse = Envelope;
+
+/* ------------------------------------------------------------------ */
+
+export const WEIGHT_KEYS: (keyof WeightSet)[] = [
+  'value', 'risk', 'running_cost', 'liquidity', 'mileage', 'recency',
+];
+
+export const WEIGHT_FA: Record<keyof WeightSet, string> = {
+  value: 'صرفه',
+  risk: 'ریسک',
+  running_cost: 'هزینه‌ی نگهداری',
+  liquidity: 'نقدشوندگی',
+  mileage: 'کارکرد',
+  recency: 'تازگی',
+};
 
 export class ApiError extends Error {
   readonly status: number;
@@ -180,7 +221,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  corpus: () => json<{ corpus: CorpusInfo }>('/api/corpus'),
+  corpus: () => json<CorpusResponse>('/api/corpus'),
 
   search: (q: string, k = 6) =>
     json<SearchResponse>(`/api/search?q=${encodeURIComponent(q)}&k=${k}`),
@@ -196,8 +237,7 @@ export const api = {
     ),
 
   listing: (id: string) =>
-    json<{ corpus: CorpusInfo; listing: Listing }>(
-      `/api/listing/${encodeURIComponent(id)}`),
+    json<ListingResponse>(`/api/listing/${encodeURIComponent(id)}`),
 
   compare: (ids: string[], q = 'خودرو') =>
     json<CompareResponse>('/api/compare', {
@@ -206,6 +246,11 @@ export const api = {
       body: JSON.stringify({ ids, q }),
     }),
 };
+
+/** `8f3a…c21d`. The full digest stays in the payload for copying. */
+export function shortSha(sha: string): string {
+  return `${sha.slice(0, 4)}…${sha.slice(-4)}`;
+}
 
 /** Persian labels for the scoring terms `Ranker` puts in `breakdown`. */
 export const TERM_FA: Record<string, string> = {

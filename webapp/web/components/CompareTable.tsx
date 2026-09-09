@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  api, type CompareResponse, type ScoredListing, termLabel,
+  api, type CompareResponse, type ScoredItem, termLabel,
 } from '@/lib/api';
 import { faNum, faPlain, fixed, km, modelLabel, toman } from '@/lib/format';
 
@@ -23,7 +23,7 @@ import { faNum, faPlain, fixed, km, modelLabel, toman } from '@/lib/format';
 type Metric = {
   key: string;
   fa: string;
-  get: (r: ScoredListing) => number;
+  get: (r: ScoredItem) => number;
   fmt: (n: number) => string;
   better: 'high' | 'low';
   hint?: string;
@@ -96,7 +96,7 @@ export default function CompareTable() {
     return <div className="panel text-ink-3 text-[13.5px]">در حال بارگذاری…</div>;
   }
 
-  if (!data.served) {
+  if (!data.status.served) {
     return (
       <div className="flex flex-col gap-5">
         <section className="panel border-bad">
@@ -125,7 +125,7 @@ export default function CompareTable() {
               </tr>
             </thead>
             <tbody>
-              {data.rows.map((r) => (
+              {data.evidence.map((r) => (
                 <tr key={r.id}>
                   <td className="px-4 py-2.5 border-b border-line">
                     {modelLabel(r.model_key)}
@@ -148,7 +148,7 @@ export default function CompareTable() {
     );
   }
 
-  const rows = data.rows as ScoredListing[];
+  const rows = data.rows;
   const termKeys = Array.from(
     new Set(rows.flatMap((r) => Object.keys(r.terms ?? {}))));
 
@@ -265,7 +265,7 @@ export default function CompareTable() {
       </div>
 
       <p className="m-0 text-[12.5px] text-ink-3">
-        پیکره: {data.corpus.label_fa} · <span className="num">
+        پیکره: {data.corpus.label_fa} · <span className="fig">
         {faNum(data.corpus.rows)}</span> ردیف · <span className="num">
         {data.corpus.source}</span>
       </p>
