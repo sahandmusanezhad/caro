@@ -42,10 +42,13 @@ export default function CorpusBadge() {
     return <span className="chip border-line text-ink-3">…</span>;
   }
 
+  const broken = c.kind === 'UNUSABLE';
   const real = c.kind === 'REAL';
-  const tone = real
-    ? 'border-good text-good bg-good-soft'
-    : 'border-warn text-warn bg-warn-soft';
+  const tone = broken
+    ? 'border-bad text-bad bg-bad-soft'
+    : real
+      ? 'border-good text-good bg-good-soft'
+      : 'border-warn text-warn bg-warn-soft';
 
   return (
     <div className="relative">
@@ -55,7 +58,8 @@ export default function CorpusBadge() {
         aria-expanded={open}
         className={`chip ${tone} cursor-pointer`}
       >
-        {real ? 'REAL DATA' : 'SYNTHETIC'} · {faNum(c.rows)}
+        {broken ? 'CORPUS UNUSABLE'
+          : `${real ? 'REAL DATA' : 'SYNTHETIC'} · ${faNum(c.rows)}`}
       </button>
 
       {open && (
@@ -65,6 +69,11 @@ export default function CorpusBadge() {
         >
           <p className="eyebrow">{c.label_fa}</p>
           <p className="m-0 mb-3 text-ink-2">{c.note_fa}</p>
+          {c.fault && (
+            <p className="m-0 mb-3 num text-[11px] leading-5 text-bad
+                          bg-bad-soft border border-bad/40 rounded-[2px]
+                          px-2.5 py-2 break-all">{c.fault}</p>
+          )}
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1
                          text-[12.5px]">
             <dt className="text-ink-3">منبع</dt>
@@ -98,8 +107,11 @@ export default function CorpusBadge() {
               </>
             ) : (
               <p className="m-0 text-[11.5px] text-ink-3 leading-6">
-                شناسه‌ی شواهد ندارد — این پیکره از کد تولید می‌شود و فایلی
-                برای hash گرفتن وجود ندارد.
+                {broken
+                  ? 'شناسه‌ی شواهد گرفته نشد — فایل هست ولی خوانده نمی‌شود، '
+                    + 'پس hash آن چیزی را تأیید نمی‌کند.'
+                  : 'شناسه‌ی شواهد ندارد — این پیکره از کد تولید می‌شود و '
+                    + 'فایلی برای hash گرفتن وجود ندارد.'}
               </p>
             )}
           </div>

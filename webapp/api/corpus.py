@@ -11,7 +11,7 @@ every API response carries that label. `docs/DEMO_SCRIPT.md` makes the same
 rule for the video: the SYNTHETIC / REAL DATA marker is persistent, not a
 title card. This is that rule, in the product.
 
-Two sources, in priority order:
+Three states, and which one you are in is chosen here:
 
     REAL        data/corpora/<run>.json, if a published artifact exists.
                 Loaded through caro.corpus_reader, which fails closed on
@@ -23,9 +23,19 @@ Two sources, in priority order:
                 ranking, known true prices — which is why the gate passes on
                 it and a shortlist can actually be served.
 
-The fallback is deliberate and it is not a workaround: with no real corpus
-present the product should still be usable and should say, on every screen,
-that what it is showing is a demonstration.
+    UNUSABLE    an artifact EXISTS and would not load. Serves nothing and
+                reports what broke.
+
+The synthetic fallback is deliberate and is not a workaround: with no real
+corpus present the product should still be usable and should say, on every
+screen, that what it is showing is a demonstration.
+
+The third state exists because the first two used to absorb it. D49: absence
+is a fallback, failure is not. A corpus that fails validate(), a volume that
+cannot be addressed, a truncated write, a tampered file — every one of them
+used to return None from `_real()` and come back as a working site serving
+generated data under a SYNTHETIC badge that was, in each case, displayed
+correctly. Nothing lied, nobody was told, and there was no error to notice.
 """
 
 from __future__ import annotations
@@ -41,7 +51,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 
 @dataclass(frozen=True)
 class Corpus:
-    kind: str                 # "SYNTHETIC" | "REAL"
+    kind: str                 # "SYNTHETIC" | "REAL" | "UNUSABLE"
     label_fa: str
     rows: list                # caro.appraisal.Row — the APPRAISABLE subset
     pipeline: object          # caro.ranking.RankingPipeline
@@ -61,6 +71,10 @@ class Corpus:
     # corpus holds hundreds of listings. Reporting only `rows` there would
     # tell a buyer we looked at nothing.
     listings: list = field(default_factory=list)
+    # Set only on the UNUSABLE state: what went wrong loading an artifact that
+    # exists. Travels in the envelope because the person who needs to see it
+    # is looking at the site (D49).
+    fault: str | None = None
 
     def as_dict(self) -> dict:
         return {"kind": self.kind, "label_fa": self.label_fa,
@@ -72,7 +86,8 @@ class Corpus:
                 # — would put a number that LOOKS like evidence identity next
                 # to a corpus that has none. The client renders the absence.
                 "identity": (self.identity.as_dict()
-                             if self.identity is not None else None)}
+                             if self.identity is not None else None),
+                "fault": self.fault}
 
 
 def _synthetic() -> Corpus:
@@ -95,17 +110,50 @@ def _synthetic() -> Corpus:
     )
 
 
+def _unusable(run_id: str, fault: BaseException) -> Corpus:
+    """An artifact exists and will not load. D49: this is not a fallback.
+
+    Serves nothing, in the state the product already knows how to render, and
+    carries the fault so the site can show it rather than leaving it in a log
+    nobody reads.
+    """
+    return Corpus(
+        kind="UNUSABLE",
+        label_fa="پیکره‌ی معیوب",
+        rows=[], listings=[], pipeline=_synthetic().pipeline,
+        gated=False,
+        source=f"data/corpora/{run_id}.json",
+        note_fa="یک پیکره‌ی واقعی روی دیسک هست و خوانده نمی‌شود. تا وقتی این "
+                "خطا برطرف نشده، چیزی سرو نمی‌شود — و به‌جای آن به داده‌ی "
+                "ساختگی برنمی‌گردیم، چون آن‌وقت سایت سالم به‌نظر می‌رسید و "
+                "کسی نمی‌فهمید شواهد واقعی رد شده است.",
+        fault=f"{type(fault).__name__}: {fault}",
+    )
+
+
 def _real(run_id: str) -> Corpus | None:
     from caro.corpus_reader import (            # noqa: PLC0415
-        CorpusUnavailable, corpus_identity, load_corpus, rows_from_corpus,
+        corpus_identity, corpus_path, load_corpus, rows_from_corpus,
     )
+    # Absence is a fallback; failure is not (D49). The existence check is made
+    # HERE, before anything can raise, so the two cases can never collapse into
+    # one `except`. Everything after this line runs with an artifact on disk,
+    # and no error below is allowed to end in a synthetic success.
+    if not corpus_path(run_id).exists():
+        return None
+
     try:
         artifact = load_corpus(run_id)
         identity = corpus_identity(run_id)
-    except (CorpusUnavailable, ValueError):
-        return None
-
-    listings, rows = rows_from_corpus(artifact)
+        listings, rows = rows_from_corpus(artifact)
+    except Exception as e:                      # noqa: BLE001 — deliberate
+        # Broad on purpose. The catalogue of ways a file fails to load is not
+        # closeable — ValueError from the guards, OSError from a volume,
+        # UnicodeDecodeError from a truncated write, a TypeError from a schema
+        # change — and narrowing this would silently re-open the exact hole
+        # D49 exists to close, because the uncaught ones would propagate out
+        # of `active()` and 500 the site instead of reporting the fault.
+        return _unusable(run_id, e)
 
     # An estimator that has never been benchmarked. `MarketEstimator.predict`
     # raises `NotBenchmarked` until `benchmark()` approves it, so `Ranker` can

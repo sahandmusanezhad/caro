@@ -374,6 +374,68 @@ for run in ("run3", "run5"):
         check(f"{run} has no identity because it has no artifact",
               "D46" in str(e), str(e)[:60])
 
+
+# ---------------------------------------------------------------------------
+# D49 — absence is a fallback; failure is not.
+#
+# The whole point is that this failure is INVISIBLE without a test. A broken
+# artifact used to produce a working site serving generated data under a
+# SYNTHETIC badge that was, in every case, displayed correctly. Nothing lied.
+# So the assertion is not "an error was raised" — nothing raised — it is that
+# `kind` is not "SYNTHETIC".
+print("\nD49 — a real failure never becomes a synthetic success")
+
+import contextlib as _ctx                                    # noqa: E402
+import io as _io                                             # noqa: E402
+import caro.corpus_reader as _cr                             # noqa: E402
+with _ctx.redirect_stdout(_io.StringIO()):
+    import webapp.api.corpus as _corpus_mod                   # noqa: E402
+
+_BROKEN = {
+    "invalid schema": '{"schema": "not.caro/9", "run_id": "x", '
+                      '"source": "s", "collected_on": "d", "listings": []}',
+    "forbidden key survives to disk":
+        json.dumps({"schema": SCHEMA, "run_id": "x", "source": "bama.ir",
+                    "collected_on": "2026-09-09",
+                    "listings": [{"listing_id": "a", "description": "تمیز"}]}),
+    "truncated write": '{"schema": "caro.corpus/1", "listi',
+    "not json at all": "<html>404 Not Found</html>",
+    "empty file": "",
+}
+
+_real_corpora = _cr.CORPORA
+try:
+    for label, body in _BROKEN.items():
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "run3.json").write_text(body, encoding="utf-8")
+            _cr.CORPORA = Path(d)
+            _corpus_mod.active.cache_clear()
+            with _ctx.redirect_stdout(_io.StringIO()):
+                got = _corpus_mod.active("run3")
+            check(f"{label} → not served as SYNTHETIC",
+                  got.kind == "UNUSABLE",
+                  f"kind={got.kind!r} — a broken artifact became a working "
+                  f"site serving generated data")
+            check(f"  and the fault travels in the envelope",
+                  bool(got.as_dict().get("fault")), str(got.fault))
+            check(f"  and nothing is served from it",
+                  got.gated is False and not got.rows and not got.listings)
+
+    # The other half of the rule, which must keep working: a corpus that is
+    # genuinely ABSENT still falls back, silently and correctly.
+    with tempfile.TemporaryDirectory() as d:
+        _cr.CORPORA = Path(d)
+        _corpus_mod.active.cache_clear()
+        with _ctx.redirect_stdout(_io.StringIO()):
+            got = _corpus_mod.active("run3")
+        check("an ABSENT corpus still falls back to synthetic",
+              got.kind == "SYNTHETIC", f"kind={got.kind!r}")
+        check("  and that fallback carries no fault",
+              got.fault is None, str(got.fault))
+finally:
+    _cr.CORPORA = _real_corpora
+    _corpus_mod.active.cache_clear()
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

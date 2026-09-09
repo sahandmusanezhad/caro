@@ -22,7 +22,11 @@ export interface CorpusIdentity {
 }
 
 export interface CorpusInfo {
-  kind: 'SYNTHETIC' | 'REAL';
+  /* UNUSABLE means an artifact exists on disk and would not load. It is NOT a
+     fallback to synthetic — see D49: a real failure that quietly becomes a
+     synthetic success is worse than a crash, because the site looks healthy
+     and labels itself honestly while ignoring the evidence it was built for. */
+  kind: 'SYNTHETIC' | 'REAL' | 'UNUSABLE';
   label_fa: string;
   rows: number;
   gated: boolean;
@@ -37,6 +41,8 @@ export interface CorpusInfo {
      hash. Rendered as an explicit absence, never as a blank: a missing digest
      and a digest nobody displayed look the same on screen otherwise. */
   identity: CorpusIdentity | null;
+  /** Set only on UNUSABLE: what went wrong loading the artifact. */
+  fault: string | null;
 }
 
 /** `8f3a…c21d`. The full digest stays in the payload for copying. */

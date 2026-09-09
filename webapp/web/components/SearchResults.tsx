@@ -96,9 +96,11 @@ export default function SearchResults() {
       {data && (
         <>
           {/* corpus note — the label is in the header, the caveat is here */}
-          <p className={`m-0 text-[12.5px] leading-7 border-e-2 ps-0 pe-3 ${
-            data.corpus.kind === 'REAL'
-              ? 'border-e-good text-ink-2' : 'border-e-warn text-ink-2'}`}>
+          <p className={`m-0 text-[12.5px] leading-7 border-e-2 ps-0 pe-3
+            text-ink-2 ${
+            data.corpus.kind === 'UNUSABLE' ? 'border-e-bad'
+              : data.corpus.kind === 'REAL' ? 'border-e-good'
+                : 'border-e-warn'}`}>
             {data.corpus.note_fa}
           </p>
 
@@ -159,10 +161,20 @@ export default function SearchResults() {
                     {data.refusal.detail}
                   </p>
                 )}
+                {/* Two different situations reach this panel and only one of
+                    them is "not an error". A corrupt artifact IS an error; it
+                    is merely being reported as a product state instead of a
+                    500, so the operator sees it. Saying «این یک خطا نیست»
+                    there would be false. */}
                 <p className="m-0 mt-4 text-[12.5px] text-ink-3 max-w-[62ch]">
-                  این یک خطا نیست. یک حالت محصول است: ادعا اجازه ندارد از
-                  شواهدش جلو بزند، پس آنچه هست را نشان می‌دهیم و آنچه نیست را
-                  نمی‌سازیم.
+                  {data.corpus.kind === 'UNUSABLE'
+                    ? 'این یک خطای واقعی است و به‌عمد به‌جای ۵۰۰ اینجا نشان '
+                      + 'داده می‌شود تا دیده شود. تا وقتی حل نشده، به داده‌ی '
+                      + 'ساختگی برنمی‌گردیم — بازگشت بی‌صدا از خودِ خطا بدتر '
+                      + 'است، چون سایت سالم به‌نظر می‌رسد.'
+                    : 'این یک خطا نیست. یک حالت محصول است: ادعا اجازه ندارد '
+                      + 'از شواهدش جلو بزند، پس آنچه هست را نشان می‌دهیم و '
+                      + 'آنچه نیست را نمی‌سازیم.'}
                 </p>
               </section>
 

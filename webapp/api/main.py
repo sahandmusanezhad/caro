@@ -135,6 +135,33 @@ def _listing(x) -> dict:
     }
 
 
+def _refusal(c) -> dict:
+    """Why nothing is being served. Two reasons, and they are not the same.
+
+    Collapsing them would tell an operator whose artifact failed to load that
+    the estimator has not been benchmarked — true, and not their problem.
+    """
+    if c.kind == "UNUSABLE":
+        return {
+            "reason": "corpus_unusable",
+            "detail": c.fault or "the artifact on disk could not be loaded",
+            "fa": "یک پیکره‌ی واقعی روی دیسک هست و بارگذاری نمی‌شود، پس هیچ "
+                  "چیز سرو نمی‌شود. به داده‌ی ساختگی هم برنمی‌گردیم: آن‌وقت "
+                  "سایت سالم به‌نظر می‌رسید و کسی نمی‌فهمید شواهد واقعی رد "
+                  "شده است.",
+            "still_available": ["intent"],
+        }
+    return {
+        "reason": "estimator_not_gated",
+        "detail": "no estimator has cleared AcceptanceGate on this corpus, "
+                  "so no ranking may be served on it (D43)",
+        "fa": "برای این پیکره هیچ برآوردگری از دروازه‌ی پذیرش عبور نکرده "
+              "است، پس رتبه‌بندی سرو نمی‌شود. آنچه داریم شواهد است: "
+              "آگهی‌های منطبق، ویژگی‌های استخراج‌شده و منبع هرکدام.",
+        "still_available": ["intent", "candidates", "evidence"],
+    }
+
+
 def _evidence(c, spec, cands, k: int) -> list[dict]:
     """What we can still show when no ranking may be served.
 
@@ -238,16 +265,7 @@ def search(q: str = Query(..., min_length=2, description="پرسش فارسی"),
             "served": False,
             "items": [],
             "evidence": _evidence(c, spec, [], k),
-            "refusal": {
-                "reason": "estimator_not_gated",
-                "detail": "no estimator has cleared AcceptanceGate on this "
-                          "corpus, so no ranking may be served on it (D43)",
-                "fa": "برای این پیکره هیچ برآوردگری از دروازه‌ی پذیرش عبور "
-                      "نکرده است، پس رتبه‌بندی سرو نمی‌شود. آنچه داریم شواهد "
-                      "است: آگهی‌های منطبق، ویژگی‌های استخراج‌شده و منبع "
-                      "هرکدام.",
-                "still_available": ["intent", "candidates", "evidence"],
-            },
+            "refusal": _refusal(c),
         }
 
     cands, used, rep = retrieve(c.rows, spec)
