@@ -13,6 +13,14 @@
  * project is arguing against.
  */
 
+/** Which exact bytes a served number rests on. Null when there are none. */
+export interface CorpusIdentity {
+  run_id: string;
+  path: string;
+  sha256: string;
+  bytes: number;
+}
+
 export interface CorpusInfo {
   kind: 'SYNTHETIC' | 'REAL';
   label_fa: string;
@@ -20,6 +28,15 @@ export interface CorpusInfo {
   gated: boolean;
   source: string;
   note_fa: string;
+  /* Null for a synthetic corpus — it is generated, so no artifact exists to
+     hash. Rendered as an explicit absence, never as a blank: a missing digest
+     and a digest nobody displayed look the same on screen otherwise. */
+  identity: CorpusIdentity | null;
+}
+
+/** `8f3a…c21d`. The full digest stays in the payload for copying. */
+export function shortSha(sha: string): string {
+  return `${sha.slice(0, 4)}…${sha.slice(-4)}`;
 }
 
 export interface WeightSet {

@@ -48,11 +48,23 @@ class Corpus:
     gated: bool               # may an estimate be served at all?
     source: str
     note_fa: str
+    # Present only when the numbers rest on a published artifact. `source` is
+    # a path and a path is not an identity: two deployments can serve
+    # different files from `data/corpora/run3.json` and both report that
+    # string honestly. The digest is what makes a served number traceable to
+    # exact bytes a reviewer can fetch and re-hash.
+    identity: object | None = None      # caro.corpus_reader.CorpusIdentity
 
     def as_dict(self) -> dict:
         return {"kind": self.kind, "label_fa": self.label_fa,
                 "rows": len(self.rows), "gated": self.gated,
-                "source": self.source, "note_fa": self.note_fa}
+                "source": self.source, "note_fa": self.note_fa,
+                # null, not a placeholder. A synthetic corpus has no artifact,
+                # and minting a digest for it — of the generating module, say
+                # — would put a number that LOOKS like evidence identity next
+                # to a corpus that has none. The client renders the absence.
+                "identity": (self.identity.as_dict()
+                             if self.identity is not None else None)}
 
 
 def _synthetic() -> Corpus:
@@ -71,15 +83,17 @@ def _synthetic() -> Corpus:
         note_fa="این نتایج روی پیکره‌ای اجرا می‌شوند که خود پروژه تولید کرده و "
                 "قیمت‌های واقعی‌اش معلوم است. رفتار سامانه را نشان می‌دهد، نه "
                 "بازار ایران را.",
+        identity=None,      # generated, not collected: there is no artifact
     )
 
 
 def _real(run_id: str) -> Corpus | None:
     from caro.corpus_reader import (            # noqa: PLC0415
-        CorpusUnavailable, load_corpus, rows_from_corpus,
+        CorpusUnavailable, corpus_identity, load_corpus, rows_from_corpus,
     )
     try:
         artifact = load_corpus(run_id)
+        identity = corpus_identity(run_id)
     except (CorpusUnavailable, ValueError):
         return None
 
@@ -98,6 +112,7 @@ def _real(run_id: str) -> Corpus | None:
         note_fa="آگهی‌های واقعی. هیچ برآوردگری روی پیکره‌ی واقعی از دروازه‌ی "
                 "پذیرش عبور نکرده، پس رتبه‌بندی سرو نمی‌شود و آنچه می‌بینید "
                 "شواهد است، نه توصیه.",
+        identity=identity,
     )
 
 

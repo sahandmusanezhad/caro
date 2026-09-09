@@ -302,6 +302,78 @@ for run in ("run3", "run5"):
         check(f"{run} has no corpus, and says so as a prerequisite not a bug",
               "D46" in str(e), str(e)[:60])
 
+
+# ---------------------------------------------------------------------------
+# Evidence identity: the digest is of the FILE, and of nothing else.
+#
+# A `source` path is not an identity. Two deployments can serve different
+# files from `data/corpora/run3.json` and both report that string honestly,
+# which is how a number gets published with no way back to what produced it —
+# D46, in a form nobody would notice because there is no error.
+#
+# The check that matters is not "a hash is returned". It is that the hash is
+# `sha256sum <file>` and not a digest of this process's re-encoding. A
+# re-encoding digest looks identical, passes any naive test, and is worthless:
+# it varies with key order, separators, `ensure_ascii` and float repr, so two
+# machines can publish different digests for one unmodified artifact. So the
+# fixture below is written with non-canonical spacing, and the assertion is
+# that the two digests DIFFER and that ours is the file's.
+print("\nevidence identity — sha256 of the artifact")
+
+import hashlib                                              # noqa: E402
+from caro.corpus_reader import CorpusIdentity, sha256_of    # noqa: E402
+
+with tempfile.TemporaryDirectory() as d:
+    art = Path(d) / "run9.json"
+    obj = {"schema": SCHEMA, "run_id": "run9", "source": "bama.ir",
+           "collected_on": "2026-09-09",
+           "listings": [{"listing_id": "a1", "asking_price_toman": 500_000_000,
+                         "year_jalali": 1393, "mileage_km": 120_000}]}
+    # Deliberately not canonical: extra indent, spaces after separators, and
+    # Persian text left as escaped ASCII would be a different byte string.
+    art.write_text(json.dumps(obj, indent=4, ensure_ascii=True),
+                   encoding="utf-8")
+
+    raw = hashlib.sha256(art.read_bytes()).hexdigest()
+    check("sha256_of matches sha256sum of the file", sha256_of(art) == raw,
+          f"{sha256_of(art)[:12]} vs {raw[:12]}")
+
+    recoded = hashlib.sha256(
+        json.dumps(json.loads(art.read_text(encoding="utf-8")),
+                   ensure_ascii=False).encode("utf-8")).hexdigest()
+    check("  and a re-encoding of the same object hashes DIFFERENTLY",
+          recoded != raw,
+          "the fixture failed to make the two encodings differ")
+    check("  so the digest published is the file's, not the re-encoding's",
+          sha256_of(art) != recoded)
+
+    before = sha256_of(art)
+    art.write_bytes(art.read_bytes().replace(b"120000", b"120001"))
+    check("  one changed digit changes the digest", sha256_of(art) != before,
+          "a digest that survives an edit certifies nothing")
+
+_id = CorpusIdentity(run_id="run9", path="data/corpora/run9.json",
+                     sha256="8f3a" + "0" * 56 + "", bytes=1234)
+check("identity serialises the four fields a reviewer needs",
+      set(_id.as_dict()) == {"run_id", "path", "sha256", "bytes"},
+      str(sorted(_id.as_dict())))
+check("  and shortens to head…tail for a screen, keeping both ends",
+      _id.short.startswith("8f3a") and _id.short.endswith("0000")
+      and "…" in _id.short, _id.short)
+
+# There is no artifact for these runs, so there is no identity — and asking
+# for one raises rather than returning a placeholder. A digest that stands in
+# for "we have no evidence file" is worse than no digest, because it renders
+# on screen exactly like one that means something.
+from caro.corpus_reader import corpus_identity               # noqa: E402
+for run in ("run3", "run5"):
+    try:
+        corpus_identity(run)
+        check(f"{run} identity raises", False, "it did not raise")
+    except CorpusUnavailable as e:
+        check(f"{run} has no identity because it has no artifact",
+              "D46" in str(e), str(e)[:60])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

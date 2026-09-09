@@ -38,7 +38,9 @@ More permissive is the failure.
 
 from __future__ import annotations
 
+import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 from caro.appraisal import Row
@@ -64,6 +66,79 @@ class CorpusUnavailable(FileNotFoundError):
 
 def corpus_path(run_id: str) -> Path:
     return CORPORA / f"{run_id}.json"
+
+
+def sha256_of(path: Path) -> str:
+    """The digest of the FILE'S BYTES. Not of anything parsed out of them.
+
+    The distinction is the entire value of the number. Hashing
+    `json.dumps(load_corpus(run))` would digest this process's re-encoding —
+    its key order, its separators, its `ensure_ascii` setting, its float
+    repr — and two machines could then publish different digests for one
+    unmodified artifact, or the same digest for two files that differ in
+    whitespace. A reviewer who recomputes it reaches for `sha256sum` on the
+    file, and this must be the number that comes back.
+    """
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+@dataclass(frozen=True)
+class CorpusIdentity:
+    """Which exact evidence a served number rests on.
+
+    `run_id` names the collection; `sha256` names the bytes. The second is
+    what makes the first checkable — D46 is what a published number without a
+    retrievable input artifact costs, and a path alone is not an identity:
+    two deployments can serve different files from `data/corpora/run3.json`
+    and both report that string truthfully.
+    """
+
+    run_id: str
+    path: str            # repository-relative, so it is quotable
+    sha256: str
+    bytes: int
+
+    def as_dict(self) -> dict:
+        return {"run_id": self.run_id, "path": self.path,
+                "sha256": self.sha256, "bytes": self.bytes}
+
+    @property
+    def short(self) -> str:
+        """`8f3a…c21d` — for a screen. The full digest travels in the API."""
+        return f"{self.sha256[:4]}…{self.sha256[-4:]}"
+
+
+def corpus_identity(run_id: str) -> CorpusIdentity:
+    """Identity of the published artifact for `run_id`.
+
+    Raises `CorpusUnavailable` for the same reason `load_corpus` does: an
+    artifact that does not exist has no identity, and inventing a placeholder
+    digest for one would be worse than having none.
+    """
+    p = corpus_path(run_id)
+    if not p.exists():
+        raise CorpusUnavailable(
+            f"no publishable corpus for {run_id!r} at {_display(p)} — "
+            f"see D46 in docs/DECISIONS.md")
+    return CorpusIdentity(run_id=run_id, path=_display(p),
+                          sha256=sha256_of(p), bytes=p.stat().st_size)
+
+
+def _display(p: Path) -> str:
+    """Repository-relative when it can be, absolute when it cannot.
+
+    `relative_to` RAISES on a path outside the root, and a corpus directory
+    outside the root is a normal deployment — a mounted volume under Docker
+    Compose is the case this project just committed to. Letting that
+    ValueError escape made `_real()` swallow it and fall back to the synthetic
+    corpus, so a real artifact sitting on disk would have been silently
+    ignored: the label stays truthful, which is exactly why nobody would have
+    noticed the evidence was not being served.
+    """
+    try:
+        return str(p.relative_to(ROOT))
+    except ValueError:
+        return str(p)
 
 
 def load_corpus(run_id: str) -> dict:

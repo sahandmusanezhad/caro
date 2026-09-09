@@ -178,10 +178,35 @@ export default function CarDetail({ id }: { id: string }) {
           متن استخراج و خودِ متن دور ریخته شده است. این خلأ، خرابی نیست — قرارداد
           داده است.
         </p>
+        {/* Provenance, on the page where a buyer decides. `source` says which
+            file; the digest says which bytes — and only the second is
+            checkable, because two deployments can serve different files from
+            one path and both report it honestly. */}
         {corpus && (
-          <p className="m-0 mt-3 text-[12px] text-ink-3">
-            منبع این پیکره: <span className="num">{corpus.source}</span>
-          </p>
+          <dl className="m-0 mt-4 pt-3 border-t border-line grid
+                         grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+            <dt className="text-ink-3">منبع</dt>
+            <dd className="m-0 num text-[11.5px]">{corpus.source}</dd>
+            {corpus.identity ? (
+              <>
+                <dt className="text-ink-3">اجرا</dt>
+                <dd className="m-0 num text-[11.5px]">
+                  {corpus.identity.run_id}
+                </dd>
+                <dt className="text-ink-3">SHA-256</dt>
+                <dd className="m-0 num text-[11.5px] break-all">
+                  {corpus.identity.sha256}
+                </dd>
+              </>
+            ) : (
+              <>
+                <dt className="text-ink-3">SHA-256</dt>
+                <dd className="m-0 text-ink-3">
+                  ندارد — پیکره‌ی ساختگی فایلی برای hash گرفتن ندارد
+                </dd>
+              </>
+            )}
+          </dl>
         )}
       </section>
 

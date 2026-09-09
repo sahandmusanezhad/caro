@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, type CorpusInfo } from '@/lib/api';
+import { api, shortSha, type CorpusInfo } from '@/lib/api';
 import { faNum } from '@/lib/format';
 
 /* The label that never leaves the screen.
@@ -70,7 +70,7 @@ export default function CorpusBadge() {
             <dt className="text-ink-3">منبع</dt>
             <dd className="m-0 num text-[11.5px]">{c.source}</dd>
             <dt className="text-ink-3">ردیف</dt>
-            <dd className="m-0 num">{faNum(c.rows)}</dd>
+            <dd className="m-0 fig">{faNum(c.rows)}</dd>
             <dt className="text-ink-3">دروازه</dt>
             <dd className="m-0">
               {c.gated
@@ -78,6 +78,31 @@ export default function CorpusBadge() {
                 : <span className="text-bad">عبور نکرده — رتبه‌بندی سرو نمی‌شود</span>}
             </dd>
           </dl>
+
+          {/* The digest, or the reason there is none. Both are stated; a
+              blank row would leave the reader unable to tell which. */}
+          <div className="mt-3 pt-3 border-t border-line">
+            {c.identity ? (
+              <>
+                <p className="m-0 text-[11.5px] text-ink-3">
+                  شناسه‌ی شواهد
+                </p>
+                <p className="m-0 mt-1 num text-[12px] leading-6 break-all"
+                   title={c.identity.sha256}>
+                  {c.identity.run_id} · SHA-256 {shortSha(c.identity.sha256)}
+                </p>
+                <p className="m-0 mt-1.5 text-[11px] text-ink-3 leading-5">
+                  همین عدد را با <span className="num">sha256sum</span> روی
+                  خود فایل می‌گیری.
+                </p>
+              </>
+            ) : (
+              <p className="m-0 text-[11.5px] text-ink-3 leading-6">
+                شناسه‌ی شواهد ندارد — این پیکره از کد تولید می‌شود و فایلی
+                برای hash گرفتن وجود ندارد.
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
