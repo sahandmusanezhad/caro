@@ -39,9 +39,15 @@ from pydantic import BaseModel                                     # noqa: E402
 from caro.appraisal import NotBenchmarked                          # noqa: E402
 from caro.ranking import Weights, diversify, retrieve              # noqa: E402
 from webapp.api import corpus as corpus_mod                      # noqa: E402
+from webapp.api.contact import router as contact_router          # noqa: E402
 
 app = FastAPI(title="CARO", version="0.1.0",
               description="سامانه‌ی تصمیم‌یار خرید خودروی کارکرده")
+
+# The contact inbox is a separate module because it touches disk and CARO's
+# decision endpoints do not. Keeping them apart means a change to how messages
+# are stored can never reach the ranking path.
+app.include_router(contact_router)
 
 app.add_middleware(
     CORSMiddleware, allow_origins=["http://localhost:3000"],

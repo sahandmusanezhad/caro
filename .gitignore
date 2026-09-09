@@ -16,4 +16,12 @@ venv/
 #                     ignored out of the repository.
 data/raw/
 data/snapshots/
+#   data/inbox/       Messages people sent us through the contact form, with
+#                     the contact details they chose to give. Not a corpus,
+#                     never published, and deliberately not scanned by the
+#                     corpus guards — those exist to keep a SELLER's
+#                     identifiers out of a published artifact, which is a
+#                     different thing from correspondence addressed to us.
+data/inbox/
 .DS_Store
+
