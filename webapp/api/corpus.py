@@ -98,7 +98,21 @@ def _real(run_id: str) -> Corpus | None:
         return None
 
     _, rows = rows_from_corpus(artifact)
-    from caro.ranking import RankingPipeline    # noqa: PLC0415
+
+    # An estimator that has never been benchmarked. `MarketEstimator.predict`
+    # raises `NotBenchmarked` until `benchmark()` approves it, so `Ranker` can
+    # physically not produce a number here — which is the refusal the product
+    # shows, arrived at through the shipped mechanism rather than through a
+    # flag that says "pretend it refused".
+    #
+    # `PartialPoolingQuantiles` is named rather than left abstract because it
+    # is the candidate that would be fitted the day a corpus can judge one.
+    # It is constructed but never fitted and never called.
+    from caro.appraisal import MarketEstimator      # noqa: PLC0415
+    from caro.hierarchical import PartialPoolingQuantiles  # noqa: PLC0415
+    from caro.ranking import (                      # noqa: PLC0415
+        RankingPipeline, Ranker, RuleIntentParser,
+    )
     return Corpus(
         kind="REAL",
         label_fa="داده‌ی واقعی",
@@ -106,7 +120,10 @@ def _real(run_id: str) -> Corpus | None:
         # No estimator has ever cleared the acceptance gate on a real corpus
         # (D43), so `Ranker.score` raises and no shortlist exists. The product
         # shows evidence and refuses the ranking rather than inventing one.
-        pipeline=RankingPipeline(),
+        pipeline=RankingPipeline(
+            parser=RuleIntentParser(),
+            ranker=Ranker(estimator=MarketEstimator(
+                PartialPoolingQuantiles()))),
         gated=False,
         source=f"data/corpora/{run_id}.json",
         note_fa="آگهی‌های واقعی. هیچ برآوردگری روی پیکره‌ی واقعی از دروازه‌ی "
