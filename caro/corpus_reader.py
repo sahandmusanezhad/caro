@@ -209,10 +209,18 @@ def listing_from_record(rec: dict) -> CarListing:
         price_kind_source=rec.get("price_kind_source") or "none",
         city=rec.get("province"),
         price_currency_raw=rec.get("price_currency_raw"),
-        # Parse-time provenance the artifact cannot carry. None means "not
-        # recorded", and eligibility() fails closed on it.
-        price_status=None,
-        mileage_status=None,
+        # Read, never reconstructed. If the artifact does not state a
+        # provenance then none was recorded, `None` is the honest value and
+        # `eligibility` fails closed on it — which is correct for a source
+        # that gave nothing and was catastrophic while it merely meant a
+        # boundary had dropped the value.
+        #
+        # Nothing here derives a status from the price or the mileage. A
+        # reader that inferred `display_confirmed` from the presence of a
+        # number would be manufacturing the exact provenance the gate exists
+        # to check.
+        price_status=rec.get("price_status"),
+        mileage_status=rec.get("mileage_status"),
     )
 
 

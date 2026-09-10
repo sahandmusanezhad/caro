@@ -223,6 +223,8 @@ CROSSES = {
     "price_kind_source": "price_kind_source",
     "source_url": "source_url",
     "url": "source_url",            # the fallback when a source publishes none
+    "price_status": "price_status",
+    "mileage_status": "mileage_status",
 }
 
 LOST_ON_PURPOSE = {
@@ -241,12 +243,11 @@ LOST_AND_NOT_YET_DECIDED = {
     "price_currency_raw": "as price_raw — and this one the corpus schema "
                           "does advertise",
     "price_displayed_toman": "as price_raw",
-    "price_status": "quality judgement; `corpus_reader` sets it to None and "
-                    "`eligibility` fails closed on that, which is the "
-                    "intended conservative reading",
-    "price_provenance": "as price_status",
-    "mileage_status": "as price_status",
-    "mileage_note": "as price_status",
+    "price_provenance": "which extraction path produced the price. No gate "
+                        "reads it, so it stays here — unlike price_status, "
+                        "which one does",
+    "mileage_note": "the reason text behind mileage_status; the status "
+                    "crosses, the prose explaining it does not",
 }
 
 declared = set(CROSSES) | set(LOST_ON_PURPOSE) | set(LOST_AND_NOT_YET_DECIDED)

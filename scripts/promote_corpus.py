@@ -195,6 +195,11 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
         # read as a phone number would refuse the whole artifact, which is
         # the behaviour we want.
         "source_url": rec.get("source_url"),
+        # Published because eligibility reads them. Closed vocabularies —
+        # PriceStatus and Validity — so nothing seller-authored crosses; the
+        # contract's rule is about authorship, not about how much is carried.
+        "price_status": rec.get("price_status"),
+        "mileage_status": rec.get("mileage_status"),
         "seller_fingerprint": rec.get("seller_fingerprint"),
         "payload_sha": rec.get("payload_sha"),
         "km_line": None,          # replaced below; the key is forbidden

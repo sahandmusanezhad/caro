@@ -280,6 +280,12 @@ class CarListing:
             price_kind=self.price_kind,
             price_kind_source=self.price_kind_source,
             source_url=self.source_url or self.url or None,
+            # Whatever eligibility reads must cross. Not the whole provenance
+            # set — `price_provenance` and `mileage_note` stay behind because
+            # no gate depends on them — but these two decide admission and a
+            # gate that cannot see them refuses everything.
+            price_status=self.price_status,
+            mileage_status=self.mileage_status,
             # The raw seller value dies here. Only the salted hash continues.
             seller_fingerprint=(salted_fingerprint(self.seller_raw, salt)
                                 if self.seller_raw else None),

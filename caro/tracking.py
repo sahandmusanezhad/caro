@@ -143,6 +143,26 @@ class FetchOutcome:
     # deterministic url is ever built out of an id.
     source_url: str | None = None
 
+    # The two provenance judgements `quality.eligibility` actually reads.
+    #
+    # They were left behind here on the reasoning that a published artifact
+    # "cannot carry parse-time provenance", and `corpus_reader` set both to
+    # None so eligibility would fail closed. That reading was measured and it
+    # is untenable: NO row read back from a corpus has ever been
+    # appraisal-eligible, so the artifact cannot feed the layer it exists to
+    # feed. Run 3 and Run 5 only ever produced numbers by re-parsing rebuilt
+    # pages, which is why nobody noticed.
+    #
+    # Fail-closed is the right answer to a value the source never gave. It is
+    # the wrong answer to a value the parser produced and a boundary dropped,
+    # because the two are indistinguishable to a reader and only one of them
+    # is a fact about the world.
+    #
+    # Existing enums, deliberately: `quality.PriceStatus` and
+    # `quality.Validity`. No new vocabulary — these ARE the contract.
+    price_status: str | None = None          # quality.PriceStatus
+    mileage_status: str | None = None        # quality.Validity
+
 
 # ---------------------------------------------------------------------------
 # Snapshots
