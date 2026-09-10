@@ -87,7 +87,7 @@ from caro.ingest.persian import (
     digits_only, normalize, parse_mileage_km, parse_price, parse_year_jalali,
 )
 from caro.ingest.quality import (
-    PriceStatus, classify_mileage, classify_product,
+    PriceStatus, classify_mileage, classify_price_kind, classify_product,
 )
 from caro.tracking import FetchOutcome, FetchStatus, classify_http
 
@@ -731,6 +731,14 @@ def parse_detail_page(url: str, html: str,
     pclass, psource = classify_product(page_name,
                                        from_canonical=bool(ld_name))
 
+    # Read BELOW the anchor, for the same reason every other text derivation
+    # is: the navigation above the article is not this car. With no anchor
+    # there is no article to restrict to, and the whole page is searched —
+    # the two markers are specific enough that chrome cannot produce one, and
+    # a false positive there costs a row rather than corrupting an estimate.
+    article = " ".join(lines[body_from:] if body_from is not None else lines)
+    pkind, pksource = classify_price_kind(article, has_price=price is not None)
+
     return CarListing(
         listing_id=(ld.get("identifier") or slug.get("listing_id")
                     or url.rsplit("-", 1)[-1]),
@@ -771,6 +779,8 @@ def parse_detail_page(url: str, html: str,
         seller_type=detect_seller_type(lines),
         product_class=pclass,
         product_class_source=psource,
+        price_kind=pkind,
+        price_kind_source=pksource,
     )
 
 

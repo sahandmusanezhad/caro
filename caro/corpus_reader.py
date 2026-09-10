@@ -196,6 +196,12 @@ def listing_from_record(rec: dict) -> CarListing:
         # warns against, so it is read explicitly.
         product_class=rec.get("product_class") or "unknown",
         product_class_source=rec.get("product_class_source") or "none",
+        # A row with a price and no stated kind is not a cash ask; it is a
+        # row whose kind was never recorded. `absent` is the dataclass
+        # default and `eligibility` refuses it, which is the same
+        # fail-closed reading the class above gets.
+        price_kind=rec.get("price_kind") or "absent",
+        price_kind_source=rec.get("price_kind_source") or "none",
         city=rec.get("province"),
         price_currency_raw=rec.get("price_currency_raw"),
         # Parse-time provenance the artifact cannot carry. None means "not

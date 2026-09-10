@@ -263,6 +263,64 @@ def classify_product(name: str | None, *, from_canonical: bool
     return "vehicle", "canonical_name" if from_canonical else "listing_title"
 
 
+# The other half of the same gap: a number that was extracted perfectly and
+# is not an asking price.
+#
+# Run 9's corpus MAXIMUM was 1.83B toman on a Pride — measured, not inferred —
+# and it is the total cost of a financing plan. `price_status` said
+# display_confirmed, the D20 cross-check agreed, and both were right: the
+# extraction was correct. What no field could say was that the number is not
+# what anyone is asking for the car.
+#
+# So `price_kind` answers "is this an asking price at all?", which is a
+# different question from `price_status`'s "did this number come out right?".
+# A financing total can be flawless on the second and useless on the first.
+
+# A SECTION HEADING bama renders, not a word in seller prose. «قسط» appears
+# in ordinary ad copy («قسطی معاوضه می‌کنم») and would classify honest cash
+# listings as financing; the labelled block is the site's own assertion that
+# a payment schedule exists. Observed on detail-jy04yagr, 2026-09-10.
+PAYMENT_SCHEDULE_CUES = ("جزئیات اقساط",)
+
+# Observed on detail-oyx0bgr5, 2026-09-10: the page carries no cash figure
+# at all, which is why the parser already yields no price for it. The marker
+# is what distinguishes "the seller will not name a number" from "we failed
+# to find one".
+NEGOTIABLE_CUES = ("قیمت توافقی", "توافقی")
+
+
+def classify_price_kind(article_text: str, *, has_price: bool
+                        ) -> tuple[str, str]:
+    """(price_kind, price_kind_source) from the text BELOW the article anchor.
+
+    Order matters. A page with a payment schedule is a financing listing even
+    if it also says «توافقی» somewhere, because the schedule is the stronger,
+    site-authored claim.
+
+    `cash` is a DEFAULT READING, not a finding, and its source says so. There
+    is no positive marker on bama for "this is a cash price" — the absence of
+    the other two is all the evidence there is, and a source string that
+    admits that is worth more than one that implies a check happened.
+
+    WHAT THIS DOES NOT DO: it does not verify that the structured price
+    equals the plan total. On the observed page that arithmetic holds —
+    600M + 150M + 60x18M = 1,830M, and 1.83B is what the corpus recorded —
+    but checking it needs the schedule table parsed, which is more machinery
+    than one observation justifies. The consequence is stated rather than
+    hidden: a cash listing that happens to carry a schedule block would be
+    read as financing and excluded. That is the fail-closed direction, and it
+    costs a row rather than corrupting an estimate.
+    """
+    s = normalize(article_text)
+    if any(normalize(c) in s for c in PAYMENT_SCHEDULE_CUES):
+        return "financing_total", "rendered_payment_schedule"
+    if any(normalize(c) in s for c in NEGOTIABLE_CUES):
+        return "negotiable", "rendered_negotiable_marker"
+    if has_price:
+        return "cash", "no_contrary_evidence"
+    return "absent", "none"
+
+
 APPRAISAL_REQUIRED = ("asking_price_toman", "year_jalali", "mileage_km",
                       "model")
 
@@ -308,6 +366,16 @@ def eligibility(listing) -> tuple[bool, list[str]]:
         missing.append("product class unknown — no product_class recorded")
     elif pc != "vehicle":
         missing.append(f"product class is {pc}, not a vehicle")
+
+    # A price that is not an asking price is not an asking price, however
+    # cleanly it was extracted. `absent` is already covered by the required
+    # field above; the two that matter here are a financing total and a
+    # seller who will not name a number.
+    pk = getattr(listing, "price_kind", None)
+    if pk is None:
+        missing.append("price kind unknown — no price_kind recorded")
+    elif pk != "cash":
+        missing.append(f"price is a {pk}, not a cash asking price")
 
     ms = getattr(listing, "mileage_status", None)
     if ms is None:

@@ -125,6 +125,12 @@ class FetchOutcome:
     product_class: str | None = None         # vehicle | assignment | unknown
     product_class_source: str | None = None
 
+    # cash | negotiable | financing_total | absent — what the number means.
+    # Carried for the same reason as the class: a corpus that cannot tell a
+    # financing total from an asking price will be benchmarked on both.
+    price_kind: str | None = None
+    price_kind_source: str | None = None
+
 
 # ---------------------------------------------------------------------------
 # Snapshots

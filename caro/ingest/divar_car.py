@@ -52,7 +52,7 @@ from caro.ingest.base import salted_fingerprint
 from caro.ingest.persian import (
     normalize, parse_mileage_km, parse_price, parse_year_jalali,
 )
-from caro.ingest.quality import classify_product
+from caro.ingest.quality import classify_price_kind, classify_product
 from caro.tracking import FetchOutcome, FetchStatus, classify_http
 
 # Divar's car categories. Kept as data so a new one is a line, not a patch.
@@ -239,6 +239,12 @@ class CarListing:
     product_class: str = "unknown"          # vehicle | assignment | unknown
     product_class_source: str = "none"      # canonical_name | listing_title | none
 
+    # What the number MEANS, as opposed to whether it was extracted right.
+    # A financing total can be display-confirmed and cross-checked and still
+    # not be what anyone is asking for the car. See quality.classify_price_kind.
+    price_kind: str = "absent"              # cash | negotiable | financing_total | absent
+    price_kind_source: str = "none"
+
     # dealer | private | unknown — inferred ONLY from a dealership block the
     # page publishes about itself (a trade badge, a showroom address). Never
     # from a phone number, which CARO does not read. It is a coarse proxy for
@@ -266,6 +272,8 @@ class CarListing:
             seller_type=self.seller_type,
             product_class=self.product_class,
             product_class_source=self.product_class_source,
+            price_kind=self.price_kind,
+            price_kind_source=self.price_kind_source,
             # The raw seller value dies here. Only the salted hash continues.
             seller_fingerprint=(salted_fingerprint(self.seller_raw, salt)
                                 if self.seller_raw else None),
@@ -292,9 +300,11 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
     # Divar publishes no canonical product name; the title is the seller's.
     # Read anyway, and the weaker provenance is recorded rather than hidden.
     pclass, psource = classify_product(title, from_canonical=False)
+    price = parse_price(price_text) or parse_price(blob)
+    pkind, pksource = classify_price_kind(blob, has_price=price is not None)
     return CarListing(
         listing_id=listing_id, url=url, title=title, description=description,
-        asking_price_toman=parse_price(price_text) or parse_price(blob),
+        asking_price_toman=price,
         make=make, model=model, trim=extract_trim(blob),
         year_jalali=parse_year_jalali(year_text) or parse_year_jalali(title),
         mileage_km=(parse_mileage_km(mileage_text)
@@ -304,6 +314,7 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
         body_condition=condition,
         condition_source="description" if condition != "unknown" else "none",
         product_class=pclass, product_class_source=psource,
+        price_kind=pkind, price_kind_source=pksource,
         document_issue=has_document_issue(blob),
         city=city, seller_raw=seller_raw, image_urls=tuple(image_urls),
     )

@@ -283,9 +283,10 @@ check("  here it is strictly stricter — provenance is unavailable",
 # than absorbed by a substring match.
 check("  and every refusal names something the artifact does not carry",
       all("provenance unknown" in w or w.startswith("product class is")
-          for w in corpus_why), str(corpus_why))
-check("    price provenance, mileage provenance, product class — and no more",
-      len(corpus_why) == 3, str(corpus_why))
+          or w.startswith("price is a") for w in corpus_why),
+      str(corpus_why))
+check("    price provenance, mileage provenance, class and kind — no more",
+      len(corpus_why) == 4, str(corpus_why))
 
 # The other direction, so the property is not satisfied by refusing everything.
 bad_rec = dict(SNAP_REC, asking_price_toman=None, mileage_km=None)

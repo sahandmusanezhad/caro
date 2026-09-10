@@ -218,6 +218,7 @@ SURVIVAL = [
     ("seller_type",    "seller_type",         "seller_type",    "seller_type"),
     ("document_issue", "document_issue",      "document_issue", "document_issue"),
     ("product_class",  "product_class",       "product_class",  "product_class"),
+    ("price_kind",     "price_kind",          "price_kind",     "price_kind"),
 ]
 
 

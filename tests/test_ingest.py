@@ -708,6 +708,7 @@ class _Prov:
     price_status: object = PriceStatus.DISPLAY_CONFIRMED.value
     mileage_status: object = "plausible"
     product_class: str = "vehicle"
+    price_kind: str = "cash"
 
 
 ok_v, _ = eligibility(_Prov())
@@ -1058,8 +1059,8 @@ def lst(n, *, year=lambda i: 1393 + (i % 8), km=lambda i: 20_000 + (i % 10) * 30
         year_jalali=year(i), mileage_km=km(i), gearbox="manual", fuel="petrol",
         color="سفید", body_condition=cond(i), document_issue=False,
         city="تهران", price_status="display_confirmed",
-        mileage_status="plausible", product_class="vehicle")
-        for i in range(n)]
+        mileage_status="plausible", product_class="vehicle",
+        price_kind="cash") for i in range(n)]
 
 
 thin = ArmResult("Saipa Tiba", "depth", lst(12), fetched=12)
@@ -1118,7 +1119,7 @@ def trimmed(trim, year, km, price, cond="intact"):
         year_jalali=year, mileage_km=km, gearbox="manual", fuel="petrol",
         color="سفید", body_condition=cond, document_issue=False, city="تهران",
         price_status="display_confirmed", mileage_status="plausible",
-        product_class="vehicle")
+        product_class="vehicle", price_kind="cash")
 
 
 check("HHI is 1.0 when one facet holds everything", herfindahl([1.0]) == 1.0)

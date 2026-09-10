@@ -187,6 +187,8 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
         # price it as the cheapest car of its model on the market.
         "product_class": rec.get("product_class"),
         "product_class_source": rec.get("product_class_source"),
+        "price_kind": rec.get("price_kind"),
+        "price_kind_source": rec.get("price_kind_source"),
         "seller_fingerprint": rec.get("seller_fingerprint"),
         "payload_sha": rec.get("payload_sha"),
         "km_line": None,          # replaced below; the key is forbidden
