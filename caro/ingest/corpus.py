@@ -165,7 +165,21 @@ def validate(obj, serialized: str) -> list[Violation]:
             repr(obj.get("schema") if isinstance(obj, dict) else None),
             f"a published artifact must declare schema {SCHEMA!r}"))
     for field in ("run_id", "source", "collected_on", "listings"):
-        if isinstance(obj, dict) and not obj.get(field):
+        if isinstance(obj, dict) and field not in obj:
             v.append(Violation("schema", field, "missing",
                                "required by the artifact contract"))
+        elif isinstance(obj, dict) and not obj.get(field):
+            # `not obj.get(field)` alone called an EMPTY listings array
+            # "missing", which sends a reader looking for a serialisation bug
+            # when the truth is that the run published nothing. Both are
+            # refusals and they are not the same refusal — the first is a
+            # malformed file, the second is an honest report of an empty
+            # collection, and D49's whole point is that those must not share
+            # a message.
+            v.append(Violation(
+                "schema", field,
+                "present but empty",
+                "an empty corpus is not publishable — the run collected "
+                "nothing that survived promotion, which is a fact about the "
+                "run and not a fault in this file"))
     return v + scan_text(serialized)

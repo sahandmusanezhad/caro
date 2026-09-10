@@ -61,6 +61,8 @@ SUITES = [
     ("--  survival", "tests/test_field_survival.py",
      "parser → snapshot → corpus: what crosses, and what is named as lost",
      (), ""),
+    ("--  bench", "tests/test_benchmark_contract.py",
+     "the benchmark reads the artifact and cannot reach a scrape", (), ""),
     ("--  contract", "tests/test_api_contract.py",
      "every endpoint, in every corpus state, against the client's types",
      ("fastapi", "pydantic"), "pip install -r webapp/requirements.txt"),

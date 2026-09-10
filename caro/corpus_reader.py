@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,7 +51,14 @@ from caro.ingest.quality import eligibility
 from caro.ranking import features_from_listing
 
 ROOT = Path(__file__).resolve().parent.parent
-CORPORA = ROOT / "data" / "corpora"
+
+# `CARO_CORPORA` exists so a test can point the reader at a directory it
+# controls, and for nothing else. Two of this project's worst defects — the
+# REAL path that had never executed, and the broken artifact that served as
+# SYNTHETIC — were found by aiming this at a temporary directory and looking
+# at what came back. A guard that cannot be pointed at a hostile input is a
+# guard nobody has tested.
+CORPORA = Path(os.environ.get("CARO_CORPORA") or (ROOT / "data" / "corpora"))
 
 
 class CorpusUnavailable(FileNotFoundError):
@@ -146,8 +154,15 @@ def load_corpus(run_id: str) -> dict:
     p = corpus_path(run_id)
     if not p.exists():
         raise CorpusUnavailable(
+            # `_display`, not `relative_to`. This raised ValueError for a
+            # corpus directory outside the repository — a mounted volume, or
+            # a test pointing at a temp dir — so a MISSING corpus surfaced as
+            # a malformed one. Reporting "unusable" about a file that does
+            # not exist is D49's conflation with the labels swapped, and it
+            # was still here in the one function whose whole job is to say
+            # which of the two it is.
             f"no publishable corpus for {run_id!r} at "
-            f"{p.relative_to(ROOT)}.\n"
+            f"{_display(p)}.\n"
             f"  This is an acquisition prerequisite, not a code fault: see "
             f"D46 in docs/DECISIONS.md.\n"
             f"  A corpus is produced by scripts/promote_corpus.py from an "
@@ -159,7 +174,7 @@ def load_corpus(run_id: str) -> dict:
     problems = validate(artifact, text)
     if problems:
         raise ValueError(
-            f"{p.relative_to(ROOT)} is not a valid {SCHEMA} artifact:\n"
+            f"{_display(p)} is not a valid {SCHEMA} artifact:\n"
             + "\n".join(str(v) for v in problems))
     return artifact
 
