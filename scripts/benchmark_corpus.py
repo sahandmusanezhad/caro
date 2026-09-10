@@ -125,6 +125,33 @@ def main() -> int:
               "an answer about the evidence.")
         return 1
 
+    # A published corpus carries no per-listing first-seen date, so
+    # `rows_from_corpus` sets `first_seen_ordinal=0` on every row. A temporal
+    # split then has no axis: `cluster_temporal_split` puts the whole corpus
+    # on one side and reports a clean, meaningless 0/N.
+    #
+    # Refused rather than repaired. A single snapshot genuinely cannot
+    # support a leak-free TEMPORAL evaluation — time-on-market is what W0
+    # collects across snapshots, and one collection has no time in it. What
+    # it could support is a cluster-aware RANDOM split, and swapping one for
+    # the other changes what a verdict from this file means. That is a
+    # decision about the claim, not a bug fix, and it is not made here.
+    ordinals = {r.first_seen_ordinal for r in rows}
+    if len(ordinals) < 2:
+        print("UNJUDGEABLE\n")
+        print(f"  Every row carries first_seen_ordinal={ordinals.pop()}. A "
+              "published corpus has no\n  per-listing first-seen date, so a "
+              "temporal split has no axis to split on and\n  puts the whole "
+              "corpus on one side.")
+        print()
+        print("  A single snapshot cannot support a leak-free TEMPORAL "
+              "evaluation. It could\n  support a cluster-aware random split "
+              "— which is a different claim, not a\n  repair, and this file "
+              "does not make that choice on its own.")
+        print()
+        print(f"  corpus  run_id={ident.run_id}  sha256={ident.sha256}")
+        return 1
+
     split = cluster_temporal_split(rows, test_fraction=HOLDOUT_FRACTION)
     train, test = split.train, split.test
     leak = split.leakage()

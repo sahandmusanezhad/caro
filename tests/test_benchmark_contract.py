@@ -191,6 +191,40 @@ with tempfile.TemporaryDirectory() as d:
     check("  and no MAE is printed for a corpus that answered nothing",
           "model MAE" not in out, out[-400:])
 
+    # A corpus that IS eligible, and still cannot be evaluated: every row
+    # carries first_seen_ordinal=0 because a published artifact has no
+    # per-listing first-seen date. The temporal split then returns 0 train /
+    # N test and reports a clean, meaningless zero.
+    rows = []
+    for i in range(40):
+        rows.append({"listing_id": f"e{i}", "source": "bama",
+                     "year_jalali": 1391 + i % 12,
+                     "mileage_km": 90_000 + i * 900,
+                     "asking_price_toman": 500_000_000 + i * 7_000_000,
+                     "make": "Saipa", "model": "Pride", "trim": "131",
+                     "condition": "intact", "condition_source": "field",
+                     "product_class": "vehicle",
+                     "product_class_source": "canonical_name",
+                     "price_kind": "cash",
+                     "price_kind_source": "no_contrary_evidence",
+                     "price_status": "display_confirmed",
+                     "mileage_status": "plausible"})
+    flat_time = dict(empty, run_id="flat", listings=rows,
+                     provenance=dict(empty["provenance"], records_in=40,
+                                     records_published=40))
+    (corpora / "flat.json").write_text(json.dumps(flat_time), encoding="utf-8")
+    code, out = run("flat", corpora)
+    flat = " ".join(out.split())
+    check("a corpus with no TIME AXIS is UNJUDGEABLE, not a 0/N split",
+          code != 0 and "UNJUDGEABLE" in out, out[-500:])
+    check("  and it names the cause rather than reporting an empty train set",
+          "first_seen_ordinal" in flat, out[-500:])
+    check("  and says a random split would be a different claim, not a repair",
+          "not a" in flat and "repair" in flat, out[-500:])
+    check("  no MAE, and no verdict from the gate",
+          "model MAE" not in out and "demonstrated failures" not in out,
+          out[-500:])
+
 print()
 if FAILS:
     print(f"{len(FAILS)} FAILED:")
