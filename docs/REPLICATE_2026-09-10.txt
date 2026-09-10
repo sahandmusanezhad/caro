@@ -1,0 +1,54 @@
+SAME-PIN REPLICATE
+==================================================================
+  bama-2026-09-10-a07d10-3.json
+  bama-2026-09-10-a07d10-4.json
+  snapshot_id          bama-2026-09-10-a07d10
+  taken_on             2026-09-10  and  2026-09-10   (the same day)
+  interval             UNKNOWN — a snapshot records a DATE, not a time
+    file mtime says    2026-09-10 13:31:56 → 13:31:56, 0.0 h
+    which is not evidence: a copy or a checkout rewrites it
+
+SAMPLE STABILITY   (the market cannot move this; only we can)
+------------------------------------------------------------------
+  ok records             76  and   76
+  drawn by both          66   87% of the first
+  only in the first      10
+  only in the second     10
+  churn                13.2%   symmetric difference
+
+ELIGIBILITY
+------------------------------------------------------------------
+  eligible, first        71
+  eligible, second       69
+  flipped out (shared)    0
+  flipped in  (shared)    0
+
+FIELD STABILITY   (on the listings both runs drew)
+------------------------------------------------------------------
+  price identical        64
+  price changed           0
+  price absent in one     2
+
+  year_jalali              0 changed
+  mileage_km               0 changed
+  make                     0 changed
+  model                    0 changed
+  trim                     0 changed
+  body_condition           0 changed
+  product_class            0 changed
+  price_kind               0 changed
+  price_status             0 changed
+  mileage_status           0 changed
+  seller_type              0 changed
+
+WHAT THIS BOUNDS
+------------------------------------------------------------------
+  The parser is reproducible: every field the two runs both saw
+  came out identical. A difference between runs is therefore
+  the SAMPLE, not the extraction.
+
+  Sample churn of 13% with an identical pin is the floor. Over what
+  interval is not recorded anywhere (see the header), so the floor is a
+  RATE PER RUN and not a rate per hour.
+  A later delta of 2 eligible rows or fewer is inside it, and is
+  not evidence about the market.
