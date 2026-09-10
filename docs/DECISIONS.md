@@ -2541,3 +2541,56 @@ evidence: nothing appraises it and nothing claims on it. Its only job is to
 let a person open the page behind a row — which is exactly what D46 records
 the absence of, and exactly what turned two anomalous numbers into two
 diagnosed classes here.
+
+## D53 — On the corpus we would benchmark, there is no seller-independence signal at all
+
+`seller_type` exists for one reason, stated in `caro/ingest/quality.py`:
+thirty listings from one dealer are not thirty observations of a market. It is
+the corpus's only proxy for sample independence, and `caro.ingest.coverage`
+uses it to ask whether a comparable set is one forecourt's inventory wearing
+the shape of a market.
+
+On the Pride slice it is not there.
+
+    run 7   imports and luxury, 49 listings      seller_type   22%
+    run 9   pride / quick / tiba, 74 listings                   1%
+    run 10  the same pin, 75 listings                           0%
+
+**It is the source, not the classifier.** Run 9's single badged listing was
+opened beside two unbadged ones. The badge was on the first page and the
+other two carry no dealership block of any kind — no tenure badge, no
+showroom address, no union membership. `DEALER_MARKERS` fires correctly on
+what bama publishes; bama publishes it on almost no domestic listing.
+
+That distinction decided what happens next. A classifier bug is fixed by
+adding a marker. A source limitation is recorded, because adding a marker
+that fires on something else would not be reading the page — it would be
+teaching the parser to see what it was told to find.
+
+**There is no second signal either.** `seller_fingerprint` is a salted hash of
+`seller_raw`, and on bama `seller_raw` is always `None`: the phone number is
+partially masked and CARO does not read it, masked or not. So the Pride corpus
+carries neither a badge nor a fingerprint, and two listings from one forecourt
+are indistinguishable from two independent observations by anything in the
+artifact.
+
+**What follows, before any benchmark number exists.** A benchmark on this
+corpus may report an error and may not report it as an error over N
+independent observations. Every interval derived from it assumes independence
+that nothing in the evidence establishes, and D34's floor — 58 for a
+calibration verdict — is a count of rows, not of sellers. `coverage`'s
+dealer-concentration check runs and returns nothing, which is the failure mode
+this project is built to name rather than let pass: a check that is silent
+because it is blind reads exactly like a check that passed.
+
+**What would establish it, and is not being done now.** Nothing in the
+repository can recover seller identity from bama without reading a contact
+detail, which the ingest contract forbids outright. A second source that
+publishes a seller handle would, and so would repeat observation over time —
+`caro.tracking`'s repost linking already scores identity across snapshots
+without any identifier — but both are collection work, not a parser change,
+and neither is a reason to hold the current corpus hostage.
+
+So the limitation is recorded and the corpus is used with it stated. The
+alternative on offer was to say nothing and let a reader assume the sample is
+independent, which is the same class of silence D36 exists to forbid.
