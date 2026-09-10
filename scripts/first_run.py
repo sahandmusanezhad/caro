@@ -16,6 +16,16 @@ comparable-tier coverage, and the condition distribution. Those numbers
 decide whether the corpus can support an estimate at all, and they should be
 read before any model is fitted.
 
+Every one of those numbers is computed from the objects the parser returned,
+which is the right thing to measure and is NOT what an estimator ever sees.
+For a long time those two disagreed completely and this report was the reason
+nobody noticed: it showed a healthy condition distribution while the snapshot
+written seconds earlier carried no condition at all, and every promoted row
+said `unknown` (D51). So the report ends with a FIELD SURVIVAL section that
+re-reads the file it just wrote, promotes it, and prints the same fill rate
+at all three stages. A field whose rate falls between two columns is a
+boundary dropping it, not the source withholding it, and the run says which.
+
 Structured snapshot records are written to data/snapshots/ — one FetchOutcome
 per listing, not the raw HTTP response. That directory is operational and
 never published; the publishable artifact is produced separately by
@@ -182,8 +192,96 @@ def provenance(traces: list) -> list[str]:
     return L
 
 
+# (label, CarListing attribute, snapshot record key, published row key)
+#
+# The nine fields an appraisal or a ranking actually consumes. Any one of
+# them can be extracted correctly and then lost at a boundary — see D51,
+# where four were.
+SURVIVAL = [
+    ("listing_id",     "listing_id",          "listing_id",     "listing_id"),
+    ("make",           "make",                "make",           "make"),
+    ("model",          "model",               "model",          "model"),
+    ("year_jalali",    "year_jalali",         "year_jalali",    "year_jalali"),
+    ("mileage_km",     "mileage_km",          "mileage_km",     "mileage_km"),
+    ("price",          "asking_price_toman",  "asking_price_toman",
+                                                            "asking_price_toman"),
+    ("condition",      "body_condition",      "body_condition", "condition"),
+    ("seller_type",    "seller_type",         "seller_type",    "seller_type"),
+    ("document_issue", "document_issue",      "document_issue", "document_issue"),
+]
+
+
+def _has(v) -> bool:
+    """Present as a finding. `False` is one; `unknown` and `None` are not."""
+    if v is None:
+        return False
+    if isinstance(v, str):
+        return v.strip() not in ("", "unknown")
+    return True
+
+
+def survival(listings: list, snapshot_path) -> list[str]:
+    """Fill rate for the same field at three stages of the same run.
+
+    The inventory above is computed from the live parsed objects. The corpus
+    an estimator reads is computed from what was written to disk and then
+    promoted. Those were different for the whole life of the project and
+    nothing said so: the report showed a healthy condition distribution while
+    every published row said `unknown` (D51).
+
+    Reported per run, on the run's own data, because a boundary that is only
+    checked by a test is a boundary that is checked against fixtures.
+    """
+    if not listings or snapshot_path is None:
+        return []
+    try:
+        from promote_corpus import promote_record
+        raw = json.loads(Path(snapshot_path).read_text(encoding="utf-8"))
+        recs = raw.get("outcomes") or []
+        rows = [r for r, _ in (promote_record(x) for x in recs if isinstance(x, dict))
+                if r]
+    except Exception as e:                    # noqa: BLE001 — diagnostic only
+        return ["", f"FIELD SURVIVAL unavailable: {type(e).__name__}: {e}"]
+
+    n_parsed, n_rec, n_row = len(listings), len(recs), len(rows)
+    if not (n_parsed and n_rec):
+        return []
+
+    L = ["", "FIELD SURVIVAL  (parsed → snapshot → published row)", "-" * 62,
+         f"{'field':<18}{'parsed':>9}{'snapshot':>10}{'corpus':>9}",
+         "-" * 62]
+    losses = []
+    for label, attr, key, rowkey in SURVIVAL:
+        a = sum(1 for x in listings if _has(getattr(x, attr, None))) / n_parsed
+        b = sum(1 for r in recs if _has(r.get(key))) / n_rec
+        c = (sum(1 for r in rows if _has(r.get(rowkey))) / n_row) if n_row else 0.0
+        flag = ""
+        # A drop of more than a rounding step between stages is a boundary
+        # dropping the value, not the source withholding it. The distinction
+        # is the whole point of printing three columns instead of one.
+        if b < a - 0.01 or c < b - 0.01:
+            flag = "  <-- LOST"
+            losses.append((label, a, b, c))
+        L.append(f"{label:<18}{a:>8.0%}{b:>10.0%}{c:>9.0%}{flag}")
+
+    if losses:
+        L += ["", "  ⚠ SILENT LOSS. The inventory above describes the PARSE. "
+                  "A corpus is",
+              "    what an estimator reads, and these fields do not reach it:"]
+        for label, a, b, c in losses:
+            L.append(f"      {label:<16}{a:.0%} parsed → {b:.0%} snapshot "
+                     f"→ {c:.0%} corpus")
+        L += ["    Do not promote this run. A field lost here is not a fact "
+              "about the",
+              "    source — it is a boundary, and D51 is the entry about it."]
+    else:
+        L.append("  ✓ every field the parse found reaches the published row")
+    return L
+
+
 def inventory(listings: list, traces: list | None = None,
-              fetched: int | None = None) -> str:
+              fetched: int | None = None,
+              snapshot_path=None) -> str:
     n = len(listings)
     if not n:
         return "no listings parsed — nothing to report"
@@ -235,6 +333,7 @@ def inventory(listings: list, traces: list | None = None,
 
     L += funnel(fetched if fetched is not None else len(listings), listings)
     L += provenance(traces or [])
+    L += survival(listings, snapshot_path)
     covs = cov_mod.assess(listings)
     L += cov_mod.report(covs)
 
@@ -298,6 +397,7 @@ def main() -> int:
 
     listings: list = []
     traces: list = []
+    snapshot_path = None
     if args.replay:
         raw = json.loads(args.replay.read_text(encoding="utf-8"))
         for r in raw.get("listings", []):
@@ -311,7 +411,7 @@ def main() -> int:
         print(f"collecting from {args.source} — politely, and stopping if "
               f"asked to.\n")
         try:
-            listings = collect(args, traces)
+            listings, snapshot_path = collect(args, traces)
         except DiscoveryUnavailable as e:
             # We could not look. That is emphatically not "there is nothing".
             print(f"\nDISCOVERY UNAVAILABLE: {e}\n"
@@ -333,12 +433,18 @@ def main() -> int:
                   file=sys.stderr)
             return 2
 
-    print(inventory(listings, traces, fetched=len(traces) or None))
+    print(inventory(listings, traces, fetched=len(traces) or None,
+                    snapshot_path=snapshot_path))
     return 0
 
 
-def collect(args, traces: list | None = None) -> list:
-    """Live collection. Kept separate so main() stays readable."""
+def collect(args, traces: list | None = None) -> tuple[list, object]:
+    """Live collection. Returns (listings, snapshot path or None).
+
+    The path comes back because the survival report re-reads what was
+    written rather than trusting the objects still in memory. Reading
+    the in-memory copy would report that nothing was lost no matter
+    what the serialiser did with it."""
     out: list = []
 
     if args.source == "divar":
@@ -353,7 +459,7 @@ def collect(args, traces: list | None = None) -> list:
                              parse_page=parse_page,
                              salt=os.environ["CARO_SELLER_SALT"])
         list(ad.fetch_all(date.today()))
-        return out
+        return out, None       # divar writes no snapshot yet
 
     # The sitemap and Bama's pages are server-rendered, so plain HTTP is
     # correct here. Driving a browser to download static XML costs seconds and
@@ -374,7 +480,7 @@ def collect(args, traces: list | None = None) -> list:
     path = write_snapshot(SNAPSHOT_DIR, snap)
     print(f"{len(out)} listings parsed · snapshot "
           f"{path.relative_to(ROOT)} (integrity: {snap.integrity.value})\n")
-    return out
+    return out, path
 
 
 if __name__ == "__main__":
