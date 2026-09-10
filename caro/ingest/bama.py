@@ -69,6 +69,7 @@ detail page fails to load.
 from __future__ import annotations
 
 import json
+import random
 import re
 import time
 import urllib.request
@@ -828,12 +829,15 @@ class DiscoveryStats:
     listing_urls_raw: int = 0
     listing_urls_unique: int = 0
     detail_status: dict = field(default_factory=dict)
+    sample_seed: int | None = None
     category_budget: int = 0
+    category_rule: str = "sitemap order (a prefix — i.e. the alphabet)"
 
     def report(self) -> str:
         L = ["DISCOVERY", "-" * 62,
              f"  sitemap urls          {self.sitemap_urls}",
              f"  category pages found  {self.categories_found}",
+             f"  category selection    {self.category_rule}",
              f"  category budget       {self.category_budget}",
              f"  category pages tried  {self.categories_tried}"
              f"  (ok: {self.categories_ok})"]
@@ -877,6 +881,22 @@ class BamaAdapter:
     sleeper: Callable[[float], None] = time.sleep
     sitemap_url: str = SITEMAP_CAR
     only_makes: tuple[str, ...] = ()
+    # Which of the 1600+ category pages to draw, when `only_makes` names none.
+    #
+    # `cats[:max_categories]` took a prefix, and the sitemap is ordered, so a
+    # prefix is the alphabet. Run 6 asked for 50 listings across the market
+    # and got `audi`, `amg`, `arya` — 18 luxury EVs with a 15B toman ceiling.
+    # Every rate that run measured describes those three pages. Nothing was
+    # broken; the sample was decided by sort order, which is not a sampling
+    # rule anyone would state out loud.
+    #
+    # A seed makes the draw uniform over the whole category space, stated in
+    # advance, and reproducible: the same seed returns the same categories,
+    # so a later run can be compared with this one rather than merely
+    # resembling it. `None` keeps the prefix, because the existing tests
+    # assert on a deterministic order and a silent change of sampling is
+    # worse than an explicit one.
+    sample_seed: int | None = None
     on_listing: Callable[[CarListing], None] | None = None
     stats: DiscoveryStats = field(default_factory=DiscoveryStats)
     traces: list = field(default_factory=list)
@@ -903,6 +923,16 @@ class BamaAdapter:
             cats = [u for u in cats
                     if any(m in u.lower() for m in self.only_makes)]
         self.stats.categories_found = len(cats)
+        if self.only_makes:
+            self.stats.category_rule = (
+                f"pinned to {len(self.only_makes)} make(s) by --makes")
+        if self.sample_seed is not None and not self.only_makes:
+            self.stats.category_rule = f"seeded draw, seed={self.sample_seed}"
+            # Drawn, not sorted. A named make list is a deliberate
+            # pre-registration and is left in the order it was written.
+            cats = list(cats)
+            random.Random(self.sample_seed).shuffle(cats)
+            self.stats.sample_seed = self.sample_seed
         self.stats.category_budget = self.max_categories
         return cats[:self.max_categories]
 

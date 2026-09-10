@@ -66,6 +66,14 @@ from caro.tracking import FetchStatus, Snapshot, assess_integrity, write_snapsho
 
 SNAPSHOT_DIR = ROOT / "data" / "snapshots"
 
+# Model-level category slugs verified against the live sitemap on 2026-09-07
+# and recorded in caro/ingest/bama.py's docstring. NOT manufacturer slugs:
+# `/car/saipa` and `/car/ikco` redirect to `/car` and return generic
+# inventory, so a run that follows them collects the general feed while
+# believing it sampled two manufacturers.
+DOMESTIC = ("pride", "peugeot", "dena", "tiba", "samand", "shahin", "tara",
+            "runna", "saina", "quik")
+
 # Fields whose absence changes the design, in the order they matter.
 TRACKED = ["asking_price_toman", "year_jalali", "mileage_km", "make", "model",
            "trim", "gearbox", "fuel", "color", "body_condition"]
@@ -446,6 +454,14 @@ def main() -> int:
     # yielding ten means the budget is never approached.
     ap.add_argument("--categories", type=int, default=None,
                     help="max category pages to open (default: --limit)")
+    ap.add_argument("--makes", default="",
+                    help="comma-separated category slugs to pin the sample to; "
+                         "'domestic' expands to the model-level slugs verified "
+                         "on 2026-09-07")
+    ap.add_argument("--seed", type=int, default=0,
+                    help="which categories get drawn when --makes is empty. "
+                         "Stated in advance and printed, so the sample is "
+                         "reproducible rather than incidental")
     ap.add_argument("--replay", type=Path,
                     help="parse a saved snapshot instead of fetching")
     args = ap.parse_args()
@@ -471,7 +487,9 @@ def main() -> int:
         print(f"replayed {len(listings)} listings from {args.replay}\n")
     else:
         print(f"collecting from {args.source} — politely, and stopping if "
-              f"asked to.\n")
+              f"asked to.")
+        print(sampling_spec(args))
+        print()
         try:
             listings, snapshot_path = collect(args, traces)
         except DiscoveryUnavailable as e:
@@ -498,6 +516,42 @@ def main() -> int:
     print(inventory(listings, traces, fetched=len(traces) or None,
                     snapshot_path=snapshot_path))
     return 0
+
+
+def make_list(args) -> tuple[str, ...]:
+    """The pinned category slugs, or () meaning draw from the whole sitemap."""
+    raw = (args.makes or "").strip()
+    if not raw:
+        return ()
+    if raw.lower() == "domestic":
+        return DOMESTIC
+    return tuple(m.strip().lower() for m in raw.split(",") if m.strip())
+
+
+def sampling_spec(args) -> str:
+    """What this run will sample, printed BEFORE the first request.
+
+    Run 5's most useful finding was that a pre-registration blind to the
+    variable that decided the outcome is the only kind worth having. Run 6
+    had no registration at all: its sample was whatever the sitemap listed
+    first, and nobody chose that or could have defended it. Printing the rule
+    before the requests go out is the cheap half of the discipline — it puts
+    the choice in the transcript, where a reader can disagree with it.
+    """
+    makes = make_list(args)
+    budget = args.categories or args.limit
+    L = ["  SAMPLE, stated before the first request:",
+         f"    target            {args.limit} listings",
+         f"    category budget   {budget} page(s)"]
+    if makes:
+        L.append(f"    categories        pinned: {', '.join(makes)}")
+        L.append("                      (a deliberate slice, not the market)")
+    else:
+        L.append(f"    categories        drawn uniformly from the sitemap, "
+                 f"seed={args.seed}")
+        L.append("                      (same seed, same categories — this "
+                 "run is repeatable)")
+    return "\n".join(L)
 
 
 def collect(args, traces: list | None = None) -> tuple[list, object]:
@@ -528,6 +582,8 @@ def collect(args, traces: list | None = None) -> tuple[list, object]:
     # a Chromium process per request for nothing.
     ad = BamaAdapter(fetcher=http_fetcher(), max_listings=args.limit,
                      max_categories=args.categories or args.limit,
+                     only_makes=make_list(args),
+                     sample_seed=None if make_list(args) else args.seed,
                      salt=os.environ["CARO_SELLER_SALT"],
                      on_listing=out.append)
 

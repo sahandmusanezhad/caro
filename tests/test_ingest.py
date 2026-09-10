@@ -316,20 +316,60 @@ check("filter permutations are skipped",
       == ["https://bama.ir/car/peugeot", "https://bama.ir/car/saipa"],
       "?mileage=0/1 slice the same inventory and multiply requests")
 
-# A budget that binds is not a thin market, and run 6 could not tell its
-# operator which of the two it had hit: it asked for 50 listings, was allowed
-# three category pages, and reported 18 as though that were what Bama had.
-_ST = BamaAdapter(fetcher=lambda u: (200, SITEMAP), max_categories=1)
-_ST.discover_categories()
-_ST.stats.categories_tried = 1
-check("the run records the category budget it was given",
-      _ST.stats.category_budget == 1, str(_ST.stats.category_budget))
-check("  and says the budget stopped discovery, not the market",
-      "category BUDGET ran out" in _ST.stats.report(),
-      "1 of 2 categories opened, and the old report said nothing")
-_ST.stats.category_budget = 99
+# ---------------------------------------------------------------------------
+# WHICH categories get opened — run 6's real defect
+# ---------------------------------------------------------------------------
+#
+# `cats[:max_categories]` takes a prefix, the sitemap is ordered, so a prefix
+# is the alphabet. Run 6 asked for 50 listings across the market and opened
+# `audi`, `amg`, `arya`: 18 luxury EVs. Nothing was broken and every rate that
+# run measured described three pages chosen by sort order.
+_MANY = ('<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/'
+         'schemas/sitemap/0.9">'
+         + "".join(f"<url><loc>https://bama.ir/car/{n}</loc></url>"
+                   for n in ("amg", "arya", "audi", "benz", "bmw", "dena",
+                             "kia", "peugeot", "pride", "quik", "samand",
+                             "tiba"))
+         + "</urlset>")
+
+
+def _cats(**kw):
+    ad = BamaAdapter(fetcher=lambda u: (200, _MANY), max_categories=3, **kw)
+    return [u.rsplit("/", 1)[-1] for u in ad.discover_categories()]
+
+
+check("with no seed the draw is still the sitemap prefix",
+      _cats() == ["amg", "arya", "audi"],
+      "unchanged on purpose — a silent change of sampling is worse than an "
+      "explicit one")
+check("a seed draws from the WHOLE list instead",
+      _cats(sample_seed=0) != ["amg", "arya", "audi"], str(_cats(sample_seed=0)))
+check("  and the same seed draws the same categories",
+      _cats(sample_seed=7) == _cats(sample_seed=7),
+      "a sample nobody can reproduce cannot be compared with the next run")
+check("  while a different seed draws different ones",
+      _cats(sample_seed=1) != _cats(sample_seed=2),
+      f"{_cats(sample_seed=1)} vs {_cats(sample_seed=2)}")
+check("a pinned make list is NOT shuffled — the pin is the registration",
+      _cats(only_makes=("pride", "peugeot", "dena"), sample_seed=0)
+      == ["dena", "peugeot", "pride"],
+      "sitemap order within a deliberate slice")
+
+_ad = BamaAdapter(fetcher=lambda u: (200, _MANY), max_categories=3,
+                  sample_seed=0)
+_ad.discover_categories()
+check("the run records which rule chose the categories",
+      "seed" in _ad.stats.category_rule, _ad.stats.category_rule)
+check("  and the budget, so a budget that bound is visible afterwards",
+      _ad.stats.category_budget == 3 and _ad.stats.categories_found == 12,
+      f"{_ad.stats.category_budget} / {_ad.stats.categories_found}")
+_ad.stats.categories_tried = 3        # what discover_listings would record
+check("  and the report says the budget stopped it, not a thin market",
+      "category BUDGET ran out" in _ad.stats.report(),
+      "run 6 could not tell the operator which of the two it had hit")
+_ad.stats.category_budget = 99
 check("  while a budget that did not bind says nothing",
-      "category BUDGET ran out" not in _ST.stats.report())
+      "category BUDGET ran out" not in _ad.stats.report())
 
 CATEGORY = '''<a href="/car/detail-6xphr0fb-peugeot-206ir-type2-1401">a</a>
 <a href="/car/detail-ffdrszax-peugeot-206ir-type5-1396">b</a>
