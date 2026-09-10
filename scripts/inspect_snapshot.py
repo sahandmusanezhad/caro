@@ -20,37 +20,51 @@ implausible price is the first thing to open; the rows with no price, which
 are the `no offers block` pages; and the seller-type split, which decides
 whether `seller_type: unknown` is the source's limit or ours.
 """
-import json, sys
+import json
+import sys
 from pathlib import Path
 
-p = Path(sys.argv[1] if len(sys.argv) > 1 else "")
-if not p.exists():
-    print("usage: inspect_snapshot.py <snapshot.json>"); raise SystemExit(2)
-recs = json.loads(p.read_text(encoding="utf-8")).get("outcomes", [])
-ok = [r for r in recs if r.get("status") == "ok"]
 
-def url(r):
-    lid = str(r.get("listing_id") or "")
-    return "https://bama.ir/car/detail-" + lid.split(":", 1)[-1]
+def main() -> int:
+    # `Path("")` is `.`, which exists and is a directory, so the obvious
+    # one-liner read a directory and raised instead of printing the usage.
+    if len(sys.argv) < 2:
+        print("usage: inspect_snapshot.py <snapshot.json>")
+        return 2
+    p = Path(sys.argv[1])
+    if not p.is_file():
+        print(f"not a file: {p}")
+        return 2
+    recs = json.loads(p.read_text(encoding="utf-8")).get("outcomes", [])
+    ok = [r for r in recs if r.get("status") == "ok"]
 
-priced = sorted((r for r in ok if r.get("asking_price_toman")),
-                key=lambda r: r["asking_price_toman"])
-print(f"{len(recs)} records · {len(ok)} ok · {len(priced)} priced\n")
+    def url(r):
+        lid = str(r.get("listing_id") or "")
+        return "https://bama.ir/car/detail-" + lid.split(":", 1)[-1]
 
-print("CHEAPEST FIVE  (an implausible price is the one to open first)")
-for r in priced[:5]:
-    print(f"  {r['asking_price_toman']/1e9:>7.3f}B  {r.get('make')} "
-          f"{r.get('model')} {r.get('year_jalali')}  {url(r)}")
+    priced = sorted((r for r in ok if r.get("asking_price_toman")),
+                    key=lambda r: r["asking_price_toman"])
+    print(f"{len(recs)} records · {len(ok)} ok · {len(priced)} priced\n")
 
-noprice = [r for r in ok if not r.get("asking_price_toman")]
-print(f"\nNO PRICE  ({len(noprice)}) — the `no offers block` pages")
-for r in noprice[:5]:
-    print(f"           {r.get('make')} {r.get('model')} "
-          f"{r.get('year_jalali')}  {url(r)}")
+    print("CHEAPEST FIVE  (an implausible price is the one to open first)")
+    for r in priced[:5]:
+        print(f"  {r['asking_price_toman']/1e9:>7.3f}B  {r.get('make')} "
+              f"{r.get('model')} {r.get('year_jalali')}  {url(r)}")
 
-dealers = [r for r in ok if r.get("seller_type") == "dealer"]
-print(f"\nSELLER TYPE  dealer:{len(dealers)}  "
-      f"other:{len(ok) - len(dealers)}  — open any row above and look for a")
-print("  dealership block: a Bama tenure badge, a showroom address, union")
-print("  membership. If none of them is on the page, seller_type=unknown is")
-print("  the SOURCE's limit, not the parser's.")
+    noprice = [r for r in ok if not r.get("asking_price_toman")]
+    print(f"\nNO PRICE  ({len(noprice)}) — the `no offers block` pages")
+    for r in noprice[:5]:
+        print(f"           {r.get('make')} {r.get('model')} "
+              f"{r.get('year_jalali')}  {url(r)}")
+
+    dealers = [r for r in ok if r.get("seller_type") == "dealer"]
+    print(f"\nSELLER TYPE  dealer:{len(dealers)}  "
+          f"other:{len(ok) - len(dealers)}  — open any row above and look for a")
+    print("  dealership block: a Bama tenure badge, a showroom address, union")
+    print("  membership. If none of them is on the page, seller_type=unknown is")
+    print("  the SOURCE's limit, not the parser's.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

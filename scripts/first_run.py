@@ -219,6 +219,11 @@ SURVIVAL = [
     ("document_issue", "document_issue",      "document_issue", "document_issue"),
     ("product_class",  "product_class",       "product_class",  "product_class"),
     ("price_kind",     "price_kind",          "price_kind",     "price_kind"),
+    # The two the artifact needed most and carried least. Reported here so a
+    # future run says whether they crossed, instead of the question being
+    # answerable only by promoting and reading the corpus back.
+    ("price_status",   "price_status",        "price_status",   "price_status"),
+    ("mileage_status", "mileage_status",      "mileage_status", "mileage_status"),
 ]
 
 
