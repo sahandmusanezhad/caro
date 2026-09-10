@@ -2594,3 +2594,84 @@ and neither is a reason to hold the current corpus hostage.
 So the limitation is recorded and the corpus is used with it stated. The
 alternative on offer was to say nothing and let a reader assume the sample is
 independent, which is the same class of silence D36 exists to forbid.
+
+## D54 — Fail-closed is an answer about the source, never about a boundary
+
+`eligibility` reads `price_status` and `mileage_status`. `to_fetch_outcome`
+did not carry them. `corpus_reader` set both to `None` and said so in a
+comment that read as a deliberate choice:
+
+    # Parse-time provenance the artifact cannot carry. None means "not
+    # recorded", and eligibility() fails closed on it.
+
+Measured: **no row read back from a published corpus has ever been
+appraisal-eligible.** Not one, in the whole life of the artifact. The corpus
+cannot feed the layer it exists to feed, and nothing said so — because Run 3
+and Run 5 produced their numbers by re-parsing rebuilt pages, so the artifact
+path was never the thing under test.
+
+The comment was not wrong about the mechanism. It was wrong about what the
+mechanism meant.
+
+**The rule, as stated:**
+
+> هر فیلدی که eligibility به آن وابسته است و parser آن را برای تصمیم‌گیری
+> تولید کرده، باید در artifact حفظ شود؛ fail-closed نباید جای فیلدی را بگیرد
+> که صرفاً در مرز publish گم شده است. `None`/`unknown` فقط وقتی معتبر است که
+> منبع واقعاً آن مقدار را ارائه نکرده یا parser نتوانسته آن را با provenance
+> معتبر استخراج کند. این قاعده شامل seller-authored prose یا هر داده‌ای که
+> corpus contract صراحتاً انتشارش را ممنوع کرده، نمی‌شود.
+
+In English: any field `eligibility` depends on, which the parser produced in
+order to decide, must be preserved in the artifact. Fail-closed must not
+stand in for a field that was merely lost at the publish boundary.
+`None`/`unknown` is valid only when the source genuinely did not supply the
+value, or the parser could not extract it with sound provenance. **This rule
+does not extend to seller-authored prose, or to any data the corpus contract
+explicitly forbids publishing.**
+
+That last clause is load-bearing and is the reason the rule is written down
+with it rather than without. Without it, the sentence reads as "publish
+everything the parser produced" — and the parser also produces `توضیحات`.
+The corpus contract's rule is about AUTHORSHIP, not about volume, and nothing
+here touches it. `price_provenance` and `mileage_note` stay behind for the
+other reason: no gate reads them. The test is which fields a DECISION depends
+on, not which fields exist.
+
+**No new vocabulary.** `PriceStatus` and `Validity` already existed and are
+the contract. Adding an enum here would have been inventing a second way to
+say what the codebase already says.
+
+**And nothing is reconstructed.** `corpus_reader` does not derive a status
+from the presence of a price. A reader that inferred `display_confirmed`
+because a number was there would manufacture exactly the provenance the gate
+exists to check, and the artifact would pass its own examination by writing
+its own answers.
+
+**The third instance of one shape.** D51 was a field dropped at a boundary.
+D52 was two facts the schema could not express. This is a DECISION that could
+not survive the boundary, which is worse than either: the fields were all
+present and the verdict computed from them was still lost. The survival
+suite now asserts the decision end to end, not only the fields —
+
+    the parse admits this row  →  it is still admitted after a round trip
+    remove either status on disk  →  the refusal comes back, by name
+
+— and the negative controls run against the real serializer, because a chain
+that only ever says yes proves nothing.
+
+**What this does NOT license.** A benchmark number is now derivable from a
+published artifact, which it was not before. It is not thereby more true.
+D53's limitation stands unchanged: the rows carry no seller-independence
+signal, so an error may be reported and may not be reported as an error over
+N independent observations.
+
+**And the historical numbers stay historical.** Run 3 and Run 5 were produced
+by `scripts/replay_run3.py` and `scripts/benchmark_run5.py`, which rebuild a
+page and re-parse it. Those two are no longer a source of new benchmark
+numbers: a benchmark is now computed from a published artifact or it is not
+computed. The existing figures are not rewritten and are not regenerated
+against a new corpus — D46 already records what they are and what cannot be
+re-derived from this repository, and reproducing them through a different
+path would replace a documented limitation with a fresh number that answers a
+different question.
