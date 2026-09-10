@@ -2401,3 +2401,67 @@ observed market fact, in prose. This forbids a *schema* from implying evidence
 the system does not hold — no sentence is written and no number is invented;
 the shape alone does the claiming. The two failures need different guards
 because they are found in different places: one by reading, one by serialising.
+
+## D51 — A value is not collected until it survives to where it is read
+
+`parse_detail_page` extracted a body condition from every Bama page it read.
+`first_run.py` printed the distribution. Every ingest test asserting on that
+value passed. And a corpus promoted from the snapshot that same run wrote
+carried `condition: "unknown"` on every row, because `to_fetch_outcome` — one
+function, four lines below the parse — did not carry the field.
+
+Three more fields died on the same line or the one after it:
+
+    document_issue    re-derived at promotion from a description a snapshot
+                      does not contain → absent on every row, which every
+                      consumer reads as "the papers are clean"
+    seller_type       D26's business-badge inference, and the corpus's only
+                      proxy for sample independence → an entire dealer's
+                      inventory weighted as independent evidence
+    body_condition    read back at promotion under the corpus's spelling
+                      (`condition`) rather than the snapshot's
+                      (`body_condition`), so it was dropped a second time
+                      even after the first two boundaries were fixed
+
+**The fourth one is the point.** It was introduced *by the commits fixing the
+first three* and it passed every assertion those commits added, because those
+assertions stopped at the FetchOutcome boundary — one step short of the place
+the value was still being lost. A boundary that no test crosses is a boundary
+where forgetting is free, and each fix creates the next one until a test walks
+the whole distance.
+
+**What this forbids.** A test that asserts a parser produced a value is not
+evidence that the value is collected. The claim "CARO records body condition"
+is only supported by an assertion that runs
+
+    parse → FetchOutcome → JSON on disk → promoted row → the object a
+    consumer reads back
+
+through the production serialiser and a real file. `tests/test_field_survival.py`
+is that assertion; the in-memory version of it would have passed throughout the
+entire period the field was being lost.
+
+**And what it requires.** Every field on the parsed record is now either
+declared as crossing — under the name it crosses as, since `city` becomes
+`province` and `seller_raw` becomes a salted fingerprint — or named as lost
+with the reason. Silence is not an option the table offers. A field that
+starts or stops crossing fails the suite until someone decides which it should
+be, which is the difference between a loss that was chosen and a loss that was
+merely never noticed.
+
+Two are recorded there as undecided rather than fixed in passing: `gearbox`
+and `fuel`, parsed on every page and read from a corpus by nobody; and
+`price_currency_raw`, which `promote_corpus` publishes and the snapshot path
+cannot fill at all. That last one is D50's shape one level down — the corpus
+schema advertising a field no live run can populate — and it is written here
+rather than repaired quietly, because the repair is a decision about what the
+artifact promises.
+
+**Why this is not D46.** D46 is about an input that was never committed: the
+evidence existed and was not kept. This is about evidence that was never
+collected in the first place while every instrument said it had been. D46 is
+found by trying to replay a run. This is found only by following one value all
+the way to the consumer, and the cost of not following it is a risk term that
+is constant across every car — which cancels out of
+`value = estimate − asking − risk` and removes the product's whole thesis
+without failing anything.
