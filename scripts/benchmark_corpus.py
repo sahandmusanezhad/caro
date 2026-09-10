@@ -59,6 +59,58 @@ from caro.hierarchical import (                                   # noqa: E402
 HOLDOUT_FRACTION = 0.25          # frozen, D34
 SEED = 0                         # frozen
 
+# WHICH QUESTION THIS FILE ANSWERS, carried in every line of output it emits.
+#
+#   temporal          does the estimator hold up on listings it did not see,
+#                     separated IN TIME and with no cluster leaking across?
+#                     Needs first-seen history, which needs more than one
+#                     snapshot.
+#
+# A second protocol is imaginable — a cluster-aware split inside ONE snapshot
+# — and it answers a different question: does the estimator generalise to
+# other listings in the same collection. That is not weaker evidence of the
+# same thing; it is evidence of another thing, and it must arrive as its own
+# runner with its own name rather than as a flag here. A flag would let one
+# number be produced under either meaning and quoted under whichever suits.
+PROTOCOL = "temporal"
+
+# Closed vocabulary. A status line that reads `reason: <free text>` is a
+# status line nobody can grep, and the point of these is that a transcript
+# can be searched for what actually happened months later.
+REASONS = {
+    "prerequisite_missing":  "no published artifact for this run id",
+    "corpus_unusable":       "the artifact fails a guard; it is not a corpus",
+    "no_eligible_rows":      "valid artifact, nothing appraisable in it",
+    "missing_temporal_axis": "one snapshot has no first-seen history to "
+                             "split on",
+    "split_leaked":          "a cluster appears on both sides of the split",
+    "insufficient_slices":   "the gate's own verdict: the corpus cannot "
+                             "answer",
+    "measured_failure":      "the estimator was assessed and fell short",
+    "accepted":              "every condition of the frozen gate held",
+}
+
+
+def report(status: str, reason: str, ident=None) -> None:
+    """The block that must appear on EVERY exit, including the good one.
+
+    A bare `MAE = 63,900,000` in a transcript is a number without a question
+    attached, and six months later it is quoted as "CARO's accuracy". The
+    protocol is what makes it mean anything, so it travels with the result
+    rather than being something a reader is trusted to remember.
+    """
+    assert reason in REASONS, f"undeclared reason {reason!r}"
+    print()
+    print("EVALUATION")
+    print("-" * 62)
+    print(f"  protocol   {PROTOCOL}")
+    print(f"  status     {status}")
+    print(f"  reason     {reason}   ({REASONS[reason]})")
+    if ident is not None:
+        print(f"  run_id     {ident.run_id}")
+        print(f"  sha256     {ident.sha256}")
+    print()
+
 
 def _baseline_mae(train, test) -> float:
     """Median asking price per make|model, which is what D12 ships if it wins.
@@ -93,12 +145,14 @@ def main() -> int:
               "or a scrape:\nan estimate produced from anything but the "
               "published artifact would be a\nnumber about a different "
               "corpus wearing this one's run id.")
+        report("refused", "prerequisite_missing")
         return 2
     except ValueError as e:
         print(f"CORPUS_UNUSABLE\n\n{e}\n")
         print("A file that fails the schema or content guard is not a corpus "
               "with problems.\nIt is not a corpus (D49), and the benchmark "
               "does not run on one.")
+        report("refused", "corpus_unusable")
         return 2
 
     ident = corpus_identity(a.run_id)
@@ -123,6 +177,7 @@ def main() -> int:
         print("  The artifact is valid and holds no appraisal-eligible row. "
               "That is not a\n  model result and not a corpus fault — it is "
               "an answer about the evidence.")
+        report("unjudgeable", "no_eligible_rows", ident)
         return 1
 
     # A published corpus carries no per-listing first-seen date, so
@@ -148,8 +203,7 @@ def main() -> int:
               "evaluation. It could\n  support a cluster-aware random split "
               "— which is a different claim, not a\n  repair, and this file "
               "does not make that choice on its own.")
-        print()
-        print(f"  corpus  run_id={ident.run_id}  sha256={ident.sha256}")
+        report("unjudgeable", "missing_temporal_axis", ident)
         return 1
 
     split = cluster_temporal_split(rows, test_fraction=HOLDOUT_FRACTION)
@@ -162,11 +216,13 @@ def main() -> int:
     if leak:
         print("REFUSING: the split leaked. Nothing below this line would "
               "mean anything.")
+        report("refused", "split_leaked", ident)
         return 1
     if not test or not train:
         print("UNJUDGEABLE\n")
         print(f"  {len(train)} train / {len(test)} test rows. A hold-out of "
               "this size cannot\n  answer anything about calibration.")
+        report("unjudgeable", "insufficient_slices", ident)
         return 1
 
     model = PartialPoolingQuantiles().fit(train)
@@ -225,8 +281,12 @@ def main() -> int:
     elif verdict is GateVerdict.ACCEPTED:
         print("  Every condition held. The identity above is what this "
               "verdict is about;\n  quote them together or not at all.")
-    print()
-    print(f"  corpus  run_id={ident.run_id}  sha256={ident.sha256}")
+    report({GateVerdict.ACCEPTED: "accepted",
+            GateVerdict.REJECTED: "rejected"}.get(verdict, "unjudgeable"),
+           {GateVerdict.ACCEPTED: "accepted",
+            GateVerdict.REJECTED: "measured_failure"}.get(
+               verdict, "insufficient_slices"),
+           ident)
     return 0 if verdict is GateVerdict.ACCEPTED else 1
 
 

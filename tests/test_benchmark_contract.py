@@ -225,6 +225,68 @@ with tempfile.TemporaryDirectory() as d:
           "model MAE" not in out and "demonstrated failures" not in out,
           out[-500:])
 
+# ---------------------------------------------------------------------------
+print("\nno result leaves this file without the question it answers")
+# ---------------------------------------------------------------------------
+#
+# A bare `MAE = 63,900,000` in a transcript is a number with no question
+# attached, and six months later it is quoted as "CARO's accuracy". The
+# protocol is what makes it mean anything, so it travels with every result —
+# including the good one, which is the case where nobody thinks to ask.
+#
+# The second protocol worth having, a cluster-aware split inside ONE
+# snapshot, answers a DIFFERENT question: generalisation to other listings in
+# the same collection, not across time. It must arrive as its own runner with
+# its own name. A flag here would let one number be produced under either
+# meaning and quoted under whichever suits.
+
+check("the protocol is declared in the file, as a constant a reader can find",
+      "PROTOCOL" in consts
+      and getattr(consts.get("PROTOCOL"), "value", None) == "temporal",
+      str(consts.get("PROTOCOL")))
+check("  and there is no flag that would switch it",
+      "--protocol" not in SRC and "--split" not in SRC,
+      "one runner, one question; a second protocol is a second file")
+
+_reasons = {n.targets[0].id for n in TREE.body
+            if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name)}
+check("the reason vocabulary is closed, not free text",
+      "REASONS" in _reasons,
+      "a status line nobody can grep is a status line nobody reads")
+
+with tempfile.TemporaryDirectory() as d2:
+    corpora2 = Path(d2)
+    for rid, want in (("nothing-here", "prerequisite_missing"),):
+        _, out = run(rid, corpora2)
+        flat = " ".join(out.split())
+        check(f"a refusal for {want} still declares its protocol",
+              "protocol temporal" in flat, out[-300:])
+        check(f"  and names {want} from the closed vocabulary",
+              f"reason {want}" in flat, out[-300:])
+
+    (corpora2 / "flat.json").write_text(json.dumps(flat_time), encoding="utf-8")
+    _, out = run("flat", corpora2)
+    flat = " ".join(out.split())
+    check("the no-time-axis refusal carries protocol and reason",
+          "protocol temporal" in flat
+          and "reason missing_temporal_axis" in flat, out[-400:])
+    check("  and the corpus identity, so the refusal is about a known file",
+          "sha256" in flat and "run_id flat" in flat, out[-400:])
+
+# The structural invariant: one report() per exit from main(), counted from
+# the AST rather than by looking at nearby lines. Line proximity would pass a
+# file where two exits shared one report and a third had none.
+_main = next(n for n in TREE.body
+             if isinstance(n, ast.FunctionDef) and n.name == "main")
+_exits = [n for n in ast.walk(_main) if isinstance(n, ast.Return)]
+_reports = [n for n in ast.walk(_main)
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+            and n.func.id == "report"]
+check("main() has as many report() calls as it has exits",
+      len(_exits) == len(_reports) and _exits,
+      f"{len(_exits)} returns, {len(_reports)} reports — an exit without one "
+      f"is a number with no question attached")
+
 print()
 if FAILS:
     print(f"{len(FAILS)} FAILED:")
