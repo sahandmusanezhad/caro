@@ -426,6 +426,74 @@ with tempfile.TemporaryDirectory() as _d:
 check("a parsed listing with no snapshot record is reported as such",
       "3 parsed listing(s) have NO snapshot record" in _gap, "\n" + _gap)
 
+# ---------------------------------------------------------------------------
+print("\nELIGIBILITY SURVIVES THE ARTIFACT — the property the corpus exists for")
+# ---------------------------------------------------------------------------
+#
+# Every assertion above tracks a FIELD. This one tracks the DECISION the
+# fields are for, and it is the one that was false for the life of the
+# project: no row read back from a published corpus had ever been
+# appraisal-eligible. `to_fetch_outcome` did not carry `price_status` or
+# `mileage_status`, `corpus_reader` set both to None, and `eligibility` fails
+# closed on None — correctly, and on a value a boundary had dropped rather
+# than one the source withheld.
+#
+# Nothing failed. Run 3 and Run 5 produced their numbers by re-parsing rebuilt
+# pages, so the artifact path was never the thing under test. A corpus that
+# cannot admit a single row to W1 is not a corpus; it is a file.
+
+from caro.ingest.quality import eligibility                       # noqa: E402
+
+_src = a_listing(price_status="display_confirmed",
+                 mileage_status="plausible")
+_ok_parsed, _why_parsed = eligibility(_src)
+check("the parsed listing is appraisal-eligible to begin with",
+      _ok_parsed, str(_why_parsed))
+
+_rec, _row, _back, _ = through_the_chain(_src)
+check("  its price provenance reaches the snapshot",
+      _rec.get("price_status") == "display_confirmed", str(_rec.get("price_status")))
+check("  and the published row",
+      _row.get("price_status") == "display_confirmed", str(_row.get("price_status")))
+check("  its mileage provenance too",
+      _row.get("mileage_status") == "plausible", str(_row.get("mileage_status")))
+
+_ok_back, _why_back = eligibility(_back)
+check("THE SAME ROW, READ BACK FROM THE CORPUS, IS STILL ELIGIBLE",
+      _ok_back, str(_why_back))
+check("  and the two verdicts agree, which is the whole property",
+      _ok_parsed == _ok_back,
+      "a corpus that refuses what the parse admitted cannot feed W1, and one "
+      "that admits what the parse refused is worse")
+
+# Negative controls. A chain that only ever says yes proves nothing: each
+# status is removed from the snapshot on disk, which is exactly the shape the
+# defect had, and the refusal must come back.
+for _field, _phrase in (("price_status", "price provenance unknown"),
+                        ("mileage_status", "mileage provenance unknown")):
+    _o = _src.to_fetch_outcome("bama", "test-salt")
+    with tempfile.TemporaryDirectory() as _d:
+        _p = write_snapshot(Path(_d), Snapshot("neg", date(2026, 9, 8), [_o]))
+        _raw = json.loads(_p.read_text(encoding="utf-8"))
+        _raw["outcomes"][0][_field] = None          # the boundary, restored
+        _p.write_text(json.dumps(_raw, ensure_ascii=False), encoding="utf-8")
+        _r, _ = promote_record(json.loads(
+            _p.read_text(encoding="utf-8"))["outcomes"][0])
+    _b = listing_from_record(_r)
+    _o2, _w2 = eligibility(_b)
+    check(f"dropping {_field} at the boundary fails CLOSED",
+          not _o2, f"still eligible without {_field}")
+    check(f"  and says so by name, not by borrowing another reason",
+          any(_phrase in w for w in _w2), str(_w2))
+
+check("nothing is reconstructed: a row with a price but no provenance is refused",
+      not eligibility(listing_from_record({
+          "listing_id": "x", "asking_price_toman": 700_000_000,
+          "year_jalali": 1395, "mileage_km": 90_000, "model": "Pride",
+          "product_class": "vehicle", "price_kind": "cash"}))[0],
+      "inferring display_confirmed from the presence of a number would "
+      "manufacture the provenance the gate exists to check")
+
 print()
 if FAILS:
     print(f"{len(FAILS)} FAILED:")
