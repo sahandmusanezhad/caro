@@ -67,6 +67,9 @@ def main() -> int:
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--model", default="Pride",
                     help="the model to report a headline count for")
+    ap.add_argument("--parse-eligible", type=int, default=None,
+                    help="what the collection run reported, so the boundary "
+                         "BEFORE this one can be located too")
     a = ap.parse_args()
 
     if not a.snapshot.exists():
@@ -117,11 +120,24 @@ def main() -> int:
 
     print("RECONCILIATION")
     print("-" * 62)
+    if a.parse_eligible is not None:
+        print(f"  eligible at the parse      {a.parse_eligible:>4}"
+              f"   (what the run reported)")
     print(f"  eligible in the snapshot   {snap_elig:>4}")
     print(f"  eligible in the artifact   {art_elig:>4}")
     print(f"  lost at a boundary         {len(lost):>4}")
     print(f"  gained (must be zero)      {len(gained):>4}")
     print()
+
+    # Which boundary, not just how many. A drop before the snapshot and a
+    # drop after it are different defects in different files, and reporting
+    # one number invites fixing the wrong one.
+    if a.parse_eligible is not None and a.parse_eligible > snap_elig:
+        print(f"  ⚠ {a.parse_eligible - snap_elig} eligible row(s) did not "
+              "reach the SNAPSHOT.")
+        print("    The boundary is to_fetch_outcome / write_snapshot, not")
+        print("    promotion. Nothing below this line can see or fix it.")
+        print()
 
     if lost:
         print("  LOST — the snapshot supported these and the artifact does not:")
@@ -176,8 +192,52 @@ def main() -> int:
     print(f"artifact   {a.output}")
     print(f"           sha256 in the file's provenance block; "
           f"{a.output.stat().st_size:,} bytes")
-    if gained:
+    print()
+
+    # ---- the invariants, checked rather than eyeballed --------------------
+    #
+    # The fifth exists because the first four are satisfied by a corpus in
+    # which NOTHING is eligible: 0 == 0, nothing lost, nothing gained, and
+    # every line reads green while the artifact is useless. A reconciliation
+    # that can pass vacuously is not a reconciliation, and this is exactly
+    # the failure it was built to catch one level down — fail-closed on both
+    # sides agreeing with itself.
+    checks = [
+        ("snapshot eligible == artifact eligible", snap_elig == art_elig,
+         f"{snap_elig} vs {art_elig}"),
+        ("nothing lost at a boundary", not lost, f"{len(lost)} lost"),
+        ("nothing gained — the artifact is never more permissive",
+         not gained, f"{len(gained)} gained"),
+        ("the artifact holds eligible rows AT ALL",
+         art_elig > 0,
+         "0 eligible: the four checks above pass vacuously when both sides "
+         "are empty"),
+    ]
+    if a.parse_eligible is not None:
+        checks.insert(0, ("parse eligible == snapshot eligible",
+                          a.parse_eligible == snap_elig,
+                          f"{a.parse_eligible} vs {snap_elig} — the loss is "
+                          "before promotion"))
+
+    print("INVARIANTS")
+    print("-" * 62)
+    failed = 0
+    for name, ok, detail in checks:
+        if ok:
+            print(f"  ✓ {name}")
+        else:
+            failed += 1
+            print(f"  ✗ {name}   {detail}")
+    print()
+    if failed:
+        print(f"  {failed} invariant(s) failed. The eligibility this corpus "
+              "reports is not")
+        print("  the eligibility its input supported, and no number from it "
+              "may be quoted.")
         return 1
+    print(f"  all {len(checks)} hold. {art_elig} eligible rows, and every one "
+          "of them is")
+    print("  eligible FROM THE ARTIFACT rather than from a parsed object.")
     return 0
 
 
