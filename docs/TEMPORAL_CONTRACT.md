@@ -143,6 +143,15 @@ A violation is a broken projection, not awkward data. It raises.
 
 ### 3b. What this does to the corpus composition, said out loud
 
+> **CORRECTED by measurement — see §10.** This section originally predicted
+> that train would over-represent *long-lived* listings by length-biased
+> sampling. That is backwards for this collector. Discovery reads the first
+> page of each pinned category and those pages are recency-ordered, so the
+> observable window is the **newest** ~76 listings and the corpus is biased
+> toward *fresh* arrivals, which it can see, and away from long-lived
+> listings, which it mostly cannot. The paragraph is kept as written, with
+> this note, because the prediction was wrong in a direction that mattered.
+
 Day 1 contributes a block of left-truncated rows, all at ordinal 0, all in
 train. Later days contribute genuinely-observed appearances, and the test set
 is drawn only from those.
@@ -283,6 +292,88 @@ day, with:
 - `is_first=True` on exactly one fold, ever (§3a).
 
 Design first, then the clock, then — only then — implementation.
+
+---
+
+## 10. What the same-day replicate measured, and what it broke
+
+Two runs of the identical pin (`pride,quick,tiba · seed 0 · limit 90 ·
+digest a07d10`) on 2026-09-10, roughly 58 minutes apart. Full output in
+`docs/REPLICATE_2026-09-10.txt`; reproduce with
+`scripts/replicate_check.py`.
+
+```
+    ok records        76  and  76
+    drawn by both     66        87% of the first
+    churn           13.2%       symmetric difference, identical pin
+
+    price identical   64        of the 66 both runs drew
+    price changed      0
+    every one of 11 car fields                    0 changed
+```
+
+### The good half
+
+**The parser is reproducible.** Zero field values moved across 66 listings
+that both runs drew. Any difference between two runs of this collector is
+the SAMPLE, never the extraction. That is worth having and it was not
+previously known.
+
+### The half that breaks §3
+
+**13.2% of the sample turned over in under an hour with an identical pin.**
+The pin fixes the *procedure*, not the sample: discovery reads page 1 of each
+pinned category, those pages are recency-ordered, and new arrivals push older
+listings off them.
+
+`observed_appearance` is defined as *we watched it appear*. Under this
+collector it can only mean *we drew it for the first time*, and the
+measurement says those differ by about 13% per run. So:
+
+    a listing "new to the draw" may have existed all along, unseen,
+    and `observed_appearance=True` would be FALSE for it about as often
+    as the churn rate.
+
+Then **every** row is left-truncated, not just day 1's — and §3's rule
+("left-truncated is never placed in test") empties the test set. The
+contract, applied to this collector, refuses to produce a split at all.
+
+That is the rule working, not failing. But it means §9's prerequisite was
+too small.
+
+### The prerequisite is not a clock — it is a collector
+
+Checked, not assumed: **no script in this repository calls `apply_snapshot`.**
+`TrackingState` is constructed in `caro/agents.py` and in tests, and nowhere
+else. W0's differ has never run on real data. There is no road on the far
+side of this boundary yet.
+
+And `first_run.py` is a DISCOVERY collector: it fetches whatever the category
+pages currently list and never re-fetches a known id. With a page-1 window
+and 13% churn per run, consecutive daily snapshots would share close to
+nothing, so:
+
+- absence would never be observed — a vanished listing simply stops being
+  discovered, which is not a 404 and not `FetchStatus.ABSENT`;
+- `apply_snapshot` would see ~76 appearances and no disappearances daily,
+  every one of them an artefact of the sampler;
+- `assess_integrity` would not catch it, because nothing looks wrong.
+
+**Tracking needs a cohort, not a repeated sample:**
+
+```
+    snapshot  =  refetch(known ids)          ← absence becomes real
+              ∪  discover(pinned categories) ← arrivals become real
+```
+
+Those two halves want different cadences and that is the argument for
+separating them: re-fetch is one polite request per tracked listing and
+daily is right; discovery must run often enough, or paginate deep enough,
+that an arrival is not missed between runs.
+
+None of this is designed here. It is named here so that nobody starts a
+daily clock believing it opens the boundary, which is exactly what was
+about to happen.
 
 ---
 
