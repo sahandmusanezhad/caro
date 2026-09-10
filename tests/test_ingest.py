@@ -437,10 +437,11 @@ from caro.ingest.bama import (                                    # noqa: E402
 
 # The field names and nesting below are verbatim from a live detail page.
 def ld_page(price="850000000", currency="IRR", km=43000, year=1398,
-            body="<p>وضعیت بدنه</p><p>دور رنگ</p>"):
+            body="<p>وضعیت بدنه</p><p>دور رنگ</p>", name="پراید،  131",
+            url=None):
     car = {
         "@context": "https://schema.org", "@type": ["Product", "Car"],
-        "name": "پراید،  131", "identifier": "ki4vo2q1",
+        "name": name, "identifier": "ki4vo2q1",
         "brand": {"@type": "Brand", "name": "پراید"},
         "color": "سفید", "vehicleTransmission": "دنده ای",
         "fuelType": "بنزینی", "productionDate": year, "vehicleModelDate": year,
@@ -449,6 +450,8 @@ def ld_page(price="850000000", currency="IRR", km=43000, year=1398,
         "offers": {"@type": "Offer", "price": price,
                    "priceCurrency": currency},
     }
+    if url:
+        car["url"] = url
     # Navigation renders ABOVE the article, exactly as the live page does.
     return ("<html><body><nav><p>خودرو</p><p>قیمت روز خودرو</p>"
             "<p>1,234,567,890</p><p>تومان</p></nav>"
@@ -620,6 +623,131 @@ check("an instalment listing yields NO price rather than a deposit",
       I.asking_price_toman is None, str(I.asking_price_toman))
 check("  because a down payment is not comparable to a cash asking price",
       tr7.price_agreement == "unexplained_disagreement", tr7.price_agreement)
+
+# ---------------------------------------------------------------------------
+print("\nfour semantic classes, transcribed from four pages on 2026-09-10")
+# ---------------------------------------------------------------------------
+#
+# Run 9 collected 74 listings and reported 65 appraisal-eligible. Reading the
+# pages by hand showed that number meant "rows the parser could extract a
+# price and a mileage for" and not "used cars with a cash asking price".
+# Three of the four classes below are transcribed from the page named beside
+# them; the fourth is the ordinary shape this file already exercises.
+#
+# What each one is FOR is the whole point. Two of them carry a perfectly
+# extracted number that is not an asking price, and no check in this project
+# could say so before, because every check was about the extraction.
+
+from caro.ingest.quality import (                                    # noqa: E402
+    ASSIGNMENT_CUES, classify_product, eligibility,
+)
+
+# ---- detail-x20klg7t: an assignment ---------------------------------------
+# «حواله» — a claim on a car not yet built. Year 1405, 30,000,000 toman, and
+# it is not a used car at any price. The word is in bama's own `name`; the
+# control is detail-jy04yagr, whose `name` is «پراید،  151».
+ASSIGNMENT = ld_page(price="30000000", currency="IRR", km=0, year=1405,
+                     name="حواله کوییک،  دنده ای S",
+                     url="https://bama.ir/car/detail-x20klg7t-quick-manuals-1405",
+                     body="<p>وضعیت بدنه</p><p>سالم</p>"
+                          "<p>30,000,000</p><p>تومان</p>")
+A = parse_detail_page("https://bama.ir/car/detail-x20klg7t", ASSIGNMENT,
+                      trace=ParseTrace())
+check("«حواله» in the canonical name is read as an assignment",
+      A.product_class == "assignment", A.product_class)
+check("  and it says the SOURCE named it, not that we guessed",
+      A.product_class_source == "canonical_name", A.product_class_source)
+check("  an assignment is NOT appraisal-eligible",
+      not eligibility(A)[0])
+check("    and the reason names the class rather than the price",
+      any("product class" in w for w in eligibility(A)[1]),
+      str(eligibility(A)[1]))
+check("  the price itself is left alone — it is a real number, wrongly typed",
+      A.asking_price_toman == 30_000_000, str(A.asking_price_toman))
+check("  and the canonical url is carried, not rebuilt from the id",
+      A.source_url.endswith("-quick-manuals-1405"), str(A.source_url))
+
+# ---- detail-jy04yagr: a financing total ------------------------------------
+# The corpus MAXIMUM of run 9, at 1.83B toman on a Pride: 600M down, a second
+# instalment of 150M, then sixty months at 18M. Every quality check passed and
+# all of them were right — the extraction was correct. The number is not an
+# asking price.
+FINANCING = ld_page(price="1830000000", currency="IRR", km=0, year=1404,
+                    name="پراید،  151",
+                    body="<p>وضعیت بدنه</p><p>سالم</p>"
+                         "<p>1,830,000,000</p><p>تومان</p>"
+                         "<p>جزئیات اقساط</p><p>پیش پرداخت</p>"
+                         "<p>600,000,000</p><p>تومان</p>")
+F = parse_detail_page("https://bama.ir/car/detail-jy04yagr", FINANCING,
+                      trace=ParseTrace())
+check("a payment schedule makes the price a financing total",
+      F.price_kind == "financing_total", F.price_kind)
+check("  cited to the block bama itself renders",
+      F.price_kind_source == "rendered_payment_schedule", F.price_kind_source)
+check("  THE PRICE STILL EXTRACTS CLEANLY — that was never the problem",
+      F.asking_price_toman == 1_830_000_000, str(F.asking_price_toman))
+check("  and it is refused anyway, as not a cash asking price",
+      not eligibility(F)[0] and any("cash asking price" in w
+                                    for w in eligibility(F)[1]),
+      str(eligibility(F)[1]))
+check("  the car itself is still a car",
+      F.product_class == "vehicle", F.product_class)
+
+# «قسط» alone must not do this. It appears in ordinary ad copy, and a keyword
+# match would have classified honest cash listings as financing.
+STRAY = ld_page(body="<p>وضعیت بدنه</p><p>سالم</p>"
+                     "<p>850,000,000</p><p>تومان</p>"
+                     "<p>توضیحات</p><p>قسطی معاوضه میکنم</p>")
+check("a stray «قسط» in seller prose is NOT a payment schedule",
+      parse_detail_page(LU, STRAY, trace=ParseTrace()).price_kind == "cash")
+
+# ---- detail-oyx0bgr5: negotiable -------------------------------------------
+# «قیمت توافقی» stands where a price would be. The parser already yielded no
+# number for this page; what was missing is the difference between a seller
+# who will not name one and an extraction that failed.
+NEGOTIABLE = ld_page(price="0", currency="IRR", km=87000, year=1402,
+                     name="کوییک،  دنده ای S",
+                     body="<p>قیمت توافقی</p>"
+                          "<p>وضعیت بدنه</p><p>دو لکه رنگ</p>")
+N2 = parse_detail_page("https://bama.ir/car/detail-oyx0bgr5", NEGOTIABLE,
+                       trace=ParseTrace())
+check("«قیمت توافقی» yields NO number, as it already did",
+      N2.asking_price_toman is None, str(N2.asking_price_toman))
+check("  and is now distinguishable from a failed extraction",
+      N2.price_kind == "negotiable", N2.price_kind)
+check("  which is not eligible either, and says which of the two it is",
+      not eligibility(N2)[0])
+
+# ---- the control: an ordinary cash listing ---------------------------------
+# Not transcribed from a page — this is the shape the rest of this file has
+# exercised all along, and the point is that NOTHING about it changed.
+C = parse_detail_page(LU, ld_page(), trace=ParseTrace())
+check("an ordinary listing is a vehicle sold for cash",
+      C.product_class == "vehicle" and C.price_kind == "cash",
+      f"{C.product_class} / {C.price_kind}")
+check("  and `cash` admits it is a default reading, not a finding",
+      C.price_kind_source == "no_contrary_evidence", C.price_kind_source)
+check("  it is eligible, exactly as before these two fields existed",
+      eligibility(C)[0], str(eligibility(C)[1]))
+
+# ---- and the invariant that ties them together -----------------------------
+check("a class we could not determine is not a vehicle",
+      classify_product("", from_canonical=True)[0] == "unknown")
+# The same eligible listing, differing only in its class. Built with
+# `replace` so it is the real record, not a stand-in that could drift.
+from dataclasses import replace as _replace                          # noqa: E402
+check("  and never decays into one",
+      not eligibility(_replace(C, product_class="unknown"))[0],
+      "the same row that was eligible one line above")
+check("  nor does an unrecorded one",
+      not eligibility(_replace(C, product_class=None))[0])
+check("  and a cash price on an assignment does not rescue it",
+      not eligibility(_replace(C, product_class="assignment"))[0])
+check("ONE assignment cue, because one is what has been observed",
+      len(ASSIGNMENT_CUES) == 1,
+      "widening this list by imagination is how a parser learns to see what "
+      "it was told to find")
+
 
 # ---------------------------------------------------------------------------
 print("\nsemantic validity — 'in range' is not 'true'")
