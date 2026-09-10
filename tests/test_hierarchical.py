@@ -408,6 +408,90 @@ check("a demonstrated failure OUTRANKS an unjudgeable slice",
       v_mix is GateVerdict.REJECTED and f_mix and u_mix,
       "being measurably wrong is worse news than being unmeasured")
 
+# ---------------------------------------------------------------------------
+print("\nREJECTED is not UNJUDGEABLE, and the difference is not a phrase")
+# ---------------------------------------------------------------------------
+#
+# `verdict` sorted reasons by asking whether the words "cannot judge" appeared
+# in them. Two branches of the same idea are worded differently, and one
+# routed wrong: an ENTIRELY ABSENT slice says "the gate cannot pass on
+# evidence it does not have", which contains no such phrase, so it landed in
+# the failure list and the verdict came back REJECTED.
+#
+# Measured on a corpus of 71 rows — the size the pride slice actually is —
+# with two required slices missing and nothing assessed at all:
+#
+#     VERDICT: REJECTED          "the model was measured and found wanting"
+#
+# That is the exact conflation `GateVerdict` was written to prevent, inside
+# the code that enforces it. The reason now carries its own kind and the
+# message is only for a person to read.
+
+from caro.hierarchical import GateReason, ReasonKind                 # noqa: E402
+
+# The bug, pinned: this sentence must classify as missing evidence WITHOUT
+# containing the phrase the old sorter looked for.
+_missing = [s for s in sl if s.name not in ("thin trim", "held-out trim")]
+v_miss, f_miss, u_miss = g.verdict(_missing, baseline_mae=1e9, model_mae=1e8)
+check("two required slices absent -> UNJUDGEABLE, not REJECTED",
+      v_miss is GateVerdict.UNJUDGEABLE, str(v_miss))
+check("  with NO demonstrated failures, because nothing was measured",
+      f_miss == [], str(f_miss))
+check("  and both gaps carried as unanswered questions",
+      len(u_miss) == 2, str(u_miss))
+check("  THE REGRESSION: none of them says «cannot judge»",
+      not any("cannot judge" in r for r in u_miss),
+      "the old sorter needed that phrase, and this branch never wrote it")
+check("  they are classified by kind instead",
+      all(r.kind is ReasonKind.EVIDENCE_MISSING for r in u_miss))
+check("  and each names its own subject",
+      {r.subject for r in u_miss} == {"thin trim", "held-out trim"},
+      str([r.subject for r in u_miss]))
+
+# The other branch of the same idea — present but too small — already routed
+# correctly. It must keep doing so, by kind rather than by wording.
+_thin = [s for s in sl if s.name != "held-out trim"]
+_thin = _thin + [SliceMetrics("held-out trim", 3, 1e7, 1e7, 0.7, 0.0, 0.5, 0.0)]
+v_thin, f_thin, u_thin = g.verdict(_thin, baseline_mae=1e9, model_mae=1e8)
+check("a required slice too SMALL to judge is also UNJUDGEABLE",
+      v_thin is GateVerdict.UNJUDGEABLE, str(v_thin))
+check("  and it is the same kind as an absent one",
+      all(r.kind is ReasonKind.EVIDENCE_MISSING for r in u_thin))
+
+# A real, measured failure must still be REJECTED. A fix that turned every
+# refusal into UNJUDGEABLE would pass every assertion above and destroy the
+# distinction from the other side.
+v_bad, f_bad, u_bad = g.verdict(sl, baseline_mae=1e8, model_mae=1e9)
+check("a measured MAE failure is REJECTED, not softened to UNJUDGEABLE",
+      v_bad is GateVerdict.REJECTED, str(v_bad))
+check("  and it is a demonstrated failure, not an unanswered question",
+      any(r.kind is ReasonKind.MEASURED_FAILURE for r in f_bad), str(f_bad))
+
+v_pw, f_pw, _ = g.verdict(sl, baseline_mae=1e9, model_mae=1e8,
+                          population_weighted=True)
+check("population weighting is something the estimator DID — REJECTED",
+      v_pw is GateVerdict.REJECTED
+      and all(r.kind is ReasonKind.MEASURED_FAILURE for r in f_pw),
+      str(v_pw))
+
+# Both at once: a demonstrated failure outranks an unanswered question, and
+# the question is still reported rather than swallowed.
+v_both, f_both, u_both = g.verdict(_missing, baseline_mae=1e8, model_mae=1e9)
+check("a measured failure outranks missing evidence",
+      v_both is GateVerdict.REJECTED, str(v_both))
+check("  and the missing evidence is still reported, not swallowed",
+      len(u_both) == 2, str(u_both))
+
+# The contract itself: nothing the gate can emit may be an untagged string.
+_all_reasons = (g.check(_missing, baseline_mae=1e8, model_mae=1e9,
+                        population_weighted=True)[1])
+check("every reason the gate emits carries a kind",
+      all(isinstance(r, GateReason) for r in _all_reasons),
+      str([type(r).__name__ for r in _all_reasons]))
+check("  and a reason is still a string, so every existing caller works",
+      all(isinstance(r, str) for r in _all_reasons)
+      and "MAE" in " ".join(_all_reasons))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

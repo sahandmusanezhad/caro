@@ -441,6 +441,47 @@ def four_slices(model, test: Sequence[Row], train_counts: dict[str, int],
 # Acceptance — conjunctive, and with NO silent fallback
 # ---------------------------------------------------------------------------
 
+class ReasonKind(str, Enum):
+    """Why the gate is refusing — as a value, not as a turn of phrase.
+
+    `verdict` used to sort reasons by asking whether the words "cannot judge"
+    appeared in them. Two branches of one idea were worded differently and
+    one of them routed wrong: a slice that was ENTIRELY ABSENT said "the gate
+    cannot pass on evidence it does not have", which contains no such phrase,
+    so a corpus that measured nothing came back REJECTED — "the model was
+    measured and found wanting". That is the exact conflation the verdict
+    enum exists to prevent, sitting inside the code that enforces it.
+
+    Measured on a 71-row corpus: two required slices missing, nothing
+    assessed, verdict REJECTED.
+
+    The message is for a person. This is the contract.
+    """
+    EVIDENCE_MISSING = "evidence_missing"    # the corpus cannot answer
+    MEASURED_FAILURE = "measured_failure"    # the model was assessed and failed
+
+
+class GateReason(str):
+    """A refusal message that also carries WHY it is a refusal.
+
+    A `str` subclass rather than a dataclass, on purpose: every existing
+    caller — the benchmark scripts, `serve_or_refuse`, the suites — treats a
+    reason as text and prints it or searches it. Changing that shape would
+    have meant editing all of them to gain nothing, and a migration that
+    touches ten files to fix one classification is a migration that
+    introduces its own defect.
+    """
+
+    kind: ReasonKind
+    subject: str
+
+    def __new__(cls, message: str, kind: ReasonKind, subject: str = ""):
+        self = super().__new__(cls, message)
+        self.kind = kind
+        self.subject = subject
+        return self
+
+
 @dataclass
 class HierarchicalGate:
     """Every condition must hold. Failing any of them means NOT ACCEPTED.
@@ -476,8 +517,16 @@ class HierarchicalGate:
         ok, all_reasons = self.check(
             slices, baseline_mae=baseline_mae, model_mae=model_mae,
             population_weighted=population_weighted)
-        unjudged = [r for r in all_reasons if "cannot judge" in r]
-        failed = [r for r in all_reasons if r not in unjudged]
+        # On the KIND, never on the wording. A reason that has to announce
+        # its own category in prose is a reason whose category depends on
+        # whoever wrote the sentence.
+        # `r not in unjudged` would have compared by VALUE, since a reason is
+        # a str — two reasons with identical text and different kinds would
+        # collapse into one. Both lists are built from the kind directly.
+        unjudged = [r for r in all_reasons
+                    if getattr(r, "kind", None) is ReasonKind.EVIDENCE_MISSING]
+        failed = [r for r in all_reasons
+                  if getattr(r, "kind", None) is not ReasonKind.EVIDENCE_MISSING]
         if failed:
             return GateVerdict.REJECTED, failed, unjudged
         if unjudged:
@@ -486,53 +535,66 @@ class HierarchicalGate:
 
     def check(self, slices: Sequence[SliceMetrics], *,
               baseline_mae: float, model_mae: float,
-              population_weighted: bool = False) -> tuple[bool, list[str]]:
-        fails: list[str] = []
+              population_weighted: bool = False
+              ) -> tuple[bool, list[GateReason]]:
+        fails: list[GateReason] = []
 
         if model_mae > baseline_mae * self.mae_tolerance:
-            fails.append(
+            fails.append(GateReason(
                 f"MAE {model_mae:,.0f} is worse than the baseline "
                 f"{baseline_mae:,.0f} by more than "
-                f"{(self.mae_tolerance - 1):.0%}")
+                f"{(self.mae_tolerance - 1):.0%}",
+                ReasonKind.MEASURED_FAILURE, "mae"))
 
         reliable = [s for s in slices if s.reliable]
         for s in reliable:
             if s.significant_coverage_error(self.z) > self.max_coverage_error:
-                fails.append(
+                fails.append(GateReason(
                     f"'{s.name}' interval coverage is {s.coverage:.0%} "
                     f"against a nominal {NOMINAL_COVERAGE:.0%} "
                     f"(±{s.coverage_se:.0%} noise on n={s.n}) — a better "
                     "average with broken bands is more confident and less "
-                    "right")
+                    "right",
+                    ReasonKind.MEASURED_FAILURE, s.name))
         worst = max((s.significant_coverage_error(self.z) for s in reliable),
                     default=0.0)
         if worst > self.max_worst_slice_coverage_error:
-            fails.append(f"worst reliable slice is off by {worst:.0%}")
+            fails.append(GateReason(
+                f"worst reliable slice is off by {worst:.0%}",
+                ReasonKind.MEASURED_FAILURE, "worst reliable slice"))
 
         by_name = {s.name: s for s in slices}
         if self.require_trace_observable:
             for needed in ("thin trim", "held-out trim"):
                 s = by_name.get(needed)
                 if s is None:
-                    fails.append(
+                    # Nothing was measured here. That is the corpus failing
+                    # to answer, not the model failing — and it used to be
+                    # classified the other way because this sentence happens
+                    # not to contain the words the sorter looked for.
+                    fails.append(GateReason(
                         f"'{needed}' behaviour was not measured — the gate "
-                        "cannot pass on evidence it does not have")
+                        "cannot pass on evidence it does not have",
+                        ReasonKind.EVIDENCE_MISSING, needed))
                 elif not s.reliable:
                     # The distinction that matters: this is not "the model
                     # failed", it is "the corpus cannot answer". Passing here
                     # would let a model be accepted precisely where it was
                     # never tested.
-                    fails.append(
+                    fails.append(GateReason(
                         f"'{needed}' has n={s.n}, below the {MIN_SLICE_N} a "
                         "calibration verdict needs. NOT a model failure — "
                         "the corpus cannot judge this slice, and the gate "
-                        "does not pass on an unanswered question")
+                        "does not pass on an unanswered question",
+                        ReasonKind.EVIDENCE_MISSING, needed))
 
         if population_weighted:
-            fails.append(
+            # A thing the estimator DID, observed. Not a gap in the corpus.
+            fails.append(GateReason(
                 "the estimator introduced population weighting; "
                 "P(inclusion) is unknown (D29) and no weight may be derived "
-                "from the sample's own shape")
+                "from the sample's own shape",
+                ReasonKind.MEASURED_FAILURE, "population weighting"))
 
         return (not fails), fails
 
