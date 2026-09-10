@@ -434,6 +434,18 @@ def main() -> int:
     ap.add_argument("--city", default="tehran")
     ap.add_argument("--limit", type=int, default=50)
     ap.add_argument("--pages", type=int, default=2)
+    # A POLITENESS ceiling, not a target. Discovery stops as soon as the
+    # listing target is met, so a budget larger than needed costs nothing —
+    # while a budget smaller than needed silently decides the corpus, which
+    # is what `limit // 20 + 1` did on run 6: 50 requested, 3 category pages
+    # allowed, 18 listings collected, and every rate in the report describing
+    # `audi`, `amg` and `arya`.
+    #
+    # Defaulting to the limit is the worst case made safe: a category page
+    # yielding one listing still lets the run reach its target, and a page
+    # yielding ten means the budget is never approached.
+    ap.add_argument("--categories", type=int, default=None,
+                    help="max category pages to open (default: --limit)")
     ap.add_argument("--replay", type=Path,
                     help="parse a saved snapshot instead of fetching")
     args = ap.parse_args()
@@ -515,7 +527,7 @@ def collect(args, traces: list | None = None) -> tuple[list, object]:
     # correct here. Driving a browser to download static XML costs seconds and
     # a Chromium process per request for nothing.
     ad = BamaAdapter(fetcher=http_fetcher(), max_listings=args.limit,
-                     max_categories=max(1, args.limit // 20 + 1),
+                     max_categories=args.categories or args.limit,
                      salt=os.environ["CARO_SELLER_SALT"],
                      on_listing=out.append)
 

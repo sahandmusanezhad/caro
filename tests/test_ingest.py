@@ -316,6 +316,21 @@ check("filter permutations are skipped",
       == ["https://bama.ir/car/peugeot", "https://bama.ir/car/saipa"],
       "?mileage=0/1 slice the same inventory and multiply requests")
 
+# A budget that binds is not a thin market, and run 6 could not tell its
+# operator which of the two it had hit: it asked for 50 listings, was allowed
+# three category pages, and reported 18 as though that were what Bama had.
+_ST = BamaAdapter(fetcher=lambda u: (200, SITEMAP), max_categories=1)
+_ST.discover_categories()
+_ST.stats.categories_tried = 1
+check("the run records the category budget it was given",
+      _ST.stats.category_budget == 1, str(_ST.stats.category_budget))
+check("  and says the budget stopped discovery, not the market",
+      "category BUDGET ran out" in _ST.stats.report(),
+      "1 of 2 categories opened, and the old report said nothing")
+_ST.stats.category_budget = 99
+check("  while a budget that did not bind says nothing",
+      "category BUDGET ran out" not in _ST.stats.report())
+
 CATEGORY = '''<a href="/car/detail-6xphr0fb-peugeot-206ir-type2-1401">a</a>
 <a href="/car/detail-ffdrszax-peugeot-206ir-type5-1396">b</a>
 <a href="/car/detail-ffdrszax-peugeot-206ir-type5-1396">dup</a>

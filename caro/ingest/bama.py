@@ -828,11 +828,13 @@ class DiscoveryStats:
     listing_urls_raw: int = 0
     listing_urls_unique: int = 0
     detail_status: dict = field(default_factory=dict)
+    category_budget: int = 0
 
     def report(self) -> str:
         L = ["DISCOVERY", "-" * 62,
              f"  sitemap urls          {self.sitemap_urls}",
              f"  category pages found  {self.categories_found}",
+             f"  category budget       {self.category_budget}",
              f"  category pages tried  {self.categories_tried}"
              f"  (ok: {self.categories_ok})"]
         for cat, n in self.listings_per_category.items():
@@ -843,6 +845,15 @@ class DiscoveryStats:
             L.append("  detail fetch outcomes")
             for k, v in sorted(self.detail_status.items()):
                 L.append(f"      {str(k):<24}{v:>4}")
+        # The budget binding is not the same as the market being thin, and
+        # run 6 could not tell the operator which it had hit.
+        if (self.category_budget
+                and self.categories_tried >= self.category_budget
+                and self.categories_found > self.category_budget):
+            L.append(f"  ⚠ discovery stopped because the category BUDGET ran "
+                     f"out ({self.category_budget} of "
+                     f"{self.categories_found} pages), not because the "
+                     "listing target was met. Raise --categories.")
         if self.categories_ok == 1 and self.listing_urls_unique > 20:
             L.append("  ⚠ every listing came from ONE category page. This "
                      "corpus is one brand, not the market — widen before "
@@ -892,6 +903,7 @@ class BamaAdapter:
             cats = [u for u in cats
                     if any(m in u.lower() for m in self.only_makes)]
         self.stats.categories_found = len(cats)
+        self.stats.category_budget = self.max_categories
         return cats[:self.max_categories]
 
     def discover_listings(self) -> list[str]:
