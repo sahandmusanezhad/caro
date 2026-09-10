@@ -2465,3 +2465,79 @@ the way to the consumer, and the cost of not following it is a risk term that
 is constant across every car — which cancels out of
 `value = estimate − asking − risk` and removes the product's whole thesis
 without failing anything.
+
+## D52 — Eligible means a used car with a cash asking price, not a row we could parse
+
+Run 9 collected 74 listings from bama and reported 65 appraisal-eligible. The
+number was arithmetically correct and it meant something other than what it
+was about to be used for. `eligibility` asked whether a price and a mileage
+had been extracted and whether the extraction was sound. It could not ask
+whether the record was a used car, or whether the number was an asking price,
+because nothing in the schema carried either fact.
+
+Two rows in that corpus, read by hand:
+
+    detail-x20klg7t   30,000,000 toman, model year 1405, «حواله کوییک»
+                      an ASSIGNMENT — a claim on a car not yet built. Not a
+                      mispriced car; not a car.
+
+    detail-jy04yagr   1,830,000,000 toman, the corpus MAXIMUM, a Pride
+                      600M down, a second instalment of 150M, sixty months
+                      at 18M. The total cost of a financing plan.
+
+**Every check passed and every check was right.** `price_status` on the second
+was `display_confirmed`; D20's cross-check compared the structured figure
+against the displayed one and they agreed. The extraction was flawless. The
+estimator would have learned that a 1404 Pride is worth 1.83B toman and that
+a 1405 Quik can be had for 30M.
+
+**Why a threshold is the wrong repair.** The obvious fix is to raise
+`MIN_PLAUSIBLE_PRICE_TOMAN` or to condition it on model year. Both would be
+tuning a number until two rows disappear, and both would leave the actual
+defect in place: a حواله priced at 900M is still not a used car, and a
+financing total that lands inside the plausible band is still not an asking
+price. So the repair is classification, not filtering.
+
+    product_class   vehicle | assignment | unknown
+    price_kind      cash | negotiable | financing_total | absent
+
+**Read, with the evidence kept.** `product_class` comes from the product
+NAME and never from `description`: bama's schema.org `name` is the site's own
+string — «پراید،  151» against «حواله کوییک،  دنده ای S» — while the
+description is the seller's. `price_kind` comes from «جزئیات اقساط», a
+section heading bama renders, and not from «قسط», which appears in ordinary
+ad copy. Both carry a `_source` beside them, and `cash` states honestly that
+its source is `no_contrary_evidence`: there is no positive marker for a cash
+price, and a provenance string that admits that is worth more than one
+implying a check happened.
+
+**Fail closed, in the shape D1 already established.** `unknown` never decays
+to `vehicle`; an unrecorded class or kind is refused exactly as an unrecorded
+price provenance is. The alternative is not a smaller corpus — it is an
+estimator that prices an assignment as the cheapest car of its model.
+
+**What is NOT claimed.** Four semantic classes were observed on one source on
+one day and are modelled correctly. That is the whole claim. `ASSIGNMENT_CUES`
+holds one entry and the suite asserts that it does, because widening a cue
+list by imagination is how a parser learns to see what it was told to find. A
+class this gate cannot recognise stays `unknown`, which costs a row.
+
+Nor is the financing check complete: it does not verify the structured price
+against the plan total. On the observed page that arithmetic holds — 600 +
+150 + 60x18 = 1,830 — but checking it needs the schedule table parsed, which
+is more machinery than one observation justifies. A cash listing that
+happened to carry a schedule block would be read as financing and excluded.
+That is the fail-closed direction and it is written down rather than
+discovered later.
+
+**The consequence for the benchmark, stated before the number exists.** Run
+9's 65 eligible rows are not 65 comparable cash asks until they are counted
+again under this definition. Whatever that count turns out to be is the
+honest one, and D35 forbids preferring the larger.
+
+**And a pointer, so this can be done again.** `source_url` is read from the
+`url` bama publishes in the same block as the price. It is provenance, never
+evidence: nothing appraises it and nothing claims on it. Its only job is to
+let a person open the page behind a row — which is exactly what D46 records
+the absence of, and exactly what turned two anomalous numbers into two
+diagnosed classes here.
