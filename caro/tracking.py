@@ -118,6 +118,13 @@ class FetchOutcome:
     document_issue: bool | None = None
     seller_type: str | None = None           # dealer | private | unknown
 
+    # What the record is, and on what evidence. Carried for the same reason
+    # as everything above it: a class derived at parse time and dropped here
+    # is a class no corpus can be filtered on. `unknown` is a real value and
+    # is not the same as `None`, which means the adapter recorded nothing.
+    product_class: str | None = None         # vehicle | assignment | unknown
+    product_class_source: str | None = None
+
 
 # ---------------------------------------------------------------------------
 # Snapshots

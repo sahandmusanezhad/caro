@@ -34,6 +34,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from caro.ingest.persian import normalize
+
 # The Jalali year the plausibility rules are anchored to. Bump it, or pass
 # `now` explicitly, rather than letting an old constant silently make every
 # recent car look implausible.
@@ -202,6 +204,65 @@ MIN_PER_TRIM_FLOOR = 5
 # What W1 needs before a listing can inform an estimate. Deliberately narrow:
 # these are the terms that appear in the appraisal itself, so a row missing
 # any of them cannot contribute a comparable, only noise.
+# ---------------------------------------------------------------------------
+# What the record IS, as opposed to whether its numbers came out right
+# ---------------------------------------------------------------------------
+#
+# `PriceStatus` answers "can I trust this number was extracted correctly?".
+# It cannot answer "is this number an asking price at all?", and a corpus
+# needs both. Run 9 made the gap concrete: a listing whose price was
+# display-confirmed, cross-checked and perfectly extracted, and which was the
+# corpus maximum at 1.83B toman — and which is the TOTAL COST OF A FINANCING
+# PLAN, not what anyone is asking for a Pride. Every quality check passed
+# because every quality check was about the extraction.
+#
+# The same run carried two «حواله» listings at 30M and 80M toman. Those are
+# assignments — a claim on a car not yet built — and they are not used cars
+# at any price. `classify_price_value` let them through because its floor is
+# 10M and flat, while `classify_mileage` right above it conditions on age
+# precisely because a number alone cannot carry that judgement. Price had the
+# same problem inverted and no such conditioning.
+#
+# Neither field is a threshold and neither is tuned. Both are read off what
+# the source publishes, and both keep the evidence that produced them.
+
+# Observed on bama 2026-09-10 in the canonical `name` of two listings:
+#
+#     «حواله کوییک،  دنده ای S»        price 30M toman, model year 1405
+#
+# The control is the same field on an ordinary listing: «پراید،  151». So the
+# word is a real marker in a site-authored string, not a coincidence in
+# seller prose — which is why this reads `name` and never `description`.
+#
+# ONE cue, because one is what has been observed. This list is not
+# market-complete and must not be widened by imagination; a class this gate
+# cannot recognise stays `unknown`, which fails closed.
+ASSIGNMENT_CUES = ("حواله",)
+
+
+def classify_product(name: str | None, *, from_canonical: bool
+                     ) -> tuple[str, str]:
+    """(product_class, product_class_source) from a product NAME.
+
+    `from_canonical` is the difference between reading a string the SOURCE
+    authored — bama's schema.org `name` — and a headline the seller wrote.
+    On a canonical name, the absence of an assignment cue is evidence: bama
+    names assignments «حواله …», so a name without it is a vehicle. On a
+    seller's headline the same absence establishes much less, so the reading
+    is kept but its provenance is recorded rather than averaged in.
+
+    No name at all is `unknown`. That is not a car and not an assignment —
+    it is a record whose class was never determined, and D26's rule applies:
+    absence of a marker is not evidence of its opposite.
+    """
+    if not name or not name.strip():
+        return "unknown", "none"
+    s = normalize(name)
+    if any(normalize(c) in s for c in ASSIGNMENT_CUES):
+        return "assignment", "canonical_name" if from_canonical else "listing_title"
+    return "vehicle", "canonical_name" if from_canonical else "listing_title"
+
+
 APPRAISAL_REQUIRED = ("asking_price_toman", "year_jalali", "mileage_km",
                       "model")
 
@@ -236,6 +297,17 @@ def eligibility(listing) -> tuple[bool, list[str]]:
     elif ps in UNUSABLE_PRICE or (isinstance(ps, str)
                                   and ps in {s.value for s in UNUSABLE_PRICE}):
         missing.append(f"price is {ps.value if hasattr(ps, 'value') else ps}")
+
+    # A record whose class was never determined is not a car. `unknown`
+    # never decays to `vehicle`: the whole point of the class is that a
+    # حواله and a Pride are indistinguishable by year, mileage and price,
+    # and the estimator would price the assignment as the cheapest Pride on
+    # the market.
+    pc = getattr(listing, "product_class", None)
+    if pc is None:
+        missing.append("product class unknown — no product_class recorded")
+    elif pc != "vehicle":
+        missing.append(f"product class is {pc}, not a vehicle")
 
     ms = getattr(listing, "mileage_status", None)
     if ms is None:

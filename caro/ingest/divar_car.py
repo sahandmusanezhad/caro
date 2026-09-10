@@ -52,6 +52,7 @@ from caro.ingest.base import salted_fingerprint
 from caro.ingest.persian import (
     normalize, parse_mileage_km, parse_price, parse_year_jalali,
 )
+from caro.ingest.quality import classify_product
 from caro.tracking import FetchOutcome, FetchStatus, classify_http
 
 # Divar's car categories. Kept as data so a new one is a line, not a patch.
@@ -231,6 +232,13 @@ class CarListing:
     # guess is a label that eventually says "field" about a guess.
     condition_source: str = "none"          # field | description | none
 
+    # What this record IS. A حواله — an assignment, a claim on a car not yet
+    # built — carries a year, a model and a price, and is not a used car at
+    # any of them. `unknown` is a third state and never decays to `vehicle`:
+    # see quality.classify_product and the gate in quality.eligibility.
+    product_class: str = "unknown"          # vehicle | assignment | unknown
+    product_class_source: str = "none"      # canonical_name | listing_title | none
+
     # dealer | private | unknown — inferred ONLY from a dealership block the
     # page publishes about itself (a trade badge, a showroom address). Never
     # from a phone number, which CARO does not read. It is a coarse proxy for
@@ -256,6 +264,8 @@ class CarListing:
             condition_source=self.condition_source,
             document_issue=self.document_issue,
             seller_type=self.seller_type,
+            product_class=self.product_class,
+            product_class_source=self.product_class_source,
             # The raw seller value dies here. Only the salted hash continues.
             seller_fingerprint=(salted_fingerprint(self.seller_raw, salt)
                                 if self.seller_raw else None),
@@ -279,6 +289,9 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
     # it is the prose. Saying "description" when nothing was found would
     # claim evidence that does not exist, so an empty result has no source.
     condition = extract_body_condition(blob)
+    # Divar publishes no canonical product name; the title is the seller's.
+    # Read anyway, and the weaker provenance is recorded rather than hidden.
+    pclass, psource = classify_product(title, from_canonical=False)
     return CarListing(
         listing_id=listing_id, url=url, title=title, description=description,
         asking_price_toman=parse_price(price_text) or parse_price(blob),
@@ -290,6 +303,7 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
         color=extract_color(blob),
         body_condition=condition,
         condition_source="description" if condition != "unknown" else "none",
+        product_class=pclass, product_class_source=psource,
         document_issue=has_document_issue(blob),
         city=city, seller_raw=seller_raw, image_urls=tuple(image_urls),
     )

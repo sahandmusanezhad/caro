@@ -181,6 +181,12 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
         "dealer_badge": bool(rec.get("dealer") or rec.get("DEALER")
                              or rec.get("seller_type") == "dealer"),
         "seller_type": rec.get("seller_type"),
+        # What the record IS. Published because a consumer filtering a corpus
+        # down to used cars has no other way to do it: a حواله carries a
+        # year, a model and a price like any listing, and the estimator would
+        # price it as the cheapest car of its model on the market.
+        "product_class": rec.get("product_class"),
+        "product_class_source": rec.get("product_class_source"),
         "seller_fingerprint": rec.get("seller_fingerprint"),
         "payload_sha": rec.get("payload_sha"),
         "km_line": None,          # replaced below; the key is forbidden

@@ -190,6 +190,12 @@ def listing_from_record(rec: dict) -> CarListing:
         # type yields `unknown`, which is the dataclass default. Absence never
         # becomes `private` here either.
         seller_type=rec.get("seller_type") or "unknown",
+        # A row that does not state its class has an undetermined one. The
+        # dataclass default is already `unknown`, and `eligibility` fails
+        # closed on it — but relying on a default is what D51's gate note
+        # warns against, so it is read explicitly.
+        product_class=rec.get("product_class") or "unknown",
+        product_class_source=rec.get("product_class_source") or "none",
         city=rec.get("province"),
         price_currency_raw=rec.get("price_currency_raw"),
         # Parse-time provenance the artifact cannot carry. None means "not

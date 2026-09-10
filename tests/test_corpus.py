@@ -275,8 +275,17 @@ check("THE PROPERTY: corpus is not more permissive than legacy",
       "migration must not have")
 check("  here it is strictly stricter — provenance is unavailable",
       legacy_ok and not corpus_ok, f"legacy={legacy_ok} corpus={corpus_ok}")
-check("  and it says which provenance, rather than borrowing another reason",
-      all("provenance unknown" in w for w in corpus_why), str(corpus_why))
+# A third reason joined the two provenance ones when `product_class` was
+# added: a corpus artifact written before that field existed does not state
+# whether its rows are cars or حواله, and an undetermined class fails closed
+# exactly like an unrecorded provenance. That is the same property, not a new
+# one — but the count is pinned so a FOURTH reason has to be looked at rather
+# than absorbed by a substring match.
+check("  and every refusal names something the artifact does not carry",
+      all("provenance unknown" in w or w.startswith("product class is")
+          for w in corpus_why), str(corpus_why))
+check("    price provenance, mileage provenance, product class — and no more",
+      len(corpus_why) == 3, str(corpus_why))
 
 # The other direction, so the property is not satisfied by refusing everything.
 bad_rec = dict(SNAP_REC, asking_price_toman=None, mileage_km=None)

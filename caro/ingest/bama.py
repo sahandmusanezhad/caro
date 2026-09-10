@@ -86,7 +86,9 @@ from caro.ingest.divar_car import (
 from caro.ingest.persian import (
     digits_only, normalize, parse_mileage_km, parse_price, parse_year_jalali,
 )
-from caro.ingest.quality import PriceStatus, classify_mileage
+from caro.ingest.quality import (
+    PriceStatus, classify_mileage, classify_product,
+)
 from caro.tracking import FetchOutcome, FetchStatus, classify_http
 
 # Phrases a page shows when the offer is gone but the server still answers
@@ -709,6 +711,26 @@ def parse_detail_page(url: str, html: str,
 
     offers = ld.get("offers") if isinstance(ld.get("offers"), dict) else {}
 
+    # bama's schema.org `name` is the SITE's string, not the seller's — it is
+    # «پراید،  151» on an ordinary listing and «حواله کوییک،  دنده ای S» on an
+    # assignment. That is why the class is read from it and never from
+    # `description`, which is the seller's. A page with no structured block
+    # has no canonical name, and a class we cannot determine stays unknown.
+    ld_name = ld.get("name") if isinstance(ld.get("name"), str) else ""
+    # On a page with no structured block the rendered heading is the best
+    # product name available, and it carries the same cue — the حواله page's
+    # <h1> and its `name` were the identical string. Reading it keeps the
+    # text-fallback path usable instead of making every such page
+    # unclassifiable, and `product_class_source` records which of the two it
+    # was, so the weaker evidence is visible rather than averaged in.
+    #
+    # `unknown` is reserved for a page with NO name at all. That is a record
+    # whose class was never determined, which is not the same as a record
+    # classified on weaker evidence.
+    page_name = ld_name or " ".join(lines[:4])
+    pclass, psource = classify_product(page_name,
+                                       from_canonical=bool(ld_name))
+
     return CarListing(
         listing_id=(ld.get("identifier") or slug.get("listing_id")
                     or url.rsplit("-", 1)[-1]),
@@ -747,6 +769,8 @@ def parse_detail_page(url: str, html: str,
         mileage_status=km_judgement.status.value,
         mileage_note=km_judgement.reason,
         seller_type=detect_seller_type(lines),
+        product_class=pclass,
+        product_class_source=psource,
     )
 
 

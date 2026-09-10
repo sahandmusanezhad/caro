@@ -101,6 +101,7 @@ def a_listing(**over) -> CarListing:
         gearbox="دنده‌ای", fuel="بنزینی", color="سفید",
         body_condition="minor_paint", condition_source="field",
         document_issue=False, city="تهران",
+        product_class="vehicle", product_class_source="canonical_name",
         seller_raw=None, image_urls=(),
         price_status="usable", price_provenance="jsonld",
         mileage_status="plausible", seller_type="dealer",
@@ -215,6 +216,8 @@ CROSSES = {
     "condition_source": "condition_source",
     "document_issue": "document_issue",
     "seller_type": "seller_type",
+    "product_class": "product_class",
+    "product_class_source": "product_class_source",
 }
 
 LOST_ON_PURPOSE = {
