@@ -221,7 +221,7 @@ def _has(v) -> bool:
 
 
 def survival(listings: list, snapshot_path) -> list[str]:
-    """Fill rate for the same field at three stages of the same run.
+    """Fill rate for the same field, on the same listings, at three stages.
 
     The inventory above is computed from the live parsed objects. The corpus
     an estimator reads is computed from what was written to disk and then
@@ -229,53 +229,103 @@ def survival(listings: list, snapshot_path) -> list[str]:
     nothing said so: the report showed a healthy condition distribution while
     every published row said `unknown` (D51).
 
-    Reported per run, on the run's own data, because a boundary that is only
-    checked by a test is a boundary that is checked against fixtures.
+    ON THE SAME LISTINGS is the whole correctness of this function, and the
+    first live run it ran on is where that was learned. A snapshot holds one
+    record per FETCH — including the pages that returned 200 and parsed to
+    nothing, which carry a listing_id and no fields at all. Dividing the
+    parsed column by 18 and the snapshot column by 21 made every field look
+    like it was losing a sixth of its values, and the run printed SILENT LOSS
+    against seven fields that had lost nothing. Every one of those numbers
+    was n/18 against n/21 with the same n.
+
+    A report that manufactures a finding is worse than no report: it is the
+    exact failure this project exists to refuse, and it was reached by
+    comparing two populations while claiming to compare two stages. So the
+    records are matched to the parsed listings by id, one denominator is used
+    throughout, and a parsed listing with NO record is itself counted — as a
+    loss, which is what it would be, rather than being averaged into one.
     """
     if not listings or snapshot_path is None:
         return []
     try:
         from promote_corpus import promote_record
         raw = json.loads(Path(snapshot_path).read_text(encoding="utf-8"))
-        recs = raw.get("outcomes") or []
-        rows = [r for r, _ in (promote_record(x) for x in recs if isinstance(x, dict))
-                if r]
+        recs = [r for r in (raw.get("outcomes") or []) if isinstance(r, dict)]
     except Exception as e:                    # noqa: BLE001 — diagnostic only
         return ["", f"FIELD SURVIVAL unavailable: {type(e).__name__}: {e}"]
 
-    n_parsed, n_rec, n_row = len(listings), len(recs), len(rows)
-    if not (n_parsed and n_rec):
+    parsed = {str(getattr(x, "listing_id", "") or ""): x for x in listings
+              if getattr(x, "listing_id", None)}
+    n = len(parsed)
+    if not n:
         return []
 
+    # `to_fetch_outcome` prefixes the source, so `bama:ki4vo2q1` is the record
+    # for the listing parsed as `ki4vo2q1`.
+    matched: dict[str, dict] = {}
+    for r in recs:
+        lid = str(r.get("listing_id") or "")
+        key = lid.split(":", 1)[-1] if ":" in lid else lid
+        if key in parsed:
+            matched[key] = r
+
+    rows: dict[str, dict] = {}
+    refused = 0
+    for key, r in matched.items():
+        row, _why = promote_record(r)
+        if row:
+            rows[key] = row
+        else:
+            refused += 1
+
     L = ["", "FIELD SURVIVAL  (parsed → snapshot → published row)", "-" * 62,
-         f"{'field':<18}{'parsed':>9}{'snapshot':>10}{'corpus':>9}",
+         f"  {n} parsed · {len(matched)} matched in the snapshot · "
+         f"{len(rows)} published"
+         + (f" · {refused} refused by promotion" if refused else ""),
+         f"  {len(recs) - len(matched)} snapshot record(s) belong to fetches "
+         f"that parsed to nothing and are not counted below",
+         "-" * 62,
+         f"{'field':<18}{'parsed':>9}{'snapshot':>10}{'corpus':>9}{'lost':>7}",
          "-" * 62]
+
     losses = []
     for label, attr, key, rowkey in SURVIVAL:
-        a = sum(1 for x in listings if _has(getattr(x, attr, None))) / n_parsed
-        b = sum(1 for r in recs if _has(r.get(key))) / n_rec
-        c = (sum(1 for r in rows if _has(r.get(rowkey))) / n_row) if n_row else 0.0
-        flag = ""
-        # A drop of more than a rounding step between stages is a boundary
-        # dropping the value, not the source withholding it. The distinction
-        # is the whole point of printing three columns instead of one.
-        if b < a - 0.01 or c < b - 0.01:
-            flag = "  <-- LOST"
-            losses.append((label, a, b, c))
-        L.append(f"{label:<18}{a:>8.0%}{b:>10.0%}{c:>9.0%}{flag}")
+        a = b = c = lost = 0
+        for lid, x in parsed.items():
+            here = _has(getattr(x, attr, None))
+            in_rec = _has(matched.get(lid, {}).get(key))
+            in_row = _has(rows.get(lid, {}).get(rowkey))
+            a += here
+            b += in_rec
+            c += in_row
+            # Counted per listing, not as a difference between two rates. A
+            # value that appears at one stage and vanishes at the next is the
+            # only thing that means anything here.
+            lost += here and not in_row
+        flag = "  <-- LOST" if lost else ""
+        if lost:
+            losses.append((label, lost, a))
+        L.append(f"{label:<18}{a / n:>8.0%}{b / n:>10.0%}{c / n:>9.0%}"
+                 f"{lost:>7}{flag}")
+
+    if len(matched) < n:
+        L += ["", f"  ⚠ {n - len(matched)} parsed listing(s) have NO snapshot "
+                  "record. Nothing about",
+              "    them survives the run at all."]
 
     if losses:
         L += ["", "  ⚠ SILENT LOSS. The inventory above describes the PARSE. "
                   "A corpus is",
-              "    what an estimator reads, and these fields do not reach it:"]
-        for label, a, b, c in losses:
-            L.append(f"      {label:<16}{a:.0%} parsed → {b:.0%} snapshot "
-                     f"→ {c:.0%} corpus")
-        L += ["    Do not promote this run. A field lost here is not a fact "
+              "    what an estimator reads, and these values do not reach it:"]
+        for label, lost, a in losses:
+            L.append(f"      {label:<16}{lost} of {a} parsed value(s) do not "
+                     "reach a published row")
+        L += ["    Do not promote this run. A value lost here is not a fact "
               "about the",
               "    source — it is a boundary, and D51 is the entry about it."]
     else:
-        L.append("  ✓ every field the parse found reaches the published row")
+        L.append("")
+        L.append("  ✓ every value the parse found reaches the published row")
     return L
 
 

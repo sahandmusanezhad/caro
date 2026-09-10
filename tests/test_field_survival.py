@@ -328,6 +328,74 @@ check("a listing that discloses nothing gets no source",
       quiet.body_condition == "unknown" and quiet.condition_source == "none",
       f"{quiet.body_condition} / {quiet.condition_source}")
 
+# ---------------------------------------------------------------------------
+print("\nthe run report — and the false positive it produced on run 6")
+# ---------------------------------------------------------------------------
+#
+# A snapshot holds one record per FETCH. Pages that returned 200 and parsed to
+# nothing still yield a FetchOutcome: a listing_id, a status, and no fields.
+# The first version of `survival()` divided the parsed column by the number of
+# LISTINGS and the snapshot column by the number of RECORDS, so on run 6 —
+# 18 parsed, 21 records — every field read as though it had lost a sixth of
+# its values. Seven fields were reported as SILENT LOSS and none had lost
+# anything: each pair was n/18 against n/21 with the same n.
+#
+# Manufacturing a finding is the failure this project exists to refuse, so the
+# shape that produced it is a fixture now.
+
+from first_run import survival                                   # noqa: E402
+from caro.tracking import FetchStatus                            # noqa: E402
+
+_parsed = [a_listing(listing_id=f"p{i}") for i in range(18)]
+_outcomes = [x.to_fetch_outcome("bama", "test-salt") for x in _parsed]
+# The three that fetched 200 and parsed to nothing.
+_outcomes += [FetchOutcome(listing_id=f"bama:dead{i}",
+                           status=FetchStatus.UNKNOWN, http_status=200)
+              for i in range(3)]
+
+with tempfile.TemporaryDirectory() as _d:
+    _p = write_snapshot(Path(_d), Snapshot("run6shape", date(2026, 9, 10),
+                                           _outcomes))
+    _report = "\n".join(survival(_parsed, _p))
+
+check("18 parsed against 21 records reports NO loss",
+      "SILENT LOSS" not in _report,
+      "\n" + _report)
+check("  and every column reads 100%, because nothing was lost",
+      _report.count("100%") >= 8 * 3, "\n" + _report)
+check("  the unparsed records are named rather than averaged in",
+      "3 snapshot record(s) belong to fetches that parsed to nothing"
+      in _report, "\n" + _report)
+check("  and the header states one denominator",
+      "18 parsed · 18 matched in the snapshot · 18 published" in _report,
+      "\n" + _report)
+
+# The positive control, in the same shape: a real loss must still be caught
+# with the unparsed records present, or the fix would have bought silence.
+with tempfile.TemporaryDirectory() as _d:
+    _p = write_snapshot(Path(_d), Snapshot("run6loss", date(2026, 9, 10),
+                                           _outcomes))
+    _raw = json.loads(_p.read_text(encoding="utf-8"))
+    for _o in _raw["outcomes"]:
+        _o["body_condition"] = None                # the D51 boundary, restored
+    _p.write_text(json.dumps(_raw, ensure_ascii=False), encoding="utf-8")
+    _lossy = "\n".join(survival(_parsed, _p))
+
+check("a genuine loss is still caught with unparsed records present",
+      "SILENT LOSS" in _lossy and "condition" in _lossy, "\n" + _lossy)
+check("  and it is counted per listing, not as a difference of two rates",
+      "18 of 18 parsed value(s) do not reach a published row" in _lossy,
+      "\n" + _lossy)
+
+# A parsed listing with no record at all is the strongest loss there is, and
+# it used to disappear into the same average.
+with tempfile.TemporaryDirectory() as _d:
+    _p = write_snapshot(Path(_d), Snapshot("missing", date(2026, 9, 10),
+                                           _outcomes[:15] + _outcomes[18:]))
+    _gap = "\n".join(survival(_parsed, _p))
+check("a parsed listing with no snapshot record is reported as such",
+      "3 parsed listing(s) have NO snapshot record" in _gap, "\n" + _gap)
+
 print()
 if FAILS:
     print(f"{len(FAILS)} FAILED:")
