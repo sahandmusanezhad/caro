@@ -42,6 +42,7 @@ when it does not.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -518,6 +519,33 @@ def main() -> int:
     return 0
 
 
+def snapshot_id(args) -> str:
+    """A name no other run can collide with, and that never overwrites one.
+
+    The id was `bama-<today>`, so two runs on one day wrote the same file and
+    the second silently destroyed the first. That happened here: run 8 was
+    executed twice, once pinned to pride/quick/tiba and once to
+    mvm-110/chery-tiggo7, and the corpus that cleared the readiness gate —
+    55 Prides, 49 eligible — was overwritten by the run after it and had to
+    be collected again.
+
+    An overwrite is the same failure as D46 arriving early: the numbers are
+    in a transcript and the input they came from is gone. So the id carries
+    a digest of the SAMPLE — the thing that makes two runs different — and
+    a colliding name gets a suffix rather than the file getting replaced.
+    """
+    spec = f"{make_list(args)}|{args.seed}|{args.limit}|{args.source}"
+    tag = hashlib.sha256(spec.encode()).hexdigest()[:6]
+    base = f"{args.source}-{date.today().isoformat()}-{tag}"
+    d = SNAPSHOT_DIR / date.today().isoformat()
+    if not (d / f"{base}.json").exists():
+        return base
+    n = 2
+    while (d / f"{base}-{n}.json").exists():
+        n += 1
+    return f"{base}-{n}"
+
+
 def make_list(args) -> tuple[str, ...]:
     """The pinned category slugs, or () meaning draw from the whole sitemap."""
     raw = (args.makes or "").strip()
@@ -593,8 +621,7 @@ def collect(args, traces: list | None = None) -> tuple[list, object]:
     print(ad.stats.report())
     print()
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
-    snap = assess_integrity(Snapshot(
-        f"{args.source}-{date.today().isoformat()}", date.today(), records))
+    snap = assess_integrity(Snapshot(snapshot_id(args), date.today(), records))
     path = write_snapshot(SNAPSHOT_DIR, snap)
     print(f"{len(out)} listings parsed · snapshot "
           f"{path.relative_to(ROOT)} (integrity: {snap.integrity.value})\n")
