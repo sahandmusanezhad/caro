@@ -129,7 +129,14 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
     # `"unknown"` is what the parser writes when it looked and found nothing.
     # Treating it as a value would publish `condition_source: "field"` about
     # an absence, and the fallback below would never run.
-    condition = rec.get("condition") or rec.get("COND") or ""
+    # `body_condition` is what a snapshot record is keyed on — `asdict` of a
+    # FetchOutcome uses the field's own name — while `condition` is what the
+    # published row is keyed on and what hand-written fixtures use. Reading
+    # only the second was the last link in the same chain: the value now
+    # crossed into the snapshot and was dropped one step later, by a `.get`
+    # that named the corpus's spelling instead of the snapshot's.
+    condition = (rec.get("condition") or rec.get("body_condition")
+                 or rec.get("COND") or "")
     if condition == "unknown":
         condition = ""
     # A record that carries its own provenance is believed. Only a record
