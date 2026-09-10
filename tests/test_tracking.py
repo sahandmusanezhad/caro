@@ -336,6 +336,91 @@ print("\nreport renders")
 print()
 print(w0_report(st, [snap("s0", D0, []), blocked], D0 + timedelta(days=6)))
 
+# ---------------------------------------------------------------------------
+print("\nsnapshot identity — a run may never overwrite another run")
+# ---------------------------------------------------------------------------
+#
+# The snapshot id was `<source>-<today>`, so two collection runs on one day
+# wrote the same path and the second replaced the first in silence. It
+# happened: run 8 was executed twice within a minute, and the corpus that
+# cleared the readiness gate — 55 Prides, 49 eligible — was destroyed by the
+# run that followed it. The verdict survived in a transcript and its evidence
+# did not, which is D46 arriving the same afternoon instead of a year later.
+#
+# An artifact that a later run can delete is not evidence. These assertions
+# are the immutability half of that, and they run against the real writer and
+# real files rather than against the naming function alone.
+
+import argparse                                                  # noqa: E402
+import json as _json                                             # noqa: E402
+import sys as _sys                                               # noqa: E402
+import tempfile                                                  # noqa: E402
+from pathlib import Path as _Path                                # noqa: E402
+
+from caro.tracking import write_snapshot                         # noqa: E402
+
+_ROOT = _Path(__file__).resolve().parent.parent
+_sys.path.insert(0, str(_ROOT / "scripts"))
+import first_run                                                 # noqa: E402
+
+
+def _args(makes="", seed=0, limit=90, source="bama"):
+    return argparse.Namespace(makes=makes, seed=seed, limit=limit,
+                              source=source)
+
+
+with tempfile.TemporaryDirectory() as _d:
+    first_run.SNAPSHOT_DIR = _Path(_d)
+
+    a = first_run.snapshot_id(_args(makes="pride,quick,tiba"))
+    b = first_run.snapshot_id(_args(makes="quick,mvm-110,chery-tiggo7"))
+    check("two different samples get two different names",
+          a != b, f"{a} == {b} — this is exactly what deleted run 8")
+    check("  and the name is deterministic for one sample",
+          a == first_run.snapshot_id(_args(makes="pride,quick,tiba")),
+          "a name nobody can predict is a name nobody can cite")
+    check("the seed is part of the identity, not only the makes",
+          first_run.snapshot_id(_args(seed=1))
+          != first_run.snapshot_id(_args(seed=2)),
+          "two seeded draws are two different corpora")
+    check("  as is the target size",
+          first_run.snapshot_id(_args(limit=50))
+          != first_run.snapshot_id(_args(limit=90)))
+
+    # The real writer, real files. A naming function that returns distinct
+    # strings proves nothing if the caller still lands on one path.
+    first = Snapshot(a, D0, [car("keep-me", 900_000_000)])
+    p1 = write_snapshot(_Path(_d), first)
+    second = Snapshot(b, D0, [car("other", 100_000_000)])
+    p2 = write_snapshot(_Path(_d), second)
+    check("two samples on one day write two files",
+          p1 != p2 and p1.exists() and p2.exists(), f"{p1} / {p2}")
+    check("  and the first one still holds its own listings",
+          _json.loads(p1.read_text(encoding="utf-8"))["outcomes"][0]
+          ["listing_id"] == "keep-me",
+          "run 8's pride corpus failed exactly this assertion")
+
+    # Re-running the SAME sample is the harder case: the name is meant to
+    # collide — it describes the sample and nothing else — and overwriting is
+    # the plausible-looking thing to do. It is still a deletion of evidence
+    # that cost an afternoon of politeness-limited fetching, so the WRITER
+    # refuses the path instead of the namer refusing the name.
+    again = first_run.snapshot_id(_args(makes="pride,quick,tiba"))
+    check("re-running one sample yields the same name, by design",
+          again == a, "the id describes the sample; it is not a serial number")
+    p3 = write_snapshot(_Path(_d), Snapshot(again, D0, [car("third", 5)]))
+    check("  and the writer refuses to land on the file already there",
+          p3 != p1, str(p3))
+    check("  so three runs leave three files",
+          len({p1, p2, p3}) == 3 and all(x.exists() for x in (p1, p2, p3)))
+    check("  and the original is untouched by either of them",
+          _json.loads(p1.read_text(encoding="utf-8"))["outcomes"][0]
+          ["listing_id"] == "keep-me")
+
+    check("the name carries the source, so two sources cannot collide",
+          first_run.snapshot_id(_args(source="divar"))
+          != first_run.snapshot_id(_args(source="bama")))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

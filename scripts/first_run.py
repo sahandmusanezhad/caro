@@ -531,19 +531,16 @@ def snapshot_id(args) -> str:
 
     An overwrite is the same failure as D46 arriving early: the numbers are
     in a transcript and the input they came from is gone. So the id carries
-    a digest of the SAMPLE — the thing that makes two runs different — and
-    a colliding name gets a suffix rather than the file getting replaced.
+    a digest of the SAMPLE — the thing that makes two runs different.
+
+    Re-running the same sample is handled by `write_snapshot`, which refuses
+    to land on a path that exists. That belongs there and not here: only the
+    writer knows the directory, and this function's first version probed
+    `today`'s while the write went to the snapshot's own date.
     """
     spec = f"{make_list(args)}|{args.seed}|{args.limit}|{args.source}"
     tag = hashlib.sha256(spec.encode()).hexdigest()[:6]
-    base = f"{args.source}-{date.today().isoformat()}-{tag}"
-    d = SNAPSHOT_DIR / date.today().isoformat()
-    if not (d / f"{base}.json").exists():
-        return base
-    n = 2
-    while (d / f"{base}-{n}.json").exists():
-        n += 1
-    return f"{base}-{n}"
+    return f"{args.source}-{date.today().isoformat()}-{tag}"
 
 
 def make_list(args) -> tuple[str, ...]:

@@ -207,7 +207,21 @@ def write_snapshot(root: Path, snapshot: Snapshot) -> Path:
             for o in snapshot.outcomes
         ],
     }
+    # Never over a file that is already there. A snapshot is the evidence a
+    # later claim rests on, and a writer that can replace one silently makes
+    # every such claim uncheckable — which is what happened when two runs on
+    # one day shared a name and the second destroyed the first.
+    #
+    # The guard lives here rather than in the caller that names the file,
+    # because only this function knows the directory it is about to write
+    # into. The caller's version of this check looked in `today`'s directory
+    # while the write went to `taken_on`'s, so a snapshot dated anything but
+    # today was unprotected — found by the test, not by reading it.
     p = d / f"{snapshot.snapshot_id}.json"
+    n = 2
+    while p.exists():
+        p = d / f"{snapshot.snapshot_id}-{n}.json"
+        n += 1
     p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     return p
 
