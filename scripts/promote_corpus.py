@@ -189,6 +189,12 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
         "product_class_source": rec.get("product_class_source"),
         "price_kind": rec.get("price_kind"),
         "price_kind_source": rec.get("price_kind_source"),
+        # Provenance, not evidence: it lets a person open the page a row came
+        # from. It is not prose, carries no contact identifier, and the
+        # content guard runs over it like everything else — a url that did
+        # read as a phone number would refuse the whole artifact, which is
+        # the behaviour we want.
+        "source_url": rec.get("source_url"),
         "seller_fingerprint": rec.get("seller_fingerprint"),
         "payload_sha": rec.get("payload_sha"),
         "km_line": None,          # replaced below; the key is forbidden

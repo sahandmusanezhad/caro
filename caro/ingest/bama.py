@@ -781,6 +781,12 @@ def parse_detail_page(url: str, html: str,
         product_class_source=psource,
         price_kind=pkind,
         price_kind_source=pksource,
+        # bama states where the listing lives, in the same block it states
+        # the price and the odometer. Measured 2026-09-10: the `url` field
+        # carries the full slug form, and the short `detail-<id>` form we
+        # request resolves too — so neither is guessed and either can be
+        # opened by a person checking a row.
+        source_url=(ld.get("url") if isinstance(ld.get("url"), str) else None),
     )
 
 

@@ -239,6 +239,11 @@ class CarListing:
     product_class: str = "unknown"          # vehicle | assignment | unknown
     product_class_source: str = "none"      # canonical_name | listing_title | none
 
+    # The canonical address the SOURCE publishes, when it publishes one.
+    # `url` above is the address that was requested; they are the same page
+    # and only the first is the source's own statement of where it lives.
+    source_url: str | None = None
+
     # What the number MEANS, as opposed to whether it was extracted right.
     # A financing total can be display-confirmed and cross-checked and still
     # not be what anyone is asking for the car. See quality.classify_price_kind.
@@ -274,6 +279,7 @@ class CarListing:
             product_class_source=self.product_class_source,
             price_kind=self.price_kind,
             price_kind_source=self.price_kind_source,
+            source_url=self.source_url or self.url or None,
             # The raw seller value dies here. Only the salted hash continues.
             seller_fingerprint=(salted_fingerprint(self.seller_raw, salt)
                                 if self.seller_raw else None),

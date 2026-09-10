@@ -131,6 +131,18 @@ class FetchOutcome:
     price_kind: str | None = None
     price_kind_source: str | None = None
 
+    # Where this observation came from — a provenance POINTER, not evidence.
+    # Nothing appraises it, nothing claims on it, and it is not seller prose.
+    # It exists so a person can go from a row back to the page, which is what
+    # D46 records the absence of: numbers in a transcript whose input cannot
+    # be looked at.
+    #
+    # READ, never constructed. bama publishes a canonical `url` in its own
+    # schema.org block; when a source publishes none, the address actually
+    # requested is used, which is equally observed and equally real. No
+    # deterministic url is ever built out of an id.
+    source_url: str | None = None
+
 
 # ---------------------------------------------------------------------------
 # Snapshots

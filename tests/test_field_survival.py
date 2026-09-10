@@ -221,10 +221,11 @@ CROSSES = {
     "product_class_source": "product_class_source",
     "price_kind": "price_kind",
     "price_kind_source": "price_kind_source",
+    "source_url": "source_url",
+    "url": "source_url",            # the fallback when a source publishes none
 }
 
 LOST_ON_PURPOSE = {
-    "url": "an address, not an observation; the id identifies the listing",
     "title": "seller-authored prose — the corpus contract forbids publishing it",
     "description": "the same, and the values derived from it cross instead",
     "image_urls": "addresses again; `image_phashes` is the derived form",
@@ -269,8 +270,30 @@ for src, dst in CROSSES.items():
         check("listing_id crosses with its source prefixed",
               got == f"bama:{want}", got)
         continue
+    if src in ("source_url", "url"):
+        # Two fields, one destination, and which one wins is the point: the
+        # source's own canonical address when it publishes one, the address
+        # actually requested when it does not. Neither is constructed.
+        continue
     check(f"{src} crosses to FetchOutcome.{dst}", got == want,
           f"got {got!r}, wanted {want!r}")
+
+canonical = full.to_fetch_outcome("bama", "test-salt")
+check("with no canonical url published, the requested address is carried",
+      canonical.source_url == full.url, str(canonical.source_url))
+with_canon = a_listing(seller_raw="x",
+                       source_url="https://bama.ir/car/detail-ki4vo2q1-pride-131-se-1398"
+                       ).to_fetch_outcome("bama", "test-salt")
+check("  and the source's own canonical url wins when there is one",
+      with_canon.source_url.endswith("-pride-131-se-1398"),
+      str(with_canon.source_url))
+_canon_row = through_the_chain(
+    a_listing(source_url="https://bama.ir/car/detail-ki4vo2q1-pride-131-se-1398"))[1]
+check("  it reaches the published row as source_url",
+      _canon_row.get("source_url", "").endswith("-pride-131-se-1398"),
+      str(_canon_row.get("source_url")))
+check("  and no bare `url` key is published, since nothing guarantees one",
+      "url" not in _canon_row, str(sorted(_canon_row)))
 
 outcome_fields = {f.name for f in fields(FetchOutcome)}
 check("no FetchOutcome field is filled by nothing",

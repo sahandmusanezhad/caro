@@ -168,7 +168,12 @@ def listing_from_record(rec: dict) -> CarListing:
     """One published row -> one CarListing. The whole mapping is here."""
     return CarListing(
         listing_id=rec["listing_id"],
-        url=rec.get("url", ""),
+        # `url` was read here for as long as this file existed and nothing
+        # ever wrote it: the corpus contract guaranteed no such key. A reader
+        # must not read a field the artifact does not promise, so this now
+        # reads the one that is published.
+        url=rec.get("source_url") or "",
+        source_url=rec.get("source_url") or None,
         # Not carried by a published artifact, and not invented here. See the
         # module docstring: the contract forbids publishing seller prose, so
         # a consumer that needs it gets nothing, visibly.
