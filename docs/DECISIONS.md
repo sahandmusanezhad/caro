@@ -2675,3 +2675,63 @@ against a new corpus — D46 already records what they are and what cannot be
 re-derived from this repository, and reproducing them through a different
 path would replace a documented limitation with a fresh number that answers a
 different question.
+
+## D55 — A result carries the question it answers, or it is not a result
+
+Run 11's artifact holds 71 appraisal-eligible rows and cannot be benchmarked.
+`rows_from_corpus` sets `first_seen_ordinal = 0` on every row, because a
+published corpus has no per-listing first-seen date and nowhere to get one.
+The temporal split then has no axis, puts the whole corpus on one side, and
+reports:
+
+    train / test    0 / 70
+    leakage         0   (must be 0)
+
+Both lines are true. The second is not evidence of anything: a training set
+of nothing cannot leak into anything, so zero leakage is a consequence of the
+failure rather than a check that passed.
+
+**The obvious repair is the one that must not be made.** A cluster-aware
+random split inside the one snapshot would produce a number immediately. It
+would also answer a different question. The temporal protocol asks whether
+the estimator holds up on listings separated IN TIME; a within-snapshot split
+asks whether it generalises to other listings in the same collection. The
+second is not weaker evidence of the first — it is evidence of something
+else, and substituting it would leave every downstream sentence about
+"generalisation" quietly false.
+
+So a single snapshot yields `UNJUDGEABLE: missing_temporal_axis`, and time
+comes from collecting across snapshots, which is what W0 is for.
+
+**What this decision actually fixes.** A bare `MAE = 63,900,000` in a
+transcript is a number with no question attached, and six months later it is
+quoted as "CARO's accuracy". So every exit from the benchmark — including
+the successful one, which is the case nobody thinks to check — emits:
+
+    EVALUATION
+      protocol   temporal
+      status     unjudgeable
+      reason     missing_temporal_axis
+      run_id     run11
+      sha256     …
+
+`PROTOCOL` is a module constant and there is deliberately no flag to switch
+it. A flag would let one number be produced under either meaning and quoted
+under whichever suited. A second protocol arrives as a second runner with its
+own name, its own contract, and its own entry here.
+
+The reason vocabulary is closed — eight values, asserted — because a status
+line that reads `reason: <free text>` cannot be searched, and the point of
+these lines is that a transcript can be interrogated months later by someone
+who was not in the room.
+
+**The assertions are worth more than the number would have been.** Four of
+them stand between `0/70` and an MAE, and one counts `report()` calls against
+exits in the AST so that an exit without a protocol is a test failure rather
+than a discovery. That is the same rule as D35 and D36 applied one level up:
+when the evidence does not answer the question, the system says so — and it
+has to be able to say so precisely when the numbers look clean and
+presentable, which is exactly when nobody asks.
+
+**Run 11 is therefore not benchmarked.** Its verdict is
+`UNJUDGEABLE: missing_temporal_axis`, and that is the whole claim.
