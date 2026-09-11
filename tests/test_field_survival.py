@@ -519,6 +519,45 @@ for _f, _want in (("gearbox", "دنده‌ای"), ("fuel", "بنزینی"),
 check("gearbox is not a decoration — it crosses because it is a price term",
       _back.gearbox == "دنده‌ای", "manual vs automatic moves the asking price")
 
+# ---------------------------------------------------------------------------
+print("\nthe survival table cannot go partial again")
+# ---------------------------------------------------------------------------
+#
+# `first_run.SURVIVAL` was hand-written and covered 13 fields while 22 were
+# common to the two dataclasses. The nine unaudited ones included the three
+# above, and the report still ended with "✓ every value the parse found
+# reaches the published row" — honest about what it knew, silent about the
+# rest, and quoted as coverage.
+#
+# A list maintained by hand beside two types that grow is a list that goes
+# stale. This derives the expected set from the types themselves, so adding a
+# field to both and forgetting the table is a failure here rather than a
+# discovery on a corpus months later.
+
+from first_run import SURVIVAL                                    # noqa: E402
+
+# Declared, by name, with the reason. An exclusion is a decision; an omission
+# is an accident, and the whole point is to tell them apart.
+NOT_AUDITED: set[str] = set()
+# Currently empty: every shared field is audited. Kept as an explicit name
+# rather than deleted, so the next person to exclude one has to write the
+# reason here instead of quietly dropping a row from the table.
+
+_car = {f.name for f in fields(CarListing)}
+_fo = {f.name for f in fields(FetchOutcome)}
+_shared = _car & _fo
+_audited = {attr for _, attr, _, _ in SURVIVAL}
+_missing = _shared - _audited - NOT_AUDITED
+
+check("every field shared by CarListing and FetchOutcome is audited",
+      not _missing,
+      f"unaudited: {sorted(_missing)} — add them to SURVIVAL or declare them "
+      f"in NOT_AUDITED with a reason")
+check("  and the table audits nothing that does not cross this boundary",
+      not (_audited - _car - _fo), f"stray: {sorted(_audited - _car - _fo)}")
+check(f"  ({len(_shared)} shared fields, {len(_audited)} rows in the table)",
+      len(_audited) >= len(_shared) - len(NOT_AUDITED))
+
 check("nothing is reconstructed: a row with a price but no provenance is refused",
       not eligibility(listing_from_record({
           "listing_id": "x", "asking_price_toman": 700_000_000,

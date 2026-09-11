@@ -224,6 +224,35 @@ SURVIVAL = [
     # answerable only by promoting and reading the corpus back.
     ("price_status",   "price_status",        "price_status",   "price_status"),
     ("mileage_status", "mileage_status",      "mileage_status", "mileage_status"),
+    # ---- everything below was missing, and that is the point ----------------
+    #
+    # This list was hand-written and covered thirteen fields. Twenty-two are
+    # common to CarListing and FetchOutcome, so nine were unaudited — and on
+    # the run that printed "✓ every value the parse found reaches the
+    # published row", three of those nine were being dropped outright.
+    #
+    # A check that is honest about what it knows and silent about the rest is
+    # worse than no check, because it is quoted as coverage. The report was
+    # not lying; it was answering a narrower question than its last line
+    # claimed.
+    #
+    # `tests/test_field_survival.py` now asserts that this list covers every
+    # field the two dataclasses share, with any omission declared by name.
+    # Adding a field to both types and forgetting this table is a test
+    # failure from here on, which is the only form of this guard that lasts.
+    ("trim",           "trim",                "trim",           "trim"),
+    ("color",          "color",               "color",          "color"),
+    ("gearbox",        "gearbox",             "gearbox",        "gearbox"),
+    ("fuel",           "fuel",                "fuel",           "fuel"),
+    ("source_url",     "source_url",          "source_url",     "source_url"),
+    ("condition_src",  "condition_source",    "condition_source",
+                                                            "condition_source"),
+    ("product_cls_src", "product_class_source", "product_class_source",
+                                                        "product_class_source"),
+    ("price_kind_src", "price_kind_source",   "price_kind_source",
+                                                          "price_kind_source"),
+    ("price_cur_raw",  "price_currency_raw",  "price_currency_raw",
+                                                         "price_currency_raw"),
 ]
 
 
