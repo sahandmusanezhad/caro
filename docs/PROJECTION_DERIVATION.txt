@@ -1,0 +1,120 @@
+======================================================================
+WHAT EACH CONSUMER READS   (from its own source, not from a list)
+======================================================================
+
+eligibility(listing)  (4)
+----------------------------------------------------------------------
+    mileage_status
+    price_kind
+    price_status
+    product_class
+
+features_from_listing(listing)  (2)
+----------------------------------------------------------------------
+    body_condition
+    document_issue
+
+rows_from_corpus -> Row(...)  (7)
+----------------------------------------------------------------------
+    asking_price_toman
+    listing_id
+    make
+    mileage_km
+    model
+    trim
+    year_jalali
+
+listing_from_record(rec) — corpus keys  (22)
+----------------------------------------------------------------------
+    asking_price_toman
+    color
+    condition
+    condition_source
+    document_issue
+    fuel
+    gearbox
+    make
+    mileage_km
+    mileage_status
+    model
+    price_currency_raw
+    price_kind
+    price_kind_source
+    price_status
+    product_class
+    product_class_source
+    province
+    seller_type
+    source_url
+    trim
+    year_jalali
+
+======================================================================
+AGAINST FetchOutcome (25 fields)
+======================================================================
+
+A  the CORPUS chain needs  (20)
+----------------------------------------------------------------------
+    asking_price_toman
+    body_condition
+    color
+    condition_source
+    document_issue
+    listing_id
+    make
+    mileage_km
+    mileage_status
+    model
+    price_kind
+    price_kind_source
+    price_status
+    product_class
+    product_class_source
+    province
+    seller_type
+    source_url
+    trim
+    year_jalali
+
+B  REPOST matching needs  (10)   ← this is what last_signals is for
+----------------------------------------------------------------------
+    asking_price_toman
+    color
+    image_phashes
+    make
+    mileage_km
+    model
+    province
+    seller_fingerprint
+    trim
+    year_jalali
+
+C  needed by neither  (3)
+----------------------------------------------------------------------
+    http_status
+    payload_sha
+    status
+
+  A ∩ B    8   both
+  A \ B   12   corpus only
+  B \ A    2   repost only
+  A ∪ B   22   of 25 — a projection would drop 3
+
+  The two slots do not want the same fields. One stored type
+  serving both is one contract standing in for two.
+
+======================================================================
+READS NOTHING CAN SUPPLY
+======================================================================
+
+  A consumer reads these; no FetchOutcome field carries them, so
+  they are None on every row and always will be:
+
+    fuel                    PARSED, then dropped at this boundary
+    gearbox                 PARSED, then dropped at this boundary
+    price_currency_raw      PARSED, then dropped at this boundary
+
+  For the ones marked PARSED: the parser produces a value, the
+  corpus reader asks for it, and FetchOutcome has nowhere to put
+  it in between. That is D51 — a value is not collected until it
+  survives to where it is read.
