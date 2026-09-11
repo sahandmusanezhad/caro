@@ -71,13 +71,103 @@ eligible** — `price_status`, `price_kind`, `product_class`, `condition_source`
 — is not. It exists only in the `FetchOutcome` that has since been
 overwritten.
 
-    + first_signals : FetchOutcome | None    set once at appearance, never
+    + first_signals : ??? | None             set once at appearance, never
                                              overwritten
 
-Minimal, bounded, and it makes "the first ask, with its own provenance" a
-first-class fact rather than something the projection reconstructs. Without
-it, eligibility for a row would be judged on evidence from a different day
-than the price it publishes — which is D51 in a new place.
+Without it, eligibility for a row would be judged on evidence from a
+different day than the price it publishes — which is D51 in a new place.
+
+### 1b. Whole `FetchOutcome`, or a projection? — answered by derivation
+
+The field list was not guessed. `scripts/derive_projection.py` reads it out
+of the AST of every function that consumes one; full output in
+`docs/PROJECTION_DERIVATION.txt`.
+
+```
+    FetchOutcome                       25 fields
+    A  the corpus chain needs          20     eligibility · features ·
+                                              Row · listing_from_record
+    B  repost matching needs           10     what last_signals is FOR
+    C  neither                          3     status · http_status ·
+                                              payload_sha
+    A ∩ B   8      A \ B  12      B \ A   2
+```
+
+**So "minimal projection" is not an argument about size.** A projection for
+the corpus drops five of twenty-five fields. Anyone expecting a lean
+five-field record — including the version of this document that proposed
+one — was wrong about the shape of the problem.
+
+The argument that survives is different and stronger, and the derivation is
+what produced it:
+
+**The two slots have different jobs and only eight fields in common.**
+`last_signals` exists for exactly one caller — `_best_repost_match`, checked,
+nothing else reads it — and wants identity signals: phashes, fingerprint,
+colour, province. `first_signals` would exist for the corpus and wants
+provenance: price kind, price status, product class, condition source. Twelve
+fields matter to one and not the other. Storing one fat type in both slots is
+one contract standing in for two, and it is why the question felt unanswerable
+by inspection.
+
+**And `FetchOutcome` is mutable.** It is a plain `@dataclass`, and
+`apply_snapshot` assigns `existing.last_signals = outcome` — a reference to
+an object the snapshot still owns. A slot whose entire contract is *set once,
+never overwritten* cannot be a mutable object held by reference; that makes
+the invariant a comment. A `@dataclass(frozen=True)` projection makes it a
+type error.
+
+**One field acquisition can never supply.** `observed_at` — which
+observation this is — is W0's own knowledge and appears nowhere in
+`FetchOutcome`. That is the clean reason the projection is a W0-owned type
+rather than an acquisition type borrowed.
+
+So the choice is three-way, not two, and the middle one is the worst:
+
+| | | |
+|---|---|---|
+| **(a)** whole `FetchOutcome` in both slots | no new work | W0 state grows with every acquisition field, forever |
+| **(b)** projection for `first_signals` only | answers this question | two representations of one idea inside one dataclass — the inconsistency is permanent |
+| **(c)** a named projection for each slot | each slot states its own contract; both frozen | changes working repost-matching code |
+
+**Proposed: (c).** Note that (a) is the status quo only for `last_signals`;
+the coupling this section worries about already exists and §1a as first
+written would have doubled it rather than created it.
+
+### 1c. The field list must be generated, not written down
+
+Whichever option is taken, the list cannot be maintained by hand.
+
+`first_run.py`'s FIELD SURVIVAL table audits thirteen named fields and
+printed **"✓ every value the parse found reaches the published row"** on the
+same run in which three fields parsed at 100% were dropped at this exact
+boundary. The check was honest about what it knew and silent about the rest,
+which is the worst possible combination.
+
+The derivation found them, and the snapshot confirms it — 0 of 76 records
+carry any of the three:
+
+```
+    fuel                 parsed 100%,  absent from the snapshot schema
+    gearbox              parsed 100%,  absent from the snapshot schema
+    price_currency_raw   parsed 100%,  absent from the snapshot schema
+```
+
+`listing_from_record` reads all three off a corpus row. They have been `None`
+on every row ever published and always would be, because `FetchOutcome` has
+nowhere to put them in between. That is D51 in three more places.
+
+Two separate questions follow, and neither is settled here:
+
+1. Should `FetchOutcome` carry them? `gearbox` in particular is not a
+   cosmetic field — manual versus automatic is a first-order price term, and
+   it is being parsed and thrown away on every listing.
+2. Should `corpus_reader` stop reading what cannot arrive? A read that is
+   structurally `None` looks like a source limitation (D26, D53) and is not
+   one. That conflation is precisely what D54 forbids.
+
+`scripts/derive_projection.py` exits non-zero when any consumer reads a name
+nothing can supply, so this class of defect reports itself from now on.
 
 ---
 
@@ -381,7 +471,12 @@ about to happen.
 
 1. **First ask or last ask** (§1). Proposed: first. The alternative is a
    separate corpus, not a flag.
-2. **`first_signals` on `TrackedListing`** (§1a). This changes a W0 type.
+2. **Which of (a)/(b)/(c) for the signal slots** (§1b). Proposed: (c), a
+   named frozen projection per slot, each field list generated from its
+   consumers rather than written down (§1c).
+2b. **Does `FetchOutcome` gain `gearbox`, `fuel`, `price_currency_raw`?**
+   (§1c). Parsed at 100%, dropped at this boundary, read downstream as
+   `None` forever. Separate from the contract; it is an acquisition fix.
 3. **Left-truncated rows in train** (§3), versus excluding them entirely —
    which is what `duration_stats` already does for W0 statistics. Proposed:
    keep in train, mechanically barred from test, composition reported.
