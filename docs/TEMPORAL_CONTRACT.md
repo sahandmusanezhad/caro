@@ -387,6 +387,15 @@ Design first, then the clock, then — only then — implementation.
 
 ## 10. What the same-day replicate measured, and what it broke
 
+> **UNDER REVISION — see `docs/NETWORK_OBSERVATION_2026-09-11.md`.**
+> A browser session with the network log open found that bama publishes
+> each listing's posting date in the page. If that holds up, this
+> section's conclusion — *the prerequisite is not a clock, it is a
+> collector* — is wrong about the benchmark axis: the axis would be a
+> parser field, not a collector architecture. No decision is taken
+> here; the observation is recorded separately and this banner exists
+> so nobody builds on a conclusion that is being checked.
+
 Two runs of the identical pin (`pride,quick,tiba · seed 0 · limit 90 ·
 digest a07d10`) on 2026-09-10, roughly 58 minutes apart. Full output in
 `docs/REPLICATE_2026-09-10.txt`; reproduce with
