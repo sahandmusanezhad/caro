@@ -89,6 +89,14 @@ listing. Every card on the category page carries the relative form too.
 
 This was not looked for. It was visible in the tab title.
 
+> **CORRECTED — see `docs/DATE_SEMANTICS_2026-09-12.md`.** Measured the
+> next day: the stated date MOVES. One listing states a date after a
+> day it was demonstrably live, so it is not a publication date, and
+> the claim below that the axis "does not depend on observing
+> appearance at all" is too strong. What survives is that the date is
+> an UPPER BOUND on the spell start — the same shape as an unobserved
+> appearance, which §3 of the contract already knows how to handle.
+
 ### Why it matters more than the pagination question
 
 Every step-5 question so far has been in service of one thing: making
