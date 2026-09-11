@@ -50,21 +50,24 @@ listing_from_record(rec) — corpus keys  (22)
     year_jalali
 
 ======================================================================
-AGAINST FetchOutcome (25 fields)
+AGAINST FetchOutcome (28 fields)
 ======================================================================
 
-A  the CORPUS chain needs  (20)
+A  the CORPUS chain needs  (23)
 ----------------------------------------------------------------------
     asking_price_toman
     body_condition
     color
     condition_source
     document_issue
+    fuel
+    gearbox
     listing_id
     make
     mileage_km
     mileage_status
     model
+    price_currency_raw
     price_kind
     price_kind_source
     price_status
@@ -96,9 +99,9 @@ C  needed by neither  (3)
     status
 
   A ∩ B    8   both
-  A \ B   12   corpus only
+  A \ B   15   corpus only
   B \ A    2   repost only
-  A ∪ B   22   of 25 — a projection would drop 3
+  A ∪ B   25   of 28 — a projection would drop 3
 
   The two slots do not want the same fields. One stored type
   serving both is one contract standing in for two.
@@ -107,14 +110,4 @@ C  needed by neither  (3)
 READS NOTHING CAN SUPPLY
 ======================================================================
 
-  A consumer reads these; no FetchOutcome field carries them, so
-  they are None on every row and always will be:
-
-    fuel                    PARSED, then dropped at this boundary
-    gearbox                 PARSED, then dropped at this boundary
-    price_currency_raw      PARSED, then dropped at this boundary
-
-  For the ones marked PARSED: the parser produces a value, the
-  corpus reader asks for it, and FetchOutcome has nowhere to put
-  it in between. That is D51 — a value is not collected until it
-  survives to where it is read.
+  none — every key a consumer reads is backed by a FetchOutcome field.
