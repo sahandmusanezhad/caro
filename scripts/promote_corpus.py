@@ -166,6 +166,11 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
         "make": rec.get("make"), "model": rec.get("model"),
         "trim": rec.get("trim"), "color": rec.get("color"),
         "province": rec.get("province"),
+        # `listing_from_record` has read both since it was written and no
+        # snapshot could supply either, so every published row carried None.
+        # `price_currency_raw` above was in the same state until the record
+        # gained the field. Gearbox is a price term, not a decoration.
+        "gearbox": rec.get("gearbox"), "fuel": rec.get("fuel"),
         "condition": condition or "unknown",
         "condition_source": condition_source,
         # The record's own value wins. Re-deriving from prose was the only

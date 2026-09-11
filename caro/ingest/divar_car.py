@@ -267,6 +267,11 @@ class CarListing:
             make=self.make, model=self.model, trim=self.trim,
             year_jalali=self.year_jalali, color=self.color,
             province=self.city, mileage_km=self.mileage_km,
+            # Carried because `listing_from_record` reads all three off a
+            # published row and nothing could ever supply them. See the block
+            # on FetchOutcome for how that was found and what it cost.
+            gearbox=self.gearbox, fuel=self.fuel,
+            price_currency_raw=self.price_currency_raw,
             # Both halves, or neither. A condition without its provenance is
             # a value promotion has to label by guessing, and it would guess
             # "field" — passing a phrase mined out of ad copy off as

@@ -91,6 +91,31 @@ class FetchOutcome:
     image_phashes: tuple[str, ...] = ()
     payload_sha: str | None = None
 
+    # Parsed on every page, and until now with nowhere to land.
+    #
+    # `scripts/derive_projection.py` reads what each consumer touches out of
+    # its own source, and found `corpus_reader.listing_from_record` asking a
+    # published row for all three. No FetchOutcome field carried them, so the
+    # reads returned None on every row ever published and always would have.
+    # Confirmed against a real snapshot: 0 of 76 records held any of them,
+    # while the same run reported all three parsed at 100%.
+    #
+    # `gearbox` is the one that is not cosmetic. Manual versus automatic is a
+    # first-order term in what a car sells for, and it was being extracted
+    # from bama's own structured block and discarded one function later.
+    #
+    # `price_currency_raw` is diagnostic-only — it is in
+    # `quality.DIAGNOSTIC_ONLY_FIELDS` and `assert_not_features` will refuse
+    # it as a predictor. It crosses because the corpus reader reads it, not
+    # because anything may model on it.
+    #
+    # D51: parsed is not collected. A value is collected when it survives to
+    # where it is read, and the distance between those two is exactly this
+    # dataclass.
+    gearbox: str | None = None
+    fuel: str | None = None
+    price_currency_raw: str | None = None
+
     # Body condition, carried because a snapshot is what survives the run.
     # Everything the parser knew and did not put in a FetchOutcome is gone the
     # moment the process exits, and `promote_corpus` then has nothing to

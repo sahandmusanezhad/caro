@@ -106,6 +106,7 @@ def a_listing(**over) -> CarListing:
         seller_raw=None, image_urls=(),
         price_status="usable", price_provenance="jsonld",
         mileage_status="plausible", seller_type="dealer",
+        price_currency_raw="IRR",
     )
     base.update(over)
     return CarListing(**base)
@@ -225,6 +226,15 @@ CROSSES = {
     "url": "source_url",            # the fallback when a source publishes none
     "price_status": "price_status",
     "mileage_status": "mileage_status",
+    # Moved up from LOST_AND_NOT_YET_DECIDED, where gearbox was filed as
+    # "no consumer reads it from a corpus yet". A consumer did:
+    # `listing_from_record` has read all three since it was written, and no
+    # FetchOutcome field could supply them. The declaration below was honest
+    # about the intent and wrong about the fact, which is why the suite stayed
+    # green over a boundary that was dropping values.
+    "gearbox": "gearbox",
+    "fuel": "fuel",
+    "price_currency_raw": "price_currency_raw",
 }
 
 LOST_ON_PURPOSE = {
@@ -234,15 +244,11 @@ LOST_ON_PURPOSE = {
 }
 
 LOST_AND_NOT_YET_DECIDED = {
-    "gearbox": "parsed on every page; no consumer reads it from a corpus yet",
-    "fuel": "as gearbox",
-    "price_raw": "price provenance (D20). `promote_record` publishes "
-                 "`price_currency_raw`, which means the corpus schema offers "
-                 "a field the snapshot path cannot fill — it is populated "
-                 "only when promoting a hand-written `listings` fixture",
-    "price_currency_raw": "as price_raw — and this one the corpus schema "
-                          "does advertise",
-    "price_displayed_toman": "as price_raw",
+    "price_raw": "the price string as printed, before parsing (D20). Nothing "
+                 "reads it from a corpus — checked, not assumed, which is "
+                 "the distinction gearbox failed",
+    "price_displayed_toman": "as price_raw: the cross-check input, where the "
+                             "OUTCOME (price_status) is what crosses",
     "price_provenance": "which extraction path produced the price. No gate "
                         "reads it, so it stays here — unlike price_status, "
                         "which one does",
@@ -485,6 +491,33 @@ for _field, _phrase in (("price_status", "price provenance unknown"),
           not _o2, f"still eligible without {_field}")
     check(f"  and says so by name, not by borrowing another reason",
           any(_phrase in w for w in _w2), str(_w2))
+
+# ---------------------------------------------------------------------------
+print("\nthe three that had nowhere to land")
+# ---------------------------------------------------------------------------
+#
+# `corpus_reader.listing_from_record` read `gearbox`, `fuel` and
+# `price_currency_raw` off a published row from the day it was written. No
+# FetchOutcome field carried any of them, so the reads returned None on every
+# row ever published — while the run report said all three were parsed at
+# 100%. Found by `scripts/derive_projection.py` reading the consumers, then
+# confirmed at 0 of 76 on a real snapshot.
+#
+# The reader looked correct and the writer looked complete. Only crossing the
+# boundary shows it, which is what this suite is for.
+
+_rec, _row, _back, _why = through_the_chain(a_listing())
+for _f, _want in (("gearbox", "دنده‌ای"), ("fuel", "بنزینی"),
+                  ("price_currency_raw", "IRR")):
+    check(f"{_f} reaches the snapshot record",
+          _rec.get(_f) == _want, f"got {_rec.get(_f)!r}")
+    check(f"  and the published row", _row.get(_f) == _want,
+          f"got {_row.get(_f)!r}")
+    check(f"  and is read back by the consumer that asks for it",
+          getattr(_back, _f, None) == _want, f"got {getattr(_back, _f, None)!r}")
+
+check("gearbox is not a decoration — it crosses because it is a price term",
+      _back.gearbox == "دنده‌ای", "manual vs automatic moves the asking price")
 
 check("nothing is reconstructed: a row with a price but no provenance is refused",
       not eligibility(listing_from_record({
