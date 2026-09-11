@@ -50,6 +50,7 @@ a pattern and a hundred is not twenty times more informative.
 from __future__ import annotations
 
 import argparse
+import html as _html
 import json
 import os
 import random
@@ -103,6 +104,28 @@ _FA = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
 
 _UNIT_DAYS = {"دقیقه": 0, "ساعت": 0, "روز": 1, "هفته": 7, "ماه": 30,
               "سال": 365}
+
+# Nowruz, per Jalali year, as a Gregorian date. A TABLE, not an algorithm.
+#
+# A general Jalali converter is twenty lines of leap-year cycle arithmetic
+# and is exactly the kind of code that is subtly wrong and confidently
+# wrong — which this script has now managed twice by other means. Every
+# entry here is checked against a fact established independently: on
+# 2026-09-11 listing thhvbl5m rendered «دیروز» beside a title date of
+# 1405/6/19, so 1405/6/19 is 2026-09-10, and the first six Jalali months
+# are 31 days each, so 1405/1/1 is 173 days earlier.
+#
+# A year not in this table is refused rather than extrapolated.
+NOWRUZ = {1405: date(2026, 3, 21)}
+_MONTH_LEN = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29]
+
+
+def jalali_to_gregorian(y: int, m: int, d: int) -> date | None:
+    """None when the year is not in the verified table. Never a guess."""
+    if y not in NOWRUZ or not (1 <= m <= 12) or not (1 <= d <= 31):
+        return None
+    from datetime import timedelta
+    return NOWRUZ[y] + timedelta(days=sum(_MONTH_LEN[:m - 1]) + d - 1)
 
 
 def days_ago(phrase: str) -> int | None:
@@ -208,7 +231,13 @@ def main() -> int:
             continue
 
         t = _TITLE.search(html)
-        title = t.group(1).strip() if t else ""
+        # UNESCAPED. The title carries «1405&#x2F;6&#x2F;19» — the slashes
+        # are HTML entities, so a regex looking for "/" matched nothing and
+        # the run reported "neither: 19" while the date was on every page.
+        # Third confident wrong answer from this file; the raw-title print
+        # added in the previous fix is what caught it, which is the only
+        # reason it is not still being reported as absent.
+        title = _html.unescape(t.group(1).strip()) if t else ""
         md = _TITLE_DATE.search(title)
         tdate = ""
         if md:
@@ -299,22 +328,45 @@ def main() -> int:
         print("  cannot do. No Jalali conversion is involved; this is whole")
         print("  days either way.")
         print()
-        print(f"  {'listing':<22}{'title date':<13}{'relative':<14}"
-              f"{'days':<6}verdict")
-        moved = stable = unknown = 0
+        anchor = jalali_to_gregorian(1405, 6, 19)
+        print(f"  calendar self-check: 1405/6/19 -> {anchor}"
+              f"   {'ok' if anchor == date(2026, 9, 10) else 'WRONG — STOP'}")
+        print()
+        print(f"  {'listing':<20}{'title date':<21}{'phrase':<13}"
+              f"{'title':<9}phrase")
+        t_moved = t_stable = t_unknown = 0
+        p_moved = p_stable = p_unknown = 0
         for lid, td, rel in seen[:30]:
+            # The phrase
             d = days_ago(rel)
             if d is None:
-                v, unknown = "no phrase", unknown + 1
+                pv, p_unknown = "—", p_unknown + 1
             elif d < since:
-                v, moved = "MOVED — not a publication date", moved + 1
+                pv, p_moved = "MOVED", p_moved + 1
             else:
-                v, stable = "consistent with publication", stable + 1
-            print(f"  {lid:<22}{td or '—':<13}{rel or '—':<14}"
-                  f"{'—' if d is None else d:<6}{v}")
+                pv, p_stable = "stable", p_stable + 1
+            # The title date, through the verified table
+            g = None
+            if td:
+                y, mm, dd = (int(x) for x in td.split("/"))
+                g = jalali_to_gregorian(y, mm, dd)
+            if g is None:
+                tv, t_unknown = "—", t_unknown + 1
+            elif (date.today() - g).days < since:
+                tv, t_moved = "MOVED", t_moved + 1
+            else:
+                tv, t_stable = "stable", t_stable + 1
+            shown = f"{td} = {g}" if g else (td or "—")
+            print(f"  {lid:<20}{shown:<21}{rel or '—':<13}{tv:<9}{pv}")
         print()
-        print(f"  moved {moved}   ·   consistent {stable}   ·   "
-              f"no phrase {unknown}")
+        print(f"  TITLE DATE   moved {t_moved} · stable {t_stable} · "
+              f"unreadable {t_unknown}")
+        print(f"  PHRASE       moved {p_moved} · stable {p_stable} · "
+              f"absent {p_unknown}")
+        print()
+        print("  If these two columns disagree they are two different")
+        print("  fields, and only the stable one can be a first_seen_on.")
+        moved = p_moved
         print()
         if moved:
             print(f"  {moved} listing(s) state a date later than a day they")
