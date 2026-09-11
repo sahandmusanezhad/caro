@@ -252,8 +252,14 @@ print("\nRUN 11 IS NOT RESCUED BY THIS")
 # added ahead of the axis check would change which reason it reports, and a
 # frozen result whose reason moves is not frozen.
 
-_axis = RSRC.find("missing_temporal_axis")
-_shift = RSRC.find("distribution_shift")
+# Inside main(), not across the module. The first version of this point
+# searched the whole file, where `from caro.appraisal import
+# distribution_shift` sits above everything and would have matched — failing
+# the implementation for having an import in the usual place. The property
+# is about the ORDER OF THE CHECKS, so it is asserted where the checks are.
+MSRC = inspect.getsource(BC.main)
+_axis = MSRC.find("missing_temporal_axis")
+_shift = MSRC.find("distribution_shift")
 check("the missing-axis refusal still comes first",
       _axis != -1 and (_shift == -1 or _axis < _shift),
       "a corpus with no temporal axis must refuse on the axis, before "
