@@ -47,7 +47,10 @@ sys.path.insert(0, str(ROOT))
 
 import numpy as np                                                # noqa: E402
 
-from caro.appraisal import cluster_temporal_split                 # noqa: E402
+from caro.appraisal import (                                      # noqa: E402
+    Comparability, MIN_COMPARABLE_N, cluster_temporal_split,
+    distribution_shift,
+)
 from caro.corpus_reader import (                                  # noqa: E402
     CorpusUnavailable, corpus_identity, load_corpus, rows_from_corpus,
 )
@@ -84,6 +87,15 @@ REASONS = {
     "missing_temporal_axis": "one snapshot has no first-seen history to "
                              "split on",
     "split_leaked":          "a cluster appears on both sides of the split",
+    # Two states, not one. A corpus whose halves are demonstrably unalike
+    # and a corpus too small to tell are both reasons the test error means
+    # nothing, and they call for completely different work: one needs a
+    # different sampling window, the other needs more days. Reporting them
+    # under one word would send the reader to the wrong fix.
+    "severe_shift":          "train and test are not alike; test error is "
+                             "not evidence about the temporal question",
+    "shift_unknown":         "too few rows a side to establish whether they "
+                             "are comparable at all",
     "insufficient_slices":   "the gate's own verdict: the corpus cannot "
                              "answer",
     "measured_failure":      "the estimator was assessed and fell short",
@@ -223,6 +235,47 @@ def main() -> int:
         print(f"  {len(train)} train / {len(test)} test rows. A hold-out of "
               "this size cannot\n  answer anything about calibration.")
         report("unjudgeable", "insufficient_slices", ident)
+        return 1
+
+    # ---- is the test half evidence about anything? ----------------------
+    #
+    # Asked HERE, after the split and before the estimator, because this is
+    # a question about the corpus and the answer decides whether measuring
+    # the estimator would mean anything. `distribution_shift` returns
+    # evidence and no verdict; the verdict is made on these four lines and
+    # nowhere else. A threshold moved into that function would be a gate on
+    # the estimator hidden in a measurement, which is the one place a reader
+    # would never look for one.
+    shift = distribution_shift(split)
+    print("COMPARABILITY")
+    print("-" * 62)
+    print(f"  state                {shift.comparability.value}")
+    print(f"  {shift}")
+    print()
+
+    if shift.comparability is Comparability.INSUFFICIENT:
+        print("UNJUDGEABLE\n")
+        print(f"  {shift.n_train} train / {shift.n_test} test rows, against a "
+              f"floor of {MIN_COMPARABLE_N} a side.\n  Below it the comparison "
+              "has no power: a small KS statistic would not mean\n  the halves "
+              "agree, only that this could not have told them apart.")
+        print()
+        print("  This is an answer about the CORPUS. The estimator was not "
+              "run and has\n  not failed anything.")
+        report("unjudgeable", "shift_unknown", ident)
+        return 1
+
+    if shift.comparability is Comparability.SHIFTED:
+        print("UNJUDGEABLE\n")
+        print("  Train and test are measurably unalike, so the test error is "
+              "still a\n  number and is no longer evidence about the temporal "
+              "question.")
+        print()
+        print("  NOT a rejection. REJECTED is spent only on an estimator that "
+              "was measured\n  on a valid evaluation population and fell "
+              "short; a sampling fault recorded\n  as a model failure retires "
+              "a model for something it did not do.")
+        report("unjudgeable", "severe_shift", ident)
         return 1
 
     model = PartialPoolingQuantiles().fit(train)
