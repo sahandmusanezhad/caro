@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Callable, Iterable, Protocol, Sequence
 
 import numpy as np
@@ -135,16 +136,74 @@ def cluster_temporal_split(rows: Sequence[Row], *, test_fraction: float = 0.25,
     return Split(train, test, dropped, cutoff, long_clusters, long_rows)
 
 
+class Comparability(str, Enum):
+    """Three states, because a boolean had room for two and there are three.
+
+    COMPARABLE    train and test are alike enough that test error is
+                  evidence about the question the split was made to ask.
+    SHIFTED       they are not. The test error is still a number; it is no
+                  longer evidence about that question.
+    INSUFFICIENT  we could not tell. Not "no shift found" — nothing was
+                  found, because there was not enough to look at.
+
+    The third used to be reported as the first: an empty test set returned
+    `severe=False`, and both readers took that as "comparable, carry on".
+    Nothing had been compared. That is D54's shape — an answer about
+    missing evidence dressed as an answer about the thing.
+    """
+
+    COMPARABLE = "comparable"
+    SHIFTED = "shifted"
+    INSUFFICIENT = "insufficient"
+
+
+# Derived, not chosen, in the same arithmetic as MIN_SLICE_N.
+#
+# The two-sample Kolmogorov–Smirnov critical value at α=0.05 is
+# D_crit = 1.36·√((n+m)/(n·m)), which for equal sides is 1.36·√(2/n). A KS
+# tolerance of 0.20 can only distinguish a real shift from sampling noise
+# where D_crit ≤ 0.20:
+#
+#     1.36·√(2/n) ≤ 0.20   →   2/n ≤ (0.20/1.36)²   →   n ≥ 92.5
+#
+# At n=92 the critical value is 0.2005 and at n=93 it is 0.1994, so 93 is
+# the floor. Below it the comparison has no power: a KS under 0.20 does not
+# mean the distributions agree, it means the test could not have told.
+# Reporting that as COMPARABLE would be the same overclaim in a new place.
+#
+# This floor is strict, and on a first multi-day corpus it will usually
+# answer INSUFFICIENT. That is the correct answer about a small corpus, not
+# a number to lower once a verdict is disliked — D35 forbids exactly that
+# edit, and lowering it after seeing a result is the clearest possible
+# example of what D35 is about.
+MIN_COMPARABLE_N = 93
+
+
 @dataclass
 class ShiftReport:
     train_median: float
     test_median: float
     ratio: float
     ks_statistic: float
+    # `severe` now means DO NOT PROCEED ON THIS SPLIT, which is true for
+    # both SHIFTED and INSUFFICIENT. It is deliberately no longer a synonym
+    # for "shifted": `caro.agents` reads this flag and nothing else, and a
+    # bool that is False whenever the measurement failed makes that caller
+    # fail OPEN. Widened this way, every legacy reader fails closed instead,
+    # and `comparability` carries which of the two it was.
     severe: bool
+    comparability: Comparability = Comparability.COMPARABLE
+    n_train: int = 0
+    n_test: int = 0
 
     def __str__(self) -> str:
-        flag = "  ⚠ SEVERE — interpret model metrics with caution" if self.severe else ""
+        if self.comparability is Comparability.INSUFFICIENT:
+            return (f"train {self.n_train} · test {self.n_test} — CANNOT SAY. "
+                    f"Below n={MIN_COMPARABLE_N} a side, this comparison has "
+                    f"no power; nothing about a shift was established either "
+                    f"way.")
+        flag = ("  ⚠ SHIFTED — test error is not evidence about the temporal "
+                "question" if self.severe else "")
         return (f"train median {self.train_median:,.0f} · test median "
                 f"{self.test_median:,.0f} · ratio {self.ratio:.3f} · "
                 f"KS {self.ks_statistic:.3f}{flag}")
@@ -162,15 +221,31 @@ def distribution_shift(split: Split, *, ratio_tol: float = 0.10,
     """
     a = np.sort(np.array([r.asking_price_toman for r in split.train], dtype=float))
     b = np.sort(np.array([r.asking_price_toman for r in split.test], dtype=float))
-    if a.size == 0 or b.size == 0:
-        return ShiftReport(0.0, 0.0, 1.0, 0.0, False)
+
+    # Too little to compare — reported as its own state, never folded into
+    # "no shift detected". An empty side used to return severe=False, which
+    # every reader took as a clean bill of health for a comparison that had
+    # not happened. See Comparability and MIN_COMPARABLE_N.
+    if a.size < MIN_COMPARABLE_N or b.size < MIN_COMPARABLE_N:
+        return ShiftReport(
+            float(np.median(a)) if a.size else 0.0,
+            float(np.median(b)) if b.size else 0.0,
+            ratio=1.0, ks_statistic=0.0,
+            severe=True,                       # fail closed, see the field
+            comparability=Comparability.INSUFFICIENT,
+            n_train=int(a.size), n_test=int(b.size))
+
     ma, mb = float(np.median(a)), float(np.median(b))
     grid = np.concatenate([a, b])
     ks = float(np.max(np.abs(np.searchsorted(a, grid, "right") / a.size
                              - np.searchsorted(b, grid, "right") / b.size)))
     ratio = mb / ma if ma else 1.0
-    return ShiftReport(ma, mb, ratio, ks,
-                       severe=(abs(ratio - 1) > ratio_tol or ks > ks_tol))
+    shifted = abs(ratio - 1) > ratio_tol or ks > ks_tol
+    return ShiftReport(
+        ma, mb, ratio, ks, severe=shifted,
+        comparability=(Comparability.SHIFTED if shifted
+                       else Comparability.COMPARABLE),
+        n_train=int(a.size), n_test=int(b.size))
 
 
 # ---------------------------------------------------------------------------
