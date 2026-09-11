@@ -71,10 +71,29 @@ from caro.ingest.bama import (                                    # noqa: E402
 from caro.tracking import FetchStatus, classify_http              # noqa: E402
 
 # `… - 1405/6/19 | باما` in the document title.
-_TITLE_DATE = re.compile(r"[-–]\s*([۰-۹0-9]{4})/([۰-۹0-9]{1,2})/([۰-۹0-9]{1,2})")
+# Anywhere in the title, any separator. The first version required a
+# hyphen immediately before the date; the browser renders
+# «… فروشی - 1405/6/19 | باما», but bidirectional text and a non-ASCII
+# dash make "immediately before" a guess. It matched nothing on 19 of
+# 19 pages and the run could not tell a missing date from a missed one.
+_TITLE_DATE = re.compile(
+    r"([۰-۹0-9]{4})\s*/\s*([۰-۹0-9]{1,2})\s*/\s*([۰-۹0-9]{1,2})")
 _TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.S)
 _LD = re.compile(r'<script[^>]*application/ld\+json[^>]*>(.*?)</script>', re.S)
-_DATEKEY = re.compile(r"date|time|publish|modif|creat|updat", re.I)
+# NARROW, and narrowed the hard way. The first version matched
+# `date|time|publish|modif|creat|updat` anywhere in a key name and
+# duly reported "json-ld only: 19" — on `productionDate` and
+# `vehicleModelDate` (the CAR'S MODEL YEAR), `publisher`,
+# `accelerationTime` and `creator`. Not one of them is a listing date.
+# The probe gave a confident wrong answer to the exact question it was
+# built to ask, which is worse than returning nothing.
+#
+# These are the schema.org names that actually denote when an offer or
+# a posting was made. Anything else is printed for a human to look at
+# rather than counted as a date.
+_DATEKEY = re.compile(
+    r"^(datePosted|datePublished|dateModified|dateCreated|uploadDate"
+    r"|validFrom|validThrough|availabilityStarts)$")
 # The relative phrases the cards and the detail page render.
 _REL = re.compile(
     r"(لحظاتی پیش|دیروز|امروز"
@@ -82,8 +101,33 @@ _REL = re.compile(
 _FA = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
 
 
-def jalali(y: int, m: int, d: int) -> tuple[int, int, int]:
-    return (y, m, d)
+_UNIT_DAYS = {"دقیقه": 0, "ساعت": 0, "روز": 1, "هفته": 7, "ماه": 30,
+              "سال": 365}
+
+
+def days_ago(phrase: str) -> int | None:
+    """How many days back the relative phrase points. None if unreadable.
+
+    This is what answers question two WITHOUT a Jalali calendar. A listing
+    that was live on the corpus's collected_on has existed at least that
+    long; if its own phrase says less, the date it states moved after the
+    listing was already up, and it is not a publication date.
+
+    Hours and minutes collapse to 0 — same day — which is deliberate: the
+    comparison is in whole days and pretending to finer resolution would
+    invent precision the phrase does not carry.
+    """
+    p = phrase.strip()
+    if not p:
+        return None
+    if p == "امروز" or p == "لحظاتی پیش":
+        return 0
+    if p == "دیروز":
+        return 1
+    m = re.match(r"([۰-۹0-9]{1,3})\s*(دقیقه|ساعت|روز|هفته|ماه|سال)\s*پیش", p)
+    if not m:
+        return None
+    return int(m.group(1).translate(_FA)) * _UNIT_DAYS[m.group(2)]
 
 
 def ld_date_keys(html: str) -> tuple[list[str], list[str]]:
@@ -145,6 +189,9 @@ def main() -> int:
     gone = 0
     unreadable = 0
     seen: list[tuple[str, str, str]] = []      # id, title-date, relative
+    titles: list[tuple[str, str]] = []         # id, the raw <title>
+    no_phrase: list[tuple[str, int, bool]] = []  # id, bytes, had a spec row
+    ld_all_keys: Counter = Counter()
     # (id, line before, the relative line, line after) — the evidence for
     # the positional rule that would replace the missing «موقعیت» label.
     neighbourhood: list[tuple[str, str, str, str]] = []
@@ -171,9 +218,19 @@ def main() -> int:
         allk, datek = ld_date_keys(html)
         for k in datek:
             ld_date_fields[k] += 1
+        # Every key, not just the ones a pattern likes. The narrowed
+        # matcher can only find names it was told about, and the whole
+        # point is to see what the source actually publishes.
+        ld_all_keys.update(k.split(".")[-1] for k in allk)
+        titles.append((lid, title))
 
         rel = _REL.search(html)
         relative = rel.group(1).strip() if rel else ""
+        if not relative:
+            # A page with no phrase is either a shell or a different
+            # template, and which one changes what can be built on this.
+            # «گیربکس» is a spec row every full page has.
+            no_phrase.append((lid, len(html), "گیربکس" in html))
         if relative:
             # Bucket by unit, not by number: "3 روز پیش" and "9 روز پیش" are
             # the same granularity and counting them apart hides the shape.
@@ -210,8 +267,12 @@ def main() -> int:
     for k, n in where.most_common():
         print(f"  {k:<28}{n:>4}")
     print()
+    if ld_all_keys:
+        print(f"  every json-ld key name seen ({len(ld_all_keys)} distinct):")
+        print("    " + ", ".join(sorted(ld_all_keys))[:600])
+        print()
     if ld_date_fields:
-        print("  date-ish json-ld key paths:")
+        print("  LISTING-date key paths:")
         for k, n in ld_date_fields.most_common(10):
             print(f"    {k:<50}{n:>4}")
     else:
@@ -228,17 +289,63 @@ def main() -> int:
     print()
     if not collected:
         print("  corpus states no collected_on; this test cannot run.")
+        print()
     else:
-        print(f"  Listings whose date is LATER than {collected}'s Jalali")
-        print("  equivalent were modified after they were already live.")
-        print("  Convert by hand if needed — this script does not carry a")
-        print("  Jalali calendar, and a wrong conversion here would produce a")
-        print("  confident wrong answer about the whole question.")
-    print()
-    print(f"  {'listing':<26}{'title date':<14}relative")
-    for lid, td, rel in seen[:25]:
-        print(f"  {lid:<26}{td or '—':<14}{rel or '—'}")
-    print()
+        since = (date.today() - date.fromisoformat(collected)).days
+        print(f"  The corpus was collected {since} day(s) ago, so every")
+        print("  listing below has existed at least that long. A phrase")
+        print(f"  pointing back FEWER than {since} days is a date that moved")
+        print("  after the listing was already up — which a publication date")
+        print("  cannot do. No Jalali conversion is involved; this is whole")
+        print("  days either way.")
+        print()
+        print(f"  {'listing':<22}{'title date':<13}{'relative':<14}"
+              f"{'days':<6}verdict")
+        moved = stable = unknown = 0
+        for lid, td, rel in seen[:30]:
+            d = days_ago(rel)
+            if d is None:
+                v, unknown = "no phrase", unknown + 1
+            elif d < since:
+                v, moved = "MOVED — not a publication date", moved + 1
+            else:
+                v, stable = "consistent with publication", stable + 1
+            print(f"  {lid:<22}{td or '—':<13}{rel or '—':<14}"
+                  f"{'—' if d is None else d:<6}{v}")
+        print()
+        print(f"  moved {moved}   ·   consistent {stable}   ·   "
+              f"no phrase {unknown}")
+        print()
+        if moved:
+            print(f"  {moved} listing(s) state a date later than a day they")
+            print("  were demonstrably already live. That is proof, not")
+            print("  evidence: this field tracks the start of the CURRENT")
+            print("  listing spell — a bump or a renewal — and not first")
+            print("  publication.")
+        else:
+            print("  Nothing moved in this sample. That is evidence of")
+            print("  stability and NOT proof of it; a sample that happens to")
+            print("  hold no renewed listing looks exactly like this.")
+        print()
+
+    if titles:
+        print("  the raw <title>, so a missing date can be told from a missed one")
+        for lid, t in titles[:6]:
+            print(f"    {lid:<22}{t[:70]}")
+        print()
+
+    if no_phrase:
+        print("  pages with NO relative phrase at all")
+        print("  " + "-" * 64)
+        for lid, n, full in no_phrase:
+            print(f"    {lid:<22}{n:>9,} bytes   "
+                  f"{'full page' if full else 'SHELL — no spec rows'}")
+        print()
+        print("    A full page with no phrase is a second template and the")
+        print("    positional rule below does not cover it. A shell is a")
+        print("    fetch that did not get the content, which is a different")
+        print("    problem and not a fact about the source.")
+        print()
 
     print("3b. THE LINE AROUND THE RELATIVE PHRASE  (why province is empty)")
     print("-" * 66)
