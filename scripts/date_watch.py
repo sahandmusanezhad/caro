@@ -83,7 +83,11 @@ OUT = ROOT / "data" / "observations" / "date_watch.jsonl"
 # Bumped whenever an extraction rule changes, so a shift in the series can be
 # told from a shift in the source. Three silent rule changes is how this file
 # came to exist.
-EXTRACTOR_VERSION = 1
+EXTRACTOR_VERSION = 2   # v2: month-name titles, rounds by observation
+
+# One value for every record a single pass writes, so a round is identifiable
+# without guessing from timestamps. Twenty polite requests span minutes.
+ROUND_ID = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 PRESENT = "PRESENT"
 PRESENT_BUT_UNPARSED = "PRESENT_BUT_UNPARSED"
@@ -94,8 +98,23 @@ UNREADABLE = "UNREADABLE"
 _TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.S)
 _JDATE = re.compile(r"([۰-۹0-9]{4})\s*/\s*([۰-۹0-9]{1,2})\s*/\s*([۰-۹0-9]{1,2})")
 # Anything date-shaped at all, used ONLY to tell "no date here" from "a date
-# I could not read".
-_DATEISH = re.compile(r"[۰-۹0-9]{2,4}\s*[/\-.]\s*[۰-۹0-9]{1,2}")
+# I could not read". It must know every form the source uses, because
+# ABSENT_IN_SOURCE is the strongest claim this vocabulary makes.
+#
+# It was too narrow on its first outing and made that claim wrongly.
+# Listing l39y2bdi's title changed mid-day from
+#     «… فروشی - 1405/6/20 | باما»
+# to
+#     «… فروشی امروز شنبه 21 شهریور | باما»
+# and, seeing no slash, the script recorded ABSENT_IN_SOURCE for a title
+# that states its date in words. The raw title is stored beside the claim,
+# which is the only reason this was caught rather than believed.
+_MONTHS = ("فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور"
+           "|مهر|آبان|آذر|دی|بهمن|اسفند")
+_DATEISH = re.compile(
+    r"[۰-۹0-9]{2,4}\s*[/\-.]\s*[۰-۹0-9]{1,2}"
+    rf"|[۰-۹0-9]{{1,2}}\s*(?:{_MONTHS})"
+    r"|امروز|دیروز")
 _REL = re.compile(
     r"(لحظاتی پیش|دیروز|امروز"
     r"|[۰-۹0-9]{1,3}\s*(?:دقیقه|ساعت|روز|هفته|ماه|سال)\s*پیش)")
@@ -129,6 +148,7 @@ def phrase_days(p: str) -> int | None:
 def observe(ad, url: str, lid: str) -> dict:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rec: dict = {"listing_id": lid, "observed_at": now, "url": url,
+                 "round_id": ROUND_ID,
                  "extractor_version": EXTRACTOR_VERSION}
     status, raw = ad._get(url)
     rec["http_status"] = status
@@ -194,23 +214,56 @@ def load_rounds() -> dict[str, list[dict]]:
 
 
 def report(by_id: dict[str, list[dict]]) -> int:
-    rounds = sorted({r["observed_at"][:10] for rs in by_id.values() for r in rs})
+    # A ROUND is an observation, not a calendar day. Keying on the date
+    # threw away a real second round taken six hours later and reported
+    # "1 round — nothing can be said", which was false: two observations
+    # are two observations whatever the clock says.
+    #
+    # The INTERVAL is printed with them, because it decides what the
+    # comparison is worth. Eighteen unchanged dates over six hours is much
+    # weaker evidence than the same over six days, and a reader must not
+    # have to work that out.
+    stamps = sorted({r["observed_at"] for rs in by_id.values() for r in rs})
+    # A ROUND is one pass over the sample, not one minute and not one day.
+    # Keying on the minute reported "6 rounds" for two passes, because
+    # twenty polite requests take several minutes to make. The exact count
+    # is how many times the most-observed listing was seen; no clustering
+    # heuristic can be wrong about that.
+    n_rounds = max(len(v) for v in by_id.values()) if by_id else 0
+    rounds = list(range(n_rounds))
     print("DATE WATCH")
     print("=" * 66)
     print(f"  file        {OUT}")
     print(f"  listings    {len(by_id)}")
-    print(f"  rounds      {len(rounds)}   {', '.join(rounds)}")
+    print(f"  observations{sum(len(v) for v in by_id.values()):>5}")
+    print(f"  rounds      {n_rounds}   first {stamps[0]}")
+    if len(stamps) > 1:
+        span = (datetime.fromisoformat(stamps[-1])
+                - datetime.fromisoformat(stamps[0])).total_seconds()
+        print(f"              {' ' * 8}last  {stamps[-1]}")
+        print(f"  span        {span / 3600:.1f} hours "
+              f"({span / 86400:.2f} days)")
     print()
     if len(rounds) < 2:
         print("  One round. Nothing can be said about movement yet — that is")
-        print("  the point of the file, not a fault in it. Run again tomorrow.")
+        print("  the point of the file, not a fault in it. Run it again.")
         return 0
 
     back = fwd = same = nodata = 0
     backwards: list[tuple[str, str, str]] = []
+    rendering: list[str] = []
     for lid, rs in sorted(by_id.items()):
-        seq = [r for r in sorted(rs, key=lambda r: r["observed_at"])
-               if r.get("title_date_iso")]
+        ordered = sorted(rs, key=lambda r: r["observed_at"])
+        # A listing whose title CHANGED FORMAT has no iso on one side and
+        # would otherwise vanish into "no data" — which is what happened to
+        # the only listing that actually moved. Named separately.
+        if (len(ordered) >= 2
+                and bool(ordered[0].get("title_date_iso"))
+                != bool(ordered[-1].get("title_date_iso"))):
+            rendering.append(
+                f"{lid}: {ordered[0].get('extraction_status')} -> "
+                f"{ordered[-1].get('extraction_status')}")
+        seq = [r for r in ordered if r.get("title_date_iso")]
         if len(seq) < 2:
             nodata += 1
             continue
@@ -229,6 +282,12 @@ def report(by_id: dict[str, list[dict]]) -> int:
     print(f"  transitions unchanged  {same}")
     print(f"  transitions BACKWARD   {back}")
     print(f"  listings with <2 dates {nodata}")
+    if rendering:
+        print()
+        print("  TITLE CHANGED RENDERING — not comparable as dates, and not")
+        print("  'no data'. Look at these by hand:")
+        for line in rendering[:10]:
+            print(f"    {line}")
     print()
     if back:
         print("  NOT MONOTONIC. Proved by:")
