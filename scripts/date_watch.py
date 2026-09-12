@@ -274,148 +274,141 @@ def report(by_id: dict[str, list[dict]]) -> int:
 
     # The taxonomy, because "changed / did not change" is not enough to act
     # on. Each of these calls for different work, and collapsing them is how
-    # a rendering change got filed as "no data" last round.
+    # EVERY CONSECUTIVE PAIR, each carrying its own interval — not first
+    # against last. With three or more rounds, first-vs-last skips the
+    # middle, and the middle is where a value that moved and moved back
+    # would hide.
+    #
+    # And the interval is kept ON the transition, not just as a file-level
+    # span, because two runs six hours apart and two runs a day apart are
+    # not the same observation even though both are "two rounds". Summing
+    # them into one count is how a sub-day series would come to look like
+    # evidence about daily behaviour.
     TITLE_CLASSES = ("unchanged", "moved forward", "MOVED BACKWARD",
                      "representation changed", "became unreadable",
                      "listing unavailable")
     PHRASE_CLASSES = ("advanced as elapsed time predicts", "unchanged",
                       "RESET (went backwards)", "disappeared",
                       "INCONSISTENT with elapsed time", "absent throughout")
-    title_cls: Counter = Counter()
-    phrase_cls: Counter = Counter()
-    url_cls: Counter = Counter()
+
+    def bucket(h: float) -> str:
+        return "under 24h" if h < 24 else "24h or more"
+
+    tcls: dict[str, Counter] = defaultdict(Counter)
+    pcls: dict[str, Counter] = defaultdict(Counter)
+    ucls: Counter = Counter()
     notes: list[str] = []
+    legacy_notes: list[str] = []
+    mono: dict[str, Counter] = defaultdict(Counter)
 
     for lid, rs in sorted(by_id.items()):
         o = sorted(rs, key=lambda r: r["observed_at"])
-        a, b = o[0], o[-1]
-        if len(o) < 2:
-            continue
-        hours = (datetime.fromisoformat(b["observed_at"])
-                 - datetime.fromisoformat(a["observed_at"])).total_seconds() / 3600
+        for a, b in zip(o, o[1:]):
+            hours = (datetime.fromisoformat(b["observed_at"])
+                     - datetime.fromisoformat(a["observed_at"])
+                     ).total_seconds() / 3600
+            bk = bucket(hours)
 
-        # --- the URL itself. 404/410 is NOT "gone for good"; it is one
-        # unreachable observation until a series says otherwise.
-        st = b.get("http_status")
-        url_cls["reachable" if b.get("fetch") == "ok"
-                else f"unreachable ({st})" if st in (404, 410)
-                else f"failed ({st})"] += 1
+            st = b.get("http_status")
+            ucls["reachable" if b.get("fetch") == "ok"
+                 else f"unreachable ({st})" if st in (404, 410)
+                 else f"failed ({st})"] += 1
 
-        # --- title
-        ta, tb = a.get("title_date_iso"), b.get("title_date_iso")
-        sa, sb = a.get("extraction_status"), b.get("extraction_status")
-        if sb == UNREADABLE and sa != UNREADABLE:
-            title_cls["became unreadable"] += 1
-        elif sa == UNREADABLE and sb == UNREADABLE:
-            title_cls["listing unavailable"] += 1
-        elif bool(ta) != bool(tb):
-            title_cls["representation changed"] += 1
-            notes.append(f"    title rendering {lid}: {sa} -> {sb}")
-        elif ta and tb:
-            title_cls["unchanged" if ta == tb
-                      else "moved forward" if tb > ta
-                      else "MOVED BACKWARD"] += 1
-            if tb < ta:
-                notes.append(f"    title BACKWARD {lid}: {ta} -> {tb}")
+            ta, tb = a.get("title_date_iso"), b.get("title_date_iso")
+            sa, sb = a.get("extraction_status"), b.get("extraction_status")
+            legacy = (a.get("extractor_version") != EXTRACTOR_VERSION
+                      or b.get("extractor_version") != EXTRACTOR_VERSION)
 
-        # --- phrase, checked against the elapsed interval rather than eyed
-        da, db = a.get("phrase_days"), b.get("phrase_days")
-        if da is None and db is None:
-            phrase_cls["absent throughout"] += 1
-        elif db is None:
-            phrase_cls["disappeared"] += 1
-        elif da is None:
-            phrase_cls["unchanged"] += 1          # appeared; nothing to compare
-        else:
-            delta = db - da
-            lo = int(hours // 24)
-            if delta < 0:
-                phrase_cls["RESET (went backwards)"] += 1
-                notes.append(f"    phrase RESET {lid}: {a.get('phrase_raw')}"
-                             f" -> {b.get('phrase_raw')}")
-            elif delta in (lo, lo + 1):
-                phrase_cls["advanced as elapsed time predicts"
-                           if delta else "unchanged"] += 1
+            if sb == UNREADABLE and sa != UNREADABLE:
+                tcls[bk]["became unreadable"] += 1
+            elif sa == UNREADABLE and sb == UNREADABLE:
+                tcls[bk]["listing unavailable"] += 1
+            elif bool(ta) != bool(tb):
+                tcls[bk]["representation changed"] += 1
+                tag = ("   [legacy extraction status; representation-"
+                       "sensitive; re-observe]" if legacy else "")
+                (legacy_notes if legacy else notes).append(
+                    f"    {lid}: {sa} -> {sb}  ({hours:.1f}h){tag}")
+            elif ta and tb:
+                k = ("unchanged" if ta == tb
+                     else "moved forward" if tb > ta else "MOVED BACKWARD")
+                tcls[bk][k] += 1
+                mono[bk][k] += 1
+                if tb < ta:
+                    notes.append(f"    title BACKWARD {lid}: {ta} -> {tb} "
+                                 f"({hours:.1f}h)")
+
+            da, db = a.get("phrase_days"), b.get("phrase_days")
+            if da is None and db is None:
+                pcls[bk]["absent throughout"] += 1
+            elif db is None:
+                pcls[bk]["disappeared"] += 1
+            elif da is None:
+                pcls[bk]["unchanged"] += 1
             else:
-                phrase_cls["INCONSISTENT with elapsed time"] += 1
-                notes.append(f"    phrase INCONSISTENT {lid}: +{delta} day(s) "
-                             f"over {hours:.1f}h")
+                delta, lo = db - da, int(hours // 24)
+                if delta < 0:
+                    pcls[bk]["RESET (went backwards)"] += 1
+                    notes.append(f"    phrase RESET {lid}: "
+                                 f"{a.get('phrase_raw')} -> "
+                                 f"{b.get('phrase_raw')} ({hours:.1f}h)")
+                elif delta in (lo, lo + 1):
+                    pcls[bk]["advanced as elapsed time predicts"
+                             if delta else "unchanged"] += 1
+                else:
+                    pcls[bk]["INCONSISTENT with elapsed time"] += 1
+                    notes.append(f"    phrase INCONSISTENT {lid}: +{delta} "
+                                 f"day(s) over {hours:.1f}h")
 
-    print("WHAT CHANGED, BY KIND   (first observation vs last)")
+    print("WHAT CHANGED, BY KIND AND BY INTERVAL")
     print("-" * 66)
-    print("  title")
-    for k in TITLE_CLASSES:
-        if title_cls[k]:
-            print(f"    {k:<40}{title_cls[k]:>4}")
-    print("  relative phrase")
-    for k in PHRASE_CLASSES:
-        if phrase_cls[k]:
-            print(f"    {k:<40}{phrase_cls[k]:>4}")
-    print("  url")
-    for k, n in url_cls.most_common():
-        print(f"    {k:<40}{n:>4}")
-    if notes:
+    for bk in ("under 24h", "24h or more"):
+        if not (tcls[bk] or pcls[bk]):
+            continue
+        print(f"  ── transitions {bk} ──")
+        for k in TITLE_CLASSES:
+            if tcls[bk][k]:
+                print(f"    title   {k:<38}{tcls[bk][k]:>4}")
+        for k in PHRASE_CLASSES:
+            if pcls[bk][k]:
+                print(f"    phrase  {k:<38}{pcls[bk][k]:>4}")
         print()
-        for line in notes[:12]:
+    print("  url, over all transitions")
+    for k, n in ucls.most_common():
+        print(f"    {k:<46}{n:>4}")
+    if notes or legacy_notes:
+        print()
+        for line in (notes + legacy_notes)[:12]:
             print(line)
     print()
     print("  An unreachable url is ONE unreachable observation. It is not a")
     print("  deletion, not a sale, and not a date of removal.")
     print()
 
-    back = fwd = same = nodata = 0
-    backwards: list[tuple[str, str, str]] = []
-    rendering: list[str] = []
-    for lid, rs in sorted(by_id.items()):
-        ordered = sorted(rs, key=lambda r: r["observed_at"])
-        # A listing whose title CHANGED FORMAT has no iso on one side and
-        # would otherwise vanish into "no data" — which is what happened to
-        # the only listing that actually moved. Named separately.
-        if (len(ordered) >= 2
-                and bool(ordered[0].get("title_date_iso"))
-                != bool(ordered[-1].get("title_date_iso"))):
-            rendering.append(
-                f"{lid}: {ordered[0].get('extraction_status')} -> "
-                f"{ordered[-1].get('extraction_status')}")
-        seq = [r for r in ordered if r.get("title_date_iso")]
-        if len(seq) < 2:
-            nodata += 1
-            continue
-        for a, b in zip(seq, seq[1:]):
-            if b["title_date_iso"] < a["title_date_iso"]:
-                back += 1
-                backwards.append((lid, a["title_date_iso"], b["title_date_iso"]))
-            elif b["title_date_iso"] > a["title_date_iso"]:
-                fwd += 1
-            else:
-                same += 1
-
     print("MONOTONICITY — the open question")
     print("-" * 66)
-    print(f"  transitions forward    {fwd}")
-    print(f"  transitions unchanged  {same}")
-    print(f"  transitions BACKWARD   {back}")
-    print(f"  listings with <2 dates {nodata}")
-    if rendering:
-        print()
-        print("  TITLE CHANGED RENDERING — not comparable as dates, and not")
-        print("  'no data'. Look at these by hand:")
-        for line in rendering[:10]:
-            print(f"    {line}")
+    for bk in ("under 24h", "24h or more"):
+        if not mono[bk]:
+            continue
+        b = mono[bk]
+        n = sum(b.values())
+        print(f"  {bk}: {n} comparable transition(s) — "
+              f"forward {b['moved forward']}, unchanged {b['unchanged']}, "
+              f"BACKWARD {b['MOVED BACKWARD']}")
+    total_back = sum(m["MOVED BACKWARD"] for m in mono.values())
+    total_cmp = sum(sum(m.values()) for m in mono.values())
+    day_cmp = sum(mono["24h or more"].values())
     print()
-    if back:
-        print("  NOT MONOTONIC. Proved by:")
-        for lid, a, b in backwards[:10]:
-            print(f"    {lid:<24}{a} -> {b}")
-        print()
-        print("  The date cannot be an upper bound on anything, and the")
-        print("  temporal contract gets nothing from it.")
+    if total_back:
+        print("  NOT MONOTONIC. A backward transition is listed above, and")
+        print("  the date cannot be an upper bound on anything.")
     else:
-        print("  No backward transition observed across "
-              f"{fwd + same} transition(s).")
-        print("  That is consistent with monotonicity and does not prove it.")
-        print("  It is the same shape of evidence as 'no shift detected' on a")
-        print("  sample too small to detect one.")
+        print(f"  No backward transition across {total_cmp} comparable")
+        print(f"  transition(s), of which {day_cmp} span 24h or more.")
+        print("  CONSISTENT WITH monotonicity. Not a proof of it, and it")
+        print("  will not become one by repetition alone — a field that")
+        print("  moves rarely looks exactly like a field that only moves")
+        print("  forward until the day it does not.")
     print()
 
     st = Counter(r.get("extraction_status") for rs in by_id.values() for r in rs)
@@ -442,6 +435,9 @@ def report(by_id: dict[str, list[dict]]) -> int:
              if r.get("extractor_version") != EXTRACTOR_VERSION
              and r.get("extraction_status") in
              (ABSENT_IN_SOURCE, PRESENT_BUT_UNPARSED, MALFORMED)]
+    # Listed because a NEGATIVE status from an old extractor is the one most
+    # likely to be read as a fact about the page. The positives are equally
+    # unproven — said in the paragraph above rather than printed forty times.
     # Triggered by ANY record not written by the current version — not by a
     # MIX of versions. The first draft checked for a mix and stayed silent on
     # a file where all forty records predated both extractor fixes, which is
@@ -450,11 +446,17 @@ def report(by_id: dict[str, list[dict]]) -> int:
     outdated = sum(n for v, n in vers.items() if v != EXTRACTOR_VERSION)
     if outdated:
         print()
-        print(f"  {outdated} of {sum(vers.values())} observation(s) were written")
-        print(f"  by an extractor older than v{EXTRACTOR_VERSION}. A status is a")
-        print("  statement about what THAT version could read, so statuses are")
-        print("  not comparable across versions and a negative one is not a")
-        print("  fact about the page.")
+        print(f"  {outdated} of {sum(vers.values())} observation(s) were "
+              f"written by an")
+        print(f"  extractor older than v{EXTRACTOR_VERSION}.")
+        print()
+        print("  This does NOT mean those records are wrong. An older version")
+        print("  may well have read the page correctly. It means a status is a")
+        print("  statement about what THAT version could read, so none of them")
+        print("  supports an inference about the SOURCE without re-observation")
+        print("  — and that applies to PRESENT and to unchanged just as much")
+        print("  as to a negative. A correct old reading and a lucky one look")
+        print("  identical from here.")
         if stale:
             print()
             print("  produced by an older version — re-observe before believing:")
