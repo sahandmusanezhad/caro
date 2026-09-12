@@ -424,6 +424,44 @@ def report(by_id: dict[str, list[dict]]) -> int:
     for k, n in st.most_common():
         print(f"  {k:<24}{n:>5}")
     print()
+
+    # The version was being RECORDED and never READ, which makes it
+    # decoration. It exists so a status produced under an old rule is not
+    # read as a fact about the source — and there is one in this very file:
+    # l39y2bdi's ABSENT_IN_SOURCE was written by v1, whose date detector did
+    # not know month names. Under v2 the same page is PRESENT_BUT_UNPARSED.
+    # A reader six months from now would have no way to know that.
+    vers = Counter(r.get("extractor_version") for rs in by_id.values()
+                   for r in rs)
+    print("EXTRACTOR VERSION")
+    print("-" * 66)
+    for v, n in sorted(vers.items(), key=lambda kv: (kv[0] is None, kv[0])):
+        mark = "  <-- current" if v == EXTRACTOR_VERSION else ""
+        print(f"  v{v}{'':<21}{n:>5}{mark}")
+    stale = [(lid, r) for lid, rs in by_id.items() for r in rs
+             if r.get("extractor_version") != EXTRACTOR_VERSION
+             and r.get("extraction_status") in
+             (ABSENT_IN_SOURCE, PRESENT_BUT_UNPARSED, MALFORMED)]
+    # Triggered by ANY record not written by the current version — not by a
+    # MIX of versions. The first draft checked for a mix and stayed silent on
+    # a file where all forty records predated both extractor fixes, which is
+    # the case the warning exists for. A check that only fires in the case
+    # its author pictured is the bug this script keeps re-committing.
+    outdated = sum(n for v, n in vers.items() if v != EXTRACTOR_VERSION)
+    if outdated:
+        print()
+        print(f"  {outdated} of {sum(vers.values())} observation(s) were written")
+        print(f"  by an extractor older than v{EXTRACTOR_VERSION}. A status is a")
+        print("  statement about what THAT version could read, so statuses are")
+        print("  not comparable across versions and a negative one is not a")
+        print("  fact about the page.")
+        if stale:
+            print()
+            print("  produced by an older version — re-observe before believing:")
+            for lid, r in stale[:10]:
+                print(f"    {lid:<24}v{r.get('extractor_version')}  "
+                      f"{r.get('extraction_status')}")
+    print()
     return 0
 
 
