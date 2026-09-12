@@ -17,7 +17,8 @@ What is checked instead:
     5  an ungated corpus            → evidence may exist, no estimate is
                                       fabricated for it
     6  a refusal                    → HTTP 200, a product state, schema-valid
-    7  the client's TypeScript      → the same fields as the Python models
+    7  the client's TypeScript      → the same fields AND the same union
+                                      members as the Python models
 
 Seven is the one that cannot be written any other way. `lib/api.ts` is a
 second hand-written description of `webapp/api/schemas.py`, and TypeScript
@@ -33,6 +34,7 @@ import json
 import re
 import sys
 import tempfile
+import typing
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -301,6 +303,42 @@ for ts_name, model in PAIRS:
           not missing and not extra,
           f"missing in TS: {sorted(missing) or '—'} · "
           f"not in Python: {sorted(extra) or '—'}")
+
+
+# The unions, which the field comparison above does not reach.
+#
+# `FaultCode` and `CorpusKind` are `export type`, not `export interface`, so
+# every check above is blind to them: the server can grow a member and the
+# client keeps compiling, because TypeScript validates the client against its
+# own copy of the union — and that copy is exactly the thing that goes stale.
+# Nothing here has drifted yet. The check is written now because "nothing has
+# drifted yet" is what was true of `lib/api.ts` before check 7 existed too.
+_TYPE = re.compile(r"export type (\w+)\s*=\s*([^;]+);")
+_MEMBER = re.compile(r"'([^']*)'")
+DASH = "—"       # named, because an f-string expression may not hold one
+
+
+def ts_union(name: str) -> set[str] | None:
+    for got, body in _TYPE.findall(TS):
+        if got != name:
+            continue
+        body = re.sub(r"/\*.*?\*/", "", body, flags=re.DOTALL)
+        body = re.sub(r"//[^\n]*", "", body)
+        return set(_MEMBER.findall(body))
+    return None
+
+
+for ts_name, literal in (("CorpusKind", schemas.CorpusKind),
+                         ("FaultCode", schemas.FaultCode)):
+    got = ts_union(ts_name)
+    want = set(typing.get_args(literal))
+    if got is None:
+        check(f"{ts_name} is declared in lib/api.ts", False, "not found")
+        continue
+    check(f"{ts_name} ≡ the Python Literal, member for member",
+          got == want,
+          f"missing in TS: {sorted(want - got) or DASH} · "
+          f"not in Python: {sorted(got - want) or DASH}")
 
 
 print()
