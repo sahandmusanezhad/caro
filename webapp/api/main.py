@@ -70,11 +70,24 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 def _fault(c) -> Fault | None:
-    """Why nothing is being served, or None. Two reasons, never merged.
+    """Why nothing is being served, or None. Three reasons, never merged.
 
     Collapsing them would tell an operator whose artifact failed to load that
-    the estimator has not been benchmarked: true, and not their problem.
+    the estimator has not been benchmarked: true, and not their problem. The
+    same holds one level down — an operator who typed a run name that has no
+    artifact is not looking at a corrupt file, and telling them so sends them
+    to inspect bytes that are fine.
     """
+    if c.fault_code == "RUN_NOT_FOUND":
+        return Fault(
+            code="RUN_NOT_FOUND",
+            message=c.fault or "the configured run has no artifact on disk",
+            fa="این استقرار صریحاً یک run را برای سرو انتخاب کرده و فایل آن "
+               "روی دیسک نیست، پس هیچ چیز سرو نمی‌شود. عمداً به پیکره‌ی "
+               "ساختگی برنمی‌گردیم: وقتی کسی گفته کدام شواهد باید سرو شود، "
+               "جایگزینی خاموشِ آن با داده‌ی تولیدشده دقیقاً همان چیزی است "
+               "که برچسب پیکره برای جلوگیری از آن هست.",
+            still_available=["intent"])
     if c.kind == "UNUSABLE":
         return Fault(
             code="CORPUS_INVALID",

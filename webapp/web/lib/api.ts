@@ -53,10 +53,12 @@ export interface CorpusMeta {
   identity: CorpusIdentity | null;
 }
 
-/** UNUSABLE means an artifact exists on disk and would not load. It is NOT a
- *  fallback to synthetic — D49: a real failure that quietly becomes a
- *  synthetic success is worse than a crash, because the site looks healthy and
- *  labels itself honestly while ignoring the evidence it was built for. */
+/** UNUSABLE means nothing may be served and this is not the documented
+ *  absence: either an artifact exists and would not load, or a run was asked
+ *  for and is not there. It is NOT a fallback to synthetic — D49: a real
+ *  failure that quietly becomes a synthetic success is worse than a crash,
+ *  because the site looks healthy and labels itself honestly while ignoring
+ *  the evidence it was built for. Which of the two it is, is `fault.code`. */
 export type CorpusKind = 'SYNTHETIC' | 'REAL' | 'UNUSABLE';
 
 export interface ServingStatus {
@@ -67,7 +69,18 @@ export interface ServingStatus {
   served: boolean;
 }
 
-export type FaultCode = 'CORPUS_INVALID' | 'ESTIMATOR_NOT_GATED';
+/** Why we are in this state, as something to branch on:
+ *
+ *   CORPUS_INVALID       an artifact exists and will not load
+ *   RUN_NOT_FOUND        CARO_RUN names a run with no artifact on disk
+ *   ESTIMATOR_NOT_GATED  nothing has cleared the acceptance gate here
+ *
+ * The first two both arrive as kind === 'UNUSABLE' and are distinguishable
+ * only here, which is why the badge reads the code rather than the kind. */
+export type FaultCode =
+  | 'CORPUS_INVALID'
+  | 'RUN_NOT_FOUND'
+  | 'ESTIMATOR_NOT_GATED';
 
 export interface Fault {
   code: FaultCode;

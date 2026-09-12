@@ -397,6 +397,7 @@ print("\nD49 — a real failure never becomes a synthetic success")
 
 import contextlib as _ctx                                    # noqa: E402
 import io as _io                                             # noqa: E402
+import os as _os                                             # noqa: E402
 import caro.corpus_reader as _cr                             # noqa: E402
 with _ctx.redirect_stdout(_io.StringIO()):
     import webapp.api.corpus as _corpus_mod                   # noqa: E402
@@ -414,36 +415,89 @@ _BROKEN = {
 }
 
 _real_corpora = _cr.CORPORA
+_real_run = _os.environ.get(_corpus_mod.RUN_ENV)
+
+
+def _serving(dir_: Path, run_env: str | None):
+    """What `active()` returns with this corpora directory and this CARO_RUN.
+
+    The environment is set here rather than in the test body because the run
+    is no longer a parameter: it is read inside `active()`, so a suite that
+    does not control the variable is testing whatever the shell had.
+    """
+    _cr.CORPORA = dir_
+    if run_env is None:
+        _os.environ.pop(_corpus_mod.RUN_ENV, None)
+    else:
+        _os.environ[_corpus_mod.RUN_ENV] = run_env
+    _corpus_mod.active.cache_clear()
+    with _ctx.redirect_stdout(_io.StringIO()):
+        return _corpus_mod.active()
+
+
 try:
+    # The artifact is named after the DEFAULT, read from the module. Hardcoding
+    # "run3" here is how this suite kept passing while `active()` defaulted to
+    # a run that had not existed since D46 and the site served SYNTHETIC on
+    # every request: the test wrote the file the default named, so the default
+    # was never wrong from in here.
+    _default = _corpus_mod.DEFAULT_RUN
     for label, body in _BROKEN.items():
         with tempfile.TemporaryDirectory() as d:
-            (Path(d) / "run3.json").write_text(body, encoding="utf-8")
-            _cr.CORPORA = Path(d)
-            _corpus_mod.active.cache_clear()
-            with _ctx.redirect_stdout(_io.StringIO()):
-                got = _corpus_mod.active("run3")
+            (Path(d) / f"{_default}.json").write_text(body, encoding="utf-8")
+            got = _serving(Path(d), None)
             check(f"{label} → not served as SYNTHETIC",
                   got.kind == "UNUSABLE",
                   f"kind={got.kind!r} — a broken artifact became a working "
                   f"site serving generated data")
             check(f"  and the fault travels in the envelope",
                   bool(got.as_dict().get("fault")), str(got.fault))
+            check(f"  and it is reported as the FILE being broken",
+                  got.fault_code == "CORPUS_INVALID", str(got.fault_code))
             check(f"  and nothing is served from it",
                   got.gated is False and not got.rows and not got.listings)
 
     # The other half of the rule, which must keep working: a corpus that is
-    # genuinely ABSENT still falls back, silently and correctly.
+    # genuinely ABSENT still falls back. Not silently any more — see below.
     with tempfile.TemporaryDirectory() as d:
-        _cr.CORPORA = Path(d)
-        _corpus_mod.active.cache_clear()
-        with _ctx.redirect_stdout(_io.StringIO()):
-            got = _corpus_mod.active("run3")
-        check("an ABSENT corpus still falls back to synthetic",
+        got = _serving(Path(d), None)
+        check("an ABSENT default corpus still falls back to synthetic",
               got.kind == "SYNTHETIC", f"kind={got.kind!r}")
-        check("  and that fallback carries no fault",
+        check("  and that fallback carries no fault — absence is not failure",
               got.fault is None, str(got.fault))
+        # The half that was missing. The fallback was correct and mute: it
+        # never said which artifact it had looked for, so a deployment with a
+        # corpus sitting in the wrong place looked exactly like one with no
+        # corpus at all.
+        check("  but it NAMES the artifact it looked for and did not find",
+              f"{_default}.json" in got.note_fa, got.note_fa[-90:])
+
+    # And the case that used to be indistinguishable from absence: somebody
+    # said which run to serve, and it is not there.
+    with tempfile.TemporaryDirectory() as d:
+        got = _serving(Path(d), "run_that_does_not_exist")
+        check("a run that was ASKED FOR and is missing is not a fallback",
+              got.kind == "UNUSABLE", f"kind={got.kind!r}")
+        check("  and it is NOT reported as a corrupt file",
+              got.fault_code == "RUN_NOT_FOUND", str(got.fault_code))
+        check("  and nothing is served from it",
+              got.gated is False and not got.rows and not got.listings)
+        check("  and the message names the run that was asked for",
+              "run_that_does_not_exist" in (got.fault or ""), str(got.fault))
+
+    # Same directory, same emptiness, two different answers — which is the
+    # whole point of `configured()` returning the flag.
+    with tempfile.TemporaryDirectory() as d:
+        check("an empty directory is SYNTHETIC or UNUSABLE depending only on "
+              "whether a run was named",
+              _serving(Path(d), None).kind == "SYNTHETIC"
+              and _serving(Path(d), "runX").kind == "UNUSABLE")
 finally:
     _cr.CORPORA = _real_corpora
+    if _real_run is None:
+        _os.environ.pop(_corpus_mod.RUN_ENV, None)
+    else:
+        _os.environ[_corpus_mod.RUN_ENV] = _real_run
     _corpus_mod.active.cache_clear()
 
 print()

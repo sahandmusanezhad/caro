@@ -107,10 +107,13 @@ export default function SearchResults() {
           <div className="flex flex-wrap gap-x-7 gap-y-1 text-[13px]
                           text-ink-2">
             <span>بررسی‌شده <b className="fig">{faNum(data.considered)}</b></span>
-            {/* The gap between these two is the whole story on a real corpus:
-                a published artifact carries no price/mileage provenance, so
-                eligibility fails closed and nothing is appraisable. Showing
-                only the first number would hide it. */}
+            {/* The gap between these two is the whole story on a real corpus.
+                `eligibility()` fails closed on a listing whose price or
+                mileage arrives without provenance, so how far the second
+                number falls short of the first is a property of the artifact
+                — on some it is the entire corpus. Showing only the first
+                number would hide that, so both are always rendered and the
+                zero case is coloured. */}
             <span className={data.appraisable === 0 && data.considered > 0
               ? 'text-warn' : undefined}>
               قابل ارزش‌گذاری <b className="fig">{faNum(data.appraisable)}</b>

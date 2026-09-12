@@ -15,16 +15,21 @@ Three states, and which one you are in is chosen here:
 
     REAL        data/corpora/<run>.json, if a published artifact exists.
                 Loaded through caro.corpus_reader, which fails closed on
-                missing provenance — so on today's artifacts this yields a
-                corpus that can be listed but not appraised (D46 + the
-                eligibility fix).
+                missing provenance: how much of it reaches W1 depends on
+                whether the artifact carries price and mileage provenance,
+                and on an artifact that does not, `rows` is empty while
+                `listings` is not. Either way `gated` is False — D43, no
+                estimator has cleared the gate on a real corpus — so what is
+                served is evidence, never a ranking.
 
     SYNTHETIC   the corpus tests/test_ranking.py generates. Real code, real
                 ranking, known true prices — which is why the gate passes on
                 it and a shortlist can actually be served.
 
-    UNUSABLE    an artifact EXISTS and would not load. Serves nothing and
-                reports what broke.
+    UNUSABLE    nothing may be served and this is not the documented absence.
+                Two ways in, kept apart by `fault`: an artifact that EXISTS
+                and would not load, and a run an operator ASKED FOR that is
+                not on disk.
 
 The synthetic fallback is deliberate and is not a workaround: with no real
 corpus present the product should still be usable and should say, on every
@@ -36,17 +41,68 @@ cannot be addressed, a truncated write, a tampered file — every one of them
 used to return None from `_real()` and come back as a working site serving
 generated data under a SYNTHETIC badge that was, in each case, displayed
 correctly. Nothing lied, nobody was told, and there was no error to notice.
+
+## Which run, and why the default was never reached
+
+`active()` defaulted to `run3` and `data/corpora/run3.json` has not existed
+since D46 — that corpus was never committed and is not recoverable. So the
+existence check at the top of `_real()` failed on every request of every
+deployment, and the site served SYNTHETIC unconditionally. It did so while
+labelling itself correctly, which is why nobody noticed: the badge said
+SYNTHETIC and it was.
+
+That is the same defect D49 was written about, one level up. D49 closed the
+case where a real artifact failed to LOAD; this was the case where a real
+artifact was never LOOKED FOR. The fix is `CARO_RUN` — an explicit name, a
+default that points at an artifact that actually exists, and no path where
+the run in force is unstated:
+
+    CARO_RUN set, artifact present    → REAL
+    CARO_RUN set, artifact absent     → UNUSABLE / RUN_NOT_FOUND. An operator
+                                        named a run; serving a different
+                                        corpus instead is the silent
+                                        substitution this module exists to
+                                        prevent.
+    unset, DEFAULT_RUN present        → REAL
+    unset, DEFAULT_RUN absent         → SYNTHETIC, and `note_fa` NAMES the
+                                        path it looked for.
+
+The last line is D49 applied rather than softened. On a fresh clone there is
+no corpus, because none is committed; that is absence, absence is a fallback,
+and a fault that fires on the documented normal state is a fault nobody reads.
+What was wrong before was not the fallback — it was that the fallback said
+nothing about what it had looked for. It says so now.
 """
 
 from __future__ import annotations
 
 import contextlib
 import io
+import os
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
+
+# The run served when nothing says otherwise. It is a constant rather than a
+# literal in a signature so that the tests can follow it: a suite that hardcodes
+# "run11" keeps passing on the day the default stops existing, which is exactly
+# the failure this replaces.
+DEFAULT_RUN = "run11"
+RUN_ENV = "CARO_RUN"
+
+
+def configured() -> tuple[str, bool]:
+    """(the run to serve, whether an operator named it).
+
+    The flag is the whole reason this is not one `os.environ.get` at the call
+    site. A missing artifact means two different things depending on it — a
+    misconfiguration to report, or the documented absence to fall back from —
+    and those two cases are indistinguishable once the name has been resolved.
+    """
+    named = os.environ.get(RUN_ENV, "").strip()
+    return (named, True) if named else (DEFAULT_RUN, False)
 
 
 @dataclass(frozen=True)
@@ -65,16 +121,24 @@ class Corpus:
     # exact bytes a reviewer can fetch and re-hash.
     identity: object | None = None      # caro.corpus_reader.CorpusIdentity
     # Every parsed listing, not only the appraisable ones. Kept because the
-    # two counts diverge completely on a published artifact — promotion runs
-    # after parsing and cannot carry price/mileage provenance, so
-    # `eligibility()` fails closed on all of it and `rows` is empty while the
-    # corpus holds hundreds of listings. Reporting only `rows` there would
-    # tell a buyer we looked at nothing.
+    # two counts diverge on a published artifact: `eligibility()` fails closed
+    # on a listing whose price or mileage arrives without provenance, so how
+    # far `rows` falls short of `listings` is a property of the artifact — on
+    # one that carries no provenance at all, `rows` is empty while the corpus
+    # holds hundreds of listings. Reporting only `rows` there would tell a
+    # buyer we looked at nothing.
     listings: list = field(default_factory=list)
-    # Set only on the UNUSABLE state: what went wrong loading an artifact that
-    # exists. Travels in the envelope because the person who needs to see it
-    # is looking at the site (D49).
+    # Set only on the UNUSABLE state: what went wrong. Travels in the envelope
+    # because the person who needs to see it is looking at the site (D49).
+    #
+    # `fault_code` is what a client branches on and `fault` is what a person
+    # reads. They are two fields because UNUSABLE now has two causes — a file
+    # that will not load, and a run that is not there — and those need
+    # different actions from whoever sees them: fix the artifact, or fix the
+    # configuration. Deriving the code by matching on the message would make
+    # the branch depend on wording.
     fault: str | None = None
+    fault_code: str | None = None
 
     def as_dict(self) -> dict:
         return {"kind": self.kind, "label_fa": self.label_fa,
@@ -87,14 +151,25 @@ class Corpus:
                 # to a corpus that has none. The client renders the absence.
                 "identity": (self.identity.as_dict()
                              if self.identity is not None else None),
-                "fault": self.fault}
+                "fault": self.fault, "fault_code": self.fault_code}
 
 
-def _synthetic() -> Corpus:
+def _synthetic(sought: str | None = None) -> Corpus:
+    """The generated corpus. `sought` is the run that was looked for and was
+    not there — named in the note, because a fallback that does not say what
+    it fell back FROM is the silent substitution one level down."""
     # Importing the suite builds the corpus and gates the estimator. It prints
     # its own check lines, which must not land in the server log.
     with contextlib.redirect_stdout(io.StringIO()):
         import tests.test_ranking as T          # noqa: PLC0415
+
+    note = ("این نتایج روی پیکره‌ای اجرا می‌شوند که خود پروژه تولید کرده و "
+            "قیمت‌های واقعی‌اش معلوم است. رفتار سامانه را نشان می‌دهد، نه "
+            "بازار ایران را.")
+    if sought is not None:
+        note += (f" پیکره‌ی واقعی بارگذاری نشد چون data/corpora/{sought}.json "
+                 "روی دیسک نیست. پیکره‌ها در مخزن نگهداری نمی‌شوند (D46)؛ "
+                 f"با CARO_RUN می‌شود run دیگری را صریحاً انتخاب کرد.")
 
     return Corpus(
         kind="SYNTHETIC",
@@ -103,9 +178,7 @@ def _synthetic() -> Corpus:
         pipeline=T.PIPE,
         gated=bool(T.OK),
         source="tests/test_ranking.py",
-        note_fa="این نتایج روی پیکره‌ای اجرا می‌شوند که خود پروژه تولید کرده و "
-                "قیمت‌های واقعی‌اش معلوم است. رفتار سامانه را نشان می‌دهد، نه "
-                "بازار ایران را.",
+        note_fa=note,
         identity=None,      # generated, not collected: there is no artifact
     )
 
@@ -128,6 +201,39 @@ def _unusable(run_id: str, fault: BaseException) -> Corpus:
                 "ساختگی برنمی‌گردیم، چون آن‌وقت سایت سالم به‌نظر می‌رسید و "
                 "کسی نمی‌فهمید شواهد واقعی رد شده است.",
         fault=f"{type(fault).__name__}: {fault}",
+        fault_code="CORPUS_INVALID",
+    )
+
+
+def _missing(run_id: str) -> Corpus:
+    """`CARO_RUN` names a run and there is no artifact for it.
+
+    Not the same thing as having no corpus at all, which is the SYNTHETIC
+    fallback and stays one. Somebody stated which evidence this deployment
+    serves; the honest answers are that run or nothing, and serving a
+    generated corpus instead would be a substitution nobody asked for and
+    nobody would see — the badge would read SYNTHETIC and be correct.
+
+    It is UNUSABLE rather than a fourth kind because `kind` answers "what may
+    be shown on this screen", and the answer is identical to the broken-file
+    case: nothing, plus a reason. The difference between the two causes is
+    what `fault_code` is for, and a fourth kind every client switch handled
+    exactly like UNUSABLE would put one distinction in two places.
+    """
+    return Corpus(
+        kind="UNUSABLE",
+        label_fa="پیکره‌ی انتخاب‌شده پیدا نشد",
+        rows=[], listings=[], pipeline=_synthetic().pipeline,
+        gated=False,
+        source=f"data/corpora/{run_id}.json",
+        note_fa=f"متغیر {RUN_ENV} روی «{run_id}» تنظیم شده و فایل آن روی دیسک "
+                "نیست. به‌جای این‌که بی‌صدا پیکره‌ی ساختگی سرو شود، چیزی سرو "
+                "نمی‌شود: وقتی کسی صریحاً گفته کدام شواهد باید سرو شود، "
+                "جایگزین‌کردن آن با داده‌ی تولیدشده همان اشتباهی است که "
+                "برچسب پیکره برای جلوگیری از آن ساخته شده.",
+        fault=f"{RUN_ENV}={run_id!r} names a run with no artifact at "
+              f"data/corpora/{run_id}.json",
+        fault_code="RUN_NOT_FOUND",
     )
 
 
@@ -191,6 +297,17 @@ def _real(run_id: str) -> Corpus | None:
 
 
 @lru_cache(maxsize=1)
-def active(run_id: str = "run3") -> Corpus:
-    """The corpus this process serves. Real if one exists, synthetic if not."""
-    return _real(run_id) or _synthetic()
+def active() -> Corpus:
+    """The corpus this process serves, and never one it was not asked for.
+
+    Takes no argument on purpose. The run was a default parameter, every call
+    site omitted it, and the default named an artifact that does not exist —
+    so the choice was made in a signature nobody read. It is made here, from
+    the environment, once, and `configured()` is the only place that answers
+    "which run".
+    """
+    run_id, explicit = configured()
+    real = _real(run_id)
+    if real is not None:
+        return real
+    return _missing(run_id) if explicit else _synthetic(sought=run_id)

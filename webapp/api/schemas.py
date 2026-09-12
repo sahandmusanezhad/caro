@@ -51,10 +51,20 @@ from pydantic import BaseModel, Field
 
 CorpusKind = Literal["SYNTHETIC", "REAL", "UNUSABLE"]
 
-# Two members, deliberately. A code is for a client to branch on; a message is
-# for a person to read. Growing this list one string at a time is how an enum
-# becomes a second copy of the message.
-FaultCode = Literal["CORPUS_INVALID", "ESTIMATOR_NOT_GATED"]
+# Small and closed, deliberately. A code is for a client to branch on; a
+# message is for a person to read. Growing this list one string at a time is
+# how an enum becomes a second copy of the message, so a member has to earn its
+# place by leading somewhere different:
+#
+#   CORPUS_INVALID       an artifact exists and will not load  → fix the file
+#   RUN_NOT_FOUND        CARO_RUN names a run with no artifact → fix the
+#                        configuration, or collect that run
+#   ESTIMATOR_NOT_GATED  nothing has cleared the gate here     → not a defect
+#
+# The first two both arrive as kind=UNUSABLE and differ in nothing a client can
+# see except this code, which is the argument for the third member: without it
+# an operator who typed the wrong run name is told their artifact is corrupt.
+FaultCode = Literal["CORPUS_INVALID", "RUN_NOT_FOUND", "ESTIMATOR_NOT_GATED"]
 
 
 class CorpusIdentity(BaseModel):

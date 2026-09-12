@@ -12,7 +12,10 @@ What is checked instead:
 
     1  a valid synthetic corpus     → the response model validates
     2  a valid real corpus          → validates, and carries a sha256
-    3  a missing corpus             → SYNTHETIC, and no fault
+    3  a missing DEFAULT corpus     → SYNTHETIC, no fault, and it names
+                                      the artifact it looked for
+    3b a missing CONFIGURED run     → UNUSABLE / RUN_NOT_FOUND, never a
+                                      silent substitution
     4  a broken corpus              → UNUSABLE, a fault, and never SYNTHETIC
     5  an ungated corpus            → evidence may exist, no estimate is
                                       fabricated for it
@@ -31,6 +34,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 import re
 import sys
 import tempfile
@@ -68,31 +72,51 @@ def check(name, cond, detail=""):
         FAILS.append(name)
 
 
+RUN = corpus_mod.DEFAULT_RUN     # read, never spelled out — see below
+
+
 @contextlib.contextmanager
-def corpus_dir(body: str | None):
+def corpus_dir(body: str | None, *, run_env: str | None = None):
     """Point the reader at a temp directory, optionally holding an artifact.
 
     Nothing is written under `data/corpora/`. A fabricated file there is
     indistinguishable from a collected one, and that confusion is what the
     corpus label exists to prevent.
+
+    The artifact is named after `corpus_mod.DEFAULT_RUN` rather than a literal.
+    Writing `run3.json` was, without meaning to, an assertion that the default
+    is whatever this suite happens to write — which is why every check here
+    passed for months while the shipped default named an artifact D46 had
+    removed, and the site served SYNTHETIC to everybody.
+
+    `run_env` sets CARO_RUN for the block. `None` clears it, so the default
+    path is exercised against a known-empty variable rather than the shell's.
     """
-    was = corpus_reader.CORPORA
+    was, was_run = corpus_reader.CORPORA, os.environ.get(corpus_mod.RUN_ENV)
     with tempfile.TemporaryDirectory() as d:
         if body is not None:
-            (Path(d) / "run3.json").write_text(body, encoding="utf-8")
+            (Path(d) / f"{RUN}.json").write_text(body, encoding="utf-8")
         corpus_reader.CORPORA = Path(d)
+        if run_env is None:
+            os.environ.pop(corpus_mod.RUN_ENV, None)
+        else:
+            os.environ[corpus_mod.RUN_ENV] = run_env
         corpus_mod.active.cache_clear()
         try:
             with contextlib.redirect_stdout(io.StringIO()):
                 yield
         finally:
             corpus_reader.CORPORA = was
+            if was_run is None:
+                os.environ.pop(corpus_mod.RUN_ENV, None)
+            else:
+                os.environ[corpus_mod.RUN_ENV] = was_run
             corpus_mod.active.cache_clear()
 
 
 def valid_artifact(n: int = 9) -> str:
     obj = {
-        "schema": SCHEMA, "run_id": "run3", "source": "bama.ir",
+        "schema": SCHEMA, "run_id": RUN, "source": "bama.ir",
         "collected_on": "2026-09-09",
         "listings": [
             {"listing_id": f"b{i}",
@@ -144,7 +168,8 @@ with corpus_dir(valid_artifact()):
           and re.fullmatch(r"[0-9a-f]{64}", r.corpus.identity.sha256)
           is not None,
           r.corpus.identity.sha256 if r.corpus.identity else "None")
-    check("  run_id names the run", r.corpus.identity.run_id == "run3")
+    check("  run_id names the run", r.corpus.identity.run_id == RUN,
+          str(r.corpus.identity.run_id))
 
     lst = api.listing(r.evidence[0].id)
     ok, why = validates(schemas.ListingResponse, lst)
@@ -159,7 +184,7 @@ with corpus_dir(valid_artifact()):
 
 
 # ---------------------------------------------------------------------------
-print("\n3 — a missing corpus falls back, silently and correctly")
+print("\n3 — a missing DEFAULT corpus falls back, and says what it looked for")
 with corpus_dir(None):
     r = api.which_corpus()
     check("kind is SYNTHETIC", r.status.kind == "SYNTHETIC", r.status.kind)
@@ -167,6 +192,35 @@ with corpus_dir(None):
           r.fault is None, str(r.fault))
     check("  and no identity is invented for it",
           r.corpus.identity is None)
+    # The fallback was right, and mute. A deployment whose corpus sat in the
+    # wrong directory rendered identically to one that had never collected
+    # anything, and neither said which path had been tried.
+    check("  and the note names the artifact it did not find",
+          f"{RUN}.json" in r.corpus.note_fa, r.corpus.note_fa[-90:])
+
+
+# ---------------------------------------------------------------------------
+print("\n3b — a run that was ASKED FOR and is missing is not a fallback")
+with corpus_dir(None, run_env="run_no_such_thing"):
+    r = api.search(q="۲۰۶", k=3)
+    ok, why = validates(schemas.SearchResponse, r)
+    check("SearchResponse still validates", ok, why)
+    check("  kind is UNUSABLE, not SYNTHETIC",
+          r.status.kind == "UNUSABLE", r.status.kind)
+    check("  fault.code is RUN_NOT_FOUND, not CORPUS_INVALID",
+          r.fault is not None and r.fault.code == "RUN_NOT_FOUND",
+          str(r.fault.code if r.fault else None))
+    check("  and the message names the run that was asked for",
+          r.fault is not None and "run_no_such_thing" in r.fault.message,
+          str(r.fault.message if r.fault else None))
+    check("  and nothing is served from it",
+          not r.status.served and r.items == [] and r.evidence == [])
+    # The two UNUSABLE causes reach a client through `fault.code` and through
+    # nothing else, which is why the badge branches on the code and not on the
+    # kind: «CORPUS UNUSABLE» over a run that is simply not there sends the
+    # reader to inspect an artifact that is fine.
+    check("  and `kind` alone cannot tell it from a corrupt file",
+          r.status.kind == "UNUSABLE")
 
 
 # ---------------------------------------------------------------------------

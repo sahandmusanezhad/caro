@@ -33,6 +33,8 @@ one nginx (or equivalent) so the browser sees a single origin.
 | --- | --- |
 | `CARO_API` | where the client's `/api/*` rewrite points. Read at **build** time, so a change needs a rebuild, not a restart. |
 | `CARO_ADMIN_TOKEN` | opens `/admin`. **Unset means the inbox opens for nobody** — that is the safe state, not a misconfiguration to route around. |
+| `CARO_RUN` | which corpus the API serves, by run id. Unset means `webapp.api.corpus.DEFAULT_RUN`. **Set it and get it wrong and the site serves nothing** — see below; that is the point of setting it. |
+| `CARO_CORPORA` | where corpora are read from. For pointing the reader at a directory a test controls, and for nothing else. |
 
 ## Why the requirements file is separate
 
@@ -43,15 +45,23 @@ framework can be imported from inside the package.
 
 ## Which corpus is being served
 
-`webapp/api/corpus.py` decides, in this order:
+`webapp/api/corpus.py` decides. **Which run** comes from `CARO_RUN`, or from
+`DEFAULT_RUN` when that is unset; **which state** follows from what is at
+`data/corpora/<run>.json`:
 
-1. **REAL** — `data/corpora/<run>.json`, if a published artifact exists.
-   Loaded through `caro.corpus_reader`, which fails closed on missing
-   provenance. On today's artifacts that yields a corpus that can be listed
-   but not appraised, so the site refuses to rank and shows evidence instead.
-2. **SYNTHETIC** — the corpus `tests/test_ranking.py` generates. Real code,
-   real ranking, known true prices, which is why the gate passes on it and a
-   shortlist can actually be served.
+| | |
+| --- | --- |
+| **REAL** | the artifact loaded. `caro.corpus_reader` fails closed on missing provenance, so how much of it reaches W1 is a property of the artifact — a listing whose price or mileage arrives without provenance is counted and not appraised. Either way no estimator has cleared the gate on a real corpus (D43), so the site refuses to rank and shows evidence. |
+| **SYNTHETIC** | no artifact, and no run was named. The corpus `tests/test_ranking.py` generates: real code, real ranking, known true prices, which is why the gate passes on it and a shortlist can actually be served. The note says which artifact was looked for. |
+| **UNUSABLE** | nothing may be served. Two causes, kept apart by `fault.code`: `CORPUS_INVALID` — a file that exists and will not load; `RUN_NOT_FOUND` — `CARO_RUN` named a run with no artifact. |
+
+The third row is the rule that took two goes to get right. D49 says absence is
+a fallback and failure is not, and `CORPUS_INVALID` is that rule for a file
+that breaks. `RUN_NOT_FOUND` is the same rule one level up: the default used
+to name `run3`, that artifact has not existed since D46, and so every
+deployment fell through to SYNTHETIC on every request — correctly labelled,
+never noticed, and with a real corpus sitting on disk beside it. Somebody who
+names a run gets that run or gets nothing.
 
 The label travels with every API response and sits in the site header on
 every screen. That is deliberate and it is not a debug affordance: a listing

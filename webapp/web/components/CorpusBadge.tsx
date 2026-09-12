@@ -16,6 +16,12 @@ import { faNum } from '@/lib/format';
  *   loading   the corpus is not known yet, so nothing is claimed
  *   error     the backend is unreachable — said plainly, not silently
  *   loaded    SYNTHETIC or REAL, with the row count and the source path
+ *
+ * When nothing may be served the chip reads the FAULT CODE, not the kind. Two
+ * different things arrive as UNUSABLE — a file that will not load, and a run
+ * that is not on disk — and «CORPUS UNUSABLE» over a missing run sends the
+ * reader to inspect an artifact that is fine, or to look for one that was
+ * never there.
  */
 export default function CorpusBadge() {
   const [c, setC] = useState<CorpusResponse | null>(null);
@@ -43,6 +49,7 @@ export default function CorpusBadge() {
   }
 
   const broken = c.status.kind === 'UNUSABLE';
+  const notFound = c.fault?.code === 'RUN_NOT_FOUND';
   const real = c.status.kind === 'REAL';
   const tone = broken
     ? 'border-bad text-bad bg-bad-soft'
@@ -58,7 +65,8 @@ export default function CorpusBadge() {
         aria-expanded={open}
         className={`chip ${tone} cursor-pointer`}
       >
-        {broken ? 'CORPUS UNUSABLE'
+        {broken
+          ? (notFound ? 'RUN NOT FOUND' : 'CORPUS UNUSABLE')
           : `${real ? 'REAL DATA' : 'SYNTHETIC'} · ${faNum(c.corpus.rows)}`}
       </button>
 
@@ -107,11 +115,14 @@ export default function CorpusBadge() {
               </>
             ) : (
               <p className="m-0 text-[11.5px] text-ink-3 leading-6">
-                {broken
-                  ? 'شناسه‌ی شواهد گرفته نشد — فایل هست ولی خوانده نمی‌شود، '
-                    + 'پس hash آن چیزی را تأیید نمی‌کند.'
-                  : 'شناسه‌ی شواهد ندارد — این پیکره از کد تولید می‌شود و '
-                    + 'فایلی برای hash گرفتن وجود ندارد.'}
+                {notFound
+                  ? 'شناسه‌ی شواهد وجود ندارد — فایلی که انتخاب شده روی دیسک '
+                    + 'نیست، پس چیزی برای hash گرفتن نیست.'
+                  : broken
+                    ? 'شناسه‌ی شواهد گرفته نشد — فایل هست ولی خوانده نمی‌شود، '
+                      + 'پس hash آن چیزی را تأیید نمی‌کند.'
+                    : 'شناسه‌ی شواهد ندارد — این پیکره از کد تولید می‌شود و '
+                      + 'فایلی برای hash گرفتن وجود ندارد.'}
               </p>
             )}
           </div>
