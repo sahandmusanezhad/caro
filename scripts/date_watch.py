@@ -83,11 +83,33 @@ OUT = ROOT / "data" / "observations" / "date_watch.jsonl"
 # Bumped whenever an extraction rule changes, so a shift in the series can be
 # told from a shift in the source. Three silent rule changes is how this file
 # came to exist.
-EXTRACTOR_VERSION = 2   # v2: month-name titles, rounds by observation
+EXTRACTOR_VERSION = 3   # v3: code_commit recorded; transition taxonomy
 
 # One value for every record a single pass writes, so a round is identifiable
 # without guessing from timestamps. Twenty polite requests span minutes.
 ROUND_ID = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _commit() -> str:
+    """The code that produced a record, so a series break can be located.
+
+    extractor_version says the rule changed; this says WHICH code ran, which
+    is what you need when the rule did not change and the output did.
+    """
+    import subprocess
+    try:
+        p = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT,
+                           capture_output=True, text=True, timeout=5)
+        if p.returncode:
+            return ""
+        d = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
+                           capture_output=True, text=True, timeout=5)
+        return p.stdout.strip() + ("+dirty" if d.stdout.strip() else "")
+    except Exception:
+        return ""
+
+
+COMMIT = _commit()
 
 PRESENT = "PRESENT"
 PRESENT_BUT_UNPARSED = "PRESENT_BUT_UNPARSED"
@@ -149,7 +171,8 @@ def observe(ad, url: str, lid: str) -> dict:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rec: dict = {"listing_id": lid, "observed_at": now, "url": url,
                  "round_id": ROUND_ID,
-                 "extractor_version": EXTRACTOR_VERSION}
+                 "extractor_version": EXTRACTOR_VERSION,
+                 "code_commit": COMMIT}
     status, raw = ad._get(url)
     rec["http_status"] = status
     fs = classify_http(status)
@@ -248,6 +271,97 @@ def report(by_id: dict[str, list[dict]]) -> int:
         print("  One round. Nothing can be said about movement yet — that is")
         print("  the point of the file, not a fault in it. Run it again.")
         return 0
+
+    # The taxonomy, because "changed / did not change" is not enough to act
+    # on. Each of these calls for different work, and collapsing them is how
+    # a rendering change got filed as "no data" last round.
+    TITLE_CLASSES = ("unchanged", "moved forward", "MOVED BACKWARD",
+                     "representation changed", "became unreadable",
+                     "listing unavailable")
+    PHRASE_CLASSES = ("advanced as elapsed time predicts", "unchanged",
+                      "RESET (went backwards)", "disappeared",
+                      "INCONSISTENT with elapsed time", "absent throughout")
+    title_cls: Counter = Counter()
+    phrase_cls: Counter = Counter()
+    url_cls: Counter = Counter()
+    notes: list[str] = []
+
+    for lid, rs in sorted(by_id.items()):
+        o = sorted(rs, key=lambda r: r["observed_at"])
+        a, b = o[0], o[-1]
+        if len(o) < 2:
+            continue
+        hours = (datetime.fromisoformat(b["observed_at"])
+                 - datetime.fromisoformat(a["observed_at"])).total_seconds() / 3600
+
+        # --- the URL itself. 404/410 is NOT "gone for good"; it is one
+        # unreachable observation until a series says otherwise.
+        st = b.get("http_status")
+        url_cls["reachable" if b.get("fetch") == "ok"
+                else f"unreachable ({st})" if st in (404, 410)
+                else f"failed ({st})"] += 1
+
+        # --- title
+        ta, tb = a.get("title_date_iso"), b.get("title_date_iso")
+        sa, sb = a.get("extraction_status"), b.get("extraction_status")
+        if sb == UNREADABLE and sa != UNREADABLE:
+            title_cls["became unreadable"] += 1
+        elif sa == UNREADABLE and sb == UNREADABLE:
+            title_cls["listing unavailable"] += 1
+        elif bool(ta) != bool(tb):
+            title_cls["representation changed"] += 1
+            notes.append(f"    title rendering {lid}: {sa} -> {sb}")
+        elif ta and tb:
+            title_cls["unchanged" if ta == tb
+                      else "moved forward" if tb > ta
+                      else "MOVED BACKWARD"] += 1
+            if tb < ta:
+                notes.append(f"    title BACKWARD {lid}: {ta} -> {tb}")
+
+        # --- phrase, checked against the elapsed interval rather than eyed
+        da, db = a.get("phrase_days"), b.get("phrase_days")
+        if da is None and db is None:
+            phrase_cls["absent throughout"] += 1
+        elif db is None:
+            phrase_cls["disappeared"] += 1
+        elif da is None:
+            phrase_cls["unchanged"] += 1          # appeared; nothing to compare
+        else:
+            delta = db - da
+            lo = int(hours // 24)
+            if delta < 0:
+                phrase_cls["RESET (went backwards)"] += 1
+                notes.append(f"    phrase RESET {lid}: {a.get('phrase_raw')}"
+                             f" -> {b.get('phrase_raw')}")
+            elif delta in (lo, lo + 1):
+                phrase_cls["advanced as elapsed time predicts"
+                           if delta else "unchanged"] += 1
+            else:
+                phrase_cls["INCONSISTENT with elapsed time"] += 1
+                notes.append(f"    phrase INCONSISTENT {lid}: +{delta} day(s) "
+                             f"over {hours:.1f}h")
+
+    print("WHAT CHANGED, BY KIND   (first observation vs last)")
+    print("-" * 66)
+    print("  title")
+    for k in TITLE_CLASSES:
+        if title_cls[k]:
+            print(f"    {k:<40}{title_cls[k]:>4}")
+    print("  relative phrase")
+    for k in PHRASE_CLASSES:
+        if phrase_cls[k]:
+            print(f"    {k:<40}{phrase_cls[k]:>4}")
+    print("  url")
+    for k, n in url_cls.most_common():
+        print(f"    {k:<40}{n:>4}")
+    if notes:
+        print()
+        for line in notes[:12]:
+            print(line)
+    print()
+    print("  An unreachable url is ONE unreachable observation. It is not a")
+    print("  deletion, not a sale, and not a date of removal.")
+    print()
 
     back = fwd = same = nodata = 0
     backwards: list[tuple[str, str, str]] = []
