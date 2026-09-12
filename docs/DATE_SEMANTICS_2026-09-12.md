@@ -63,7 +63,17 @@ nothing about whether it tracks a renewal, a bump, a full edit, or something
 else. Naming the mechanism would be the same error as the probe's own three
 false negatives: a confident label over an unexamined gap.
 
-### The two fields are not the same quantity
+### Are they two fields? — DOWNGRADED, see WATCH_ROUND1_2026-09-12.md
+
+> This section concluded they are not the same quantity. The watch's first
+> round makes that doubtful: every disagreement between the title date and
+> the phrase-implied date is **exactly one day, in one direction**, 11 of 11,
+> with none earlier and none differing by two. Independent events would
+> scatter; one timestamp rendered as a calendar date on one side and whole
+> elapsed days on the other produces exactly this. Treat the paragraphs below
+> as the reading of a single round, now under test.
+
+### The two fields as this round read them
 
 Six listings carry title `1405/6/19` (= 2026-09-10) while their phrase says
 «دیروز» (= 2026-09-11). If both tracked one event they would agree. They
@@ -76,9 +86,11 @@ What is established:
 - neither is first publication.
 
 What is **not** established, and should not be guessed: which event each one
-tracks. "Title updates on a full edit, phrase on any bump" fits the data and
-so do other stories. Distinguishing them needs the same listings observed
-again, which is a second run of this script and not an argument.
+tracks — or whether there are two events at all. "Title updates on a full
+edit, phrase on any bump" fits this data and so do other stories, including
+"one timestamp, two renderings", which the watch's first round now favours.
+Distinguishing them needs the same listings observed again, which is a second
+round and not an argument.
 
 ## 3. Granularity
 
@@ -176,11 +188,12 @@ Not a coincidence at that count. But the anchor is the phrase, and §3 above
 shows the phrase is **absent on 5 of 19 pages — 26%** — precisely the older
 listings.
 
-So the positional rule is correct and the anchor is wrong. A province fix
-built on it would silently drop a quarter of listings, skewed toward the
-long-lived ones. The mileage line is present on all of them and is the
-candidate to anchor on instead; that needs its own check before anything is
-written.
+So the positional rule is correct and the anchor is wrong.
+
+> **SUPERSEDED — `docs/WATCH_ROUND1_2026-09-12.md` §1.** Anchored on the
+> mileage line instead, the rule holds on **19 of 19**. The five phrase-less
+> pages are not a second template: they render the same slot as an absolute
+> Jalali date. The 26% gap was an artefact of anchoring on the phrase.
 
 ---
 
