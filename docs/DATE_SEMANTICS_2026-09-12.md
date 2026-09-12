@@ -42,6 +42,27 @@ do that.
 wrong, and it was wrong in the direction that mattered — it would have
 licensed reading `first_seen_on` straight off the title.
 
+### What it is instead — and what may NOT be said
+
+Established:
+
+```
+    source_declared_date
+      present in <title>, every page
+      day-granular
+      MUTABLE — observed to move at least once
+      NOT the original publication date
+      NOT first_seen_on
+      semantics: UNKNOWN
+```
+
+Earlier drafts of this file called it "the start of the current listing
+spell". That is not established and the phrase is removed. The data
+distinguishes exactly one thing — it is not first publication — and says
+nothing about whether it tracks a renewal, a bump, a full edit, or something
+else. Naming the mechanism would be the same error as the probe's own three
+false negatives: a confident label over an unexamined gap.
+
 ### The two fields are not the same quantity
 
 Six listings carry title `1405/6/19` (= 2026-09-10) while their phrase says
@@ -82,28 +103,48 @@ correction to this line of reasoning, and the pattern is worth naming: each
 correction has come from measuring the thing rather than from thinking harder
 about it.
 
-### But the contract's machinery survives, because the shape is the same
+### And the "it is still an upper bound" argument does NOT hold yet
 
-A date that can only move FORWARD is an **upper bound** on when the listing's
-current spell began. That is exactly the shape of
-`observed_appearance=False` — a recorded date that the truth sits at or
-before — and §3 of `TEMPORAL_CONTRACT.md` already proves what to do with an
-upper bound:
+The previous version of this section said: a date that can only move forward
+is an upper bound, which is the shape §3 already handles.
 
-> train placement is always sound; test placement never is.
+**That argument assumes its own premise.** Nothing here establishes that the
+date can *only* move forward. One listing was seen to move forward once. A
+field that moves forward in one sample is not a monotonic field; it is a
+field that has been seen to change, in one direction, twice-measured.
 
-So nothing in §3 is discarded. What changes is the *source* of the bound and
-its tightness: instead of "sometime before we started watching", it is a
-specific day, available on the first collection, wrong for roughly 1 listing
-in 19 over a two-day window.
+To use it as an upper bound, all of these have to hold, and none is measured:
 
-### And an axis exists today that nobody knew was there
+1. it never moves backwards;
+2. it relates to the listing's own history rather than to, say, a re-render
+   or a cache;
+3. the events that move it are known, so "upper bound on what" has an answer.
 
-The nineteen title dates span **2026-08-15 to 2026-09-11** — about four
-weeks. Run 11's corpus is not a flat instant; it has a temporal spread, and
-it always did. `rows_from_corpus` sets `first_seen_ordinal=0` on every row
-because nothing ever read the title, not because the listings are
-contemporaneous.
+Until then the correct status is: **a mutable source-declared date of unknown
+semantics.** It may not be used as `first_seen_ordinal`, as a split key, or
+as an input to any benchmark.
+
+§3 of `TEMPORAL_CONTRACT.md` remains valid on its own terms — the
+train-only rule for `observed_appearance=False` is proved from what that flag
+means and does not depend on anything here.
+
+### A date-shaped signal with a spread — which is not an axis
+
+The nineteen title dates span **2026-08-15 to 2026-09-11**, about four weeks.
+That is worth recording and it is NOT a temporal axis:
+
+- its semantics are unknown (above), so what the spread measures is unknown;
+- it is not stored in any artifact — it was read from live pages today;
+- it comes from 20 of 76 rows, not the corpus;
+- and a benchmark axis has to be a field of the artifact being benchmarked,
+  not a property of pages fetched afterwards.
+
+    an observed date-shaped field  ≠  a validated benchmark temporal axis
+
+What it does establish is narrower and still useful: the listings in a
+single collection are not all posted on the same day, so a flat
+`first_seen_ordinal` is a consequence of nothing reading the title, not a
+fact about the corpus.
 
 This does not rescue Run 11. That artifact carries no such field, its
 verdict is frozen at `UNJUDGEABLE — missing_temporal_axis`, and a corpus
@@ -111,8 +152,13 @@ built with a posting date is a new corpus with a new id and a new sha256.
 
 ### What is still missing, and is not obtainable this way
 
-Time-on-market. A spell start is not a disappearance, and the one 404 in
-this sample is one observation, not a series.
+Time-on-market. A date on a page is not a disappearance, and the one 404 in
+this sample is ONE OBSERVATION — the first absence this project has recorded.
+It establishes that the URL was not retrievable at that moment. It does not
+establish that the car sold, that the listing was deleted, which day it went,
+or that it is gone rather than moved or briefly erroring. `duration_stats`
+needs ≥30 observed disappearances and a series of present/absent/unknown per
+listing; this is one of the first kind and none of the second.
 
 ---
 
@@ -143,5 +189,5 @@ written.
 | | |
 |---|---|
 | **Where?** | `<title>`, every page. Never JSON-LD. |
-| **What does it mean?** | Not publication. It moves — rarely for the title, often for the phrase — and which event each tracks is not yet established. |
+| **What does it mean?** | Not publication — one counterexample settles that. Beyond it: unknown. Not proved monotonic, so not usable as an upper bound either. |
 | **How precise?** | Title: day, always. Phrase: finer, but gone on older listings. |
