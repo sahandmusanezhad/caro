@@ -16,6 +16,11 @@ venv/
 #                     ignored out of the repository.
 data/raw/
 data/snapshots/
+#   data/observations/  OPERATIONAL, same lifecycle as snapshots. One JSON
+#                     object per listing per watch round, holding a truncated
+#                     neighbouring page line that may be arbitrary page text.
+#                     Never published.
+data/observations/
 #   data/inbox/       Messages people sent us through the contact form, with
 #                     the contact details they chose to give. Not a corpus,
 #                     never published, and deliberately not scanned by the
