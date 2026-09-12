@@ -284,9 +284,17 @@ def report(by_id: dict[str, list[dict]]) -> int:
     # not the same observation even though both are "two rounds". Summing
     # them into one count is how a sub-day series would come to look like
     # evidence about daily behaviour.
+    # TOTAL — every transition lands in exactly one, and the count is
+    # asserted below. The first version had two shapes falling through every
+    # branch into nothing: both sides unreadable BY THE EXTRACTOR (two
+    # ABSENT_IN_SOURCE, say, which is a fetch that worked and a rule that
+    # did not), and a listing that became readable again. Neither was
+    # counted anywhere, so the report would have shown fewer transitions
+    # than existed and said nothing about the difference.
     TITLE_CLASSES = ("unchanged", "moved forward", "MOVED BACKWARD",
                      "representation changed", "became unreadable",
-                     "listing unavailable")
+                     "became readable", "url unavailable both times",
+                     "date unreadable by extractor, both sides")
     PHRASE_CLASSES = ("advanced as elapsed time predicts", "unchanged",
                       "RESET (went backwards)", "disappeared",
                       "INCONSISTENT with elapsed time", "absent throughout")
@@ -294,6 +302,7 @@ def report(by_id: dict[str, list[dict]]) -> int:
     def bucket(h: float) -> str:
         return "under 24h" if h < 24 else "24h or more"
 
+    n_tr = 0
     tcls: dict[str, Counter] = defaultdict(Counter)
     pcls: dict[str, Counter] = defaultdict(Counter)
     ucls: Counter = Counter()
@@ -319,10 +328,24 @@ def report(by_id: dict[str, list[dict]]) -> int:
             legacy = (a.get("extractor_version") != EXTRACTOR_VERSION
                       or b.get("extractor_version") != EXTRACTOR_VERSION)
 
-            if sb == UNREADABLE and sa != UNREADABLE:
+            n_tr += 1
+            if sa == UNREADABLE and sb == UNREADABLE:
+                tcls[bk]["url unavailable both times"] += 1
+            elif sb == UNREADABLE:
                 tcls[bk]["became unreadable"] += 1
-            elif sa == UNREADABLE and sb == UNREADABLE:
-                tcls[bk]["listing unavailable"] += 1
+            elif sa == UNREADABLE:
+                # The fetch recovered. Whatever the date does, this is not a
+                # rendering change and calling it one would be a finding
+                # about the page invented out of a network event.
+                tcls[bk]["became readable"] += 1
+            elif not ta and not tb:
+                # Both fetched, neither parsed. The extractor could not read
+                # a page it received — twice — which is a fact about the
+                # RULE and not about the listing.
+                tcls[bk]["date unreadable by extractor, both sides"] += 1
+                legacy_notes.append(
+                    f"    {lid}: {sa} -> {sb}  ({hours:.1f}h)   "
+                    f"[extractor could not read either; not a page change]")
             elif bool(ta) != bool(tb):
                 tcls[bk]["representation changed"] += 1
                 tag = ("   [legacy extraction status; representation-"
@@ -372,6 +395,15 @@ def report(by_id: dict[str, list[dict]]) -> int:
         for k in PHRASE_CLASSES:
             if pcls[bk][k]:
                 print(f"    phrase  {k:<38}{pcls[bk][k]:>4}")
+        print()
+    # The check that makes the taxonomy a taxonomy. Without it, a shape
+    # nobody thought of is simply missing from the table and the table
+    # still looks complete.
+    classified = sum(sum(c.values()) for c in tcls.values())
+    if classified != n_tr:
+        print(f"  ⚠ {n_tr - classified} transition(s) matched NO class. The")
+        print("    taxonomy is incomplete and the table above is not a")
+        print("    summary of the data.")
         print()
     print("  url, over all transitions")
     for k, n in ucls.most_common():
