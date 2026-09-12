@@ -34,6 +34,33 @@ That is a candidate worth writing a parser test against. It is still one
 sample of nineteen from one make family on one day, so it is a candidate and
 not a decision.
 
+### The shape a fix would take — NOT implemented
+
+Position alone is not identification. `lines[i + 2]` is the same class of
+rule as `_labelled(lines, "موقعیت")`: right until the page changes, and
+silent when it does.
+
+```
+    find the mileage anchor
+    scan a BOUNDED number of following lines
+    recognise the age slot explicitly —
+        a relative expression, or an absolute Jalali date
+    take the next line as a LOCATION CANDIDATE
+    validate it before accepting it
+```
+
+And the field itself should be split, which it is not today:
+
+```
+    location_raw        what the page said, kept verbatim
+    province            parsed out of it, or None
+    province_source     parsed | unparsed | absent
+```
+
+`province` guessed out of an unrecognised string is the failure this whole
+thread is about. An unparsed location yields `None` with the reason
+recorded, never a best effort.
+
 ## 2. The age slot and the title may be one field, not two
 
 `DATE_SEMANTICS_2026-09-12.md` says the title date and the relative phrase
@@ -59,9 +86,25 @@ two ways: a calendar date on one side, and whole elapsed 24-hour blocks on
 the other, which disagree exactly when the time of day of the posting is
 later than the time of day of the observation.
 
-This is a hypothesis with a regularity behind it, not a result. It is
-recorded because it points the other way from what the previous document
-concluded, and that document is corrected to match.
+This is the LEADING hypothesis, not a result, and the distance matters
+because it is the same distance I have now closed too early twice.
+
+Rivals the data does not exclude:
+
+1. one timestamp, two renderings with different rounding — the above;
+2. two timestamps that happen to stay within a day of each other;
+3. a title that changes on one kind of event and a phrase that renders
+   elapsed time from another;
+4. an offset produced by timezone, by cache, or by when the page was
+   generated rather than by anything about the listing;
+5. a title that will be seen to move BACKWARDS on a longer series, which
+   would end the whole line of reasoning.
+
+    the observed pattern is CONSISTENT WITH one shared timestamp.
+    It does not establish one.
+
+It is recorded because it points the other way from what the previous
+document concluded, and that document is corrected to match.
 
 ### The prediction, written before round 2
 
