@@ -179,7 +179,11 @@ export interface SearchResponse extends Envelope {
 }
 
 export interface ListingResponse extends Envelope {
-  listing: EvidenceItem;
+  /** Null exactly when `status.kind === 'UNUSABLE'`: with no corpus loaded,
+   *  "is this id in the corpus?" has no answer, so the endpoint returns the
+   *  envelope and no listing rather than a 404 that would claim the car is
+   *  not there. Check `fault.code` for which of the two causes it is. */
+  listing: EvidenceItem | null;
 }
 
 export interface CompareResponse extends Envelope {

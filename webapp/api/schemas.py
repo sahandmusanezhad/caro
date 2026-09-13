@@ -218,7 +218,16 @@ class SearchResponse(Envelope):
 
 
 class ListingResponse(Envelope):
-    listing: EvidenceItem
+    # Null exactly when the corpus is UNUSABLE. Not a convenience: with no
+    # corpus loaded, "is this id in the corpus?" has no answer at all, and the
+    # 404 that used to be returned instead answered it — «no listing 'b0' in
+    # this corpus» — which is a claim about the LISTING made from a fact about
+    # the SOURCE (D54). The listing may well exist; there is nowhere to look.
+    #
+    # No default, so every construction site has to say which it is. A
+    # `= None` here would let a healthy corpus return a listing-less 200 by
+    # omission, which is the failure this field is meant to make visible.
+    listing: EvidenceItem | None
 
 
 class CompareResponse(Envelope):

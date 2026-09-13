@@ -16,6 +16,9 @@ What is checked instead:
                                       the artifact it looked for
     3b a missing CONFIGURED run     → UNUSABLE / RUN_NOT_FOUND, never a
                                       silent substitution
+    3c listing / compare on it      → the envelope, not a 404 claiming the
+                                      car is not there — and a healthy
+                                      corpus still 404s on an id it lacks
     4  a broken corpus              → UNUSABLE, a fault, and never SYNTHETIC
     5  an ungated corpus            → evidence may exist, no estimate is
                                       fabricated for it
@@ -221,6 +224,62 @@ with corpus_dir(None, run_env="run_no_such_thing"):
     # reader to inspect an artifact that is fine.
     check("  and `kind` alone cannot tell it from a corrupt file",
           r.status.kind == "UNUSABLE")
+
+
+# ---------------------------------------------------------------------------
+# 3c — the two endpoints that used to answer with a 404.
+#
+# `/api/listing` and `/api/compare` raised HTTPException before the envelope
+# was built, so on an unloadable corpus the client was told «no listing 'b0'
+# in this corpus» and «none of those ids are in this corpus». Both sentences
+# are claims about a LISTING, made from a fact about the SOURCE (D54), and the
+# second one is what a whole deployment said about every car on the site the
+# moment CARO_RUN named a run that was not there. The listing may exist; there
+# is nowhere to look.
+print("\n3c — a refusal about the source is not a 404 about the listing")
+for label, body, env, want_code in [
+        ("configured run missing", None, "run_no_such_thing", "RUN_NOT_FOUND"),
+        ("artifact will not load", "<html>404</html>", None, "CORPUS_INVALID")]:
+    with corpus_dir(body, run_env=env):
+        r = api.listing("b0")
+        ok, why = validates(schemas.ListingResponse, r)
+        check(f"{label} → ListingResponse validates", ok, why)
+        check("  it carries the envelope, not an HTTP error",
+              r.status.kind == "UNUSABLE" and r.fault is not None)
+        check(f"  the fault is {want_code}",
+              r.fault is not None and r.fault.code == want_code,
+              str(r.fault.code if r.fault else None))
+        check("  and `listing` is null — no car is claimed either way",
+              r.listing is None, str(r.listing))
+
+        c = api.compare(schemas.CompareRequest(ids=["b0", "b1"], q="۲۰۶"))
+        ok, why = validates(schemas.CompareResponse, c)
+        check("  CompareResponse validates", ok, why)
+        check("  with the envelope and nothing in it",
+              c.status.kind == "UNUSABLE" and c.rows == [] and c.evidence == [],
+              f"rows={len(c.rows)} evidence={len(c.evidence)}")
+
+# And the half that must NOT change. Turning every miss into a 200 would erase
+# the one answer this endpoint is actually for: a corpus was read, and this id
+# is not in it.
+with corpus_dir(valid_artifact()):
+    r = api.listing("b0")
+    check("a healthy corpus still answers for an id it HAS",
+          r.listing is not None and r.listing.id == "b0",
+          str(r.listing))
+    raised = False
+    try:
+        api.listing("definitely-not-here")
+    except Exception as e:                          # noqa: BLE001
+        raised = getattr(e, "status_code", None) == 404
+    check("  and still 404s on one it does not",
+          raised, "no 404 was raised — every miss is now a 200")
+    raised = False
+    try:
+        api.compare(schemas.CompareRequest(ids=["nope"], q="۲۰۶"))
+    except Exception as e:                          # noqa: BLE001
+        raised = getattr(e, "status_code", None) == 404
+    check("  and compare does too", raised, "no 404 was raised")
 
 
 # ---------------------------------------------------------------------------

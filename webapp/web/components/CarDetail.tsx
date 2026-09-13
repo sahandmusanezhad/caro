@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
-  api, type CorpusMeta, type EvidenceItem, type ScoredItem,
+  api, type CorpusMeta, type EvidenceItem, type Fault, type ScoredItem,
 } from '@/lib/api';
 import { compact, faNum, faPlain, km, modelLabel, toman } from '@/lib/format';
 import TermBars from '@/components/TermBars';
@@ -23,12 +23,26 @@ import TermBars from '@/components/TermBars';
  * than reconstructing them. This page says so where a photo gallery and a
  * description would otherwise sit, instead of leaving an empty box that reads
  * as a loading failure.
+ *
+ * Three ways this page can have no car, and they are not the same sentence:
+ *
+ *   err       the request did not come back, or the id is genuinely not in a
+ *             corpus that WAS read. «پیدا نشد» is true here.
+ *   blocked   the corpus is UNUSABLE, so nothing was read and nothing can be
+ *             looked up. «پیدا نشد» would be false — the car may be sitting
+ *             there; we have no corpus to look in. The envelope says why.
+ *   loading   neither has happened yet.
+ *
+ * These were one branch until the API started serving a whole deployment in
+ * the second state: with `CARO_RUN` naming a run that is not on disk, every
+ * car on the site reported itself missing.
  */
 export default function CarDetail({ id }: { id: string }) {
   const [listing, setListing] = useState<EvidenceItem | null>(null);
   const [corpus, setCorpus] = useState<CorpusMeta | null>(null);
   const [scored, setScored] = useState<ScoredItem | null>(null);
   const [refused, setRefused] = useState<string | null>(null);
+  const [blocked, setBlocked] = useState<Fault | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,8 +50,21 @@ export default function CarDetail({ id }: { id: string }) {
     api.listing(id)
       .then((r) => {
         if (!alive) return;
-        setListing(r.listing);
         setCorpus(r.corpus);
+        if (r.listing === null) {
+          // Null only ever means UNUSABLE — see lib/api.ts. The fault is not
+          // optional in that state, but the fallback is written out rather
+          // than asserted: a page that throws because a field it expected was
+          // absent is a worse answer than a page that says less.
+          setBlocked(r.fault ?? {
+            code: 'CORPUS_INVALID',
+            message: 'the corpus could not be read',
+            fa: 'پیکره‌ای بارگذاری نشده است، پس چیزی سرو نمی‌شود.',
+            still_available: [],
+          });
+          return undefined;
+        }
+        setListing(r.listing);
         return api.compare([id]);
       })
       .then((c) => {
@@ -45,7 +72,13 @@ export default function CarDetail({ id }: { id: string }) {
         if (c.status.served && c.rows.length) {
           setScored(c.rows[0]);
         } else {
-          setRefused(c.fault?.message ?? 'رتبه‌بندی روی این پیکره سرو نمی‌شود');
+          // `message`, not `fa`: the Farsi explanation is the prose beside the
+          // monospace line below, and this branch is only reachable when a
+          // corpus WAS read, so ESTIMATOR_NOT_GATED is the only fault that can
+          // arrive here and that prose is right for it. The `blocked` branch
+          // above is where the cause varies, and there the Farsi is read off
+          // the fault instead of written into the page.
+          setRefused(c.fault?.message ?? 'no estimator is gated on this corpus');
         }
       })
       .catch((e) => { if (alive) setErr(String(e.message ?? e)); });
@@ -57,6 +90,42 @@ export default function CarDetail({ id }: { id: string }) {
       <div className="panel border-bad">
         <p className="eyebrow !text-bad">پیدا نشد</p>
         <p className="m-0 text-[14px] text-ink-2">{err}</p>
+        <Link href="/search" className="btn mt-4 inline-block">
+          برگرد به جست‌وجو
+        </Link>
+      </div>
+    );
+  }
+
+  if (blocked) {
+    return (
+      <div className="panel border-bad">
+        <div className="flex items-center gap-3 flex-wrap mb-3">
+          {/* NOT SERVED, not the fault code. The code is already in the badge
+              that never leaves the header; repeating it here would put the
+              same words twice on one screen. This chip says what is true of
+              THIS page, and the reason comes from the fault below it. */}
+          <span className="chip border-bad text-bad bg-bad-soft">
+            NOT SERVED
+          </span>
+          <p className="eyebrow !mb-0">
+            این صفحه چیزی نشان نمی‌دهد، چون پیکره‌ای خوانده نشده
+          </p>
+        </div>
+        <p className="m-0 text-[15px] leading-[1.95] max-w-[62ch]">
+          {blocked.fa}
+        </p>
+        {/* The distinction the old «پیدا نشد» destroyed, said out loud. */}
+        <p className="m-0 mt-4 text-[12.5px] text-ink-3 max-w-[62ch]">
+          پیکره‌ای خوانده نشده که بشود در آن دنبال{' '}
+          <span className="num">{id}</span> گشت. پس نمی‌گوییم این آگهی وجود
+          ندارد — دربارهٔ خودش هیچ ادعایی نمی‌کنیم؛ این جمله دربارهٔ منبع است،
+          نه دربارهٔ خودرو.
+        </p>
+        {blocked.message && (
+          <p className="m-0 mt-3 num text-[11.5px] text-ink-3 leading-6
+                        whitespace-pre-wrap break-all">{blocked.message}</p>
+        )}
         <Link href="/search" className="btn mt-4 inline-block">
           برگرد به جست‌وجو
         </Link>

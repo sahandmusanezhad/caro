@@ -354,6 +354,20 @@ def search_reweight(q: str, weights: ReweightRequest,
 @app.get("/api/listing/{listing_id}", response_model=ListingResponse)
 def listing(listing_id: str) -> ListingResponse:
     c = corpus_mod.active()
+
+    # Nothing loaded, so this id cannot be looked up — not "is absent". The
+    # 404 below is a statement about a corpus that EXISTS and does not hold
+    # this listing; returning it here would say the same words about a corpus
+    # that was never read, and the page would tell a buyer their car is gone
+    # when the truth is that this deployment is serving nothing (D54).
+    #
+    # Kept narrow deliberately: only UNUSABLE. A healthy corpus that genuinely
+    # lacks the id still 404s, because turning every miss into a 200 would
+    # hide the one case this endpoint is actually for.
+    if c.kind == "UNUSABLE":
+        return ListingResponse(**_envelope(c, served=False).model_dump(),
+                               listing=None)
+
     got = next((x for x in c.listings if x.listing_id == listing_id), None)
     if got is not None:
         return ListingResponse(**_envelope(c, served=False).model_dump(),
@@ -374,6 +388,13 @@ def compare(req: CompareRequest) -> CompareResponse:
     shows only price is the product this one exists to argue against.
     """
     c = corpus_mod.active()
+
+    # Same as `listing()` above, for the same reason: «none of those ids are
+    # in this corpus» is true of a corpus, and there is no corpus here.
+    if c.kind == "UNUSABLE":
+        return CompareResponse(**_envelope(c, served=False).model_dump(),
+                               rows=[], evidence=[])
+
     wanted = [r for r in c.rows if r.listing_id in set(req.ids)]
     if not wanted and not c.gated:
         # Nothing appraisable, and nothing may be ranked anyway: return the

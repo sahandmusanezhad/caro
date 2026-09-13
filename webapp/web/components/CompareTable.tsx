@@ -97,22 +97,56 @@ export default function CompareTable() {
   }
 
   if (!data.status.served) {
+    /* Two reasons reach this screen and they are not the same sentence.
+     *
+     * The page used to state one of them in hardcoded prose — "there is no
+     * accepted estimator" — which is right when a corpus WAS read and false
+     * when none was: with `CARO_RUN` naming a run that is not on disk, this
+     * told the reader the estimator was the problem while the actual problem
+     * was that nothing had been loaded at all. So the reason is read off the
+     * fault, and the hardcoded sentence survives only as the fallback for a
+     * refusal that arrives without one. */
+    const broken = data.status.kind === 'UNUSABLE';
     return (
       <div className="flex flex-col gap-5">
         <section className="panel border-bad">
           <div className="flex items-center gap-3 flex-wrap mb-3">
+            {/* The fault code lives in the header badge, which is on every
+                screen. Here the chip says what happened to THIS request. */}
             <span className="chip border-bad text-bad bg-bad-soft">
               NOT SERVED
             </span>
-            <p className="eyebrow !mb-0">مقایسه‌ی تصمیمی سرو نمی‌شود</p>
+            <p className="eyebrow !mb-0">
+              {broken ? 'پیکره‌ای برای مقایسه خوانده نشده'
+                : 'مقایسه‌ی تصمیمی سرو نمی‌شود'}
+            </p>
           </div>
           <p className="m-0 text-[14px] leading-[1.95] max-w-[62ch]">
-            مقایسه‌ی این خودروها روی محورهایی مثل صرفه و ریسک به برآوردگری
-            نیاز دارد که روی همین پیکره پذیرفته شده باشد. چنین برآوردگری وجود
-            ندارد، پس فقط آنچه از خود آگهی‌ها استخراج شده نمایش داده می‌شود.
+            {data.fault?.fa
+              ?? 'مقایسه‌ی این خودروها روی محورهایی مثل صرفه و ریسک به '
+               + 'برآوردگری نیاز دارد که روی همین پیکره پذیرفته شده باشد. '
+               + 'چنین برآوردگری وجود ندارد، پس فقط آنچه از خود آگهی‌ها '
+               + 'استخراج شده نمایش داده می‌شود.'}
           </p>
+          {data.fault?.message && (
+            <p className="m-0 mt-3 num text-[11.5px] text-ink-3 leading-6
+                          whitespace-pre-wrap break-all">
+              {data.fault.message}
+            </p>
+          )}
         </section>
 
+        {/* An empty table under a heading promising extracted fields reads as
+            a loading failure, and on an UNUSABLE corpus it would also imply we
+            looked and found nothing. Said instead. */}
+        {data.evidence.length === 0 ? (
+          <div className="panel text-[13px] text-ink-3 leading-7">
+            {broken
+              ? 'چیزی برای نشان‌دادن نیست چون هیچ آگهی‌ای خوانده نشده — نه '
+                + 'اینکه این خودروها پیدا نشدند.'
+              : 'هیچ‌کدام از این شناسه‌ها در پیکره‌ی جاری نبودند.'}
+          </div>
+        ) : (
         <div className="border border-line bg-surface rounded-[3px]
                         overflow-x-auto">
           <table className="w-full border-collapse text-[13px] min-w-[520px]">
@@ -144,6 +178,7 @@ export default function CompareTable() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     );
   }
