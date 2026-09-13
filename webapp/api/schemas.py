@@ -54,17 +54,41 @@ CorpusKind = Literal["SYNTHETIC", "REAL", "UNUSABLE"]
 # Small and closed, deliberately. A code is for a client to branch on; a
 # message is for a person to read. Growing this list one string at a time is
 # how an enum becomes a second copy of the message, so a member has to earn its
-# place by leading somewhere different:
+# place by leading somewhere different. Each of these does:
 #
-#   CORPUS_INVALID       an artifact exists and will not load  → fix the file
-#   RUN_NOT_FOUND        CARO_RUN names a run with no artifact → fix the
-#                        configuration, or collect that run
-#   ESTIMATOR_NOT_GATED  nothing has cleared the gate here     → not a defect
+#   about the SOURCE — nothing can be served at all
+#     CORPUS_INVALID          an artifact exists and will not load → fix the
+#                             file
+#     RUN_NOT_FOUND           CARO_RUN names a run with no artifact → fix the
+#                             configuration, or collect that run
 #
-# The first two both arrive as kind=UNUSABLE and differ in nothing a client can
-# see except this code, which is the argument for the third member: without it
-# an operator who typed the wrong run name is told their artifact is corrupt.
-FaultCode = Literal["CORPUS_INVALID", "RUN_NOT_FOUND", "ESTIMATOR_NOT_GATED"]
+#   about the CLAIM — a corpus was read, and a number may not be published
+#     ESTIMATOR_NOT_GATED     nothing has cleared the gate here → not a defect
+#
+#   about the RESOURCE — a corpus was read and does not contain this
+#     LISTING_NOT_FOUND       that id is not in the corpus being served
+#     COMPARE_IDS_NOT_FOUND   not one of the requested ids is
+#
+# The last two are the ones that ride on a 404, and they exist because a 404
+# with a free-text `detail` forces the client to read English prose to find out
+# what happened. The distinction from the first group is the whole point of the
+# split: «this listing is not here» is a statement about a corpus we READ, and
+# saying it when no corpus was read at all is a claim we have no standing to
+# make (D54). A client that branched on the status code alone could not tell
+# the two apart — both were 404 — which is exactly what went wrong.
+#
+# COMPARE_IDS_NOT_FOUND is separate from LISTING_NOT_FOUND rather than reused
+# because it answers about a SET: compare returns 200 with whatever it found
+# when some ids match, so this code means "not one of them", which is a
+# different fact from "this one is missing" and leads the client somewhere
+# else — back to a selection, not back to a listing.
+FaultCode = Literal[
+    "CORPUS_INVALID",
+    "RUN_NOT_FOUND",
+    "ESTIMATOR_NOT_GATED",
+    "LISTING_NOT_FOUND",
+    "COMPARE_IDS_NOT_FOUND",
+]
 
 
 class CorpusIdentity(BaseModel):

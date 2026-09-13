@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from fastapi import FastAPI, HTTPException, Query                  # noqa: E402
+from fastapi import FastAPI, Query, Response                       # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware                 # noqa: E402
 
 from caro.appraisal import NotBenchmarked                          # noqa: E402
@@ -108,7 +108,20 @@ def _fault(c) -> Fault | None:
     return None
 
 
-def _envelope(c, *, served: bool) -> Envelope:
+def _envelope(c, *, served: bool, fault: Fault | None = None) -> Envelope:
+    """The envelope for this response.
+
+    `fault` overrides the corpus-level one, and the precedence is deliberate:
+    `_fault(c)` answers "what is wrong with this deployment", while an explicit
+    fault answers "what happened to THIS request". When both are true — a
+    healthy corpus whose estimator is not gated, asked for an id it does not
+    hold — the specific one is what the client needs, because the gate is not
+    why this request failed and nothing would be ranked anyway.
+
+    There is one `fault` field rather than a list on purpose. A response that
+    carried two reasons would leave the client choosing between them, which is
+    this function's job and not the client's.
+    """
     ident = c.identity.as_dict() if c.identity is not None else None
     return Envelope(
         corpus=CorpusMeta(
@@ -117,7 +130,7 @@ def _envelope(c, *, served: bool) -> Envelope:
             appraisable=len(c.rows),
             identity=ident),
         status=ServingStatus(kind=c.kind, gated=c.gated, served=served),
-        fault=_fault(c))
+        fault=fault if fault is not None else _fault(c))
 
 
 # ---------------------------------------------------------------------------
@@ -352,7 +365,20 @@ def search_reweight(q: str, weights: ReweightRequest,
 
 
 @app.get("/api/listing/{listing_id}", response_model=ListingResponse)
-def listing(listing_id: str) -> ListingResponse:
+def listing(listing_id: str, response: Response = None) -> ListingResponse:
+    """One listing, or the envelope saying why there is none.
+
+    `response` is FastAPI's, injected, and is how the 404 below is set without
+    leaving the typed path: `raise HTTPException` produces `{"detail": "..."}`
+    and nothing else, so a client had to read English prose out of a body that
+    carried no corpus, no status and no fault code. Setting the status on the
+    injected response instead keeps `response_model=` validating what goes out,
+    so a 404 is a ListingResponse like any other — same envelope, same fields,
+    a different `fault.code`.
+
+    The default of None is for direct calls from the suite, where FastAPI is
+    not the one calling; over HTTP it is always injected.
+    """
     c = corpus_mod.active()
 
     # Nothing loaded, so this id cannot be looked up — not "is absent". The
@@ -375,17 +401,37 @@ def listing(listing_id: str) -> ListingResponse:
 
     row = next((r for r in c.rows if r.listing_id == listing_id), None)
     if row is None:
-        raise HTTPException(404, f"no listing {listing_id!r} in this corpus")
+        # A corpus WAS read and does not hold this id. 404 is the right status
+        # and it keeps the envelope: the client learns which corpus answered,
+        # how big it is and what its digest was, alongside the fact that the
+        # id is not in it. That is a claim we have standing to make, and the
+        # code says so without the client parsing the sentence.
+        if response is not None:
+            response.status_code = 404
+        return ListingResponse(
+            **_envelope(c, served=False, fault=Fault(
+                code="LISTING_NOT_FOUND",
+                message=f"no listing {listing_id!r} in the corpus being "
+                        f"served ({c.source})",
+                fa="این شناسه در پیکره‌ای که همین حالا سرو می‌شود نیست. "
+                   "پیکره خوانده شده و سالم است؛ این آگهی در آن نبود — که "
+                   "با «این آگهی وجود ندارد» یکی نیست، چون پیکره تنها یک "
+                   "برداشت از یک روز است.",
+                still_available=[])).model_dump(),
+            listing=None)
     return ListingResponse(**_envelope(c, served=False).model_dump(),
                            listing=_row_evidence(row))
 
 
 @app.post("/api/compare", response_model=CompareResponse)
-def compare(req: CompareRequest) -> CompareResponse:
+def compare(req: CompareRequest, response: Response = None) -> CompareResponse:
     """Side by side, with each scoring term kept apart.
 
     The cheapest car is not the best opportunity, and a comparison table that
     shows only price is the product this one exists to argue against.
+
+    `response` is FastAPI's — see `listing()` for why the 404 is set on it
+    rather than raised.
     """
     c = corpus_mod.active()
 
@@ -405,7 +451,23 @@ def compare(req: CompareRequest) -> CompareResponse:
                 **_envelope(c, served=False).model_dump(),
                 rows=[], evidence=[_listing_evidence(x) for x in keep])
     if not wanted:
-        raise HTTPException(404, "none of those ids are in this corpus")
+        # Not one of them matched, in a corpus that was read. Its own code
+        # rather than LISTING_NOT_FOUND: compare answers about a SET, and when
+        # only some ids match it returns 200 with those, so this means "none
+        # of them" — which sends the reader back to a selection, not back to a
+        # car.
+        if response is not None:
+            response.status_code = 404
+        return CompareResponse(
+            **_envelope(c, served=False, fault=Fault(
+                code="COMPARE_IDS_NOT_FOUND",
+                message=f"none of {len(req.ids)} requested id(s) are in the "
+                        f"corpus being served ({c.source})",
+                fa="هیچ‌کدام از این شناسه‌ها در پیکره‌ای که سرو می‌شود نبودند. "
+                   "پیکره سالم است و خوانده شده؛ این شناسه‌ها در آن نیستند — "
+                   "احتمالاً از یک پیکره‌ی دیگر یا از یک نشانی قدیمی آمده‌اند.",
+                still_available=[])).model_dump(),
+            rows=[], evidence=[])
 
     spec = c.pipeline.parser.parse(req.q)
     try:

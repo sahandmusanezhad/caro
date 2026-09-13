@@ -69,18 +69,31 @@ export interface ServingStatus {
   served: boolean;
 }
 
-/** Why we are in this state, as something to branch on:
+/** Why we are in this state, as something to branch on — never as prose to
+ *  read. Three groups, and which group a code is in decides what a screen may
+ *  say:
  *
- *   CORPUS_INVALID       an artifact exists and will not load
- *   RUN_NOT_FOUND        CARO_RUN names a run with no artifact on disk
- *   ESTIMATOR_NOT_GATED  nothing has cleared the acceptance gate here
+ *   about the SOURCE, nothing can be served — do not name a car
+ *     CORPUS_INVALID         an artifact exists and will not load
+ *     RUN_NOT_FOUND          CARO_RUN names a run with no artifact on disk
  *
- * The first two both arrive as kind === 'UNUSABLE' and are distinguishable
- * only here, which is why the badge reads the code rather than the kind. */
+ *   about the CLAIM, a corpus was read — show evidence, no estimate
+ *     ESTIMATOR_NOT_GATED    nothing has cleared the acceptance gate here
+ *
+ *   about the RESOURCE, a corpus was read and lacks it — these ride on a 404
+ *     LISTING_NOT_FOUND      that id is not in the corpus being served
+ *     COMPARE_IDS_NOT_FOUND  not one of the requested ids is
+ *
+ * The split matters on screen: «this listing is not here» is a statement about
+ * a corpus we READ, and a page that says it when no corpus was read at all is
+ * claiming something it cannot know. Both used to arrive as a bare 404, so a
+ * client branching on the status alone could not tell them apart. */
 export type FaultCode =
   | 'CORPUS_INVALID'
   | 'RUN_NOT_FOUND'
-  | 'ESTIMATOR_NOT_GATED';
+  | 'ESTIMATOR_NOT_GATED'
+  | 'LISTING_NOT_FOUND'
+  | 'COMPARE_IDS_NOT_FOUND';
 
 export interface Fault {
   code: FaultCode;
@@ -210,9 +223,18 @@ export const WEIGHT_FA: Record<keyof WeightSet, string> = {
 
 export class ApiError extends Error {
   readonly status: number;
-  constructor(status: number, message: string) {
+  /** The envelope's fault, when the server sent one. A 404 from this API is
+   *  still a typed response — same envelope, same `fault.code` — so a screen
+   *  branches on the code and renders `fault.fa`. Without this the only thing
+   *  that reached the UI was an English sentence from an exception, which a
+   *  Persian page then had to print verbatim or interpret. */
+  readonly fault: Fault | null;
+  readonly envelope: Envelope | null;
+  constructor(status: number, message: string, envelope: Envelope | null = null) {
     super(message);
     this.status = status;
+    this.envelope = envelope;
+    this.fault = envelope?.fault ?? null;
     this.name = 'ApiError';
   }
 }
@@ -225,14 +247,28 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(0, 'پاسخی از سرویس دریافت نشد. آیا بک‌اند بالا است؟');
   }
   if (!res.ok) {
-    // A refusal is a 200 by design (D11). Reaching here means something
-    // actually broke, so the message says so rather than dressing it up.
+    // A refusal about the corpus is a 200 by design (D11). A 404 here means
+    // something specific and true: a corpus WAS read and does not hold the
+    // resource that was asked for — and it carries the same envelope as any
+    // other response, so the fault travels with it.
+    //
+    // `detail` is the fallback for a non-envelope error, which now means
+    // something outside this API answered — a proxy, a gateway, a 500 from a
+    // path that never reached an endpoint. Those have no fault and the status
+    // is all there is.
     let detail = `${res.status}`;
+    let envelope: Envelope | null = null;
     try {
       const body = await res.json();
-      if (body?.detail) detail = String(body.detail);
+      if (body && typeof body === 'object' && 'status' in body
+          && 'corpus' in body) {
+        envelope = body as Envelope;
+        detail = envelope.fault?.message ?? detail;
+      } else if (body?.detail) {
+        detail = String(body.detail);
+      }
     } catch { /* body was not JSON; the status stands on its own */ }
-    throw new ApiError(res.status, detail);
+    throw new ApiError(res.status, detail, envelope);
   }
   return res.json() as Promise<T>;
 }

@@ -17,8 +17,10 @@ What is checked instead:
     3b a missing CONFIGURED run     → UNUSABLE / RUN_NOT_FOUND, never a
                                       silent substitution
     3c listing / compare on it      → the envelope, not a 404 claiming the
-                                      car is not there — and a healthy
-                                      corpus still 404s on an id it lacks
+                                      car is not there
+    3d the same, as real HTTP       → 200 when the fault is about the SOURCE,
+                                      404 when it is about the RESOURCE, and
+                                      an envelope on both
     4  a broken corpus              → UNUSABLE, a fault, and never SYNTHETIC
     5  an ungated corpus            → evidence may exist, no estimate is
                                       fabricated for it
@@ -259,6 +261,63 @@ for label, body, env, want_code in [
               c.status.kind == "UNUSABLE" and c.rows == [] and c.evidence == [],
               f"rows={len(c.rows)} evidence={len(c.evidence)}")
 
+# ---------------------------------------------------------------------------
+# 3d — the statuses, over real HTTP.
+#
+# The checks above call the endpoints as Python functions, which is right for
+# the models and blind to the thing this section is about: whether a 404 is
+# still a 404, and whether its BODY is the envelope. A status code set on
+# FastAPI's injected response object does not exist until something serves it,
+# so this one goes through the stack.
+#
+# Three outcomes have to stay apart, and the first two used to be one:
+#
+#     no corpus was read          200   the fault is about the SOURCE
+#     a corpus was read, id gone  404   the fault is about the RESOURCE
+#     a corpus was read, id there 200   a listing
+print("\n3d — the same distinctions as HTTP statuses, with envelopes")
+from fastapi.testclient import TestClient                       # noqa: E402
+
+HTTP = [
+    # (label, artifact, CARO_RUN, request, want status, want fault code)
+    ("no corpus · listing", None, "run_gone", ("GET", "/api/listing/b0"),
+     200, "RUN_NOT_FOUND"),
+    ("no corpus · compare", None, "run_gone", ("POST", "/api/compare"),
+     200, "RUN_NOT_FOUND"),
+    ("broken file · listing", "<html>404</html>", None,
+     ("GET", "/api/listing/b0"), 200, "CORPUS_INVALID"),
+    ("healthy · id present", valid_artifact(), None,
+     ("GET", "/api/listing/b0"), 200, "ESTIMATOR_NOT_GATED"),
+    ("healthy · id absent", valid_artifact(), None,
+     ("GET", "/api/listing/ghost"), 404, "LISTING_NOT_FOUND"),
+    ("healthy · no id matches", valid_artifact(), None,
+     ("POST", "/api/compare"), 404, "COMPARE_IDS_NOT_FOUND"),
+]
+
+for label, body, env, (method, path), want_status, want_code in HTTP:
+    with corpus_dir(body, run_env=env):
+        with contextlib.redirect_stdout(io.StringIO()):
+            client = TestClient(api.app, raise_server_exceptions=False)
+            if method == "GET":
+                resp = client.get(path)
+            else:
+                ids = ["b0", "b1"] if "run_gone" in (env or "") else ["ghost"]
+                resp = client.post(path, json={"ids": ids, "q": "۲۰۶"})
+        got = resp.json()
+        fault = (got.get("fault") or {}).get("code")
+        check(f"{label} → HTTP {want_status}", resp.status_code == want_status,
+              str(resp.status_code))
+        check(f"  fault.code is {want_code}", fault == want_code, str(fault))
+        # The addition that makes the code usable: a 404 is a typed response
+        # like any other. A body of `{"detail": "..."}` forces a client to
+        # read English prose to find out what happened, which is how a page
+        # ends up printing an exception at a buyer.
+        check("  and the body carries the envelope",
+              "corpus" in got and "status" in got,
+              str(sorted(got))[:80])
+        check("  with a Persian sentence for the person reading it",
+              bool((got.get("fault") or {}).get("fa")))
+
 # And the half that must NOT change. Turning every miss into a 200 would erase
 # the one answer this endpoint is actually for: a corpus was read, and this id
 # is not in it.
@@ -267,19 +326,13 @@ with corpus_dir(valid_artifact()):
     check("a healthy corpus still answers for an id it HAS",
           r.listing is not None and r.listing.id == "b0",
           str(r.listing))
-    raised = False
-    try:
-        api.listing("definitely-not-here")
-    except Exception as e:                          # noqa: BLE001
-        raised = getattr(e, "status_code", None) == 404
-    check("  and still 404s on one it does not",
-          raised, "no 404 was raised — every miss is now a 200")
-    raised = False
-    try:
-        api.compare(schemas.CompareRequest(ids=["nope"], q="۲۰۶"))
-    except Exception as e:                          # noqa: BLE001
-        raised = getattr(e, "status_code", None) == 404
-    check("  and compare does too", raised, "no 404 was raised")
+    r = api.listing("definitely-not-here")
+    check("  and still refuses one it does not, by fault code",
+          r.listing is None and r.fault is not None
+          and r.fault.code == "LISTING_NOT_FOUND",
+          str(r.fault.code if r.fault else None))
+    check("  while still naming the corpus that answered",
+          r.corpus.identity is not None and r.status.kind == "REAL")
 
 
 # ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { api, shortSha, type CorpusResponse } from '@/lib/api';
 import { faNum } from '@/lib/format';
+import TechDetail from '@/components/TechDetail';
 
 /* The label that never leaves the screen.
  *
@@ -78,9 +79,12 @@ export default function CorpusBadge() {
           <p className="eyebrow">{c.corpus.label_fa}</p>
           <p className="m-0 mb-3 text-ink-2">{c.corpus.note_fa}</p>
           {c.fault && (
-            <p className="m-0 mb-3 num text-[11px] leading-5 text-bad
-                          bg-bad-soft border border-bad/40 rounded-[2px]
-                          px-2.5 py-2 break-all">{c.fault.code} — {c.fault.message}</p>
+            <div className="mb-3">
+              <p className="m-0 text-[12.5px] leading-6 text-bad">
+                {c.fault.fa}
+              </p>
+              <TechDetail message={`${c.fault.code} — ${c.fault.message}`} />
+            </div>
           )}
           <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1
                          text-[12.5px]">

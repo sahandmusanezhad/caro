@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
-  api, type CorpusMeta, type EvidenceItem, type Fault, type ScoredItem,
+  ApiError, api, type CorpusMeta, type EvidenceItem, type Fault,
+  type ScoredItem,
 } from '@/lib/api';
 import { compact, faNum, faPlain, km, modelLabel, toman } from '@/lib/format';
+import TechDetail from '@/components/TechDetail';
 import TermBars from '@/components/TermBars';
 
 /* One car's file.
@@ -26,17 +28,26 @@ import TermBars from '@/components/TermBars';
  *
  * Three ways this page can have no car, and they are not the same sentence:
  *
- *   err       the request did not come back, or the id is genuinely not in a
- *             corpus that WAS read. «پیدا نشد» is true here.
- *   blocked   the corpus is UNUSABLE, so nothing was read and nothing can be
- *             looked up. «پیدا نشد» would be false — the car may be sitting
- *             there; we have no corpus to look in. The envelope says why.
- *   loading   neither has happened yet.
+ *   blocked   the API answered with a fault. Two kinds, and the difference is
+ *             what the page is allowed to say:
+ *               source    no corpus was read (RUN_NOT_FOUND, CORPUS_INVALID).
+ *                         «پیدا نشد» would be false — the car may be sitting
+ *                         right there; we have nowhere to look.
+ *               resource  a corpus WAS read and does not hold this id
+ *                         (LISTING_NOT_FOUND). That is ours to say.
+ *   err       nothing came back at all, or something answered that was not
+ *             this API. No fault, so no reason beyond the status.
+ *   loading   none of the above has happened yet.
  *
- * These were one branch until the API started serving a whole deployment in
- * the second state: with `CARO_RUN` naming a run that is not on disk, every
- * car on the site reported itself missing.
+ * All three were one branch printing «پیدا نشد» until the API could put a
+ * whole deployment in the first state: with `CARO_RUN` naming a run that is
+ * not on disk, every car on the site reported itself missing.
  */
+
+/* Codes that mean NO CORPUS WAS READ. The page may not name a car in this
+   state — not even to say it is absent. */
+const SOURCE_FAULTS = new Set(['CORPUS_INVALID', 'RUN_NOT_FOUND']);
+
 export default function CarDetail({ id }: { id: string }) {
   const [listing, setListing] = useState<EvidenceItem | null>(null);
   const [corpus, setCorpus] = useState<CorpusMeta | null>(null);
@@ -72,32 +83,28 @@ export default function CarDetail({ id }: { id: string }) {
         if (c.status.served && c.rows.length) {
           setScored(c.rows[0]);
         } else {
-          // `message`, not `fa`: the Farsi explanation is the prose beside the
-          // monospace line below, and this branch is only reachable when a
-          // corpus WAS read, so ESTIMATOR_NOT_GATED is the only fault that can
-          // arrive here and that prose is right for it. The `blocked` branch
-          // above is where the cause varies, and there the Farsi is read off
-          // the fault instead of written into the page.
+          // `message`, not `fa`: this feeds the technical detail, and the
+          // Persian explanation is the prose the panel already carries. The
+          // branch is only reachable when a corpus WAS read, so
+          // ESTIMATOR_NOT_GATED is the only fault that can arrive and that
+          // prose is right for it. The `blocked` branch above is where the
+          // cause varies, and there the Persian is read off the fault.
           setRefused(c.fault?.message ?? 'no estimator is gated on this corpus');
         }
       })
-      .catch((e) => { if (alive) setErr(String(e.message ?? e)); });
+      .catch((e) => {
+        if (!alive) return;
+        // A 404 from this API carries the envelope, so the reason is typed
+        // and in Persian. Only something that is NOT this API — a proxy, a
+        // dead socket — arrives without one, and that is the `err` branch.
+        if (e instanceof ApiError && e.fault) setBlocked(e.fault);
+        else setErr(String(e?.message ?? e));
+      });
     return () => { alive = false; };
   }, [id]);
 
-  if (err) {
-    return (
-      <div className="panel border-bad">
-        <p className="eyebrow !text-bad">پیدا نشد</p>
-        <p className="m-0 text-[14px] text-ink-2">{err}</p>
-        <Link href="/search" className="btn mt-4 inline-block">
-          برگرد به جست‌وجو
-        </Link>
-      </div>
-    );
-  }
-
   if (blocked) {
+    const noCorpus = SOURCE_FAULTS.has(blocked.code);
     return (
       <div className="panel border-bad">
         <div className="flex items-center gap-3 flex-wrap mb-3">
@@ -109,23 +116,40 @@ export default function CarDetail({ id }: { id: string }) {
             NOT SERVED
           </span>
           <p className="eyebrow !mb-0">
-            این صفحه چیزی نشان نمی‌دهد، چون پیکره‌ای خوانده نشده
+            {noCorpus ? 'این صفحه چیزی نشان نمی‌دهد، چون پیکره‌ای خوانده نشده'
+              : 'این آگهی در پیکره‌ی جاری نیست'}
           </p>
         </div>
         <p className="m-0 text-[15px] leading-[1.95] max-w-[62ch]">
           {blocked.fa}
         </p>
-        {/* The distinction the old «پیدا نشد» destroyed, said out loud. */}
-        <p className="m-0 mt-4 text-[12.5px] text-ink-3 max-w-[62ch]">
-          پیکره‌ای خوانده نشده که بشود در آن دنبال{' '}
-          <span className="num">{id}</span> گشت. پس نمی‌گوییم این آگهی وجود
-          ندارد — دربارهٔ خودش هیچ ادعایی نمی‌کنیم؛ این جمله دربارهٔ منبع است،
-          نه دربارهٔ خودرو.
-        </p>
-        {blocked.message && (
-          <p className="m-0 mt-3 num text-[11.5px] text-ink-3 leading-6
-                        whitespace-pre-wrap break-all">{blocked.message}</p>
+        {/* The distinction the old «پیدا نشد» destroyed, said out loud — and
+            only in the state where it is true. */}
+        {noCorpus && (
+          <p className="m-0 mt-4 text-[12.5px] text-ink-3 max-w-[62ch]">
+            پیکره‌ای خوانده نشده که بشود در آن دنبال{' '}
+            <span className="num">{id}</span> گشت. پس نمی‌گوییم این آگهی وجود
+            ندارد — دربارهٔ خودش هیچ ادعایی نمی‌کنیم؛ این جمله دربارهٔ منبع
+            است، نه دربارهٔ خودرو.
+          </p>
         )}
+        {blocked.message && <TechDetail message={blocked.message} />}
+        <Link href="/search" className="btn mt-4 inline-block">
+          برگرد به جست‌وجو
+        </Link>
+      </div>
+    );
+  }
+
+  if (err) {
+    return (
+      <div className="panel border-bad">
+        <p className="eyebrow !text-bad">پاسخی نرسید</p>
+        <p className="m-0 text-[14px] text-ink-2 max-w-[62ch]">
+          سرویس جواب نداد یا جوابی داد که از این API نبود، پس دربارهٔ این
+          خودرو هیچ چیزی نمی‌دانیم — نه اینکه پیدا نشد.
+        </p>
+        <TechDetail message={err} />
         <Link href="/search" className="btn mt-4 inline-block">
           برگرد به جست‌وجو
         </Link>
@@ -240,8 +264,7 @@ export default function CarDetail({ id }: { id: string }) {
             ندارد. برآورد قیمت و محاسبه‌ی صرفه به برآوردگری نیاز دارد که روی
             همین پیکره سنجیده و پذیرفته شده باشد، و چنین چیزی وجود ندارد.
           </p>
-          <p className="m-0 mt-3 num text-[11.5px] text-ink-3 leading-6
-                        whitespace-pre-wrap">{refused}</p>
+          <TechDetail message={refused} />
         </section>
       ) : (
         <div className="panel text-ink-3 text-[13.5px]">

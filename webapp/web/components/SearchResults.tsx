@@ -8,6 +8,7 @@ import { faNum, faPlain, km, modelLabel, toman } from '@/lib/format';
 import IntentPanel from '@/components/IntentPanel';
 import ListingCard from '@/components/ListingCard';
 import SearchBox from '@/components/SearchBox';
+import TechDetail from '@/components/TechDetail';
 import WeightSliders from '@/components/WeightSliders';
 
 /* The results screen, including the screen where there are no results to give.
@@ -82,10 +83,14 @@ export default function SearchResults() {
       {err && (
         <div className="panel border-bad">
           <p className="eyebrow !text-bad">سرویس در دسترس نیست</p>
-          <p className="m-0 text-[14px] text-ink-2">{err}</p>
-          <p className="m-0 mt-2 text-[12.5px] text-ink-3 num">
+          <p className="m-0 text-[14px] text-ink-2 max-w-[62ch]">
+            بک‌اند جواب نداد. این دربارهٔ داده چیزی نمی‌گوید — نه اینکه
+            نتیجه‌ای نبود؛ اصلاً چیزی پرسیده نشد.
+          </p>
+          <p className="m-0 mt-2 text-[12.5px] text-ink-3 num" dir="ltr">
             uvicorn webapp.api.main:app --reload
           </p>
+          <TechDetail message={err} />
         </div>
       )}
 
@@ -159,10 +164,7 @@ export default function SearchResults() {
                   {data.fault?.fa}
                 </p>
                 {data.fault?.message && (
-                  <p className="m-0 mt-3 num text-[11.5px] text-ink-3
-                                leading-6 whitespace-pre-wrap">
-                    {data.fault.message}
-                  </p>
+                  <TechDetail message={data.fault.message} />
                 )}
                 {/* Two different situations reach this panel and only one of
                     them is "not an error". A corrupt artifact IS an error; it

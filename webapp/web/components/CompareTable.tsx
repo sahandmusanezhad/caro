@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  api, type CompareResponse, type ScoredItem, termLabel,
+  ApiError, api, type CompareResponse, type Fault, type ScoredItem,
+  termLabel,
 } from '@/lib/api';
 import { faNum, faPlain, fixed, km, modelLabel, toman } from '@/lib/format';
+import TechDetail from '@/components/TechDetail';
 
 /* Side by side, with every term kept apart.
  *
@@ -56,6 +58,7 @@ export default function CompareTable() {
   const q = params.get('q') ?? 'خودرو';
 
   const [data, setData] = useState<CompareResponse | null>(null);
+  const [blocked, setBlocked] = useState<Fault | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,7 +66,14 @@ export default function CompareTable() {
     let alive = true;
     api.compare(ids, q)
       .then((r) => { if (alive) setData(r); })
-      .catch((e) => { if (alive) setErr(String(e.message ?? e)); });
+      .catch((e) => {
+        if (!alive) return;
+        // A 404 from this API is a typed response carrying the envelope, so
+        // the reason is a code and a Persian sentence. `err` is only for a
+        // reply that did not come from this API at all.
+        if (e instanceof ApiError && e.fault) setBlocked(e.fault);
+        else setErr(String(e?.message ?? e));
+      });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.toString()]);
@@ -83,11 +93,39 @@ export default function CompareTable() {
     );
   }
 
+  if (blocked) {
+    return (
+      <div className="panel border-bad">
+        <div className="flex items-center gap-3 flex-wrap mb-3">
+          <span className="chip border-bad text-bad bg-bad-soft">
+            NOT SERVED
+          </span>
+          <p className="eyebrow !mb-0">
+            {blocked.code === 'COMPARE_IDS_NOT_FOUND'
+              ? 'این شناسه‌ها در پیکره‌ی جاری نیستند'
+              : 'مقایسه‌ای ممکن نیست، چون پیکره‌ای خوانده نشده'}
+          </p>
+        </div>
+        <p className="m-0 text-[15px] leading-[1.95] max-w-[62ch]">
+          {blocked.fa}
+        </p>
+        <TechDetail message={blocked.message} />
+        <Link href="/search" className="btn mt-4 inline-block">
+          برگرد به جست‌وجو
+        </Link>
+      </div>
+    );
+  }
+
   if (err) {
     return (
       <div className="panel border-bad">
-        <p className="eyebrow !text-bad">مقایسه ممکن نشد</p>
-        <p className="m-0 text-[14px] text-ink-2">{err}</p>
+        <p className="eyebrow !text-bad">پاسخی نرسید</p>
+        <p className="m-0 text-[14px] text-ink-2 max-w-[62ch]">
+          سرویس جواب نداد یا جوابی داد که از این API نبود، پس دربارهٔ این
+          خودروها هیچ چیزی نمی‌دانیم.
+        </p>
+        <TechDetail message={err} />
       </div>
     );
   }
@@ -129,10 +167,7 @@ export default function CompareTable() {
                + 'استخراج شده نمایش داده می‌شود.'}
           </p>
           {data.fault?.message && (
-            <p className="m-0 mt-3 num text-[11.5px] text-ink-3 leading-6
-                          whitespace-pre-wrap break-all">
-              {data.fault.message}
-            </p>
+            <TechDetail message={data.fault.message} />
           )}
         </section>
 
