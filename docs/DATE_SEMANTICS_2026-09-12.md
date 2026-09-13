@@ -4,8 +4,14 @@
 against a corpus collected 2026-09-10. Every sampled listing was provably
 live two days before the run; that is the whole leverage.
 
-19 fetched, 1 gone (404 — **the first absence this project has ever
-observed**), 0 unreadable.
+19 fetched, 1 gone (**410**, not 404 — see the correction below), 0
+unreadable.
+
+> **CORRECTED — `docs/WATCH_ROUND3_2026-09-13.md` §4.** This said 404. The
+> observation file recorded `http_status 410` from the first round onward, and
+> still does. 410 is the source declaring the resource permanently gone rather
+> than merely not found — a stronger statement, and still one endpoint's claim
+> about one URL.
 
 ---
 
@@ -164,7 +170,7 @@ built with a posting date is a new corpus with a new id and a new sha256.
 
 ### What is still missing, and is not obtainable this way
 
-Time-on-market. A date on a page is not a disappearance, and the one 404 in
+Time-on-market. A date on a page is not a disappearance, and the one 410 in
 this sample is ONE OBSERVATION — the first absence this project has recorded.
 It establishes that the URL was not retrievable at that moment. It does not
 establish that the car sold, that the listing was deleted, which day it went,
