@@ -157,6 +157,21 @@ DEAL_BREAKER_CUES: dict[str, tuple[str, ...]] = {
     "manual": ("اتومات", "اتوماتیک", "دنده اتومات"),
 }
 
+# The VAGUE odometer cue — «کم‌کارکرد» and its forms — as distinct from a
+# stated number. It earns a constant because of the trailing `\b`, which is
+# load-bearing rather than tidy.
+#
+# The alternatives used to be bare substrings, and «کم» is a prefix of
+# «کمتر»: `کارکرد کم` therefore matched inside «کارکرد کمتر از ۲۰۰ هزار» —
+# a query that states its limit exactly and is not vague at all. The cue
+# fired, and the user was told about a 120,000 default they had just
+# overridden. Persian letters are `\w`, so `\b` refuses the match when a
+# letter follows, and accepts «کم کارکرد», «کم کارکرده», «کم کارکردی» and
+# «کارکرد کمی» — all of which the old pattern also caught, and all of which
+# really are vague.
+_LOW_MILEAGE_CUE = re.compile(
+    r"(?:کم\s*کارکرد(?:ه|ی)?|کم\s*کار|کارکرد\s*کم(?:ی)?)\b")
+
 
 # ---------------------------------------------------------------------------
 # IntentSpec
@@ -278,10 +293,18 @@ class RuleIntentParser:
             year_min = 1300 + y if y < 100 else y
             consumed.append(m.group(0))
 
+        # ORDER IS PART OF THE FIX, not a style choice. The stated number is
+        # read FIRST and the vague cue only fills the gap it leaves, so the
+        # default is recorded in the same breath as being adopted.
+        #
+        # Written the other way round — cue first, number second — the note
+        # was appended before the explicit parse could overwrite `max_km`,
+        # and nothing retracted it. «کارکرد کمتر از ۲۰۰ هزار» then filtered
+        # at 200,000 while the screen said «۱۲۰٬۰۰۰ گرفتیم». The assumption
+        # bar exists so a buyer can correct a guess we made; one that names a
+        # guess we did NOT make is worse than none, because the correction it
+        # invites changes nothing.
         max_km = None
-        if re.search(r"(کم کارکرد|کم کار|کارکرد کم|کم کارکرده)", q):
-            max_km = 120_000
-            assumptions.append("«کم‌کارکرد» را حداکثر ۱۲۰٬۰۰۰ کیلومتر گرفتیم")
         m = re.search(
             r"کارکرد\s*(?:زیر|تا|کمتر از)\s*(\d+)\s*(هزار|k|کیلومتر|کیلو)?", q)
         if m:
@@ -291,6 +314,9 @@ class RuleIntentParser:
             # budget phrase leaking in ("کارکرد ... تا ۱.۵ میلیارد").
             if unit or v >= 1000:
                 max_km = v
+        if max_km is None and _LOW_MILEAGE_CUE.search(q):
+            max_km = 120_000
+            assumptions.append("«کم‌کارکرد» را حداکثر ۱۲۰٬۰۰۰ کیلومتر گرفتیم")
 
         use_case = "unspecified"
         for uc, cues in USE_CASE_CUES.items():

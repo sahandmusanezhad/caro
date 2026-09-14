@@ -142,6 +142,34 @@ s4 = P.parse("مدل ۹۸ به بالا، کارکرد زیر ۹۰ هزار")
 check("2-digit year expands to 1398", s4.year_min == 1398, str(s4.year_min))
 check("explicit mileage cap", s4.max_mileage_km == 90_000, str(s4.max_mileage_km))
 
+# The assumption bar may name a default ONLY while that default is the thing
+# in force. «کم» is a prefix of «کمتر», so the vague cue used to match inside
+# «کارکرد کمتر از ۲۰۰ هزار» — a query that states its limit exactly. The
+# stated number then overwrote the default and the note stayed behind, so the
+# screen offered the buyer a guess to correct that had already been replaced.
+#
+# Both halves are asserted, because either alone leaves the defect reachable:
+# the cap is what filters, the note is what the buyer reads, and the bug was
+# precisely the two disagreeing.
+def _mileage_note(spec) -> bool:
+    return any("کم‌کارکرد" in a for a in spec.assumptions)
+
+for q, cap, note, why in [
+    ("پراید کارکرد کمتر از ۲۰۰ هزار", 200_000, False, "«کمتر» is not the cue"),
+    ("پراید کارکرد کمتر از ۸۰ هزار", 80_000, False, "and not at any size"),
+    ("پراید کارکرد زیر ۵۰ هزار", 50_000, False, "«زیر» never matched it"),
+    ("پراید کم‌کارکرد", 120_000, True, "the cue alone still infers"),
+    ("پراید کم کارکرده", 120_000, True, "and in its other forms"),
+    ("پراید کارکرد کمی دارد", 120_000, True, "and «کمی», which is vague"),
+    ("پراید کم‌کارکرد کارکرد کمتر از ۲۰۰ هزار", 200_000, False,
+     "stated wins over vague, and the note goes with it"),
+]:
+    sm = P.parse(q)
+    check(f"«{q}» → cap {cap:,}", sm.max_mileage_km == cap,
+          f"got {sm.max_mileage_km}")
+    check(f"  note {'shown' if note else 'absent'} — {why}",
+          _mileage_note(sm) is note, str(sm.assumptions))
+
 s5 = P.parse("یه ماشین خوب میخوام حدود ۱ میلیارد")
 check("soft budget detected", s5.budget_hard is False)
 check("nothing is invented when nothing was said",
