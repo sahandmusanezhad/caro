@@ -2735,3 +2735,77 @@ presentable, which is exactly when nobody asks.
 
 **Run 11 is therefore not benchmarked.** Its verdict is
 `UNJUDGEABLE: missing_temporal_axis`, and that is the whole claim.
+
+## D56 — CARO stays one language, and the reason is a boundary, not a benchmark
+
+Go was considered for CARO — as a fetcher, as a background worker, or as a
+separate runner beside `date_watch.py`. The answer is no, for now, and this
+records why so the question is not reopened from scratch in six months.
+
+**The decision.** No Go service and no Go component is added. The API
+contract, the fault vocabulary, the response envelope and every
+interpretation of collected data stay in one language.
+
+**The architectural reason, which outranks the performance one.**
+`webapp/api/main.py` already records the opposite decision explicitly: the
+backend is thin because CARO is a Python package, so the API imports it
+rather than talking to it over a socket — "no service boundary, no
+serialisation round-trip, no second place for a number to change on the way
+past". A Go service is precisely that boundary.
+
+And a second language boundary is not free here, because the first one is
+already paid for. `tests/test_api_contract.py` check 7 exists solely to stop
+`webapp/web/lib/api.ts` drifting from `webapp/api/schemas.py`, and that check
+was found this month to have been blind to `export type` — the fault codes
+and corpus kinds were never compared at all. A Python↔Go boundary would carry
+the same risk over the same vocabulary: `FetchStatus`, `classify_http`, the
+PRESENT / ABSENT_IN_SOURCE / UNREADABLE distinctions, and the fault codes that
+D54 and D55 exist to keep honest. Those are product semantics, not plumbing,
+and splitting them across runtimes is how two services come to disagree about
+what "absent" means.
+
+**The performance argument, measured rather than assumed.** Round 4 of the
+watch, from the observation file:
+
+    20 observations   15:21:09 → 15:23:03   =  114 s
+      deliberate delay (2–5 s, 15% chance ×1.5–3)  ≈  79 s
+      everything else — DNS, TLS, HTTP, parse, write  ≈  35 s
+
+So the entire time budget any language could touch is about 31% of the round,
+and getting below 79 s means raising the request rate, which is a change to
+the politeness policy and not a change of language. `DELAY_MIN_S = 2.0` and
+`DELAY_MAX_S = 5.0` are a product commitment; Go's advantage is throughput,
+and throughput is the thing this project has capped on purpose.
+
+**The limiting assumptions, recorded because they bound the claim.**
+
+1. The 35 s is a residual, not a decomposition. It does NOT establish that
+   any of it is removable, nor what share belongs to DNS, TLS, HTTP, parsing
+   or writing. It bounds the fetcher's budget and nothing more.
+2. Go does not force higher concurrency — a Go fetcher can be rate-limited to
+   one request at a time exactly as this one is. The argument is that its
+   advantage is unrealisable here, not that it would breach the policy.
+3. "The numeric core is numpy, therefore C" is too clean. Array construction,
+   dtype conversion, copies and Python-level loops around numpy calls are
+   real costs, and CARO has no benchmark of its own hot path. Nothing here
+   says the parser, canonicalisation or corpus comparison are fast — only
+   that nobody has measured them.
+4. This says nothing about Go. It says what CARO needs today.
+
+**What would reopen it.** Any one of these, demonstrated rather than
+anticipated:
+
+1. Multi-domain scale — thousands of listings across several sources, where
+   even at the permitted per-domain rate the crawl no longer finishes in its
+   window. The relevant parallelism is BETWEEN domains; raising concurrency
+   against one source is the policy change above, not this.
+2. `duration_stats` genuinely running — at least 30 observed disappearances,
+   with the censored and unexplained ones counted separately, and the
+   processing or storage cost actually significant. One listing has been
+   watched from present to gone (`xlyildqb`, 2026-09-14); that is the first.
+3. A benchmark naming one stage as the bottleneck — parser, canonicalisation,
+   corpus comparison, index build, serialisation or fetch orchestration — and
+   showing the stage is transferable.
+
+Until one of those is on the table, the shortest defensible sentence is the
+one above: measure first, then add a boundary. Not the other way round.
