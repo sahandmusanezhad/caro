@@ -2809,3 +2809,53 @@ anticipated:
 
 Until one of those is on the table, the shortest defensible sentence is the
 one above: measure first, then add a boundary. Not the other way round.
+
+## D57 — A digest nobody can check is a number about nothing
+
+D46 records that the Run 3 and Run 5 corpora were never committed and are not
+recoverable, so every figure derived from them is unreproducible. The repair
+made after it was `CorpusIdentity`: a run id, a path, a byte count and a
+sha256, travelling in every API response and printed on every screen.
+
+That repair was half-finished, and a public repository is where the missing
+half becomes visible. `CorpusBadge` shows the digest under «شناسه‌ی شواهد»
+and tells the reader:
+
+    همین عدد را با sha256sum روی خود فایل می‌گیری.
+
+On a repository that does not contain the file, they cannot. The invitation is
+unanswerable, and the digest verifies nothing to anyone except the operator
+who already has the bytes — which is the one person who did not need it.
+
+**So `data/corpora/run11.json` is committed.** 76 listings, collected
+2026-09-10, sha256 `c7d00593…1c8be34`. It is the run the API serves by
+default (D-run-selection, `DEFAULT_RUN`), the run the badge names, and the run
+every screenshot in the docs was taken against.
+
+**The guard passing is not the permission.** `validate(artifact, serialized)`
+was run before committing and reported no violation: no forbidden key, no
+seller-authored text, no contact identifier. That establishes one thing — the
+file satisfies `docs/DATA_CONTRACT.md`. It does not establish that publishing
+real market data is the right call; that is a separate judgement about
+third-party listings on a public repository, and it was made deliberately
+rather than derived from a green check. Recording the difference here because
+a future reader will otherwise find a passing guard beside a published file
+and conclude the first authorised the second.
+
+**What is NOT published, and why the asymmetry is the point.** `run10.json`
+sits beside it on disk and stays untracked. Nothing references it — not the
+default, not the badge, not a benchmark, not a document. An artifact earns
+publication by being the one a claim rests on, and symmetry is not a reason to
+put more real listings into a public repository than the claims require.
+
+**The scope of "validated" in that commit message.** It means the data
+contract, and nothing about quality. No estimator has cleared the acceptance
+gate on this corpus (D43); its benchmark verdict is frozen at `UNJUDGEABLE —
+missing_temporal_axis` (D55). Publishing the artifact makes those refusals
+checkable. It does not soften them.
+
+**What this does not settle.** Whether future corpora are committed by default
+is left open, because the answer depends on what they contain and what rests
+on them — the same two questions asked here. The rule this decision does fix
+is narrower and holds regardless: *a digest that is published as evidence must
+be computable by the person it is shown to, or it should not be shown.*
