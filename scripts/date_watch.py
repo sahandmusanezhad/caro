@@ -3,6 +3,9 @@
 
     python3 scripts/date_watch.py                 # one observation round
     python3 scripts/date_watch.py --report        # read the file, fetch nothing
+    python3 scripts/date_watch.py --reanalyse     # re-read STORED titles with
+                                                  # the current rule; writes a
+                                                  # separate derived file
 
 One question is open and only repetition closes it:
 
@@ -52,6 +55,24 @@ THE FILE
 listing per round. Operational, like `data/snapshots/` — never published,
 and it holds a truncated neighbouring line per page which may be arbitrary
 page text. The corpus contract governs what is PUBLISHED; this is not that.
+
+AND THE SECOND FILE, WHICH IS NOT OBSERVATIONS
+
+`data/observations/date_watch_reanalysis.jsonl`. When an extraction rule
+learns to read a form it used to discard, it can be applied backwards to the
+titles already stored — no re-observation, no second visit to the source.
+That is worth doing and it is NOT a new observation: a value derived today
+from bytes fetched on Saturday is evidence about the parser, not about what
+the page said today.
+
+So the two never share a file. Nothing is ever rewritten in the first; the
+second is derived and rewritten in full on every `--reanalyse`. The report
+prints them apart, and no re-analysed value enters a transition count or the
+monotonicity verdict.
+
+    OBSERVED       the source was contacted and said this
+    RE-ANALYSED    the source was not contacted; a newer rule read old bytes
+    CROSS-VERSION  a transition whose two sides were read by different rules
 """
 
 from __future__ import annotations
@@ -64,7 +85,7 @@ import random
 import re
 import sys
 from collections import Counter, defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -80,10 +101,24 @@ from caro.tracking import FetchStatus, classify_http              # noqa: E402
 
 OUT = ROOT / "data" / "observations" / "date_watch.jsonl"
 
+# Re-analysis is a SECOND file, never a line in the first.
+#
+# `OUT` is append-only and every line in it is something that was fetched. A
+# value derived later from bytes already on disk is not that, however correct
+# it is, and mixing the two would mean every future reader has to filter
+# correctly or silently double the series. A separate file cannot be misread
+# by a reader that does not know about it.
+#
+# It is also DERIVED, so unlike `OUT` it is rewritten wholesale each run: it
+# is a function of (observations, parser version) and keeping stale rows from
+# an older parser beside fresh ones would recreate the confusion it exists to
+# prevent.
+REANALYSIS = ROOT / "data" / "observations" / "date_watch_reanalysis.jsonl"
+
 # Bumped whenever an extraction rule changes, so a shift in the series can be
 # told from a shift in the source. Three silent rule changes is how this file
 # came to exist.
-EXTRACTOR_VERSION = 3   # v3: code_commit recorded; transition taxonomy
+EXTRACTOR_VERSION = 4   # v4: Persian-month titles parsed, year inferred
 
 # One value for every record a single pass writes, so a round is identifiable
 # without guessing from timestamps. Twenty polite requests span minutes.
@@ -133,6 +168,12 @@ _JDATE = re.compile(r"([۰-۹0-9]{4})\s*/\s*([۰-۹0-9]{1,2})\s*/\s*([۰-۹0-9]{
 # which is the only reason this was caught rather than believed.
 _MONTHS = ("فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور"
            "|مهر|آبان|آذر|دی|بهمن|اسفند")
+_MONTH_INDEX = {n: i + 1 for i, n in enumerate(_MONTHS.split("|"))}
+# The same shape `_DATEISH` already recognised, now with the groups needed to
+# READ it rather than only to refuse calling it absent. Until v4 this form was
+# matched and discarded, so the one listing in the sample whose date moves was
+# the one listing that could never be compared.
+_MONTH_DAY = re.compile(rf"([۰-۹0-9]{{1,2}})\s*({_MONTHS})")
 _DATEISH = re.compile(
     r"[۰-۹0-9]{2,4}\s*[/\-.]\s*[۰-۹0-9]{1,2}"
     rf"|[۰-۹0-9]{{1,2}}\s*(?:{_MONTHS})"
@@ -152,9 +193,103 @@ def jalali_to_iso(y: int, m: int, d: int) -> str | None:
     """Verified table only. A year outside it is refused, never extrapolated."""
     if y not in NOWRUZ or not (1 <= m <= 12) or not (1 <= d <= 31):
         return None
-    from datetime import timedelta
     return (NOWRUZ[y] + timedelta(
         days=sum(_MONTH_LEN[:m - 1]) + d - 1)).isoformat()
+
+
+def jalali_year_of(iso_ts: str) -> int | None:
+    """Which Jalali year an ISO date falls in — from the same verified table.
+
+    The inverse of `jalali_to_iso`, and it refuses exactly as hard. A title
+    reading «۲۲ شهریور» carries a day and a month and NO YEAR, so a year has
+    to come from somewhere, and the only defensible source is the day we did
+    the observing. That is an inference and it is recorded as one.
+
+    `_MONTH_LEN` gives Esfand 29 days, so this table treats 1405 as a common
+    year. If that is wrong the window below is off by one day at its very end,
+    which is why a parse that lands in the future is refused rather than
+    trusted (see `parse_title_date`).
+    """
+    try:
+        d = date.fromisoformat(iso_ts[:10])
+    except ValueError:
+        return None
+    for y, nowruz in NOWRUZ.items():
+        if nowruz <= d <= nowruz + timedelta(days=sum(_MONTH_LEN) - 1):
+            return y
+    return None
+
+
+def parse_title_date(title: str, observed_at: str) -> dict:
+    """Read the date out of a page title. The ONLY place this rule lives.
+
+    `observe()` calls it on a title just fetched and `reanalyse()` calls it on
+    a title read back off disk, which is the whole point: a re-analysis that
+    used a second copy of the rule would be measuring the copy.
+
+    Two forms, and they are not equally trustworthy:
+
+        ۱۴۰۵/۶/۲۲              year READ off the page
+        «امروز یکشنبه ۲۲ شهریور»  year INFERRED from the observation date
+
+    `title_date_year_source` carries which, because a date whose year we
+    supplied is not the same evidence as one the source stated, and a reader
+    who cannot tell them apart will eventually treat them as the same.
+    """
+    out: dict = {"matched_substring": None, "title_date_raw": None,
+                 "title_date_iso": None, "title_date_year_source": None,
+                 "extraction_status": None}
+
+    m = _JDATE.search(title)
+    if m:
+        y, mo, d = (int(g.translate(_FA)) for g in m.groups())
+        out["matched_substring"] = m.group(0)
+        out["title_date_raw"] = f"{y}/{mo}/{d}"
+        out["title_date_year_source"] = "read"
+        iso = jalali_to_iso(y, mo, d)
+        out["title_date_iso"] = iso
+        out["extraction_status"] = PRESENT if iso else MALFORMED
+        return out
+
+    md = _MONTH_DAY.search(title)
+    if md:
+        out["matched_substring"] = md.group(0)
+        d = int(md.group(1).translate(_FA))
+        mo = _MONTH_INDEX[md.group(2)]
+        y = jalali_year_of(observed_at)
+        if y is None:
+            # Outside the verified Nowruz table: no year can be supplied, so
+            # the date stays unread. Date-shaped and unreadable, never absent.
+            out["extraction_status"] = PRESENT_BUT_UNPARSED
+            return out
+        iso = jalali_to_iso(y, mo, d)
+        if iso is None:
+            out["title_date_raw"] = f"{y}/{mo}/{d}"
+            out["extraction_status"] = MALFORMED
+            return out
+        # A listing date after the day we looked is the year inference being
+        # wrong — a title from the end of Esfand read on a day in Farvardin
+        # belongs to the year before. Two days of slack for timezone, and
+        # then refused rather than guessed downward: a wrong year silently
+        # corrected is the same class of error as a wrong absence.
+        if date.fromisoformat(iso) > date.fromisoformat(
+                observed_at[:10]) + timedelta(days=2):
+            out["extraction_status"] = PRESENT_BUT_UNPARSED
+            return out
+        out["title_date_raw"] = f"{y}/{mo}/{d}"
+        out["title_date_year_source"] = "inferred"
+        out["title_date_iso"] = iso
+        out["extraction_status"] = PRESENT
+        return out
+
+    if _DATEISH.search(title):
+        out["extraction_status"] = PRESENT_BUT_UNPARSED
+        out["matched_substring"] = _DATEISH.search(title).group(0)
+    else:
+        # Claimed only against a title that was actually retrieved, and the
+        # title is recorded beside the claim so it is checkable.
+        out["extraction_status"] = ABSENT_IN_SOURCE
+    return out
 
 
 def phrase_days(p: str) -> int | None:
@@ -187,25 +322,7 @@ def observe(ad, url: str, lid: str) -> dict:
     rec["title_raw"] = title_raw[:160]
     rec["title_decoded"] = title[:160]
 
-    m = _JDATE.search(title)
-    if m:
-        rec["matched_substring"] = m.group(0)
-        y, mo, d = (int(g.translate(_FA)) for g in m.groups())
-        rec["title_date_raw"] = f"{y}/{mo}/{d}"
-        iso = jalali_to_iso(y, mo, d)
-        if iso:
-            rec["title_date_iso"] = iso
-            rec["extraction_status"] = PRESENT
-        else:
-            rec["extraction_status"] = MALFORMED
-    elif _DATEISH.search(title):
-        # Something date-shaped that the rule could not read. NOT absence.
-        rec["extraction_status"] = PRESENT_BUT_UNPARSED
-        rec["matched_substring"] = _DATEISH.search(title).group(0)
-    else:
-        # Claimed only against a title that was actually retrieved, and the
-        # title is recorded above so the claim is checkable.
-        rec["extraction_status"] = ABSENT_IN_SOURCE
+    rec.update(parse_title_date(title, rec["observed_at"]))
 
     lines = _text(raw)
     rp = _REL.search(raw)
@@ -224,6 +341,101 @@ def observe(ad, url: str, lid: str) -> dict:
                                    if i + 2 < len(lines) else None)
             break
     return rec
+
+
+def reanalyse() -> int:
+    """Re-read the STORED titles with the current parser. Fetches nothing.
+
+    The titles are recorded verbatim in every observation, so a parser that
+    learns to read a form it used to discard can be applied backwards to
+    everything already collected — no re-observation, no second visit to the
+    source, and no way for the network to have changed underneath.
+
+    What this is NOT: a new observation. A value derived today from bytes
+    fetched on Saturday is evidence about the PARSER, not about what the page
+    said today, and the two must never share a line. So nothing is written to
+    `OUT` and nothing already in it is altered. The output is a separate,
+    derived file, rewritten in full each run.
+
+    Only differences are written. A record whose stored value the new parser
+    reproduces exactly is not a re-analysis of anything; listing it would bury
+    the handful that changed in a file of agreements.
+    """
+    if not OUT.exists():
+        print(f"no observations at {OUT}", file=sys.stderr)
+        return 2
+
+    rows = [json.loads(l) for l in OUT.read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    out, skipped = [], 0
+    for r in rows:
+        title = r.get("title_decoded")
+        if not title:
+            # No stored title — an unreachable fetch. There is nothing to
+            # re-read, and re-analysis cannot manufacture what was never
+            # retrieved.
+            skipped += 1
+            continue
+        got = parse_title_date(title, r.get("observed_at", ""))
+        same = (got["extraction_status"] == r.get("extraction_status")
+                and got["title_date_iso"] == r.get("title_date_iso"))
+        if same:
+            continue
+        out.append({
+            "record_kind": "reanalysis",
+            "listing_id": r.get("listing_id"),
+            # WHICH observation this re-reads, named precisely enough to be
+            # joined back to it and never to be mistaken for it.
+            "source_observed_at": r.get("observed_at"),
+            "source_round_id": r.get("round_id"),
+            "source_extractor_version": r.get("extractor_version"),
+            "reanalysed_at": now,
+            "reanalysis_extractor_version": EXTRACTOR_VERSION,
+            "reanalysis_code_commit": COMMIT,
+            # The exact bytes the new value was computed from, so the claim
+            # is checkable without trusting this program.
+            "title_decoded": title,
+            "was_extraction_status": r.get("extraction_status"),
+            "now_extraction_status": got["extraction_status"],
+            "was_title_date_iso": r.get("title_date_iso"),
+            "now_title_date_iso": got["title_date_iso"],
+            "now_title_date_raw": got["title_date_raw"],
+            "now_matched_substring": got["matched_substring"],
+            "title_date_year_source": got["title_date_year_source"],
+        })
+
+    REANALYSIS.parent.mkdir(parents=True, exist_ok=True)
+    REANALYSIS.write_text(
+        "".join(json.dumps(o, ensure_ascii=False) + "\n" for o in out),
+        encoding="utf-8")
+    print(f"re-read {len(rows)} stored observation(s) with extractor v"
+          f"{EXTRACTOR_VERSION}")
+    print(f"  {skipped} had no stored title (nothing was retrieved to re-read)")
+    print(f"  {len(rows) - skipped - len(out)} reproduced exactly")
+    print(f"  {len(out)} differ — written to {REANALYSIS}")
+    if out:
+        print()
+        for o in out:
+            print(f"    {o['listing_id']}  {o['source_observed_at']}  "
+                  f"v{o['source_extractor_version']}")
+            print(f"      {o['was_extraction_status']} "
+                  f"{o['was_title_date_iso'] or '—'}"
+                  f"   ->   {o['now_extraction_status']} "
+                  f"{o['now_title_date_iso'] or '—'}"
+                  + (f"  (year {o['title_date_year_source']})"
+                     if o['title_date_year_source'] else ""))
+    print()
+    print("  These are NOT observations. The source was not contacted; the")
+    print("  bytes are the ones already on disk. What changed is the rule.")
+    return 0
+
+
+def load_reanalysis() -> list[dict]:
+    if not REANALYSIS.exists():
+        return []
+    return [json.loads(l) for l in
+            REANALYSIS.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
 def load_rounds() -> dict[str, list[dict]]:
@@ -495,6 +707,63 @@ def report(by_id: dict[str, list[dict]]) -> int:
             for lid, r in stale[:10]:
                 print(f"    {lid:<24}v{r.get('extractor_version')}  "
                       f"{r.get('extraction_status')}")
+
+    # ---------------------------------------------------------------------
+    # Three kinds of thing can produce a date in this project, and every
+    # number above comes from exactly one of them. Printed apart because the
+    # moment they are added together the series stops meaning anything:
+    #
+    #   OBSERVED      the source was contacted and said this
+    #   RE-ANALYSED   the source was NOT contacted; a newer rule read bytes
+    #                 already on disk. Evidence about the parser.
+    #   CROSS-VERSION a transition whose two sides were read by different
+    #                 rules. Evidence about neither until re-observed.
+    #
+    # Nothing in the transition counts or the monotonicity verdict above uses
+    # a re-analysed value. They are listed here and nowhere else.
+    print()
+    print("WHERE EVERY DATE ABOVE CAME FROM")
+    print("-" * 66)
+    dated = [r for rs in by_id.values() for r in rs if r.get("title_date_iso")]
+    read = sum(1 for r in dated if r.get("title_date_year_source") == "read")
+    inferred = sum(1 for r in dated
+                   if r.get("title_date_year_source") == "inferred")
+    # Neither, and not an error: the field did not exist before v4, so a
+    # record from v1 or v3 cannot say where its year came from. Counting
+    # those as "read" would be inventing provenance for a value that has
+    # none — the same move this whole file exists to refuse.
+    unstated = len(dated) - read - inferred
+    print(f"  observed, year read off the page             {read:>5}")
+    print(f"  observed, year inferred from the day we looked{inferred:>5}")
+    print(f"  observed before v4 recorded which            {unstated:>5}")
+    if inferred or unstated:
+        print("      — «۲۲ شهریور» carries no year. The observation date")
+        print("        supplies one, and a parse landing in the future is")
+        print("        refused rather than corrected downward. Records")
+        print("        written before v4 do not say which they were.")
+
+    ra = load_reanalysis()
+    print(f"  re-analysed from stored bytes      {len(ra):>5}"
+          + ("   (not counted anywhere above)" if ra else ""))
+    if ra:
+        print()
+        for o in ra[:10]:
+            print(f"    {o.get('listing_id')}  {o.get('source_observed_at')}"
+                  f"  v{o.get('source_extractor_version')}"
+                  f" -> v{o.get('reanalysis_extractor_version')}")
+            print(f"      {o.get('was_extraction_status')} "
+                  f"{o.get('was_title_date_iso') or '—'}   ->   "
+                  f"{o.get('now_extraction_status')} "
+                  f"{o.get('now_title_date_iso') or '—'}")
+        print()
+        print("    The source was not contacted for any of these. They say")
+        print("    what the current rule reads in bytes already collected —")
+        print("    which is a fact about the rule, and becomes a fact about")
+        print("    the page only when the page is fetched again.")
+    elif REANALYSIS.exists():
+        print("      (the derived file exists and holds no differences)")
+    else:
+        print("      (none — run `--reanalyse` to produce them)")
     print()
     return 0
 
@@ -506,8 +775,14 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--report", action="store_true",
                     help="read the file and say what it shows; fetch nothing")
+    ap.add_argument("--reanalyse", action="store_true",
+                    help="re-read STORED titles with the current parser and "
+                         "write the differences to a separate derived file; "
+                         "fetches nothing and never touches the observations")
     a = ap.parse_args()
 
+    if a.reanalyse:
+        return reanalyse()
     if a.report:
         return report(load_rounds())
 
