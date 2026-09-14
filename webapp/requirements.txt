@@ -4,6 +4,30 @@
 # protecting: a reviewer who has to install a web stack before running the test
 # suite usually just doesn't. `caro/` and `tests/` still need nothing but
 # numpy. Everything here is for serving the site.
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-pydantic==2.10.4
+
+# FLOOR AND CEILING, not an exact pin — and the reason is a real failure, not
+# a preference.
+#
+# These were pinned exactly, at versions from December 2024. `pydantic-core`
+# is compiled, so it ships a wheel per Python version, and 2.10.4 has none for
+# Python 3.14. On a machine whose `python3` IS 3.14 — which is now an ordinary
+# Ubuntu — pip falls back to building it from source, wants a Rust toolchain,
+# and the install fails. An exact pin that cannot be installed is not
+# reproducibility; it is a locked door.
+#
+# The floor is the version each feature this code actually uses arrived in.
+# The ceiling is the next major, because that is where a promise can be
+# withdrawn without warning.
+#
+# This is not a guess about compatibility. The whole suite — including
+# `tests/test_api_contract.py`, which round-trips every response model and
+# reads the statuses back over real HTTP — has been running green throughout
+# on fastapi 0.141.1, pydantic 2.13.3 and uvicorn 0.46.0, which is far past
+# every pin below.
+#
+# If a build ever needs one exact set of versions, that is what a lock file is
+# for, and it belongs beside this rather than inside it: a requirements file
+# that doubles as a lock gives you neither.
+fastapi>=0.115.6,<1
+uvicorn[standard]>=0.34.0,<1
+pydantic>=2.10.4,<3

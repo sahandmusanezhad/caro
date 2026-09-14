@@ -36,6 +36,25 @@ one nginx (or equivalent) so the browser sees a single origin.
 | `CARO_RUN` | which corpus the API serves, by run id. Unset means `webapp.api.corpus.DEFAULT_RUN`. **Set it and get it wrong and the site serves nothing** — see below; that is the point of setting it. |
 | `CARO_CORPORA` | where corpora are read from. For pointing the reader at a directory a test controls, and for nothing else. |
 
+### Python version
+
+`webapp/requirements.txt` carries a floor and a ceiling rather than exact
+pins, because exact ones stopped being installable: `pydantic-core` is
+compiled and ships a wheel per Python version, and the pinned 2.10.4 has none
+for Python 3.14 — so on a machine whose `python3` is 3.14, pip tries to build
+it from source, wants Rust, and fails. The file says the rest.
+
+A virtualenv is the shortest path on Debian and Ubuntu, where the system
+Python refuses installs (PEP 668):
+
+```sh
+python3 -m venv .venv                      # apt install python3.X-venv if this fails
+.venv/bin/pip install -r webapp/requirements.txt
+.venv/bin/python -m uvicorn webapp.api.main:app --reload --port 8000
+```
+
+`.venv/` is already in `.gitignore`.
+
 ## Why the requirements file is separate
 
 `webapp/requirements.txt` holds fastapi, uvicorn and pydantic. None of them
