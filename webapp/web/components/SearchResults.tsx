@@ -101,11 +101,15 @@ export default function SearchResults() {
       {data && (
         <>
           {/* corpus note — the label is in the header, the caveat is here */}
-          <p className={`m-0 text-[12.5px] leading-7 border-e-2 ps-0 pe-3
+          {/* The accent bar marks where the line STARTS, so in an RTL
+              column it belongs on the right — border-inline-START. It was on
+              the end edge, which put a "this is the corpus caveat" marker at
+              the far side of the text it marks. */}
+          <p className={`m-0 text-[12.5px] leading-7 border-s-2 ps-3 pe-0
             text-ink-2 ${
-            data.status.kind === 'UNUSABLE' ? 'border-e-bad'
-              : data.status.kind === 'REAL' ? 'border-e-good'
-                : 'border-e-warn'}`}>
+            data.status.kind === 'UNUSABLE' ? 'border-s-bad'
+              : data.status.kind === 'REAL' ? 'border-s-good'
+                : 'border-s-warn'}`}>
             {data.corpus.note_fa}
           </p>
 

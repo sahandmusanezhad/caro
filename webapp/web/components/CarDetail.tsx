@@ -6,7 +6,9 @@ import {
   ApiError, api, type CorpusMeta, type EvidenceItem, type Fault,
   type ScoredItem,
 } from '@/lib/api';
-import { compact, faNum, faPlain, km, modelLabel, toman } from '@/lib/format';
+import {
+  compact, conditionLabel, faNum, faPlain, km, modelLabel, toman, trimLabel,
+} from '@/lib/format';
 import TechDetail from '@/components/TechDetail';
 import TermBars from '@/components/TermBars';
 
@@ -189,14 +191,14 @@ export default function CarDetail({ id }: { id: string }) {
               an internal name and «pride» has no business on the page. */}
           <F k="سازنده" v={listing.make ? modelLabel(listing.make) : '—'} />
           <F k="مدل" v={listing.model ? modelLabel(listing.model) : '—'} />
-          <F k="تیپ" v={listing.trim ?? 'ثبت‌نشده'} />
+          <F k="تیپ" v={trimLabel(listing.trim)} />
           <F k="سال (شمسی)" v={faPlain(listing.year_jalali)} num />
           <F k="کارکرد" v={km(listing.mileage_km)} num />
           <F k="قیمت پیشنهادی" v={toman(listing.asking_price_toman)} num />
           <F k="گیربکس" v={listing.gearbox ?? 'ثبت‌نشده'} />
           <F k="سوخت" v={listing.fuel ?? 'ثبت‌نشده'} />
           <F k="رنگ" v={listing.color ?? 'ثبت‌نشده'} />
-          <F k="وضعیت بدنه" v={listing.condition ?? 'ثبت‌نشده'} />
+          <F k="وضعیت بدنه" v={conditionLabel(listing.condition)} />
           <F k="استان" v={listing.province ?? 'ثبت‌نشده'} />
           <F k="نوع فروشنده"
              v={SELLER_FA[listing.seller_type ?? 'unknown']

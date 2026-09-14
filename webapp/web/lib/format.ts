@@ -77,12 +77,78 @@ export const MODEL_FA: Record<string, string> = {
   '206': '۲۰۶', '207': '۲۰۷', '405': '۴۰۵',
   pride: 'پراید', tiba: 'تیبا', quik: 'کوییک', pars: 'پارس',
   dena: 'دنا', shahin: 'شاهین', saina: 'ساینا',
+  // Manufacturers. The corpus stores `Saipa` and the page was printing it, so
+  // a Persian site showed a Latin brand beside a Persian model — «Saipa ·
+  // پراید» — in an h1.
+  saipa: 'سایپا', ikco: 'ایران‌خودرو', 'iran khodro': 'ایران‌خودرو',
+  mvm: 'ام‌وی‌ام', kia: 'کیا', hyundai: 'هیوندای', renault: 'رنو',
+  peugeot: 'پژو',
 };
+
+/* Trim words, which are NOT the same problem as model names.
+ *
+ * A trim is part vocabulary and part code: «۱۳۱ SE» is how an Iranian seller
+ * writes it, letters and all, so transliterating SE to «اس‌ای» would be less
+ * readable rather than more. What IS Persian is the descriptive half —
+ * `basic`, `sedan`, `hatchback` — and printing those in Latin on a Persian
+ * page is the same mistake as printing `Saipa`.
+ *
+ * So: descriptive words translate, model codes stay Latin and go uppercase,
+ * digits become Persian digits, and anything unrecognised falls through
+ * EXACTLY as it is. The corpus holds `manualr` on three listings, which is a
+ * parse artefact, and it must keep looking like one. */
+const TRIM_FA: Record<string, string> = {
+  basic: 'ساده', sedan: 'صندوق‌دار', hatchback: 'هاچ‌بک',
+  manual: 'دنده‌ای', automatic: 'اتوماتیک', plus: 'پلاس',
+};
+const TRIM_CODE = new Set(['se', 'ex', 'sx', 'le', 'lx', 'gx', 'tu5', 'lmt',
+                           'ex7', 's', 'r']);
+
+export function trimLabel(trim: string | null | undefined): string {
+  if (!trim) return 'ثبت‌نشده';
+  return trim.split(/\s+/).filter(Boolean).map((w) => {
+    const k = w.toLowerCase();
+    if (TRIM_FA[k]) return TRIM_FA[k];
+    if (/^\d+$/.test(w)) return faPlain(Number(w));
+    if (TRIM_CODE.has(k)) return w.toUpperCase();
+    return w;                       // unmapped: shown as it is, on purpose
+  }).join(' ');
+}
+
+/* Body condition. These labels are not translations I chose — they are the
+ * phrases `caro/ingest/divar_car.py` MATCHES ON to assign each label, so the
+ * page says back to the reader what the listing said in the first place.
+ *
+ * `unknown` is the row that matters and it does not mean «سالم». A listing
+ * that states no condition carries CONDITION_RISK 0.35 in `caro/ranking.py`,
+ * between a disclosed scratch and several painted panels, because silence
+ * could be either and treating it as intact would rank undisclosed cars above
+ * disclosed ones. So it renders as "not stated" and never as a clean bill. */
+export const CONDITION_FA: Record<string, string> = {
+  intact: 'بدون رنگ',
+  minor_paint: 'لکه‌رنگ یا خط و خش',
+  multi_paint: 'دور رنگ — چند قطعه',
+  replaced_part: 'قطعه‌ی تعویضی',
+  accident: 'تصادفی یا شاسی‌خورده',
+  unknown: 'ثبت‌نشده',
+};
+
+export function conditionLabel(c: string | null | undefined): string {
+  if (!c) return 'ثبت‌نشده';
+  return CONDITION_FA[c.toLowerCase()] ?? c;
+}
 
 /** «پراید · EX» from a model_key, dropping the empty trim segment. */
 export function modelLabel(key: string): string {
-  return key.split('|').filter(Boolean)
-    .map((part) => MODEL_FA[part.toLowerCase()] ?? part)
+  const parts = key.split('|').filter(Boolean);
+  return parts
+    .map((part, i) => {
+      const fa = MODEL_FA[part.toLowerCase()];
+      if (fa) return fa;
+      // The third segment of a model_key is the trim, and it is the only one
+      // with its own vocabulary. Earlier segments fall through as before.
+      return i === 2 ? trimLabel(part) : part;
+    })
     .join(' · ');
 }
 
