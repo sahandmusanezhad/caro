@@ -196,22 +196,40 @@ print("\nthe suite can actually fail")
 # A comparison that cannot report a difference is a comparison that proves
 # nothing. This runs the real parser over a copy of the demo with one hex
 # digit changed, and asserts the difference is seen.
-_tampered = DEMO.read_text(encoding="utf-8").replace(
-    "--accent:#1a5f59", "--accent:#1a5f5a", 1)
-check("a one-digit change to the demo's accent is a change",
-      _tampered != DEMO.read_text(encoding="utf-8"),
-      "the anchor string is stale — update it with the palette")
+#
+# The perturbation is DERIVED from whatever the accent currently is rather
+# than written here as a literal. The first version of this suite hard-coded
+# `--accent:#1a5f59`, and the very next commit — the one that changed the
+# palette — made that string absent, so the self-check silently stopped
+# perturbing anything and both its assertions failed. It caught itself, which
+# is the good outcome, but a guard whose own fixture goes stale with every
+# change it guards is a guard that will one day be edited into agreement
+# instead of fixed. Now it cannot go stale: there is no colour in this file.
+_ACCENT = re.compile(r"(--accent\s*:\s*)(#[0-9a-fA-F]{6})")
 
-import tempfile                                                # noqa: E402
+_src = DEMO.read_text(encoding="utf-8")
+_hit = _ACCENT.search(_src)
+check("the demo declares an accent this suite can perturb", _hit is not None,
+      "no `--accent: #rrggbb` found in demo/index.html")
 
-with tempfile.TemporaryDirectory() as d:
-    probe = Path(d) / "index.html"
-    probe.write_text(_tampered, encoding="utf-8")
-    drifted = palette(probe)
-    check("and the parser reports it",
-          drifted["light"]["--accent"] != site["light"]["--accent"],
-          f"{drifted['light'].get('--accent')!r} vs "
-          f"{site['light']['--accent']!r}")
+if _hit:
+    def _nudge(m):
+        v = m.group(2)
+        return m.group(1) + v[:-1] + ("0" if v[-1].lower() != "0" else "1")
+
+    _tampered = _ACCENT.sub(_nudge, _src, count=1)
+    check("perturbing it actually changes the file", _tampered != _src)
+
+    import tempfile                                            # noqa: E402
+
+    with tempfile.TemporaryDirectory() as d:
+        probe = Path(d) / "index.html"
+        probe.write_text(_tampered, encoding="utf-8")
+        drifted = palette(probe)
+        check("and the parser reports the difference",
+              drifted["light"]["--accent"] != site["light"]["--accent"],
+              f"{drifted['light'].get('--accent')!r} vs "
+              f"{site['light']['--accent']!r}")
 
 
 print()

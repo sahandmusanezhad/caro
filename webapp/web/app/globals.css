@@ -1,24 +1,48 @@
-/* The palette is `demo/index.html`'s, copied deliberately rather than
-   re-invented: the video and the site must be recognisably one product, and a
-   reviewer who watches the demo and then opens the URL should not wonder
-   whether they are looking at two different things.
-
-   Everything is a CSS variable so `tailwind.config.ts` can name the colours
+/* Everything is a CSS variable so `tailwind.config.ts` can name the colours
    once and the dark scheme can be a redefinition rather than a second set of
-   classes scattered through the components. */
+   classes scattered through the components.
+
+   THIS PALETTE IS DECLARED TWICE. `demo/index.html` carries the same sixteen
+   values, because the video and the site must be recognisably one product and
+   a reviewer who watches the demo and then opens the URL should not wonder
+   whether they are looking at two different things. That file is
+   hand-maintained — no script generates it — and it has to stay a single
+   self-contained page, so it cannot import this one.
+
+   `tests/test_palette.py` compares the two and fails the build when they
+   disagree. Change a colour here and you must change it there in the SAME
+   commit; the suite is what makes that a rule rather than an intention. */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* NEUTRAL GROUND, ONE SHARP ACCENT.
+ *
+ * The greys are not pure. They carry a faint warm bias toward the accent,
+ * because a mathematically neutral grey beside a saturated orange reads as
+ * inherited rather than chosen.
+ *
+ * `--accent` is spent in three places and nowhere else: the control that
+ * performs an action, the one figure a screen is actually about, and the
+ * active state of something you can change. Spread it wider and it stops
+ * pointing at anything.
+ *
+ * `--good` is not a colour. There is no green here — "this corpus is real"
+ * is said with the strongest contrast on the page rather than a third hue,
+ * which is also why it cannot be confused with the accent: the accent
+ * invites a click, and REAL invites nothing. `--bad` stays a red, but a
+ * DARKER one than the accent, so the two separate by value and not only by
+ * hue — on a neutral page that difference is what survives.
+ */
 :root {
-  --ground:#f1f3f0; --surface:#fbfcfa; --sunk:#e7eae6;
-  --ink:#131a1b; --ink-2:#3d4947; --ink-3:#69736f;
-  --line:#d5dbd6; --line-2:#c2cac4;
-  --accent:#1a5f59; --accent-soft:#dbe9e6;
-  --warn:#9a6508; --warn-soft:#f5ead4;
-  --bad:#8f2f2f; --bad-soft:#f6e0dd;
-  --good:#2e6b46; --good-soft:#dcecdf;
+  --ground:#fafaf8; --surface:#ffffff; --sunk:#f3f3f0;
+  --ink:#0c0c0b; --ink-2:#55554e; --ink-3:#8b8b83;
+  --line:#e5e5e1; --line-2:#d0d0ca;
+  --accent:#ef4a1e; --accent-soft:#fdebe4;
+  --warn:#96670c; --warn-soft:#faf0d9;
+  --bad:#b02113; --bad-soft:#fae5e1;
+  --good:#0c0c0b; --good-soft:#f3f3f0;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --fa:"Vazirmatn",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme: light dark;
@@ -26,24 +50,24 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground:#0e1213; --surface:#161c1d; --sunk:#1d2425;
-    --ink:#e4e8e5; --ink-2:#b3bcb8; --ink-3:#7f8a86;
-    --line:#293230; --line-2:#374240;
-    --accent:#5db3a8; --accent-soft:#16302e;
-    --warn:#d9a441; --warn-soft:#32270f;
-    --bad:#e08b83; --bad-soft:#331a18;
-    --good:#7bbd92; --good-soft:#14291c;
+    --ground:#0a0a09; --surface:#131312; --sunk:#1b1b19;
+    --ink:#f5f5f2; --ink-2:#a9a9a1; --ink-3:#74746d;
+    --line:#242422; --line-2:#34342f;
+    --accent:#ff6234; --accent-soft:#2d1409;
+    --warn:#d9a441; --warn-soft:#2b2110;
+    --bad:#f0776c; --bad-soft:#2d1512;
+    --good:#f5f5f2; --good-soft:#242422;
   }
 }
 
 :root[data-theme="dark"] {
-  --ground:#0e1213; --surface:#161c1d; --sunk:#1d2425;
-  --ink:#e4e8e5; --ink-2:#b3bcb8; --ink-3:#7f8a86;
-  --line:#293230; --line-2:#374240;
-  --accent:#5db3a8; --accent-soft:#16302e;
-  --warn:#d9a441; --warn-soft:#32270f;
-  --bad:#e08b83; --bad-soft:#331a18;
-  --good:#7bbd92; --good-soft:#14291c;
+  --ground:#0a0a09; --surface:#131312; --sunk:#1b1b19;
+  --ink:#f5f5f2; --ink-2:#a9a9a1; --ink-3:#74746d;
+  --line:#242422; --line-2:#34342f;
+  --accent:#ff6234; --accent-soft:#2d1409;
+  --warn:#d9a441; --warn-soft:#2b2110;
+  --bad:#f0776c; --bad-soft:#2d1512;
+  --good:#f5f5f2; --good-soft:#242422;
 }
 
 html { direction: rtl; }
