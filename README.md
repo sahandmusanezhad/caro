@@ -148,9 +148,9 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 #                                   add --extras for all ten suites
 
-python3 tests/run_all.py            # 906 assertions, no API key, no network
+python3 tests/run_all.py            # 1333 assertions, no API key, no network
 python3 tests/run_all.py ranking    # just the win-rate benchmark
-python3 demo/export_demo.py         # regenerate demo/index.html from live output
+python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
 
 Those three run on a clean clone with no network. The run scripts do not:
@@ -162,13 +162,13 @@ Read their committed output in `docs/` instead — `RUN3_2026-09-07.txt`,
 `RUN5_SIGNIFICANCE_2026-09-07.txt`, `RANK_RUN5_2026-09-08.txt`,
 `GATE_DIAGNOSIS_2026-09-08.txt`.
 
-**numpy is the only hard dependency of `caro/`.** Two of the ten test suites
+**numpy is the only hard dependency of `caro/`.** Two of the fourteen test suites
 need more, and the runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 906 assertions across 8 of 10 suites
+python3 tests/run_all.py            # 1168 assertions across 12 of 14 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
-python3 tests/run_all.py            # 1023 across all ten
+python3 tests/run_all.py            # 1333 across all fourteen
 ```
 
 Use `setup.sh --extras` rather than a bare `pip install`: on Debian-family
@@ -391,11 +391,11 @@ asking prices — and the appraiser is not serving.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · quality · coverage · stratification
-tests/           716 assertions across eight suites
+tests/           1333 assertions across fourteen suites
 scripts/         live runs, replays, the benchmark, the run-3/4 experiment plans
 data/snapshots/  NOT in the repository — see D46; a clone has no corpora
-demo/            export_demo.py regenerates index.html from pipeline output
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D46) · eval
+demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D57) · eval
 ```
 
 ## Sources, and what each is for
