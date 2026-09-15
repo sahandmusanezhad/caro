@@ -75,6 +75,9 @@ SUITES = [
      "every endpoint, in every corpus state, against the client's types",
      ("fastapi", "pydantic"), "pip install -r webapp/requirements.txt",
      ("fastapi.testclient",)),
+    ("--  palette", "tests/test_palette.py",
+     "the site and the demo carry one palette, or the build stops",
+     (), "", ()),
 ]
 
 
