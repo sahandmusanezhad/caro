@@ -212,7 +212,7 @@ export default function SearchResults() {
                             <td className="px-4 py-2.5 border-b border-line">
                               {modelLabel(r.model_key)}
                             </td>
-                            <td className="px-4 py-2.5 border-b border-line num">
+                            <td className="px-4 py-2.5 border-b border-line fig">
                               {faPlain(r.year_jalali)}
                             </td>
                             <td className="px-4 py-2.5 border-b border-line fig">
@@ -245,7 +245,7 @@ export default function SearchResults() {
                 <div className="flex items-center gap-3 flex-wrap panel
                                 !py-3.5">
                   <span className="text-[13px] text-ink-2">
-                    <b className="num">{faPlain(picked.length)}</b> خودرو
+                    <b className="fig">{faPlain(picked.length)}</b> خودرو
                     انتخاب شده
                   </span>
                   <button

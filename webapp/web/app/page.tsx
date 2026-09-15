@@ -112,7 +112,7 @@ export default function Home() {
                         sm:grid-cols-2">
           {PILLARS.map((p) => (
             <article key={p.n} className="bg-surface p-6">
-              <span className="num text-[12px] text-ink-3">{p.n}</span>
+              <span className="fig text-[12px] text-ink-3">{p.n}</span>
               <h2 className="text-[17px] font-medium mt-1 mb-2 leading-8">
                 {p.t}
               </h2>

@@ -199,7 +199,7 @@ export default function CompareTable() {
                   <td className="px-4 py-2.5 border-b border-line">
                     {modelLabel(r.model_key)}
                   </td>
-                  <td className="px-4 py-2.5 border-b border-line num">
+                  <td className="px-4 py-2.5 border-b border-line fig">
                     {faPlain(r.year_jalali)}
                   </td>
                   <td className="px-4 py-2.5 border-b border-line fig">
@@ -250,7 +250,7 @@ export default function CompareTable() {
                                           border-line align-top">
                   <div className="font-medium text-[14px]">
                     {modelLabel(r.model_key)}{' '}
-                    <span className="num text-ink-2">
+                    <span className="fig text-ink-2">
                       {faPlain(r.year_jalali)}
                     </span>
                   </div>

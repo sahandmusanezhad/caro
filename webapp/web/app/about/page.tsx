@@ -40,10 +40,16 @@ export default function About() {
         <div className="grid gap-px bg-line border border-line sm:grid-cols-4">
           {FACTS.map(([n, k, src]) => (
             <div key={k} className="bg-surface p-5">
-              <div className="num text-[26px] font-medium text-accent">{n}</div>
+              <div className="fig text-[26px] font-medium text-accent">{n}</div>
               <div className="text-[13.5px] mt-1">{k}</div>
-              <div className="text-[11.5px] text-ink-3 mt-1.5 num
-                              break-words">{src}</div>
+              {/* Two of these four are repository paths and two are Persian
+                  sentences. `.num` forces LTR and the Latin mono face, which
+                  is right for the first pair and wrong for the second — it
+                  was laying «هسته‌ی پروژه فقط به numpy نیاز دارد» out
+                  left-to-right in a font that has none of its letters. The
+                  slash is what separates the two cases. */}
+              <div className={`text-[11.5px] text-ink-3 mt-1.5 break-words ${
+                src.includes('/') ? 'num' : ''}`}>{src}</div>
             </div>
           ))}
         </div>

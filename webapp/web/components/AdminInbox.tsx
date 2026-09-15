@@ -117,7 +117,7 @@ export default function AdminInbox() {
       {msgs && (
         <>
           <p className="m-0 text-[13px] text-ink-2">
-            <b className="num">{faNum(msgs.length)}</b> پیام
+            <b className="fig">{faNum(msgs.length)}</b> پیام
           </p>
 
           {msgs.length === 0 ? (
@@ -161,7 +161,7 @@ export default function AdminInbox() {
           )}
 
           <p className="m-0 text-[12px] text-ink-3">
-            پیام شماره‌ی <span className="num">{faPlain(1)}</span> تازه‌ترین
+            پیام شماره‌ی <span className="fig">{faPlain(1)}</span> تازه‌ترین
             است؛ ترتیب از جدید به قدیم.
           </p>
         </>

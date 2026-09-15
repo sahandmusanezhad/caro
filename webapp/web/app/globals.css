@@ -60,16 +60,30 @@ body {
 /* Two classes, and using the wrong one is a visible bug rather than a matter
    of taste.
 
-   `.num` forces an LTR run. Correct for something that IS left-to-right — a
-   file path, a listing id, `Σ = 0.283` — and `isolate` keeps the bidi
-   algorithm from dragging an adjacent minus sign or bracket to the far end.
+   `.num` forces an LTR run AND the mono face. Correct for something that IS
+   left-to-right and IS Latin — a file path, a listing id, a sha256,
+   `Σ = 0.283` — and `isolate` keeps the bidi algorithm from dragging an
+   adjacent minus sign or bracket to the far end.
 
-   `.fig` only changes the font. Use it whenever a number sits in a Persian
-   phrase — «۵۹۲٬۹۸۴٬۰۶۳ تومان», «۱۷۲٬۵۳۸ کیلومتر». Wrapping those in `.num`
-   lays the whole phrase out left-to-right, which puts the unit before the
-   number and renders «تومان ۵۹۲٬۹۸۴٬۰۶۳» — read right-to-left by an actual
-   Persian reader, that is the unit first. Left alone, bidi already lays the
-   digit run out correctly inside the RTL line. */
+   `.fig` is for a Persian number sitting in a Persian phrase —
+   «۵۹۲٬۹۸۴٬۰۶۳ تومان», «۱۷۲٬۵۳۸ کیلومتر». It does NOT change the font, and
+   that is the whole point of this rule.
+
+   WHY IT USED TO, AND WHY THAT COULD NOT WORK. `.fig` set `--mono`, which is
+   IBM Plex Mono. `Intl.NumberFormat('fa-IR')` emits EXTENDED ARABIC-INDIC
+   digits U+06F0–U+06F9 and ARABIC THOUSANDS SEPARATOR U+066C; Plex Mono
+   covers neither. So every price, odometer, year and count on the site fell
+   through per-character font fallback to whatever the system happened to
+   have, at metrics unrelated to Vazirmatn — mismatched digits, a separator
+   drawn like a raised apostrophe, and columns that did not line up.
+   `tabular-nums` was inert the whole time, because the font doing the
+   drawing was never the font the rule named.
+
+   Vazirmatn has both ranges and is tabular, so asking for the figures and
+   leaving the family alone is what actually produces aligned Persian
+   columns. The `.num` sites that were wrapping Persian digits moved to
+   `.fig` in the same commit; what stayed behind is Latin, which is what
+   `--mono` is for. */
 .num, code, kbd, pre {
   font-family: var(--mono);
   direction: ltr;
@@ -78,8 +92,8 @@ body {
 }
 
 .fig {
-  font-family: var(--mono);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 ::selection { background: var(--accent-soft); color: var(--ink); }

@@ -35,12 +35,12 @@ export default function ListingCard({
     <article className="panel">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-baseline gap-3 flex-wrap">
-          <span className="num text-[12px] text-ink-3">
+          <span className="fig text-[12px] text-ink-3">
             #{faPlain(item.rank)}
           </span>
           <h3 className="m-0 text-[19px] font-medium">
             {modelLabel(item.model_key)}
-            <span className="num text-ink-2 text-[16px] mr-2">
+            <span className="fig text-ink-2 text-[16px] mr-2">
               {faPlain(item.year_jalali)}
             </span>
           </h3>

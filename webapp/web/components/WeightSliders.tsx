@@ -62,7 +62,7 @@ export default function WeightSliders({
               onChange={(e) => set(k, Number(e.target.value))}
               className="w-full accent-[var(--accent)]"
             />
-            <span className="num text-[12px] text-ink-2 text-left">
+            <span className="fig text-[12px] text-ink-2 text-left">
               {pct(w[k] / total)}
             </span>
           </li>

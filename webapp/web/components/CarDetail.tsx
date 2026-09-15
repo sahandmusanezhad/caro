@@ -171,7 +171,7 @@ export default function CarDetail({ id }: { id: string }) {
         <p className="eyebrow">پرونده‌ی خودرو · <span className="num">{id}</span></p>
         <h1 className="m-0 text-[28px] font-bold">
           {modelLabel(listing.model_key)}
-          <span className="num text-ink-2 text-[22px] mr-3">
+          <span className="fig text-ink-2 text-[22px] mr-3">
             {faPlain(listing.year_jalali)}
           </span>
         </h1>
