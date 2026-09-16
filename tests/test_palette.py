@@ -232,6 +232,130 @@ if _hit:
               f"{site['light']['--accent']!r}")
 
 
+# ---------------------------------------------------------------------------
+print("\nno at-rule stands where a selector belongs")
+# ---------------------------------------------------------------------------
+
+# The checks above compare two palettes to each other. They say nothing about
+# whether either stylesheet PARSES, and that is a different failure with the
+# same signature: silent.
+#
+# `demo/index.html` carried this for as long as the case buttons existed:
+#
+#     :root[data-theme="dark"] .case-btn[aria-selected="true"],
+#     @media (prefers-color-scheme:dark){}
+#
+# A selector list cannot contain an at-rule. The comma says "another selector
+# follows", `@media` is not one, so the prelude fails to parse and the browser
+# discards the whole qualified rule. Nothing is reported anywhere — no console
+# error a screen recording would show, no visual difference to notice, because
+# the rule it dropped had an empty body. It is debris from an edit that
+# removed a dark-mode override's declarations and left its selector behind.
+#
+# The check is STRUCTURAL rather than a search for that text. A guard that
+# greps for `@media (prefers-color-scheme:dark){}` catches the instance that
+# has already been fixed and nothing else; the defect is the class — an
+# at-keyword sitting where a selector is expected — and `@supports`, or the
+# same mistake one line lower, is the same bug.
+
+_STYLE = re.compile(r"<style[^>]*>(.*?)</style\s*>", re.S | re.I)
+_AT = re.compile(r"@[a-zA-Z][a-zA-Z-]*")
+
+
+def stylesheet(path: Path) -> str:
+    """The CSS in `path`, comments stripped.
+
+    `demo/index.html` is a page, not a stylesheet: two thirds of it is HTML
+    and JavaScript, where braces and semicolons mean something else entirely.
+    Scanning the whole file would read every JS block as a rule prelude. So
+    the CSS is taken from the `<style>` elements when there are any.
+    """
+    raw = path.read_text(encoding="utf-8")
+    if _STYLE.search(raw):
+        raw = "\n".join(m.group(1) for m in _STYLE.finditer(raw))
+    return _COMMENT.sub("", raw)
+
+
+def preludes(css: str) -> list[str]:
+    """What stands between each statement boundary and the `{` it opens.
+
+    Not a CSS parser — it does not need to be. `{`, `}` and `;` are the only
+    boundaries that matter here: whatever precedes a `{` since the last of
+    them is that rule's prelude, and a declaration ends at `;` or `}` without
+    ever opening a block, so declarations never masquerade as one.
+    """
+    out, start = [], 0
+    for i, ch in enumerate(css):
+        if ch in "{};":
+            if ch == "{":
+                out.append(css[start:i].strip())
+            start = i + 1
+    return out
+
+
+def misplaced(css: str) -> list[str]:
+    """Preludes holding an at-keyword somewhere other than their start.
+
+    `@media (...) { }` is a statement and its prelude begins with `@` — that
+    is fine and common. `sel, @media (...) { }` is not: the at-keyword is
+    inside a selector list. Position is the whole distinction.
+    """
+    out = []
+    for pre in preludes(css):
+        m = _AT.search(pre)
+        if m and m.start() != 0:
+            out.append(pre)
+    return out
+
+
+_SHEETS = {"globals.css": stylesheet(SITE), "demo/index.html": stylesheet(DEMO)}
+
+for _label, _css in _SHEETS.items():
+    # A scanner that extracted nothing finds nothing wrong with it. Said out
+    # loud, so the guard cannot pass by looking at an empty string — which is
+    # what a renamed `<style>` tag or a moved file would produce.
+    _n = len(preludes(_css))
+    check(f"{_label}: {_n} rule prelude(s) to inspect", _n >= 10, f"got {_n}")
+
+for _label, _css in _SHEETS.items():
+    _bad = misplaced(_css)
+    check(f"{_label}: no at-rule inside a selector list", not _bad,
+          " · ".join(re.sub(r"\s+", " ", b) for b in _bad))
+
+
+# The same reasoning as the accent perturbation above, for the same reason:
+# this guard is green on a file that no longer has the defect, which is also
+# what it would look like if the scanner had quietly stopped working. So the
+# defect is put back into a COPY and the scanner is required to see it.
+#
+# The injected pattern is built from the demo's own first selector rather
+# than written here as a literal, so it cannot go stale the way a hard-coded
+# colour did.
+#
+# What is asserted is that injection adds exactly ONE finding — not that the
+# total is one. Those differ precisely when the sheet already has a real
+# instance, and that is the case where the difference matters: an absolute
+# count would report this self-check as broken when what is actually broken
+# is the stylesheet, which the check above already says in the right words. A
+# check that fails for a reason other than the one it names gets read as
+# noise, and then the check beside it gets read as noise too.
+_first = next((p for p in preludes(_SHEETS["demo/index.html"])
+               if p and not p.startswith("@")), "")
+check("the demo has a selector this suite can graft onto", bool(_first),
+      "no plain selector found")
+
+if _first:
+    _before = len(misplaced(_SHEETS["demo/index.html"]))
+    _broken = _SHEETS["demo/index.html"].replace(
+        _first + "{", _first + ",\n@media (prefers-color-scheme:dark){}\n"
+        + _first + "{", 1)
+    check("injecting an at-rule into a selector list changes the sheet",
+          _broken != _SHEETS["demo/index.html"])
+    check("and the scanner reports the injected one",
+          len(misplaced(_broken)) == _before + 1,
+          f"{_before} before, {len(misplaced(_broken))} after")
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
