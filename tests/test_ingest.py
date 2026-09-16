@@ -1547,6 +1547,68 @@ for _txt, _want in [
     check(f"province_of({_txt!r:26}) = {_want!r}", province_of(_txt) == _want,
           f"got {province_of(_txt)!r}")
 
+# ---------------------------------------------------------------------------
+# the probe's phone guard — the claim that was false until it was run
+# ---------------------------------------------------------------------------
+# `scripts/location_probe.py` prints raw page lines, and bama renders the
+# seller's number as one of them. Its first draft asserted in prose that no
+# phone number was printed, reasoning from "nothing looks for one", and the
+# first real run printed «۰۹۳۰۸۹۰۸۱XX».
+#
+# The prose is now a function, and the function is now checked here, because
+# a guard on a constraint this project treats as non-negotiable should not be
+# the one thing in the repository whose only evidence is a sentence. The
+# first case below is the exact string that leaked; the keeps are the lines
+# section 3 exists to display, which a plain length rule would have blanked.
+from scripts.location_probe import redact_phone_like                 # noqa: E402
+
+check("the line that actually leaked is redacted",
+      redact_phone_like("۰۹۳۰۸۹۰۸۱XX") == "[11 digits redacted]",
+      redact_phone_like("۰۹۳۰۸۹۰۸۱XX"))
+
+for _line in [
+    "کارکرد 500,000 کیلومتر",   # the anchor section 3 is built on
+    "350,000,000",              # the price, three lines below it
+    "رباط کریم، تهران",         # the value the whole probe is looking for
+    "5 روز پیش",
+    "1388",
+    "4 سیلندر یورو3",
+    "103 نیوتن‌متر",
+    "1.3 لیتر",
+    "نمایش شماره",              # the label, which carries no digits
+]:
+    check(f"survives untouched: {_line!r:28}",
+          redact_phone_like(_line) == _line, redact_phone_like(_line))
+
+for _line in [
+    "09123456789",
+    "۰۹۱۲ ۳۴۵ ۶۷۸۹",
+    "0912-345-6789",
+    "۰۲۱۸۸۷۷۶۶۵۵",
+]:
+    check(f"redacted: {_line!r:22}", "redacted" in redact_phone_like(_line),
+          redact_phone_like(_line))
+
+check("redacted mid-sentence, leaving the sentence",
+      redact_phone_like("تماس ۰۹۱۲۳۴۵۶۷۸۹ فقط پیامک")
+      == "تماس [11 digits redacted] فقط پیامک",
+      redact_phone_like("تماس ۰۹۱۲۳۴۵۶۷۸۹ فقط پیامک"))
+
+# The stated limit, asserted as a limit. This is here so that the docstring's
+# "what this does not catch" cannot quietly become false in either direction:
+# if someone widens the rule to cover it, this fails and the docstring gets
+# corrected in the same commit.
+check("a landline punctuated like a price is NOT caught, as documented",
+      redact_phone_like("021,8877,6655") == "021,8877,6655",
+      redact_phone_like("021,8877,6655"))
+
+# And the guarantee that matters more than any of the above: the adapter has
+# never read that line, whatever the probe does.
+check("the adapter still records no seller_raw",
+      parse_detail_page("https://bama.ir/car/detail-pnone", ld_page()) is None
+      or parse_detail_page("https://bama.ir/car/detail-pnone",
+                           ld_page()).seller_raw is None)
+
 
 print()
 if FAILS:
