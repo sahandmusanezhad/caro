@@ -16,12 +16,27 @@ import { useState } from 'react';
  * understood at all.
  */
 
+/* An example that returns nothing is worse than no example at all: it is an
+ * invitation, and the first thing a visitor does with an invitation is accept
+ * it. Three of these used to name a 206. `run11` holds 56 Pride, 10 Tiba and
+ * 10 Quik, and no Peugeot at all, so the likeliest first click on the site
+ * produced an empty screen.
+ *
+ * Between the five they still exercise everything the box exists to
+ * demonstrate — a bare model, a budget, a vague odometer cue, a use case, a
+ * deal-breaker, and one sentence phrased the way somebody actually talks —
+ * which is why the fix is a substitution rather than a pruning.
+ *
+ * These are now coupled to what the default corpus contains, and
+ * `tests/test_api_contract.py` section 8 reads THIS list and asserts every
+ * entry still finds something. Change the default corpus and the build says
+ * which example died. */
 const EXAMPLES = [
-  '۲۰۶',
-  '۲۰۶ زیر ۸۰۰ میلیون',
+  'پراید',
+  'پراید زیر ۳۰۰ میلیون',
   'ماشین برای اسنپ، کم‌مصرف، قطعاتش ارزون باشه، زیر ۸۰۰ میلیون',
   'ماشین اول خانواده، تصادفی نباشه، بودجه ۱.۲ میلیارد',
-  'یه ۲۰۶ اتومات کم‌کارکرد تا ۱.۵ میلیارد میخوام',
+  'یه کوییک اتومات کم‌کارکرد تا ۱.۵ میلیارد میخوام',
 ];
 
 export default function SearchBox({

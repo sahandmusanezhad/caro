@@ -507,6 +507,64 @@ for ts_name, literal in (("CorpusKind", schemas.CorpusKind),
           f"not in Python: {sorted(got - want) or DASH}")
 
 
+# ---------------------------------------------------------------------------
+print("\n8 — every example on the search box still finds something")
+# ---------------------------------------------------------------------------
+#
+# The chips under the search box are the likeliest first click on the site,
+# and an example that returns nothing is worse than no example at all: it is
+# an invitation, and the visitor accepts it. Three of them used to name a 206
+# while the shipped corpus held nothing but Saipa, so the most probable first
+# impression of CARO was an empty screen.
+#
+# The list is READ from the component rather than copied here. A copy would
+# pass forever while the real chips rotted — the same failure this file's
+# section 7 exists to prevent for the TypeScript unions, and the same one the
+# palette suite prevents for the demo.
+#
+# This runs against the REAL default corpus, not a fixture. The claim being
+# made is about what is shipped; a synthetic artifact could satisfy any list.
+
+_BOX = (ROOT / "webapp/web/components/SearchBox.tsx").read_text(encoding="utf-8")
+_m = re.search(r"const EXAMPLES = \[(.*?)\];", _BOX, re.S)
+check("EXAMPLES is readable from SearchBox.tsx", _m is not None)
+
+if _m:
+    _chips = re.findall(r"'([^']+)'", _m.group(1))
+    check(f"  and holds {len(_chips)} example(s)", len(_chips) >= 3,
+          str(_chips))
+
+    _real = ROOT / "data" / "corpora"
+    check("  the default corpus is present to check against",
+          (_real / f"{RUN}.json").exists(), str(_real / f"{RUN}.json"))
+
+    _was, _was_run = corpus_reader.CORPORA, os.environ.get(corpus_mod.RUN_ENV)
+    corpus_reader.CORPORA = _real
+    os.environ.pop(corpus_mod.RUN_ENV, None)
+    corpus_mod.active.cache_clear()
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            _kind = api.which_corpus().status.kind
+            _res = [(q, api.search(q=q, k=8)) for q in _chips]
+        check(f"  serving the real corpus (kind={_kind})", _kind == "REAL",
+              _kind)
+        for _q, _r in _res:
+            # `evidence` is what an ungated corpus can still show. On a gated
+            # one the same query would fill `items` instead, so both count —
+            # the assertion is that the example leads somewhere, not which
+            # branch it lands in.
+            _n = len(_r.evidence) + len(_r.items)
+            check(f"  «{_q[:38]}» → {_n}", _n > 0,
+                  "this example finds nothing in the shipped corpus")
+    finally:
+        corpus_reader.CORPORA = _was
+        if _was_run is None:
+            os.environ.pop(corpus_mod.RUN_ENV, None)
+        else:
+            os.environ[corpus_mod.RUN_ENV] = _was_run
+        corpus_mod.active.cache_clear()
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
