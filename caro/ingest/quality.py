@@ -276,6 +276,44 @@ def classify_product(name: str | None, *, from_canonical: bool
 # different question from `price_status`'s "did this number come out right?".
 # A financing total can be flawless on the second and useless on the first.
 
+# AND THE SAME GAP AT THE OTHER END, observed 2026-09-15 on run11 —
+# recorded, not acted on.
+#
+# The corpus MINIMUM is 65,000,000 toman: `bama:0hg8shef`, a Pride 131 SE,
+# year 1396, 170,000 km. Every provenance field on it is the honest one.
+# `price_status` is display_confirmed, so the extraction was checked against
+# what buyers see. `price_kind` is cash with source `no_contrary_evidence`,
+# which is this module's way of saying nothing on the page contradicted the
+# default reading — not that anything confirmed it.
+#
+# It is not credible as an asking price. The same corpus has a 1389 Pride 131
+# SE with 400,000 km at 405M and a Pride median of 625M; a car seven years
+# newer with under half the mileage at a sixth of the price is not a bargain,
+# it is a different quantity. The year is not a mis-parse either — the source
+# URL slug carries 1396.
+#
+# WHAT MAKES IT WORTH WRITING DOWN RATHER THAN DISMISSING. The eight listings
+# returned beside it are internally coherent: across that sample price rises
+# with model year and falls with odometer, in order, without exception. So
+# this is not a corpus that is noisy everywhere and happens to be noisy here.
+# It is one row that does not belong to the pattern the rest of the sample
+# shows — which is precisely the row an estimator is most damaged by, because
+# it sits at the edge.
+#
+# WHAT THE DATA CANNOT SETTLE. At least two accounts fit and nothing here
+# separates them: the figure is a deposit or instalment rather than the whole
+# price, and `classify_price_kind` never saw «جزئیات اقساط» because the block
+# was not rendered on the page it was given; or a digit was lost somewhere
+# upstream and the real figure was 650M — which lands almost exactly on the
+# Pride median, and is the kind of coincidence that argues for a hypothesis
+# and proves nothing.
+#
+# So: an economic anomaly observed in real data, with insufficient evidence
+# to attribute it to an extraction fault. No field is changed on the strength
+# of it. A rule written to catch one row would be fitted to that row, and
+# `price_kind` would start asserting a check that did not happen — which is
+# the failure this whole section exists to describe.
+
 # A SECTION HEADING bama renders, not a word in seller prose. «قسط» appears
 # in ordinary ad copy («قسطی معاوضه می‌کنم») and would classify honest cash
 # listings as financing; the labelled block is the site's own assertion that
