@@ -1464,6 +1464,90 @@ else:
     print("      (run5 snapshot absent — skipped)")
 
 
+# ---------------------------------------------------------------------------
+print("\nlocation — positional, bounded, and validated against the thirty-one")
+# ---------------------------------------------------------------------------
+#
+# Bama renders no «موقعیت» label, which is why `province` is empty on all 76
+# records of run 11 and why repost matching — which blocks and scores on
+# `province` — has been running with one signal absent.
+#
+# OBSERVED is verbatim from `scripts/location_probe.py` against
+# detail-oniy1maq on 2026-09-16. The variants around it are the cases a
+# positional rule has to survive, and the last three are the ones that decide
+# whether it is safe: a rule that cannot refuse is a rule that records a
+# price as a province.
+
+from caro.ingest.bama import extract_location                       # noqa: E402
+from caro.ingest.persian import PROVINCES, province_of              # noqa: E402
+
+OBSERVED_LOCATION_BLOCK = [
+    "پراید،  141", "ساده", "1388",
+    "کارکرد 500,000 کیلومتر",
+    "5 روز پیش",
+    "رباط کریم، تهران",
+    "350,000,000",
+    "تومان",
+]
+
+
+def _without(lines, drop):
+    return [ln for ln in lines if ln != drop]
+
+
+def _swap(lines, old, new):
+    return [new if ln == old else ln for ln in lines]
+
+
+for _name, _lines, _want_prov, _want_src in [
+    ("the page as measured",
+     OBSERVED_LOCATION_BLOCK, "تهران", "after_odometer"),
+    # Round 4 §5: the relative phrase stops being rendered as a listing ages,
+    # so the location is not at a fixed offset from the odometer.
+    ("with the date line gone",
+     _without(OBSERVED_LOCATION_BLOCK, "5 روز پیش"), "تهران", "after_odometer"),
+    ("province stated without a city",
+     _swap(OBSERVED_LOCATION_BLOCK, "رباط کریم، تهران", "تهران"),
+     "تهران", "after_odometer"),
+    ("a city with no province is refused, not inferred",
+     _swap(OBSERVED_LOCATION_BLOCK, "رباط کریم، تهران", "کرج"),
+     None, "window_had_no_province"),
+    ("no location: the PRICE is not taken instead",
+     _without(OBSERVED_LOCATION_BLOCK, "رباط کریم، تهران"),
+     None, "window_had_no_province"),
+    ("no odometer line is a different fact from no province",
+     [ln for ln in OBSERVED_LOCATION_BLOCK if not ln.startswith("کارکرد")],
+     None, "no_anchor"),
+    ("a label, if the page ever grows one back",
+     ["موقعیت", "اصفهان"] + OBSERVED_LOCATION_BLOCK, "اصفهان", "labelled"),
+]:
+    _raw, _prov, _src = extract_location(_lines)
+    check(f"{_name} → {_want_prov or 'refused'}", _prov == _want_prov,
+          f"got {_prov!r}")
+    check(f"  and says how: {_want_src}", _src == _want_src, f"got {_src!r}")
+
+check("the raw line is kept as rendered, city and all",
+      extract_location(OBSERVED_LOCATION_BLOCK)[0] == "رباط کریم، تهران",
+      str(extract_location(OBSERVED_LOCATION_BLOCK)[0]))
+
+check("thirty-one provinces, no more and no fewer",
+      len(PROVINCES) == 31 and len(set(PROVINCES)) == 31, str(len(PROVINCES)))
+
+for _txt, _want in [
+    ("رباط کریم، تهران", "تهران"),
+    ("مشهد، خراسان رضوی", "خراسان رضوی"),
+    ("تهران", "تهران"),
+    ("کرج", None),                 # a city, and البرز is not inferred from it
+    ("350,000,000", None),
+    ("کارکرد 500,000 کیلومتر", None),
+    ("5 روز پیش", None),
+    ("", None),
+    (None, None),
+]:
+    check(f"province_of({_txt!r:26}) = {_want!r}", province_of(_txt) == _want,
+          f"got {province_of(_txt)!r}")
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

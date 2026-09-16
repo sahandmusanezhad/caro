@@ -85,6 +85,7 @@ from caro.ingest.divar_car import (
 )
 from caro.ingest.persian import (
     digits_only, normalize, parse_mileage_km, parse_price, parse_year_jalali,
+    province_of,
 )
 from caro.ingest.quality import (
     PriceStatus, classify_mileage, classify_price_kind, classify_product,
@@ -560,6 +561,66 @@ def _labelled(lines: Sequence[str], label: str) -> str | None:
     return None
 
 
+# The location block, measured on detail-oniy1maq 2026-09-16 with
+# `scripts/location_probe.py`:
+#
+#     [45]  کارکرد 500,000 کیلومتر
+#     [46]  5 روز پیش
+#     [47]  رباط کریم، تهران
+#     [48]  350,000,000
+#     [49]  تومان
+#
+# There is NO LABEL. `city=_labelled(lines, "موقعیت")` has been reading a word
+# the page does not render since the adapter was written, which is why
+# `province` is empty on all 76 records of run 11 — and why repost matching,
+# which blocks and scores on `province`, has been running with one signal
+# permanently absent.
+#
+# So the rule is positional, and positional rules are how a price ends up
+# recorded as a province. Two things keep this one honest:
+#
+#   BOUNDED. The window is the four lines after the odometer and nothing
+#   else. The relative-date line at [46] is not always rendered — round 4 of
+#   the date watch recorded it disappearing as a listing ages — so the
+#   location is not at a fixed offset and a fixed offset would be a lie.
+#
+#   VALIDATED. `province_of` tests membership in the thirty-one, so the only
+#   way a wrong line survives is by being a province, which the price, the
+#   odometer line and the date phrase cannot be. A miss yields None and says
+#   so; it never yields the neighbouring line's contents.
+_LOCATION_WINDOW = 4
+
+
+def extract_location(lines: Sequence[str]) -> tuple[str | None, str | None, str]:
+    """(the line as rendered, the province if it validates, how it was found).
+
+    The city is returned inside `location_raw` and never on its own: cities
+    are an open set, so there is nothing to check one against, and a field
+    something downstream compares on must be checkable.
+    """
+    label = _labelled(lines, "موقعیت")
+    if label:
+        # Kept because a page that grows the label back should be read from
+        # it rather than by counting lines. Measured absent everywhere so far.
+        return label, province_of(label), "labelled"
+
+    for i, ln in enumerate(lines):
+        n = normalize(ln)
+        if not (n.startswith("کارکرد") and "کیلومتر" in n):
+            continue
+        for j in range(i + 1, min(i + 1 + _LOCATION_WINDOW, len(lines))):
+            cand = lines[j]
+            prov = province_of(cand)
+            if prov:
+                return cand.strip(), prov, "after_odometer"
+        # The anchor was found and the window held no province. That is a
+        # different fact from "no anchor", and the trace keeps them apart:
+        # one means the page changed shape, the other means this page has no
+        # odometer line at all.
+        return None, None, "window_had_no_province"
+    return None, None, "no_anchor"
+
+
 @dataclass
 class ParseTrace:
     """Where each field came from, and why the missing ones are missing.
@@ -576,6 +637,13 @@ class ParseTrace:
     price_agreement: str = "none"     # see reconcile_price()
     mileage_source: str = "none"
     condition_source: str = "none"    # field | description | none
+    # labelled | after_odometer | window_had_no_province | no_anchor
+    location_source: str = "none"
+    # The line as rendered — «رباط کریم، تهران». The city half has nowhere to
+    # go yet: the corpus carries `province` and nothing else, and adding a
+    # field is a DATA_CONTRACT change rather than a parser change. Kept here
+    # so a run can at least report what it saw and threw away.
+    location_raw: str | None = None
 
 
 def parse_detail_page(url: str, html: str,
@@ -696,6 +764,9 @@ def parse_detail_page(url: str, html: str,
         condition = extract_body_condition(desc)
         tr.condition_source = "description" if desc else "none"
 
+    loc_raw, loc_province, loc_source = extract_location(lines)
+    tr.location_raw, tr.location_source = loc_raw, loc_source
+
     ld_color = ld.get("color") if isinstance(ld.get("color"), str) else ""
     ld_gear = (ld.get("vehicleTransmission")
                if isinstance(ld.get("vehicleTransmission"), str) else "")
@@ -765,7 +836,10 @@ def parse_detail_page(url: str, html: str,
         # the condition came from survives past the console.
         condition_source=tr.condition_source,
         document_issue=has_document_issue(desc),
-        city=_labelled(lines, "موقعیت") or None,
+        # `province`, not the whole «شهر، استان» line: the corpus field this
+        # becomes is named province, `tracking` blocks and scores on it, and
+        # only the province half can be checked against anything.
+        city=loc_province,
         seller_raw=None,          # the masked phone is never read
         # Everything the reconciliation was based on, kept verbatim.
         price_raw=(str(offers.get("price"))

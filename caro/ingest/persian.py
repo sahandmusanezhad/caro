@@ -151,3 +151,53 @@ def parse_year_jalali(text: str) -> int | None:
         # Two-digit years are 13xx unless that lands in the future.
         return 1300 + y if y >= 60 else 1400 + y
     return None
+
+
+# ---------------------------------------------------------------------------
+# Provinces
+# ---------------------------------------------------------------------------
+#
+# Iran has thirty-one, and that closed set is the whole reason this module
+# can validate a location instead of trusting one. A positional rule that
+# takes "the line after the odometer" will one day take the price, and the
+# only thing standing between that and a corpus recording «۳۵۰٬۰۰۰٬۰۰۰» as a
+# province is a membership test the price cannot pass.
+#
+# NOT a geography. There is no city list here on purpose: cities are open,
+# they change, and a list of them would be a permanent invitation to treat
+# absence-from-the-list as absence-from-Iran. The city is kept verbatim by the
+# caller; only the province — the part that can be checked — is ever promoted
+# to a field that something downstream will compare on.
+PROVINCES: tuple[str, ...] = (
+    "آذربایجان شرقی", "آذربایجان غربی", "اردبیل", "اصفهان", "البرز", "ایلام",
+    "بوشهر", "تهران", "چهارمحال و بختیاری", "خراسان جنوبی", "خراسان رضوی",
+    "خراسان شمالی", "خوزستان", "زنجان", "سمنان", "سیستان و بلوچستان", "فارس",
+    "قزوین", "قم", "کردستان", "کرمان", "کرمانشاه", "کهگیلویه و بویراحمد",
+    "گلستان", "گیلان", "لرستان", "مازندران", "مرکزی", "هرمزگان", "همدان",
+    "یزد",
+)
+
+_PROVINCE_BY_NORM = {normalize(p): p for p in PROVINCES}
+
+
+def province_of(text: str | None) -> str | None:
+    """The province named by `text`, or None — never a guess.
+
+    Bama renders «رباط کریم، تهران»: city first, province last, separated by
+    the Arabic comma. So the province is the LAST segment, and a line that is
+    only a city («کرج») yields nothing rather than the province it happens to
+    sit in — inferring البرز from کرج would be this module asserting a
+    geography it does not hold.
+
+    The whole string is also tried, for a page that states the province with
+    no city in front of it.
+    """
+    if not text:
+        return None
+    s = normalize(text)
+    if s in _PROVINCE_BY_NORM:
+        return _PROVINCE_BY_NORM[s]
+    parts = [p.strip() for p in re.split(r"[،,]", s) if p.strip()]
+    if parts:
+        return _PROVINCE_BY_NORM.get(parts[-1])
+    return None
