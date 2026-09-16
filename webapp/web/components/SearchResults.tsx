@@ -187,7 +187,41 @@ export default function SearchResults() {
                 </p>
               </section>
 
-              {data.evidence?.length > 0 && (
+              {/* TWO REASONS ARRIVE HERE AND ONLY ONE OF THEM WAS EVER SAID.
+                  The panel above explains why no RANKING is served — the
+                  estimator has not cleared the gate. It says nothing about
+                  whether any listing matched, and until this branch existed
+                  an empty evidence table simply rendered nothing at all: the
+                  page ended after the refusal. A reader then attributes the
+                  emptiness to the refusal, which is wrong and is the exact
+                  conflation the whole envelope exists to prevent. `run11`
+                  has no 206 in it; that is a fact about the corpus, not
+                  about the gate. */}
+              {data.evidence?.length === 0 ? (
+                <section className="panel">
+                  <p className="eyebrow">هیچ آگهی منطبقی پیدا نشد</p>
+                  <p className="m-0 text-[14.5px] leading-[1.95] text-ink-2
+                                max-w-[62ch]">
+                    این جدا از بالاست. رتبه‌بندی به‌خاطر دروازه‌ی پذیرش سرو
+                    نمی‌شود؛ این یکی درباره‌ی خودِ پرسش است: از{' '}
+                    <b className="fig text-ink">{faNum(data.considered)}</b>{' '}
+                    آگهی این پیکره، هیچ‌کدام با قیدهایی که نوشتی منطبق نبود.
+                  </p>
+                  {/* And the reader must not be left thinking the ladder ran
+                      and failed. It never runs here — see `search()` in
+                      webapp/api/main.py: relaxing a buyer's constraints to
+                      hunt for a shortlist that cannot be served would report
+                      «قیدها شل شد» when the constraints were never the
+                      problem. */}
+                  <p className="m-0 mt-3 text-[12.5px] leading-[1.9] text-ink-3
+                                max-w-[62ch]">
+                    قیدها همان‌طور که گفتی به‌کار رفتند و شل نشدند — وقتی
+                    رتبه‌بندی سرو نمی‌شود، شل‌کردن قیدها دنبال فهرستی می‌گردد
+                    که به‌هرحال ساخته نمی‌شود. جمله را بازتر بنویس تا دوباره
+                    امتحان کنیم.
+                  </p>
+                </section>
+              ) : (
                 <section>
                   <p className="eyebrow">
                     شواهد — آگهی‌های منطبق، بدون برآورد و بدون ترتیب
