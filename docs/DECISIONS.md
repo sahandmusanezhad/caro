@@ -2883,20 +2883,48 @@ way a wrong prediction about ageing fails. The phrase did not advance
 incorrectly; it ceased to exist. Nine listings, `http 200`, `extraction_status
 PRESENT`, title date intact, `phrase_days` null.
 
-**What the file shows.** Over every observation where the url answered 200 and
-a title date is available, so that an age is defined:
+**What the file shows.** 106 observations where an age is defined — the url
+answered 200 and a title date is present. Two tables, because the two date
+fields do not always agree and the difference between them is the subject:
 
-    age 0–6 days     phrase present 62    absent  0
-    age 7–29 days    phrase present  0    absent 34
+    age 0–6 days     phrase present 59    absent  0
+    age 7–29 days    phrase present  3    absent 44
 
-`max(phrase_days)` over all 64 phrase-bearing observations is 6. Seven has
-never been observed.
+    d 0–6            phrase present 62    absent  0
+    d 7–29           phrase present  0    absent 44
 
-The boundary sits on the phrase's own value, not on the title-derived age:
-three observations at title-age 7 do carry a phrase, and all three read
-«۶ روز پیش». Those three belong to the 29-of-61 disagreement between the two
-fields already on record — `title_date_iso` is an independent reading, not a
-derivation from the phrase, which is what makes crossing them informative.
+The first bins by the title-derived age, `observed_date − title_date_iso`. The
+second bins by the phrase's own value, falling back to the age for rows where
+no phrase is shown. They differ on exactly three observations — those whose
+title-derived age is 7 while the phrase reads «۶ روز پیش» — and the second is
+the one that shows a clean boundary, because the boundary sits on the phrase's
+own value and the first table hides it.
+
+Those three belong to the 29-of-61 disagreement between the two fields already
+on record. `title_date_iso` is an independent reading, not a derivation from
+the phrase, which is what makes crossing them informative and what makes the
+two tables different tables rather than one table twice.
+
+A third population, and it is not the 106: `max(phrase_days)` over all 64
+phrase-bearing observations is 6. Seven has never been observed. 62 of those
+64 sit inside the 106; the other two are `bama:l39y2bdi` at rounds 2 and 3,
+carrying «امروز» while the extractor of the day recorded no title date, so
+they have no age and cannot enter either table.
+
+**Correction, 2026-09-17.** The first version of this entry — committed as
+`1b5c11d`, and left in the history rather than amended away — carried one
+table where there are two, and both of its right-hand cells were wrong. It
+said `age 0–6 … present 62`, which is table B's figure printed under table
+A's label; the number there is 59. And it said `age 7–29 … absent 34`, which
+is a column read off a screen instead of added; the number is 44. As
+published the four cells summed to 96 against a population of 106 — the
+cheapest check available, and not done.
+
+Neither error touches anything this entry concludes. `max(phrase_days)` is
+still 6, the zero at `d ≥ 7` is still zero, the horizon still stands and the
+point prediction still held. That is exactly why they survived: a wrong count
+beside a right conclusion reads as corroboration, and two readers agreeing
+about it is not a second check but the same check twice.
 
 **What is claimed, and what is refused.** In this corpus, with extractor v4,
 `phrase_days` has never been observed at 7 or above, and was absent in all 34
