@@ -6,6 +6,10 @@
     python3 scripts/date_watch.py --reanalyse     # re-read STORED titles with
                                                   # the current rule; writes a
                                                   # separate derived file
+    python3 scripts/date_watch.py --export        # the publishable four-field
+                                                  # summary, so the numbers in
+                                                  # D58 can be added up by
+                                                  # someone without this file
 
 One question is open and only repetition closes it:
 
@@ -438,6 +442,129 @@ def load_reanalysis() -> list[dict]:
             REANALYSIS.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
+SUMMARY = ROOT / "data" / "derived" / "date_watch_summary.json"
+
+# The four fields that may leave `data/observations/`, and nothing else.
+#
+# An observation record also carries `title_raw`, `title_decoded`,
+# `line_after_1`, `line_after_2` and `mileage_line` — page text, truncated but
+# arbitrary, which is exactly why `.gitignore` keeps the whole directory out
+# of the repository. None of those is needed to check a count, so none of them
+# is here. The tuple is the contract: `summarise()` builds each row by
+# comprehension over it, so a field added to an observation tomorrow cannot
+# reach the artifact by accident, and a reader can see the whole permitted set
+# in one line rather than inferring it from a writer.
+SUMMARY_FIELDS = ("listing_id", "observed_at", "phrase_days", "title_date_iso")
+
+
+def _age_days(row: dict) -> int | None:
+    """observed_date − title_date, or None when there is no title date."""
+    if not row["title_date_iso"]:
+        return None
+    return (datetime.fromisoformat(row["observed_at"]).date()
+            - date.fromisoformat(row["title_date_iso"])).days
+
+
+def summarise(rows: list[dict]) -> dict:
+    """The publishable summary: every observation in four fields, plus the
+    aggregates D58 states.
+
+    TWO TABLES, because the two date fields do not always agree.
+
+        A  binned by the title-derived age
+        B  binned by the phrase's own value, falling back to the age where no
+           phrase is shown
+
+    They differ on the rows where `title_date_iso` and the phrase disagree,
+    and D58's first draft printed B's figure under A's label. Both are
+    exported, each named, so the next reader compares like with like.
+
+    NO DIGEST OF THE SOURCE FILE. It would be the mistake D57 records: a
+    sha256 of `date_watch.jsonl` verifies nothing to anyone, because nobody
+    outside this machine has that file and nobody ever will. What makes the
+    numbers below checkable is that every row they are computed from is in
+    this artifact, so a reader recomputes rather than trusts.
+    """
+    kept = [{k: r.get(k) for k in SUMMARY_FIELDS} for r in rows]
+    aged = [r for r in kept if r["title_date_iso"]]
+    A = {"0-6": [0, 0], "7+": [0, 0]}
+    B = {"0-6": [0, 0], "7+": [0, 0]}
+    for r in aged:
+        shown = r["phrase_days"] is not None
+        a = _age_days(r)
+        d = r["phrase_days"] if shown else a
+        A["0-6" if a <= 6 else "7+"][0 if shown else 1] += 1
+        B["0-6" if d <= 6 else "7+"][0 if shown else 1] += 1
+
+    bearing = [r for r in kept if r["phrase_days"] is not None]
+    latest = max((r["observed_at"] for r in kept), default="")
+    round_id = latest[:10]
+    return {
+        "artifact_kind": "date_watch_summary",
+        "generated_at": datetime.now(timezone.utc).isoformat(
+            timespec="seconds"),
+        "generated_by": "scripts/date_watch.py --export",
+        "source": ("data/observations/date_watch.jsonl — operational, never "
+                   "published (see .gitignore and docs/DATA_CONTRACT.md)"),
+        "fields": list(SUMMARY_FIELDS),
+        "observations": sorted(kept, key=lambda r: (r["observed_at"],
+                                                    r["listing_id"])),
+        "aggregates": {
+            "observations": len(kept),
+            "age_defined": len(aged),
+            "by_title_age": {k: list(v) for k, v in A.items()},
+            "by_phrase_value": {k: list(v) for k, v in B.items()},
+            "phrase_bearing": len(bearing),
+            "max_phrase_days": max((r["phrase_days"] for r in bearing),
+                                   default=None),
+            "phrase_bearing_without_age": sorted(
+                {r["listing_id"] for r in bearing if not r["title_date_iso"]}),
+            # Derived, not named. The one listing still inside the horizon is
+            # whichever listing is still inside it, and writing its id here
+            # would make this line stop being a measurement the day that
+            # changes.
+            "phrase_bearing_at_latest_round": sorted(
+                (r for r in bearing if r["observed_at"].startswith(round_id)),
+                key=lambda r: r["listing_id"]),
+        },
+    }
+
+
+def export() -> int:
+    """Write `data/derived/date_watch_summary.json`. Fetches nothing.
+
+    `--reanalyse` writes a derived file because a value computed today from
+    old bytes is not an observation. This writes one for a different reason:
+    the observations are unpublishable and the numbers drawn from them are
+    not. D58 states four cells, a population and a maximum; without this file
+    no reader can add them up, which is the condition D57 refuses.
+    """
+    if not OUT.exists():
+        print(f"no observations at {OUT}", file=sys.stderr)
+        return 2
+    rows = [json.loads(l) for l in OUT.read_text(encoding="utf-8").splitlines()
+            if l.strip()]
+    doc = summarise(rows)
+    SUMMARY.parent.mkdir(parents=True, exist_ok=True)
+    SUMMARY.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n",
+                       encoding="utf-8")
+    ag = doc["aggregates"]
+    print(f"wrote {SUMMARY}")
+    print(f"  {ag['observations']} observation(s), {len(SUMMARY_FIELDS)} field(s) each")
+    print(f"  {ag['age_defined']} with an age defined")
+    print(f"    by title age    0–6 {ag['by_title_age']['0-6']}   "
+          f"7+ {ag['by_title_age']['7+']}")
+    print(f"    by phrase value 0–6 {ag['by_phrase_value']['0-6']}   "
+          f"7+ {ag['by_phrase_value']['7+']}")
+    print(f"  max_phrase_days {ag['max_phrase_days']} over "
+          f"{ag['phrase_bearing']} phrase-bearing observation(s)")
+    print()
+    print("  No page text leaves the observation file: the four fields above")
+    print("  are the whole artifact, and every count in it is recomputable")
+    print("  from the rows beside it.")
+    return 0
+
+
 def load_rounds() -> dict[str, list[dict]]:
     by_id: dict[str, list[dict]] = defaultdict(list)
     if OUT.exists():
@@ -779,10 +906,15 @@ def main() -> int:
                     help="re-read STORED titles with the current parser and "
                          "write the differences to a separate derived file; "
                          "fetches nothing and never touches the observations")
+    ap.add_argument("--export", action="store_true",
+                    help="write the publishable four-field summary to "
+                         "data/derived/; fetches nothing")
     a = ap.parse_args()
 
     if a.reanalyse:
         return reanalyse()
+    if a.export:
+        return export()
     if a.report:
         return report(load_rounds())
 
