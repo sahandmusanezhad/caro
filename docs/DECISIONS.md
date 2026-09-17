@@ -2859,3 +2859,97 @@ is left open, because the answer depends on what they contain and what rests
 on them — the same two questions asked here. The rule this decision does fix
 is narrower and holds regardless: *a digest that is published as evidence must
 be computable by the person it is shown to, or it should not be shown.*
+
+## D58 — The relative phrase is censored at six days; absence is not an event
+
+`scripts/date_watch.py` has run six rounds against the same twenty listings —
+`data/corpora/run11.json`, `--sample 20 --seed 0`, the same ids every round —
+from 2026-09-12T09:57Z to 2026-09-17T13:29Z. 120 observations over 123.5 hours.
+
+Round 6 refuted a prediction written down before it ran, and the refutation is
+why this entry exists.
+
+**The prediction.** Nine listings carried a relative phrase at round 5,
+«۵ روز پیش» or «۶ روز پیش». Each was expected to advance by the whole days
+elapsed — 28.6 hours, so `+1` or `+2`. Seven listings with a title date and no
+phrase were expected to stay without one; three unreachable urls to stay
+unreachable; and `bama:l39y2bdi`, whose «۲۱ ساعت پیش» pinned its posting moment
+to 2026-09-15T11:48Z, carried a point prediction of `d=2` with the title date
+unchanged.
+
+Eleven of the twenty held. `l39y2bdi` returned «۲ روز پیش», `d=2`, title
+2026-09-15 — exactly. All nine ageing predictions failed, and none failed the
+way a wrong prediction about ageing fails. The phrase did not advance
+incorrectly; it ceased to exist. Nine listings, `http 200`, `extraction_status
+PRESENT`, title date intact, `phrase_days` null.
+
+**What the file shows.** Over every observation where the url answered 200 and
+a title date is available, so that an age is defined:
+
+    age 0–6 days     phrase present 62    absent  0
+    age 7–29 days    phrase present  0    absent 34
+
+`max(phrase_days)` over all 64 phrase-bearing observations is 6. Seven has
+never been observed.
+
+The boundary sits on the phrase's own value, not on the title-derived age:
+three observations at title-age 7 do carry a phrase, and all three read
+«۶ روز پیش». Those three belong to the 29-of-61 disagreement between the two
+fields already on record — `title_date_iso` is an independent reading, not a
+derivation from the phrase, which is what makes crossing them informative.
+
+**What is claimed, and what is refused.** In this corpus, with extractor v4,
+`phrase_days` has never been observed at 7 or above, and was absent in all 34
+observations of age 7 to 29. That is the claim.
+
+It is NOT the claim that the source deletes the phrase on the seventh day.
+Twenty listings from one corpus over six days do not establish a rule about
+bama.ir, and this file has already recorded the cost of that upgrade: D36
+exists because nine mechanism descriptions had been written down as observed
+market facts. A general claim needs a fresh corpus and listings watched across
+the boundary from the other side.
+
+Three competing explanations are ruled out by the data rather than by argument.
+The page template did not change between rounds 5 and 6 — if it had,
+`l39y2bdi` would have lost its phrase too, and it did not. The extractor did
+not change — v4 on both sides, recorded per observation. And it is not
+coincidence — the nine crossed on one calendar day, but `jmeyopyf` and
+`lpsbyco6` crossed on 2026-09-14 and `mgctnyn9` on 2026-09-16, every one of
+them at `d=7`.
+
+**The consequence that matters.** `phrase_days` is not an ageing counter. It is
+right-censored at 6. A null is not "this listing has no date information" and
+not "time unknown": where the age is known from another channel it is a
+predictable, computable absence, which is a different state from an absence
+nobody can account for.
+
+So the disappearance of the phrase is not an event about the listing. A tracker
+reading a field going null as an edit, a repost or a removal would fire on every
+listing in this panel on its seventh day — twenty spurious events from a source
+that did nothing. This is `UNKNOWN ≠ ABSENT` again, in its stronger form: the
+absence is derivable, so it can be separated from the unknown by arithmetic
+instead of being merged into it.
+
+**A gap this exposed, recorded and not repaired here.** The five-word extraction
+vocabulary — PRESENT, PRESENT_BUT_UNPARSED, MALFORMED, ABSENT_IN_SOURCE,
+UNREADABLE — is carried by one field, `extraction_status`, and that field
+describes the TITLE channel. A listing that lost its phrase this round records
+`extraction_status: PRESENT` with `matched_substring: 1405/6/19` beside
+`phrase_raw: null`. Both are right: the title was found and parsed, the phrase
+was not there. But the phrase channel carries no status of its own, so its null
+is the one value in the record with no vocabulary behind it — the exact
+condition the vocabulary was introduced to end. No field is added and no test is
+written here. What to do about it is a separate decision.
+
+Round 6 also produced a fourth `410`, `bama:4l0xpilj`, and no url has yet
+returned from `410` to `200`. That changes nothing: an unreachable url is one
+unreachable observation, not a removal and not a sale (D3).
+
+**What this does not settle.** Whether the horizon is six days anywhere else,
+whether it is a property of the source or of one page variant, and whether the
+phrase should be consumed at all once censoring is known to be present. This
+panel cannot answer the first two — nineteen of its twenty listings are now past
+the boundary or unreachable, and only `l39y2bdi` still carries a phrase, because
+it re-dated. That makes its next rounds a test: at `d=2` on 2026-09-17, with no
+further re-dating, it should lose the phrase on or after 2026-09-22, and not
+before.
