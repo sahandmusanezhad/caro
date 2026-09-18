@@ -2884,7 +2884,10 @@ incorrectly; it ceased to exist. Nine listings, `http 200`, `extraction_status
 PRESENT`, title date intact, `phrase_days` null.
 
 **What the file shows.** 106 observations where an age is defined — the url
-answered 200 and a title date is present. Two tables, because the two date
+answered 200 and a title date is present. Every count below is recomputable
+from `data/derived/date_watch_summary.json`, which carries all 120
+observations in four fields; the observations themselves are operational and
+stay out of the repository. Two tables, because the two date
 fields do not always agree and the difference between them is the subject:
 
     age 0–6 days     phrase present 59    absent  0
