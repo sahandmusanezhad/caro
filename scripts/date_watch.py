@@ -6,10 +6,13 @@
     python3 scripts/date_watch.py --reanalyse     # re-read STORED titles with
                                                   # the current rule; writes a
                                                   # separate derived file
-    python3 scripts/date_watch.py --export        # the publishable four-field
-                                                  # summary, so the numbers in
-                                                  # D58 can be added up by
-                                                  # someone without this file
+    python3 scripts/date_watch.py --export NAME   # the publishable four-field
+                                                  # summary, so a decision's
+                                                  # numbers can be added up by
+                                                  # someone without this file.
+                                                  # NAME anchors it; an
+                                                  # existing anchor is never
+                                                  # overwritten
 
 One question is open and only repetition closes it:
 
@@ -442,7 +445,21 @@ def load_reanalysis() -> list[dict]:
             REANALYSIS.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
-SUMMARY = ROOT / "data" / "derived" / "date_watch_summary.json"
+DERIVED = ROOT / "data" / "derived"
+
+# An anchor is named, and naming it is not a convenience.
+#
+# `--export` used to write one fixed path. D58's four cells are computed over
+# the 120 observations that existed when it was written, and the guard in
+# tests/test_corpus.py checks the entry against that file. Run the old command
+# after another round and the anchor silently becomes a different population —
+# the entry's numbers stop being reproducible from the artifact it points at,
+# and the only signal is a guard going red for a reason that reads like a bug.
+#
+# So the name is required and an existing file is never overwritten. A claim
+# stays attached to the snapshot it was made from, and a new round gets a new
+# snapshot instead of editing the history of an old one.
+SUMMARY_DEFAULT_NAME = "summary"
 
 # The four fields that may leave `data/observations/`, and nothing else.
 #
@@ -530,8 +547,8 @@ def summarise(rows: list[dict]) -> dict:
     }
 
 
-def export() -> int:
-    """Write `data/derived/date_watch_summary.json`. Fetches nothing.
+def export(name: str, force: bool = False) -> int:
+    """Write `data/derived/date_watch_<name>.json`. Fetches nothing.
 
     `--reanalyse` writes a derived file because a value computed today from
     old bytes is not an observation. This writes one for a different reason:
@@ -542,12 +559,24 @@ def export() -> int:
     if not OUT.exists():
         print(f"no observations at {OUT}", file=sys.stderr)
         return 2
+    dest = DERIVED / f"date_watch_{name}.json"
+    if dest.exists() and not force:
+        print(f"{dest.relative_to(ROOT)} already exists.\n"
+              f"An anchor is not regenerated: a decision's numbers are"
+              f" computed over the observations that existed when it was\n"
+              f"written, and rewriting the file it points at makes them"
+              f" unreproducible without saying so.\n"
+              f"Name this round something else, or pass --force if you have"
+              f" decided to move that anchor deliberately.", file=sys.stderr)
+        return 2
     rows = [json.loads(l) for l in OUT.read_text(encoding="utf-8").splitlines()
             if l.strip()]
     doc = summarise(rows)
-    SUMMARY.parent.mkdir(parents=True, exist_ok=True)
-    SUMMARY.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n",
-                       encoding="utf-8")
+    doc["anchor"] = name
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n",
+                    encoding="utf-8")
+    SUMMARY = dest
     ag = doc["aggregates"]
     print(f"wrote {SUMMARY}")
     print(f"  {ag['observations']} observation(s), {len(SUMMARY_FIELDS)} field(s) each")
@@ -906,15 +935,19 @@ def main() -> int:
                     help="re-read STORED titles with the current parser and "
                          "write the differences to a separate derived file; "
                          "fetches nothing and never touches the observations")
-    ap.add_argument("--export", action="store_true",
+    ap.add_argument("--export", metavar="NAME",
                     help="write the publishable four-field summary to "
-                         "data/derived/; fetches nothing")
+                         "data/derived/date_watch_NAME.json; fetches nothing. "
+                         "The name is required and an existing file is never "
+                         "overwritten — see the note above SUMMARY_DEFAULT_NAME")
+    ap.add_argument("--force", action="store_true",
+                    help="with --export, move an anchor that already exists")
     a = ap.parse_args()
 
     if a.reanalyse:
         return reanalyse()
     if a.export:
-        return export()
+        return export(a.export, a.force)
     if a.report:
         return report(load_rounds())
 
