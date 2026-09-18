@@ -3,7 +3,7 @@
 #
 #     ./scripts/setup.sh                 numpy — the only hard dependency
 #     ./scripts/setup.sh --extras        …and scipy + the API packages, so all
-#                                        ten suites run instead of eight
+#                                        fourteen suites run instead of twelve
 #
 # Four routes, tried in order of how little they disturb the machine. Most
 # people never get past the first two, and nobody should need sudo to run a
@@ -37,11 +37,11 @@ WANT_EXTRAS=0
 if [ "$WANT_EXTRAS" = "1" ]; then
   PKGS="numpy scipy fastapi pydantic uvicorn"
   WHAT="numpy and the test extras"
-  THEN="all ten suites"
+  THEN="all fourteen suites"
 else
   PKGS="numpy"
   WHAT="numpy"
-  THEN="eight of ten suites — run with --extras for the other two"
+  THEN="twelve of fourteen suites — run with --extras for the other two"
 fi
 
 echo "python: $($PY --version 2>&1)"

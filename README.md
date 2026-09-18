@@ -146,9 +146,9 @@ its own ability to assess uncertainty**, and refuses on it.
 ```
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
-#                                   add --extras for all ten suites
+#                                   add --extras for all fourteen suites
 
-python3 tests/run_all.py            # 1333 assertions, no API key, no network
+python3 tests/run_all.py            # 1531 assertions, no API key, no network
 python3 tests/run_all.py ranking    # just the win-rate benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -166,9 +166,9 @@ Read their committed output in `docs/` instead — `RUN3_2026-09-07.txt`,
 need more, and the runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 1168 assertions across 12 of 14 suites
+python3 tests/run_all.py            # 1357 assertions across 12 of 14 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
-python3 tests/run_all.py            # 1333 across all fourteen
+python3 tests/run_all.py            # 1531 across all fourteen
 ```
 
 Use `setup.sh --extras` rather than a bare `pip install`: on Debian-family
@@ -181,7 +181,7 @@ reader an instruction this repository already documents as broken.
 
 A suite whose extra module is absent is skipped by name with the command
 that enables it — skipped is never printed as passed, and the count reads
-"8 of 10". Neither extra is needed by the package: scipy builds an oracle
+"12 of 14". Neither extra is needed by the package: scipy builds an oracle
 inside `tests/test_appraisal.py`, and fastapi is only reachable from
 `webapp/`, which is deliberately outside the core so that the sentence
 below stays true.
@@ -347,7 +347,7 @@ blurred them before (D41). Five levels, weakest last:
 
 | | | Claim |
 |---|---|---|
-| **VALIDATED** | evidence on real data | ingestion and retrieval reach real Bama listings; parsing and normalisation to the level the 274 ingest assertions reach; the relaxation ladder; the refusal and uncertainty policy |
+| **VALIDATED** | evidence on real data | ingestion and retrieval reach real Bama listings; parsing and normalisation to the level the 355 ingest assertions reach; the relaxation ladder; the refusal and uncertainty policy |
 | **EVALUATED** | measured on real data, and it did not pass | conditional appraisal — Run 3 `UNJUDGEABLE_SLICE`, Run 5 `REJECTED` with D39's interval attached; the baseline class, which fails the gate on Run 5's corpus at 0.206 coverage error |
 | **AUDITABLE** | traceable on real data, no ground truth required | the decision ledger — which inputs each ranking decision actually had. On Run 5 it reports 38% mean completeness with a reason for every absence (`scripts/rank_run5.py`) |
 | **NOT VALIDATED** | correct within a contract this project wrote | ranking correctness — the win-rate beats price-sort on a synthetic corpus whose generating process this repository defines. It says the ranker responds correctly in a world built to have that property; it is not evidence about Iran |
@@ -391,7 +391,7 @@ asking prices — and the appraiser is not serving.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · quality · coverage · stratification
-tests/           1333 assertions across fourteen suites
+tests/           1531 assertions across fourteen suites
 scripts/         live runs, replays, the benchmark, the run-3/4 experiment plans
 data/snapshots/  NOT in the repository — see D46; a clone has no corpora
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
