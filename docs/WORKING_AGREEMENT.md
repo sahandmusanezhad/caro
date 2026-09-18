@@ -32,14 +32,19 @@ other is not evidence of anything.
 - **Separate commits, one per change**, each with the reasoning in the
   message. The commit log is part of the design record here; the *why* lives
   there, not only in the code.
-- **Push after committing.** The remote is
-  `github.com/sahandmusanezhad/caro`, branch `main`, and `gh` is
-  authenticated on the owner's machine.
-- Pushing needs `mcp__remote-devices__device_bash`, which runs git on the
-  owner's computer using credentials that already live there. **Never handle
-  the owner's GitHub token**, and never push from the sandbox. If the bridge
-  is down, commit anyway, write a fresh `git bundle --all` into
-  `~/Projects/`, and say plainly that the push is pending.
+- **The owner runs git.** An assistant session writes files into the
+  checkout and leaves a commit message beside it; the owner reads the
+  message, stages the files named in it, commits, and pushes. That is not a
+  fallback — a session has no shell on the owner's computer, so `git add`,
+  `git commit` and `git push` are his commands and nobody else's.
+- **Never handle the owner's GitHub token**, and never push from the
+  sandbox. The remote is `github.com/sahandmusanezhad/caro`, branch `main`,
+  and the credentials for it live on his machine and stay there.
+- **Prepare each commit so it is green on its own.** The working tree may
+  hold several pending changes at once, so `run_all.py` before a commit
+  reports the tree rather than the commit. When more than one commit is
+  staged at a time, check each in isolation and say which number belongs to
+  which.
 
 ## What this project is about
 
@@ -54,5 +59,8 @@ enforced. Two rules follow, and both have been broken before:
   gate is never edited after seeing its output. After a loss, changing the
   corpus and re-running is the most natural way to manufacture a win.
 
-Read `docs/DECISIONS.md` before changing anything. It is 48 entries and most
-of them exist because something went wrong in a way that was invisible.
+Read `docs/DECISIONS.md` before changing anything. Most of its entries exist
+because something went wrong in a way that was invisible. It carries no count
+here on purpose: `/about` states one and `tests/test_claims.py` recomputes it
+from the file, and a second hand-kept copy in this document would be a second
+thing to go stale — which is what the sentence this replaced had done.
