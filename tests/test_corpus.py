@@ -631,6 +631,99 @@ if _SUM.exists():
               f"it states {_m[2]} over {_m[1]}" if _m else "it states neither")
 
 
+# ---------------------------------------------------------------------------
+print("\nthe eligibility table and the document say the same thing")
+# ---------------------------------------------------------------------------
+#
+# `docs/FIELD_PROVENANCE.md` is where the judgement lives, measured against
+# run11. `webapp/api/eligibility.py` is where a renderer will read it. Two
+# declarations, compared here — parsing the document into the module instead
+# would give one declaration and a test that compares it with itself.
+#
+# The document is also checked against the artifact, so the chain is:
+#
+#     data/corpora/run11.json  →  FIELD_PROVENANCE.md  →  eligibility.FIELDS
+#
+# and a break anywhere in it fails, naming the link.
+
+from webapp.api.eligibility import (                              # noqa: E402
+    FIELDS as _ELIG, RENDERER_CONSUMES as _CONSUMES, STATUSES as _STATUSES)
+
+_DOC = (ROOT / "docs" / "FIELD_PROVENANCE.md").read_text(encoding="utf-8")
+_TABLE = _re.compile(
+    r"^\| `(\w+)` \| `(\w+)` \| (\S+) \| (\S+) \| (\S+) \| (\S+) \| (\S+) \| "
+    r"(\S+) \|", _re.M)
+_doc_rows = _TABLE.findall(_DOC)
+
+check(f"FIELD_PROVENANCE.md has a readable table ({len(_doc_rows)} rows)",
+      len(_doc_rows) >= 20, f"parsed {len(_doc_rows)}")
+
+if _doc_rows:
+    _BOOL = {"yes": True, "no": False}
+    _doc = {}
+    for _f, _st, _filled, _dist, *_flags in _doc_rows:
+        check(f"  {_f}: card/detail/gate/facet are yes or no",
+              all(v in _BOOL for v in _flags), str(_flags))
+        check(f"  {_f}: «{_st}» is one of the five statuses",
+              _st in _STATUSES)
+        if all(v in _BOOL for v in _flags):
+            _doc[_f] = (_st, *(_BOOL[v] for v in _flags), _filled, _dist)
+
+    # ---- the document against the artifact ------------------------------
+    _EMPTY = {None, "", "unknown", "none"}
+    _art = json.loads((ROOT / "data" / "corpora" / "run11.json")
+                      .read_text(encoding="utf-8"))["listings"]
+    _keys = {k for r in _art for k in r}
+    for _f, (_st, _c, _d, _g, _fa, _filled, _dist) in sorted(_doc.items()):
+        if _filled == "—":
+            check(f"  {_f}: dashed in the document, and not a key in run11",
+                  _f not in _keys)
+            continue
+        _nn = [r.get(_f) for r in _art if r.get(_f) not in _EMPTY]
+        _got = f"{len(_nn)}/{len(_art)}"
+        _n_dist = len({json.dumps(x, ensure_ascii=False) for x in _nn})
+        check(f"  {_f}: run11 says {_got}, {_n_dist} distinct",
+              (_filled, _dist) == (_got, str(_n_dist)),
+              f"the document says {_filled}, {_dist}")
+
+    # ---- the document against the module --------------------------------
+    check(f"every field in the document is in eligibility.FIELDS "
+          f"({len(_doc)})",
+          set(_doc) == set(_ELIG),
+          f"doc-only {sorted(set(_doc) - set(_ELIG))} · "
+          f"code-only {sorted(set(_ELIG) - set(_doc))}")
+
+    for _f in sorted(set(_doc) & set(_ELIG)):
+        _st, _c, _d, _g, _fa, *_ = _doc[_f]
+        _e = _ELIG[_f]
+        check(f"  {_f}: {_st} card={_c} detail={_d} gate={_g} facet={_fa}",
+              (_e.status, _e.card, _e.detail, _e.gate, _e.facet)
+              == (_st, _c, _d, _g, _fa),
+              f"the module says {_e.status} card={_e.card} "
+              f"detail={_e.detail} gate={_e.gate} facet={_e.facet}")
+
+    # ---- the invariant that does not depend on either file ---------------
+    _pending = sorted(f for f, e in _ELIG.items()
+                      if e.status == "PENDING_LIVE_VALIDATION")
+    check(f"nothing PENDING_LIVE_VALIDATION is drawn or chosen "
+          f"({', '.join(_pending)})",
+          all(not (_ELIG[f].card or _ELIG[f].gate or _ELIG[f].facet)
+              for f in _pending))
+
+    # ---- and the one with nothing to check yet, said out loud ------------
+    #
+    # No renderer exists, so RENDERER_CONSUMES is empty and this check has no
+    # input. Printing the zero is the difference between a guard that is green
+    # because it passed and one that is green because it looked at nothing.
+    for _surface, _fields in sorted(_CONSUMES.items()):
+        _illegal = sorted(f for f in _fields
+                          if not getattr(_ELIG.get(f, _ELIG["image"]),
+                                         _surface))
+        check(f"  renderer/{_surface}: {len(_fields)} field(s) declared, "
+              f"none ineligible",
+              not _illegal, f"ineligible: {_illegal}")
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
