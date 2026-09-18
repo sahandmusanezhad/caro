@@ -1,0 +1,892 @@
+{
+ "artifact_kind": "date_watch_summary",
+ "generated_at": "2026-09-18T22:20:43+00:00",
+ "generated_by": "scripts/date_watch.py --export",
+ "source": "data/observations/date_watch.jsonl — operational, never published (see .gitignore and docs/DATA_CONTRACT.md)",
+ "fields": [
+  "listing_id",
+  "observed_at",
+  "phrase_days",
+  "title_date_iso"
+ ],
+ "observations": [
+  {
+   "listing_id": "bama:xlyildqb",
+   "observed_at": "2026-09-12T09:57:24+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-15"
+  },
+  {
+   "listing_id": "bama:xrdeq0ht",
+   "observed_at": "2026-09-12T09:57:31+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-26"
+  },
+  {
+   "listing_id": "bama:wmxsljsn",
+   "observed_at": "2026-09-12T09:57:35+00:00",
+   "phrase_days": 1,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:673khvbo",
+   "observed_at": "2026-09-12T09:57:49+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:lpsbyco6",
+   "observed_at": "2026-09-12T09:57:55+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:gfgcipqb",
+   "observed_at": "2026-09-12T09:58:01+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-04"
+  },
+  {
+   "listing_id": "bama:mgctnyn9",
+   "observed_at": "2026-09-12T09:58:07+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:thhvbl5m",
+   "observed_at": "2026-09-12T09:58:16+00:00",
+   "phrase_days": 1,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:vm9bcghv",
+   "observed_at": "2026-09-12T09:58:21+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-23"
+  },
+  {
+   "listing_id": "bama:pfmvi6sb",
+   "observed_at": "2026-09-12T09:58:31+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-24"
+  },
+  {
+   "listing_id": "bama:6mhsjxdd",
+   "observed_at": "2026-09-12T09:58:39+00:00",
+   "phrase_days": 1,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:jmeyopyf",
+   "observed_at": "2026-09-12T09:58:43+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:wauj0xmm",
+   "observed_at": "2026-09-12T09:58:49+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:ijophzm6",
+   "observed_at": "2026-09-12T09:59:00+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ne39mdsr",
+   "observed_at": "2026-09-12T09:59:05+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:tdlq3uyn",
+   "observed_at": "2026-09-12T09:59:13+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-06"
+  },
+  {
+   "listing_id": "bama:msy1ffh6",
+   "observed_at": "2026-09-12T09:59:21+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:l39y2bdi",
+   "observed_at": "2026-09-12T09:59:27+00:00",
+   "phrase_days": 0,
+   "title_date_iso": "2026-09-11"
+  },
+  {
+   "listing_id": "bama:4l0xpilj",
+   "observed_at": "2026-09-12T09:59:42+00:00",
+   "phrase_days": 1,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ibrcha7z",
+   "observed_at": "2026-09-12T09:59:48+00:00",
+   "phrase_days": 1,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:xlyildqb",
+   "observed_at": "2026-09-12T15:44:12+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-15"
+  },
+  {
+   "listing_id": "bama:xrdeq0ht",
+   "observed_at": "2026-09-12T15:44:22+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-26"
+  },
+  {
+   "listing_id": "bama:wmxsljsn",
+   "observed_at": "2026-09-12T15:44:27+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:673khvbo",
+   "observed_at": "2026-09-12T15:44:32+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:lpsbyco6",
+   "observed_at": "2026-09-12T15:44:37+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:gfgcipqb",
+   "observed_at": "2026-09-12T15:44:41+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-04"
+  },
+  {
+   "listing_id": "bama:mgctnyn9",
+   "observed_at": "2026-09-12T15:44:48+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:thhvbl5m",
+   "observed_at": "2026-09-12T15:44:58+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:vm9bcghv",
+   "observed_at": "2026-09-12T15:45:06+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-23"
+  },
+  {
+   "listing_id": "bama:pfmvi6sb",
+   "observed_at": "2026-09-12T15:45:14+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-24"
+  },
+  {
+   "listing_id": "bama:6mhsjxdd",
+   "observed_at": "2026-09-12T15:45:20+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:jmeyopyf",
+   "observed_at": "2026-09-12T15:45:28+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:wauj0xmm",
+   "observed_at": "2026-09-12T15:45:32+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:ijophzm6",
+   "observed_at": "2026-09-12T15:45:38+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ne39mdsr",
+   "observed_at": "2026-09-12T15:45:43+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:tdlq3uyn",
+   "observed_at": "2026-09-12T15:45:48+00:00",
+   "phrase_days": 6,
+   "title_date_iso": "2026-09-06"
+  },
+  {
+   "listing_id": "bama:msy1ffh6",
+   "observed_at": "2026-09-12T15:45:54+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:l39y2bdi",
+   "observed_at": "2026-09-12T15:46:00+00:00",
+   "phrase_days": 0,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:4l0xpilj",
+   "observed_at": "2026-09-12T15:46:07+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ibrcha7z",
+   "observed_at": "2026-09-12T15:46:15+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:xlyildqb",
+   "observed_at": "2026-09-13T11:45:53+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-15"
+  },
+  {
+   "listing_id": "bama:xrdeq0ht",
+   "observed_at": "2026-09-13T11:46:06+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-26"
+  },
+  {
+   "listing_id": "bama:wmxsljsn",
+   "observed_at": "2026-09-13T11:46:16+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:673khvbo",
+   "observed_at": "2026-09-13T11:46:22+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:lpsbyco6",
+   "observed_at": "2026-09-13T11:46:31+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:gfgcipqb",
+   "observed_at": "2026-09-13T11:46:40+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-04"
+  },
+  {
+   "listing_id": "bama:mgctnyn9",
+   "observed_at": "2026-09-13T11:46:52+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:thhvbl5m",
+   "observed_at": "2026-09-13T11:47:00+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:vm9bcghv",
+   "observed_at": "2026-09-13T11:47:13+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-23"
+  },
+  {
+   "listing_id": "bama:pfmvi6sb",
+   "observed_at": "2026-09-13T11:47:22+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-24"
+  },
+  {
+   "listing_id": "bama:6mhsjxdd",
+   "observed_at": "2026-09-13T11:47:41+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:jmeyopyf",
+   "observed_at": "2026-09-13T11:47:50+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:wauj0xmm",
+   "observed_at": "2026-09-13T11:47:57+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:ijophzm6",
+   "observed_at": "2026-09-13T11:48:03+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ne39mdsr",
+   "observed_at": "2026-09-13T11:48:10+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:tdlq3uyn",
+   "observed_at": "2026-09-13T11:48:23+00:00",
+   "phrase_days": 6,
+   "title_date_iso": "2026-09-06"
+  },
+  {
+   "listing_id": "bama:msy1ffh6",
+   "observed_at": "2026-09-13T11:48:32+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:l39y2bdi",
+   "observed_at": "2026-09-13T11:48:37+00:00",
+   "phrase_days": 0,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:4l0xpilj",
+   "observed_at": "2026-09-13T11:48:55+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ibrcha7z",
+   "observed_at": "2026-09-13T11:49:03+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:xlyildqb",
+   "observed_at": "2026-09-14T15:21:09+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:xrdeq0ht",
+   "observed_at": "2026-09-14T15:21:13+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-26"
+  },
+  {
+   "listing_id": "bama:wmxsljsn",
+   "observed_at": "2026-09-14T15:21:19+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:673khvbo",
+   "observed_at": "2026-09-14T15:21:24+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:lpsbyco6",
+   "observed_at": "2026-09-14T15:21:31+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:gfgcipqb",
+   "observed_at": "2026-09-14T15:21:36+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-04"
+  },
+  {
+   "listing_id": "bama:mgctnyn9",
+   "observed_at": "2026-09-14T15:21:51+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:thhvbl5m",
+   "observed_at": "2026-09-14T15:21:57+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:vm9bcghv",
+   "observed_at": "2026-09-14T15:22:02+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-23"
+  },
+  {
+   "listing_id": "bama:pfmvi6sb",
+   "observed_at": "2026-09-14T15:22:07+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-24"
+  },
+  {
+   "listing_id": "bama:6mhsjxdd",
+   "observed_at": "2026-09-14T15:22:13+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:jmeyopyf",
+   "observed_at": "2026-09-14T15:22:24+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:wauj0xmm",
+   "observed_at": "2026-09-14T15:22:30+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:ijophzm6",
+   "observed_at": "2026-09-14T15:22:35+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ne39mdsr",
+   "observed_at": "2026-09-14T15:22:38+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:tdlq3uyn",
+   "observed_at": "2026-09-14T15:22:43+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-06"
+  },
+  {
+   "listing_id": "bama:msy1ffh6",
+   "observed_at": "2026-09-14T15:22:49+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:l39y2bdi",
+   "observed_at": "2026-09-14T15:22:53+00:00",
+   "phrase_days": 0,
+   "title_date_iso": "2026-09-14"
+  },
+  {
+   "listing_id": "bama:4l0xpilj",
+   "observed_at": "2026-09-14T15:22:57+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ibrcha7z",
+   "observed_at": "2026-09-14T15:23:03+00:00",
+   "phrase_days": 4,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:xlyildqb",
+   "observed_at": "2026-09-16T08:47:06+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:xrdeq0ht",
+   "observed_at": "2026-09-16T08:47:11+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-26"
+  },
+  {
+   "listing_id": "bama:wmxsljsn",
+   "observed_at": "2026-09-16T08:47:16+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:673khvbo",
+   "observed_at": "2026-09-16T08:47:23+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:lpsbyco6",
+   "observed_at": "2026-09-16T08:47:37+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:gfgcipqb",
+   "observed_at": "2026-09-16T08:47:42+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-04"
+  },
+  {
+   "listing_id": "bama:mgctnyn9",
+   "observed_at": "2026-09-16T08:47:48+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:thhvbl5m",
+   "observed_at": "2026-09-16T08:47:52+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:vm9bcghv",
+   "observed_at": "2026-09-16T08:47:59+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-23"
+  },
+  {
+   "listing_id": "bama:pfmvi6sb",
+   "observed_at": "2026-09-16T08:48:06+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-24"
+  },
+  {
+   "listing_id": "bama:6mhsjxdd",
+   "observed_at": "2026-09-16T08:48:13+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:jmeyopyf",
+   "observed_at": "2026-09-16T08:48:17+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:wauj0xmm",
+   "observed_at": "2026-09-16T08:48:20+00:00",
+   "phrase_days": 6,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:ijophzm6",
+   "observed_at": "2026-09-16T08:48:24+00:00",
+   "phrase_days": 6,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ne39mdsr",
+   "observed_at": "2026-09-16T08:48:30+00:00",
+   "phrase_days": 6,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:tdlq3uyn",
+   "observed_at": "2026-09-16T08:48:35+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-06"
+  },
+  {
+   "listing_id": "bama:msy1ffh6",
+   "observed_at": "2026-09-16T08:48:40+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:l39y2bdi",
+   "observed_at": "2026-09-16T08:48:44+00:00",
+   "phrase_days": 0,
+   "title_date_iso": "2026-09-15"
+  },
+  {
+   "listing_id": "bama:4l0xpilj",
+   "observed_at": "2026-09-16T08:48:48+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ibrcha7z",
+   "observed_at": "2026-09-16T08:48:55+00:00",
+   "phrase_days": 5,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:xlyildqb",
+   "observed_at": "2026-09-17T13:27:25+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:xrdeq0ht",
+   "observed_at": "2026-09-17T13:27:30+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-26"
+  },
+  {
+   "listing_id": "bama:wmxsljsn",
+   "observed_at": "2026-09-17T13:27:36+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:673khvbo",
+   "observed_at": "2026-09-17T13:27:42+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:lpsbyco6",
+   "observed_at": "2026-09-17T13:27:45+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:gfgcipqb",
+   "observed_at": "2026-09-17T13:27:49+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-04"
+  },
+  {
+   "listing_id": "bama:mgctnyn9",
+   "observed_at": "2026-09-17T13:27:53+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:thhvbl5m",
+   "observed_at": "2026-09-17T13:27:57+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:vm9bcghv",
+   "observed_at": "2026-09-17T13:28:02+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-23"
+  },
+  {
+   "listing_id": "bama:pfmvi6sb",
+   "observed_at": "2026-09-17T13:28:07+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-24"
+  },
+  {
+   "listing_id": "bama:6mhsjxdd",
+   "observed_at": "2026-09-17T13:28:12+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:jmeyopyf",
+   "observed_at": "2026-09-17T13:28:16+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:wauj0xmm",
+   "observed_at": "2026-09-17T13:28:22+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:ijophzm6",
+   "observed_at": "2026-09-17T13:28:26+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ne39mdsr",
+   "observed_at": "2026-09-17T13:28:39+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:tdlq3uyn",
+   "observed_at": "2026-09-17T13:28:44+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-06"
+  },
+  {
+   "listing_id": "bama:msy1ffh6",
+   "observed_at": "2026-09-17T13:28:49+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:l39y2bdi",
+   "observed_at": "2026-09-17T13:28:54+00:00",
+   "phrase_days": 2,
+   "title_date_iso": "2026-09-15"
+  },
+  {
+   "listing_id": "bama:4l0xpilj",
+   "observed_at": "2026-09-17T13:29:00+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:ibrcha7z",
+   "observed_at": "2026-09-17T13:29:05+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:xlyildqb",
+   "observed_at": "2026-09-18T21:39:11+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:xrdeq0ht",
+   "observed_at": "2026-09-18T21:39:16+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-26"
+  },
+  {
+   "listing_id": "bama:wmxsljsn",
+   "observed_at": "2026-09-18T21:39:23+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:673khvbo",
+   "observed_at": "2026-09-18T21:39:28+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:lpsbyco6",
+   "observed_at": "2026-09-18T21:39:31+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:gfgcipqb",
+   "observed_at": "2026-09-18T21:39:37+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-04"
+  },
+  {
+   "listing_id": "bama:mgctnyn9",
+   "observed_at": "2026-09-18T21:39:42+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:thhvbl5m",
+   "observed_at": "2026-09-18T21:39:49+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:vm9bcghv",
+   "observed_at": "2026-09-18T21:39:53+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-08-23"
+  },
+  {
+   "listing_id": "bama:pfmvi6sb",
+   "observed_at": "2026-09-18T21:39:59+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:6mhsjxdd",
+   "observed_at": "2026-09-18T21:40:04+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:jmeyopyf",
+   "observed_at": "2026-09-18T21:40:09+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-07"
+  },
+  {
+   "listing_id": "bama:wauj0xmm",
+   "observed_at": "2026-09-18T21:40:14+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:ijophzm6",
+   "observed_at": "2026-09-18T21:40:25+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  },
+  {
+   "listing_id": "bama:ne39mdsr",
+   "observed_at": "2026-09-18T21:40:30+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-09"
+  },
+  {
+   "listing_id": "bama:tdlq3uyn",
+   "observed_at": "2026-09-18T21:40:34+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-06"
+  },
+  {
+   "listing_id": "bama:msy1ffh6",
+   "observed_at": "2026-09-18T21:40:39+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:l39y2bdi",
+   "observed_at": "2026-09-18T21:40:42+00:00",
+   "phrase_days": 3,
+   "title_date_iso": "2026-09-15"
+  },
+  {
+   "listing_id": "bama:4l0xpilj",
+   "observed_at": "2026-09-18T21:40:48+00:00",
+   "phrase_days": null,
+   "title_date_iso": null
+  },
+  {
+   "listing_id": "bama:ibrcha7z",
+   "observed_at": "2026-09-18T21:40:59+00:00",
+   "phrase_days": null,
+   "title_date_iso": "2026-09-10"
+  }
+ ],
+ "aggregates": {
+  "observations": 140,
+  "age_defined": 121,
+  "by_title_age": {
+   "0-6": [
+    60,
+    0
+   ],
+   "7+": [
+    3,
+    58
+   ]
+  },
+  "by_phrase_value": {
+   "0-6": [
+    63,
+    0
+   ],
+   "7+": [
+    0,
+    58
+   ]
+  },
+  "phrase_bearing": 65,
+  "max_phrase_days": 6,
+  "phrase_bearing_without_age": [
+   "bama:l39y2bdi"
+  ],
+  "phrase_bearing_at_latest_round": [
+   {
+    "listing_id": "bama:l39y2bdi",
+    "observed_at": "2026-09-18T21:40:42+00:00",
+    "phrase_days": 3,
+    "title_date_iso": "2026-09-15"
+   }
+  ]
+ },
+ "anchor": "round7"
+}

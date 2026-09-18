@@ -2984,3 +2984,67 @@ the boundary or unreachable, and only `l39y2bdi` still carries a phrase, because
 it re-dated. That makes its next rounds a test: at `d=2` on 2026-09-17, with no
 further re-dating, it should lose the phrase on or after 2026-09-22, and not
 before.
+
+## D59 — Round 7: a pre-registered table, tested, and one prediction refuted
+
+D58 is not rewritten by this entry and its numbers are not restated. It was
+computed over the 120 observations that existed on 2026-09-17 and is anchored
+on `data/derived/date_watch_summary.json`. This one is computed over 140 and
+anchored on `data/derived/date_watch_round7.json`. A later round adds
+observations; it does not change what was true when an earlier claim was made,
+and `--export` now requires a name and refuses to overwrite an anchor so that
+the separation is a mechanism rather than a habit.
+
+**The prediction, written before the round ran.** Fourteen listings to stay
+without a phrase, four unreachable urls to stay unreachable, and
+`bama:l39y2bdi` — anchored by «۲۱ ساعت پیش» on 2026-09-16 to a posting moment
+of 2026-09-15T11:48:55Z — to read `d=3` with its title date unchanged.
+
+Round 7 ran at 2026-09-18T21:39Z, 32.2 hours after round 6.
+
+**Nineteen of twenty held.** `l39y2bdi` returned «۳ روز پیش», `d=3`, title
+2026-09-15. The anchor has now predicted two independent observations exactly,
+1.4 and 3.4 days out. A single hour-resolution phrase pins a posting moment
+well enough to be checked twice.
+
+**One was refuted, and it is the interesting one.** `bama:pfmvi6sb` answered
+200 in all six earlier rounds, carrying the same title date 2026-08-24
+throughout, and answered 410 in this one. The prediction said it would stay
+reachable and carry no phrase; the second half was right and the first was
+wrong.
+
+**What that does and does not license.** Five of the twenty urls are now
+unreachable and none has ever returned to 200:
+
+    msy1ffh6  XXXXXXX   from round 1
+    xlyildqb  ...XXXX   from 2026-09-14
+    lpsbyco6  ....XXX   from 2026-09-16
+    4l0xpilj  .....XX   from 2026-09-17
+    pfmvi6sb  ......X   from 2026-09-18
+
+That is an observation about seven rounds. It is not a demonstration that the
+state is absorbing — a url that has not come back in six days looks exactly
+like one that cannot come back, until one does — and it is not evidence of a
+sale, a deletion or a date of removal (D3). What it does establish is that the
+panel loses members at a rate the watch can measure, which bears on how long
+any panel of this kind stays able to answer anything.
+
+**The horizon survives the larger file.** Over 121 observations where an age
+is defined — a title date is present and the url answered 200:
+
+    age 0–6 days     phrase present 60    absent  0
+    age 7–29 days    phrase present  3    absent 58
+
+    d 0–6            phrase present 63    absent  0
+    d 7–29           phrase present  0    absent 58
+
+`max(phrase_days)` over all 65 phrase-bearing observations is 6. Seven has
+still never been observed, now across two anchors and twenty-one more
+observations than D58 had. The three rows at title-age 7 that carry a phrase
+are the same three: their phrase reads «۶ روز پیش», which is why the boundary
+sits on the phrase's own value and not on the title-derived age.
+
+**What this does not settle.** Whether the horizon is a property of the source
+or of one page variant; whether 410 is reversible; and what happens to
+`l39y2bdi` when its own phrase reaches seven, which on the same anchor falls on
+2026-09-22 and is the next thing this series can be wrong about.

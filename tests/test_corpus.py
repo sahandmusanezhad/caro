@@ -501,7 +501,7 @@ finally:
     _corpus_mod.active.cache_clear()
 
 # ---------------------------------------------------------------------------
-print("\nthe date-watch summary carries D58's numbers, and only four fields")
+print("\neach decision is checked against the snapshot it was computed over")
 # ---------------------------------------------------------------------------
 #
 # `data/observations/` is operational and stays out of the repository: its
@@ -527,43 +527,58 @@ print("\nthe date-watch summary carries D58's numbers, and only four fields")
 # sum to the population — a cross-total catches a transposition that no single
 # cell can.
 
-_SUM = ROOT / "data" / "derived" / "date_watch_summary.json"
-check("data/derived/date_watch_summary.json is in the repository",
-      _SUM.exists(), "run `python3 scripts/date_watch.py --export`")
+# Each anchor is a (artifact, decision) pair and they are checked separately.
+#
+# A round adds observations; it does not change what was true when a decision
+# was written. So a decision keeps the snapshot it was computed over, and a
+# later round gets its own — `--export` requires a name and refuses to
+# overwrite one, so this table is the whole set and cannot silently become
+# one file with a moving population.
+_ANCHORS = (("summary", "D58"), ("round7", "D59"))
 
-if _SUM.exists():
+from datetime import date as _date, datetime as _dt            # noqa: E402
+import re as _re                                                # noqa: E402
+
+_ALLOWED = {"listing_id", "observed_at", "phrase_days", "title_date_iso"}
+# Named individually rather than as "anything not permitted", because the risk
+# is a specific set of fields that exist in the observation record and must
+# never cross into a published one. A reader should be able to see which.
+_NEVER = ("title_raw", "title_decoded", "line_after_1", "line_after_2",
+          "mileage_line", "matched_substring", "url")
+_DECISIONS = (ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8")
+
+
+def _age_of(r):
+    return (_dt.fromisoformat(r["observed_at"]).date()
+            - _date.fromisoformat(r["title_date_iso"])).days
+
+
+for _anchor, _dnum in _ANCHORS:
+    print(f"\n  — {_dnum}, anchored on date_watch_{_anchor}.json —")
+    _SUM = ROOT / "data" / "derived" / f"date_watch_{_anchor}.json"
+    check(f"data/derived/date_watch_{_anchor}.json is in the repository",
+          _SUM.exists(),
+          f"run `python3 scripts/date_watch.py --export {_anchor}`")
+    if not _SUM.exists():
+        continue
+
     _doc = json.loads(_SUM.read_text(encoding="utf-8"))
     _obs = _doc["observations"]
-    _ALLOWED = {"listing_id", "observed_at", "phrase_days", "title_date_iso"}
-
     check(f"every one of its {len(_obs)} rows carries exactly the four "
           f"permitted fields",
           all(set(r) == _ALLOWED for r in _obs),
           str(sorted({k for r in _obs for k in r} - _ALLOWED)))
-
-    # Named individually rather than as "anything not permitted", because the
-    # risk is a specific set of fields that exist in the observation record
-    # and must never cross into a published one. A reader should be able to
-    # see which.
-    _NEVER = ("title_raw", "title_decoded", "line_after_1", "line_after_2",
-              "mileage_line", "matched_substring", "url")
     _blob = _SUM.read_text(encoding="utf-8")
     for _k in _NEVER:
         check(f"  «{_k}» appears nowhere in the artifact",
               f'"{_k}"' not in _blob)
-
-    from datetime import date as _date, datetime as _dt      # noqa: E402
-
-    def _age(r):
-        return (_dt.fromisoformat(r["observed_at"]).date()
-                - _date.fromisoformat(r["title_date_iso"])).days
 
     _aged = [r for r in _obs if r["title_date_iso"]]
     _A = {"0-6": [0, 0], "7+": [0, 0]}
     _B = {"0-6": [0, 0], "7+": [0, 0]}
     for _r in _aged:
         _shown = _r["phrase_days"] is not None
-        _a = _age(_r)
+        _a = _age_of(_r)
         _d = _r["phrase_days"] if _shown else _a
         _A["0-6" if _a <= 6 else "7+"][0 if _shown else 1] += 1
         _B["0-6" if _d <= 6 else "7+"][0 if _shown else 1] += 1
@@ -588,47 +603,45 @@ if _SUM.exists():
         check(f"  {_name}: the four cells sum to {len(_aged)}",
               sum(sum(v) for v in _t.values()) == len(_aged))
 
-    # --- and now the document -------------------------------------------
-    #
-    # The oracle is the artifact. D58 is the claim being tested, so its
-    # numbers are READ rather than trusted, and nothing here is a literal
+    # The oracle is the artifact. The decision is the claim being tested, so
+    # its numbers are READ rather than trusted, and nothing here is a literal
     # copied from it — a check that took its expected values from the entry
-    # would agree with whatever the entry happened to say, which is how the
+    # would agree with whatever the entry happened to say, which is how D58's
     # first draft passed a review.
     #
-    # Only the tabular cells, the population and the maximum are checked.
-    # D58's sentence about the one listing still inside the horizon is prose,
-    # and a regex over prose is a guard that breaks when someone improves a
-    # sentence rather than when a number goes wrong.
-    import re as _re                                          # noqa: E402
-
-    _d58 = _re.search(r"^## D58\b.*?(?=^## D|\Z)",
-                      (ROOT / "docs" / "DECISIONS.md").read_text(
-                          encoding="utf-8"), _re.S | _re.M)
-    check("docs/DECISIONS.md contains D58", _d58 is not None)
-    if _d58:
-        _body = _d58.group(0)
-        _says = {"age": {}, "d": {}}
-        for _kind, _lo, _hi, _p, _ab in _re.findall(
-                r"^\s*(age|d)\s*(\d+)\s*[–-]\s*(\d+)"
-                r"[^\n]*?present\s+(\d+)\s+absent\s+(\d+)", _body, _re.M):
-            _says[_kind]["0-6" if int(_lo) == 0 else "7+"] = [int(_p), int(_ab)]
-        for _label, _table, _key in (("title-derived age", _A, "age"),
-                                     ("the phrase's own value", _B, "d")):
-            for _bin in ("0-6", "7+"):
-                check(f"D58 states bin {_bin} of the table by {_label} as "
-                      f"{_table[_bin]}",
-                      _says[_key].get(_bin) == _table[_bin],
-                      f"it states {_says[_key].get(_bin)}")
-        _n = _re.search(r"(\d+)\s+observations? where an age is defined", _body)
-        check(f"D58 states the population its tables cover ({len(_aged)})",
-              bool(_n) and int(_n[1]) == len(_aged),
-              f"it states {_n[1]}" if _n else "it does not state it at all")
-        _m = _re.search(
-            r"over\s+all\s+(\d+)\s+phrase-bearing observations is (\d+)", _body)
-        check(f"D58 states max_phrase_days {_mx} over {len(_bearing)}",
-              bool(_m) and (int(_m[2]), int(_m[1])) == (_mx, len(_bearing)),
-              f"it states {_m[2]} over {_m[1]}" if _m else "it states neither")
+    # Only the tabular cells, the population and the maximum are checked. An
+    # entry's prose about one listing is prose, and a regex over prose is a
+    # guard that breaks when someone improves a sentence rather than when a
+    # number goes wrong.
+    _entry = _re.search(rf"^## {_dnum}\b.*?(?=^## D|\Z)", _DECISIONS,
+                        _re.S | _re.M)
+    check(f"docs/DECISIONS.md contains {_dnum}", _entry is not None)
+    if not _entry:
+        continue
+    _body = _entry.group(0)
+    _says = {"age": {}, "d": {}}
+    for _kind, _lo, _hi, _pr, _ab in _re.findall(
+            r"^\s*(age|d)\s*(\d+)\s*[–-]\s*(\d+)"
+            r"[^\n]*?present\s+(\d+)\s+absent\s+(\d+)", _body, _re.M):
+        _says[_kind]["0-6" if int(_lo) == 0 else "7+"] = [int(_pr), int(_ab)]
+    for _label, _t, _key in (("title-derived age", _A, "age"),
+                             ("the phrase's own value", _B, "d")):
+        for _bin in ("0-6", "7+"):
+            check(f"{_dnum} states bin {_bin} of the table by {_label} as "
+                  f"{_t[_bin]}",
+                  _says[_key].get(_bin) == _t[_bin],
+                  f"it states {_says[_key].get(_bin)}")
+    _n = _re.search(r"(\d+)\s+observations?\s+where\s+an\s+age\s+is\s+defined",
+                    _body)
+    check(f"{_dnum} states the population its tables cover ({len(_aged)})",
+          bool(_n) and int(_n[1]) == len(_aged),
+          f"it states {_n[1]}" if _n else "it does not state it at all")
+    _m = _re.search(
+        r"over\s+all\s+(\d+)\s+phrase-bearing\s+observations\s+is\s+(\d+)",
+        _body)
+    check(f"{_dnum} states max_phrase_days {_mx} over {len(_bearing)}",
+          bool(_m) and (int(_m[2]), int(_m[1])) == (_mx, len(_bearing)),
+          f"it states {_m[2]} over {_m[1]}" if _m else "it states neither")
 
 
 # ---------------------------------------------------------------------------
