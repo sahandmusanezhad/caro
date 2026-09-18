@@ -171,7 +171,7 @@ def main(argv: list[str]) -> int:
 
     print(f"\n{BOLD}CARO test suite{OFF}  {DIM}python "
           f"{sys.version.split()[0]}  {provenance()}{OFF}\n")
-    total = failed = 0
+    total = failed = optional = 0
     outputs: list[tuple[str, str]] = []
     skipped: list[tuple[str, list[str], str]] = []
     headline = ""
@@ -200,6 +200,11 @@ def main(argv: list[str]) -> int:
             print(f"  {name:<16}{DIM}{blurb}{OFF}", end="", flush=True)
         ok, n, secs, out = run(path)
         total += n
+        # What a reader without scipy or fastapi would NOT have run. The
+        # README prints that reduced figure beside the full one, so this file
+        # has to know it rather than trusting the README to have guessed.
+        if needs:
+            optional += n
         mark = f"{GREEN}✓{OFF}" if ok else f"{RED}✗{OFF}"
         print(f"{chr(13) if TTY else ''}  {mark} {name:<16}{n:>4} assertions  {DIM}{secs:5.1f}s{OFF}"
               f"  {DIM}{blurb}{OFF}")
@@ -251,9 +256,13 @@ def main(argv: list[str]) -> int:
     # legitimately lower, and firing here would tell someone whose only fault
     # is not having scipy that the website is lying to them.
     if not skipped:
-        drift = _about_disagrees(total)
+        drift = _about_disagrees(total) or _readme_disagrees(
+            total, total - optional, len(suites),
+            len(suites) - sum(1 for su in suites if su[3]))
         if drift:
-            print(f"{RED}{BOLD}the site advertises a stale number{OFF}  "
+            # Two surfaces now, so the banner names neither: the message
+            # itself says which file and what it claims.
+            print(f"{RED}{BOLD}a published number is stale{OFF}  "
                   f"{drift}\n")
             return 1
 
@@ -262,6 +271,47 @@ def main(argv: list[str]) -> int:
              else f"across {ran} suite(s)")
     print(f"{GREEN}{BOLD}all {total} assertions passed{OFF} {scope}\n")
     return 0
+
+
+# The README prints four numbers this file computes, and printed three wrong
+# ones for as long as they were wrong: 1333 when the suites ran 1414, 1168 for
+# a reduced run that was 1240, and "8 of 10" for twelve of fourteen. /about had
+# the same defect and a check; the README did not, and it is the first file a
+# reviewer opens.
+#
+# Each entry is (pattern, which number it must equal). The patterns are the
+# documented commands themselves, so a line that stops looking like a command
+# stops being checked rather than silently matching something else.
+_README_NUMBERS = (
+    (re.compile(r"# (\d+) assertions, no API key"), "full"),
+    (re.compile(r"# (\d+) assertions across (\d+) of (\d+) suites?"), "reduced"),
+    (re.compile(r"# (\d+) across all fourteen"), "full"),
+    (re.compile(r"^tests/\s+(\d+) assertions across fourteen suites", re.M), "full"),
+)
+
+
+def _readme_disagrees(full: int, reduced: int, n_suites: int,
+                      n_without_extras: int) -> str:
+    """'' if README.md states this run's numbers, else what it says instead."""
+    readme = ROOT / "README.md"
+    if not readme.exists():
+        return ""                       # a tarball without it; not a fault
+    body = readme.read_text(encoding="utf-8")
+    want = {"full": full, "reduced": reduced}
+    wrong = []
+    for pat, which in _README_NUMBERS:
+        m = pat.search(body)
+        if not m:
+            wrong.append(f"README.md no longer states «{pat.pattern}»")
+            continue
+        if int(m.group(1)) != want[which]:
+            wrong.append(f"README.md says {m.group(1)} where the suites ran "
+                         f"{want[which]}")
+        if which == "reduced" and m.lastindex == 3:
+            if (int(m.group(2)), int(m.group(3))) != (n_without_extras, n_suites):
+                wrong.append(f"README.md says {m.group(2)} of {m.group(3)} "
+                             f"suite(s); it is {n_without_extras} of {n_suites}")
+    return " · ".join(wrong)
 
 
 _FA = str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹")
