@@ -28,6 +28,12 @@ data/observations/
 #                     identifiers out of a published artifact, which is a
 #                     different thing from correspondence addressed to us.
 data/inbox/
+#   data/derived/     PUBLISHED, and NOT listed here. Written only by an
+#                     explicit --export, and only the fields a document's
+#                     numbers are computed from — never page text. It exists
+#                     because D58 drew four cells out of data/observations/
+#                     and nobody outside this machine could add them up, which
+#                     is the condition D57 refuses.
 .DS_Store
 
 # The web client. `node_modules/` and the build output are reproducible from
