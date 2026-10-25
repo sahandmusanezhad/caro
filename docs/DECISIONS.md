@@ -5848,3 +5848,243 @@ cue. It does not change the ranked path, which reads no province and is
 pinned (D82). The Gulf is declined; its spelling with no space and with a
 kasra is not, and a province's name inside a manufacturer's is still read as
 the province.
+
+## D84 — What the parser dropped is seen, and a floor is only a floor
+
+D83 closed with the owner's choices of 2026-10-17: the cue rule for the
+cities, to be built in a round of its own with its predictions written
+first, and three things the parser drops without a word — a distance with no
+«کارکرد» before it, whatever follows a budget's amount, and a cue or a
+model's name matched inside a longer word — to be measured before anything
+was built for them. Building the third turned up a fourth, older than all of
+them: the budget floor. This entry records the nine commits that came of
+them, pushed by the owner in four pushes on 2026-10-17 and 2026-10-18, and
+what each push did on CI and on the site. Each commit was prepared away from
+his machine, applied there with `git am` from a script that checks the state
+it starts from, and rehearsed first on fresh clones of the repository; each
+is authored and committed under his name and no other.
+
+    commit    what it does                                    15 suites  12
+    105bad4   a cue the reader knows is listed, with its words     2377  1831
+    9bda56d   a distance cap is read without «کارکرد»               2448  1902
+    9623ec3   a place after a budget's amount is listed             2475  1929
+    e1eff8c   a model's number is one only where it stands alone    2520  1974
+    d053acb   the roadmap names the budget floor's faults           2520  1974
+    4826748   both CI jobs pinned to ubuntu-24.04                   2520  1974
+    cddefb7   a floor is an amount of money right before «به بالا»  2577  2031
+    d34ce32   a floor is not also the ceiling                       2608  2062
+    831b28e   the roadmap names what the floor reads and leaves     2608  2062
+
+Counted again for this entry on a fresh clone of `Tecso-Dev/caro`, each
+commit in a worktree of its own, under `unshare -n`: every one is green on
+its own, at the counts in the table, the ones each code commit's message
+states.
+
+**The cities** (`105bad4`). A clause that names a model is taken as
+understood whole, so «پراید در مشهد» dropped the city: of D83's 350
+phrasings of 35 cities, 10 were listed under «نفهمیدیم» and 340 were not. A
+cue the province reader already knows — «در», «توی», «تو», «ساکن», «اطراف»,
+«حوالی», «حومه», «بجز», «پلاک», «نزدیک», «نزدیکی», «غیر», and the pairs
+«نزدیک به», «نزدیکی به», «غیر از», «به جز», «خارج از» — is now listed with
+the one or two words after it, past «شهر» and «استان», after everything else
+in `unparsed`. Model names, the spans the parser acted on, province names
+and digits are blanked first, so «غیر از تیبا» and «در تهران» list nothing,
+and «حد», «حال» and «بودجه» are never the word, so «در حد نو» and
+«در حال حاضر» list nothing either. Nothing is read from what is listed: the
+spec is the same in every field but `unparsed`, and the old list is a prefix
+of the new one. Of D83's 350 the city is shown in 220, as D83 measured for
+the rule, and in none of the 40 phrasings whose names hold an alias or a
+cue; of 300 more, twenty cities in fifteen placements with «شهر», «استان»,
+the pairs and «پلاک ملی در», in 300. None of the 51 queries the suites hand
+the parser gains an item, nor any of 60 ordinary sentences. On the 906
+inputs of the measurement and 40000 generated ones, the lists are those of a
+separate copy of the rule kept outside the repository. What stays dropped is
+pinned by tests: a city no cue stands before, a city after a budget (the
+next paragraph but one), a second city after « و » or «یا», and «نه» and
+«بدون».
+
+**A distance cap** (`9bda56d`). «۲۰۶ زیر ۱۰۰ هزار کیلومتر» was neither read
+nor listed: the odometer wanted «کارکرد» before the cap. Of 20 caps written
+for the measurement none was read. Four more shapes are read now when the
+«کارکرد» form finds nothing: a cap word, a figure and a distance word; the
+figure first, with «یا کمتر», «و کمتر» or «به پایین»; the distance word
+first; and «زیر ۱۰۰k». «حداکثر» joins the «کارکرد» form. With neither «هزار»
+nor «کارکرد» before it, a figure is a cap only from 10000 on, because
+nothing else says it is an odometer: «تا ۱۰۰۰ کیلومتر دورتر از تهران» is a
+distance to travel and «وانت تا ۱۵۰۰ کیلو بار» a weight, and of 8 such
+phrases a floor of 1000, the one the «کارکرد» form uses, would have read 7.
+Of the 20 caps 19 are read and none wrong, and none of 12 phrases that hold
+a distance and are no odometer, 8 that give a figure and no cap, or 3 that
+are vague. One of the suites' 51 queries changes:
+«۲۰۶ زیر ۱۰۰ هزار کیلومتر، بودجه ۹۰۰ میلیون» gets its cap. A stated cap is
+read before the vague «کم‌کارکرد», as the «کارکرد» form always was, so the
+default is not adopted and its note is not shown: on 430 of 29855 generated
+inputs that is the only change, in `assumptions`.
+
+**A place after a budget** (`9623ec3`). The budget clause runs to the next
+«،», so «پراید تا ۳۰۰ میلیون در مشهد» lost the city: of 35 cities written
+after a budget none was listed. What follows the amount is now handed to the
+cue rule as one more clause, for a cue and no more, and cut the way the rest
+of the query is; the budget and every other field are as they were. All 35
+are listed, under each of «تا», «زیر», «حداکثر», «بودجه», «قیمت» and
+«کمتر از», and none of the 51 queries nor of 120 ordinary sentences changes.
+The first version listed «در مشهد مدل» where a year clause followed; the cut
+came from writing the tests, before anything was committed. Of 9072 inputs
+written for the year clause, 1134 differ from the version without the cut,
+and in 108 of them the old floor rule had read «از ... به بالا» in
+«شیراز مدل ۱۴۰۱ به بالا» as a budget floor: the fourth thing, below.
+
+**A model's number** (`e1eff8c`). The parser looked for each model's number
+as a substring of the query, so «دنا تا ۱۳۱۰ میلیون» added `pride` (131 is
+Pride's) and «تیبا مدل ۱۴۰۵» added `405`: of 2901 budgets «تیبا تا N میلیون»
+54 added a model nobody wrote, and of 26 years «تیبا مدل Y» one did. A
+number is now looked for in the query less its amounts of money, and not
+beside another digit; a name is matched as ever. None of the 2901 and 26
+adds a model now, the 45 uses of a number as a model written for the
+measurement are all read, and the 18 amounts and years that hold a model's
+number give the models written. The rule as first written also took out the
+clause the budget cue had consumed, and lost «تا ۳۰۰ میلیون ۲۰۶»: of 2160
+inputs with a number after the budget, that rule read the models on 432 and
+this one on all 2160. No input of the measurement put a number after the
+budget; it was found while the tests were written.
+
+**Letters beside a word — measured, and left.** A cue or an alias is still
+matched inside a longer word: «محدوده» sets a flexible budget, «بارفروش» a
+cargo use, «پارس‌آباد» the model `pars`. Which letters may stand beside a
+word is a choice about Persian, not a measurement, and the three ways
+measured are in the roadmap's item 4 with their numbers; on 2026-10-18 the
+owner chose to leave all three unbuilt.
+
+**The budget floor** (`d053acb`, then `cddefb7`, `d34ce32`, `831b28e`). The
+text between «از» or «بالای» and the first «به بالا» went to `parse_amount`,
+which takes a bare number for millions. «از» also ends many words and is the
+word of «غیر از», and «به بالا» also ends a year clause, so
+«پراید از مدل ۹۸ به بالا» set a floor of 98,000,000: of 35 such phrases,
+five years after seven lead-ins, 35 set a floor, at the tip and at `cac054b`
+alike, so the fault is older than this work. With words between a «از» and
+an amount, the amount that was the budget became the floor: of 128 phrases
+written to show it, 128 set one. And a floor's amount was taken for the
+ceiling too whenever no clause named one, so «پراید از ۴۰۰ میلیون به بالا»
+had 400,000,000 for both and matched none of run16's 53 Pride listings.
+`d053acb` recorded the faults in the roadmap and changed nothing. Three
+measurements followed, each in memory on the tip and with its predictions
+first: the faults themselves; three changes of the old expression; and seven
+expressions tied to the words around them. The owner chose on 2026-10-18, of
+the ways offered: a floor tied to its words, in two commits, one for the
+floor and one so that it is not also the ceiling; «بالای X» without
+«به بالا» left a ceiling, as it is, and recorded with its numbers; and four
+more topics, each a round of its own.
+
+`cddefb7` reads a floor only as a cue («از» or «بالای», and not the end of a
+word), an amount of money and «به بالا», with nothing between them, or the
+same before a year clause with its own «به بالا». None of the 35 and none of
+the 128 sets a floor now, and «پراید از مدل ۱۴۰۱ به بالا» matches 1 of
+run16's 53 Pride listings, as «پراید مدل ۱۴۰۱ به بالا» does. `d34ce32` reads
+the floor first and lets the budget cues and the lone amount read the query
+with the floor's phrase blanked out: of 144 phrasings of a floor, all 144
+had its amount for the ceiling and 96 printed
+«عدد قیمت را سقف بودجه فرض کردیم»; none does now, and floor and ceiling are
+both as meant on all 144, where they were on none. On run16
+«پراید از ۴۰۰ میلیون به بالا» matches 47 of the 53 (3 have no price, 3 are
+below it) and «پراید از ۲۰۰ میلیون به بالا» 50. Of the 16378 queries written
+for the checks of the last three changes, 162 differ from before, each in
+the floor alone, and none of the 171 the suites and the measurements hold.
+`831b28e` records in the roadmap what is read and what is left.
+
+What the tie costs is a choice, and it is recorded with its numbers. Of 572
+phrases written for the last measurement the floor changes on 272: on 128 it
+was the budget or an odometer's figure and is none now, and on 144 it was
+right by accident and is no longer read — a word between the cue and the
+amount (96), the «از» that ends a word (24), and the lower end of a range
+with a year clause (24). In the first two the amount that was the floor is
+the ceiling now: the meaning reversed. A negated floor,
+«پراید از ۴۰۰ میلیون به بالا نباشه», had a floor and a ceiling of 400
+million and has the floor alone: wrong before and after, and the ceiling it
+had right by accident is gone. Each is pinned by a test, and the four topics
+the owner queued — other words for a floor, the bare «X به بالا», ranges,
+and the negated floor — are in the roadmap with what was measured for each.
+
+**The CI pin** (`4826748`). GitHub moves the `ubuntu-latest` label to Ubuntu
+26.04 from 2026-10-19, and the runs' annotations said so twice on each run.
+Both jobs name ubuntu-24.04 now, so that a move to the new image is a change
+made on purpose, in a commit and a run of its own; nothing else in the
+workflow changed. The two notices are gone from the runs after it; the three
+warnings that remain — Node 20 deprecated for the checkout, setup-node and
+setup-python actions, and a custom font at `webapp/web/app/layout.tsx` line
+29 — are older and not acted on.
+
+**Mutations.** Each change to the parser was mutated before it was
+committed, one change to the code at a time, with the tests run against each
+mutant. The cities: of 38 mutants 35 turned something red, and the three
+that survived — province names left unblanked, a one-letter word taken, and
+a mark inside a pair ignored — were caught once a row was added for each.
+The distance cap: 25 of 25. The place after a budget: 10 of 14; of the four
+that survived, three differ from the commit on none of the 47630 inputs
+measured, and the fourth, a cut joined with nothing instead of a space,
+differs on 432, all with a year clause flush against text on both sides, and
+no row pins it. The model's number: 7 of 7, after two rows were added for
+two that survived the first run. The floor: of 28 distinct mutants of its
+two commits 23 turned something red; the 5 that survive, each green under
+all 15 suites, are named with the reason in the round's measurement, and no
+row was added after the run to catch them. The first four were run against
+all fifteen suites, and none of their mutants turned anything red outside
+`test_ranking`; the floor's were run against `test_ranking`, and its
+survivors against all fifteen.
+
+    on the site, 2026-10-25, run16       read as                     matched apart
+    «پراید از ۴۰۰ میلیون به بالا»        floor 400 M, no ceiling          47     3
+    «پراید از ۲۰۰ میلیون به بالا»        floor 200 M, no ceiling          50     3
+    «پراید از مدل ۱۴۰۱ به بالا»          year 1401, no floor               1     0
+    «پراید در مشهد»                      «در مشهد» listed                 53     0
+    «پراید تا ۳۰۰ میلیون در مشهد»        ceiling 300 M, «در مشهد» listed   2     3
+    «۲۰۶ زیر ۱۰۰ هزار کیلومتر»           cap 100,000 km, model 206         0     0
+    «دنا تا ۱۳۱۰ میلیون»                 ceiling 1,310 M, Dena alone       0     0
+
+**As pushed.** D83 itself, `cac054b`, was green on CI in 1 m 15 s, and its
+`/about` read 83 decisions two minutes after the run began. The four pushes
+since ran CI once each, on the tip of the push, on both repositories, and
+every run succeeded; no commit inside a push has a run of its own, so the
+counts of those five are the ones measured here. The site was not read after
+the first two pushes, and after the pin's only for two of the floor's
+queries. After the last it was read on 2026-10-25: `/about` says 83
+decisions, 2608 assertions and 15 suites, and the search reads the queries
+of the table as the commits say, on run16, the corpus it serves, which no
+estimator has cleared, so it shows evidence and no ranking. Before the
+floor's push the same site had read the first query of the table with a
+floor and a ceiling of 400 million, the note printed and none of the 53
+matched, and the third with a floor of 1,401,000,000. Two things the roadmap
+listed as not checked on the live site were read on the same day: the
+contact page says its inbox is off and links to the repository's Issues, and
+`/api/contact/status` answers that it is closed; and the car page draws the
+province with how it was read, «تهران — از روی نام شهر» on `bama:6gxzhlq8`.
+
+**What the predictions got wrong.** Every round wrote its predictions down
+before it ran; these are the ones that missed. Of the cities', the mutants
+were predicted all red, and three survived until a row was added for each.
+Of the second package's, a count was off by one; the first build changed
+`assumptions`, which the prediction had left out (the 430 above); two builds
+together changed `unparsed` on 535 of 62392 inputs where the prediction said
+no build alters what another does — the cap the first reads is blanked out
+of the second's tail; the new rows numbered 143 where 99 were predicted; the
+mutants of the place were predicted all red and four survived, and two of
+the number's survived until rows were added; and twice the inputs written
+for a rule were blind to a shape the build mishandled (the cut and the
+number after a budget), found both times while the tests were written. Of
+the floor's: a denominator taken without counting the priced listings, and a
+bound that was a guess; a flaw in one candidate's leftover unit that moved
+figures in four predictions, a clause cut at « و » that moved a fifth, a
+sentence about two candidates that was wrong, and inputs missing for the
+wide expression; one sentence that lacked "except at the tip"; and in the
+build, a mutant predicted to be caught by one row was caught by four. The
+base of the floor's rehearsal was also wrong at first: it assumed the pin
+was not yet pushed, and the cases that depend on it were run again from the
+commit before it. And one progress message to the owner gave 21 of 23
+mutants caught where it was 20; the next message corrected it.
+
+**The rule this adds.** Every phrasing measured here was written for the
+measurement; no log of what buyers type exists. So a rule is checked only on
+the shapes its author thought of, and twice in this entry a fault was found
+by trying a build on a phrasing no set held. That is not a reason to stop
+measuring on made phrasings. So from here each build is also tried on
+phrasings outside its sets before its tests are written, and what a rule
+does not read is listed rather than dropped: what is listed can be seen.

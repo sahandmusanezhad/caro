@@ -400,7 +400,7 @@ tests/           2608 assertions across fifteen suites
 scripts/         live runs, replays, the benchmark, the run-3/4 experiment plans
 data/snapshots/  NOT in the repository — see D46; a clone has no corpora
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D83) · eval
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) · eval
 ```
 
 ## Sources, and what each is for
