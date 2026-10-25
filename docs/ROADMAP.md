@@ -45,10 +45,11 @@ section that holds its detail.
    green on the tip of the push, `/about` states 84 decisions, and the next
    entry records the push with his hashes, as D84 does for the nine commits
    before it.
-2. **The four floor topics** — the other words for a floor, the bare
-   «X به بالا», ranges, and the negated floor (the parser, item 5). A session
-   measures and builds; the owner decides each. Closes each when its round is
-   recorded in a D-entry after the push.
+2. **The floor topics** — the other words for a floor, the bare «X به بالا»,
+   ranges, and the negated floor (the parser, item 5). A session measures and
+   builds; the owner decides each. The first is built and waits for its push;
+   three are left. Closes each when its round is recorded in a D-entry after
+   the push.
 3. **CI's warnings** (operations, item 1). The owner decides; a session builds
    and measures on CI.
 4. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
@@ -272,11 +273,42 @@ the owner chooses.
    on 360. No rule reads both kinds right, and the owner chose to leave it
    as it is.
 
+   Other words for a floor — built in part. «حداقل X», «حداقل قیمت X» and the
+   suffix «X و بالاتر», «X و بیشتر», «X یا بیشتر» are a floor (`_FLOOR_L`,
+   `_FLOOR_T`), tried after the two floors above; a negation right after the
+   phrase (thirteen words) leaves it to the ceiling rules. Before, none was:
+   of 192 phrasings of eight forms (six amounts, with no model and with three)
+   all 192 had the amount for the ceiling, 168 with the note printed and the
+   24 written «حداقل بودجه X» with nothing said, as were 12 of 12 written
+   «حداقل قیمت X». Measured before it was built, on 1736 inputs and ten rule
+   sets: of 954 phrasings with a meant reading it repairs 330 and breaks none
+   that was right in the sets that hold its words; the 607 queries the
+   suites hand the parser, 56 phrasings with a figure that is not money and
+   119 ordinary sentences are read as before. On run16 «پراید حداقل ۴۰۰
+   میلیون» matches 47 of the 53 Pride listings where it matched 3. Left, each
+   pinned by a test so that it changes on purpose:
+   - «حداقل بودجه X» is a ceiling, as it was: the «بودجه» cue takes the
+     amount. It may say what the buyer has to spend and not the price asked,
+     which is a rule about Persian and the owner's. Reading it too would
+     change 66 more of the 954, the ones written to mean a floor, and break
+     none; whether buyers mean a floor by it is the question.
+   - «بیشتر از X», «بیش از X» and «بالاتر از X» are ceilings, as they were. They
+     are the ambiguity of «بالای X». Four rules that read them were measured;
+     they break 96, 144, 240 and 324 right readings of negated ceilings, and a
+     guard that looks after the phrase sees none of a negation before it
+     («نباید بیشتر از ۴۰۰ میلیون باشه»: 0 of 108 kept as a ceiling by the three
+     without a whitelist, 36 of 108 by the one with it). The existing year
+     form reads «بیشتر از X مدل Y به بالا» as a floor, through its bare «از».
+   - «حداقل ۴۰۰ میلیون پول دارم», what the buyer has, is a floor (12 of 12).
+     On run16 that shows 47 listings where the ceiling showed 3; that is a
+     result of this corpus's prices, 66 of 69 priced listings being at or
+     above 400 million, and it reverses on a corpus of cheap cars.
+   - A negation outside the thirteen is not seen (0 of 36 made outside the
+     list kept as a ceiling), and a number glued to a word, «پراید۴۰۰ میلیون
+     و بالاتر», is not read.
+
    Not built, each measured on made phrasings and each a round of its own,
    with the predictions written first:
-   - Other words for a floor — «حداقل», «بیشتر از», «بیش از», «بالاتر
-     از», «X و بالاتر», «X و بیشتر», «X یا بیشتر», «حداقل بودجه X» — set
-     no floor; on 192 of 192 the amount is taken for the ceiling.
    - A bare «X به بالا» («پراید ۴۰۰ میلیون به بالا») is read as a ceiling,
      on 24 of 24. A rule that makes the cue optional reads it as a floor,
      and on 72 of 72 with a ceiling clause beside it («زیر ۸۰۰ میلیون،
@@ -295,7 +327,7 @@ the owner chooses.
      400 million): the meaning reversed, on 24 of 24. A rule that skips a
      negation after «به بالا» reads it as the ceiling, on 24 of 24.
 
-   Next: the four topics above, one round each, in the order the owner
+   Next: the three topics above, one round each, in the order the owner
    picks. Each round writes its predictions first, measures on phrasings
    written for it and on the sets the last rounds used, puts the choice to
    the owner, and builds only what he chooses, with tests that pin what is
@@ -415,7 +447,24 @@ is read once more against the tree, and the last round gets its D-entry.
 Items to add. Each one moves into a list above once it has been measured and
 decided.
 
--
+- **A ceiling read as a floor before a year clause.** «پراید کمتر از ۴۰۰
+  میلیون مدل ۹۸ به بالا», with no comma before «مدل», is read as a floor of
+  400 million and no ceiling, and nothing is listed: `_FLOOR_Y`'s cue is the
+  bare «از», which is the tail of «کمتر از». Measured on made phrasings (48 a
+  shape: six amounts, two years, four contexts): «کمتر از», «پایین تر از»,
+  «پایین‌تر از», «ارزان تر از» and «ارزون تر از» are read as a floor on 240 of
+  240; with a comma before «مدل», or «زیر», «تا» or «حداکثر» in place of the
+  comparative, 48 of 48 each are read right. It is the same in `d053acb`, the
+  commit before the floor was tied to its words. On run16 it matches 2
+  listings, priced 550 and 1,350 million, above the 400 million the buyer
+  named. One row in `tests/test_ranking.py` holds it as a known fault. A round
+  of its own.
+- **Decimal separators.** «۱/۵ میلیارد», «۱٫۵ میلیارد» (the Arabic separator,
+  U+066B) and «۱،۵ میلیارد» are read as 5 billion, silently: of 20 made
+  phrasings per separator (five amounts, four shapes of ceiling) 0 are read
+  right, where «.» and «,» are read right on 20 of 20. `normalize_fa` folds
+  neither, and «،» is also the clause separator. The panel shows the wrong
+  ceiling. A round of its own, and a rule about Persian that is the owner's.
 
 ## Deliberately not planned
 

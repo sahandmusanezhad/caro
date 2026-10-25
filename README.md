@@ -425,7 +425,9 @@ was built. It reads
 the model (by name, or by its number where the number stands alone), the
 ceiling of a budget (after «زیر», «تا», «حداکثر», «کمتر از», «بودجه»,
 «قیمت», or a lone amount, with the assumption printed), its floor (a cue, an
-amount of money and «به بالا», with nothing between them), the minimum year,
+amount of money and «به بالا», with nothing between them; or «حداقل», with
+«قیمت» if it is written, and an amount; or an amount and «و بالاتر», «و بیشتر»
+or «یا بیشتر»), the minimum year,
 an odometer cap in five shapes, the province where the car should be, the
 use, the risk profile and the red lines. It lists under «نفهمیدیم» what it
 does not read: a city after a cue it knows («در مشهد»), a figure with no
@@ -433,7 +435,7 @@ scale word, a phrase it cannot place.
 
 What it does not read yet, each pinned by a test so that it changes on
 purpose, is in the roadmap's items 3 to 5 with the numbers measured for it:
-a city, the other words for a floor («حداقل», «بیشتر از»), a bare
+a city, «بیشتر از», «بیش از», «بالاتر از» and «حداقل بودجه» as a floor, a bare
 «X به بالا», ranges, a negated floor, and «بالای X» without «به بالا», which
 is read as a ceiling by the owner's choice. No log of what buyers type
 exists, so what the parser does is measured on made phrasings, and what
