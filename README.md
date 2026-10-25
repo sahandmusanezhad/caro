@@ -4,9 +4,64 @@
 
 CARO estimates a market range for a listing, then tries to prove itself wrong.
 
+**It is live at https://caro-rho.vercel.app.** The site serves 73 real Bama
+listings collected on 2026-10-15 (`data/corpora/run16.json`). Ask it in
+Persian for a car, and it shows the listings that meet the request, what it
+read from the request and what it did not. It does not rank them: no
+estimator has cleared the acceptance gate on a real corpus (D43), and a
+ranking that has not cleared it is not served. Every screen says which
+corpus it is reading.
+
 ---
 
-## The result, up front
+## Where it stands
+
+The brief asks for **crawl offers → normalize messy data → rank by user
+intent → explain the best choice**.
+
+| Requirement | State, 2026-10-25 |
+|---|---|
+| crawl offers | ⚠️ **one source.** Four runs of `BamaAdapter` are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15): 76, 74, 77 and 73 listings, of which 71, 64, 64 and 63 can be appraised. The site serves run16. `DivarCarAdapter` is built and tested offline, and its live path has never run. Sheypoor and Khodro45 have no adapter. |
+| normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province, with how each was read. |
+| rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
+| explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
+| deployed | ✅ **from each push to `main`** — one Vercel project of two services (D64, D80). |
+
+Everything that is left until the end of the project — in order, with what
+closes each item and who does it — is in [ROADMAP](docs/ROADMAP.md). How the
+work is done, and the rules every session keeps, are in
+[WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md).
+
+## Try it
+
+Four requests on the site, as it answered them on 2026-10-25:
+
+```
+پراید از ۴۰۰ میلیون به بالا      a budget floor of 400 million and no ceiling:
+                                  47 of run16's 53 Pride listings meet it, and
+                                  3 are held apart because they carry no price
+
+پراید در مشهد                     a city is not read, so it is not used; the
+                                  page lists «در مشهد» under «نفهمیدیم» and
+                                  shows the 53 Pride listings
+
+۲۰۶ زیر ۱۰۰ هزار کیلومتر          the model 206 and an odometer cap of
+                                  100,000 km
+
+پراید در تهران                    the province is a constraint like the
+                                  budget: 18 of the 53 are in Tehran
+```
+
+The search page's panel is «آنچه از جمله‌ی تو فهمیدیم»: the model, the
+ceiling and the floor of the budget, the minimum year, the odometer cap, the
+province, the use, the risk profile and the red lines. Whatever the parser
+assumed is printed with it — «عدد قیمت را سقف بودجه فرض کردیم» when a lone
+amount is taken for the ceiling — and what it leaves unread is listed under
+«نفهمیدیم» wherever a rule finds it. A listing is a match only where every constraint
+stated was checked against it; one that carries no value for a constraint is
+held apart and says which (D65).
+
+## The appraiser: two benchmarks, and why it does not serve
 
 **Two benchmarks. They disagree. The estimator is not serving, and the
 baseline is what ships.**
@@ -52,45 +107,30 @@ the 10% the gate rejects on is **58%**, barely a coin flip. So:
 Both halves are load-bearing. The verdict is not edited after the fact —
 that would be D35's tuning loop run backwards — but D39 records that
 `mae_tolerance` is a bare `>` on a point estimate, sitting one field away
-from a calibration criterion that D33 hardened to 2.5 SE. The fourth
-appearance of the same error in this project, and the first three are in the
-entry I wrote about it.
+from a calibration criterion that D33 hardened to 2.5 SE.
 
-So the decision is D12's, and D12 was written long before the number that
-triggered it: *if the baseline wins, ship the baseline and say so.* On this
-corpus nothing beat the baseline, and that is the shipping rule's answer even
-when the margin is unmeasurable.
+So the decision is D12's, written long before the number that triggered it:
+*if the baseline wins, ship the baseline and say so.* On this corpus nothing
+beat the baseline, and that is the shipping rule's answer even when the
+margin is unmeasurable.
 
-**Why they disagree, and why that is the interesting part.** Run 3 was four
-Saipa models. Run 5 spans 44 makes and a **143× price range** (350M to 50B
-toman). Partial pooling shrinks a thin trim toward its parent, and where the
-parent is thin too, toward the global level — across 143× that is not a mild
-correction, it is a large error, while a baseline that never pools past
-`make|model` stays well behaved.
-
+**Why they disagree.** Run 3 was four Saipa models. Run 5 spans 44 makes and
+a **143× price range** (350M to 50B toman). Partial pooling shrinks a thin
+trim toward its parent, and where the parent is thin too, toward the global
+level — across 143× that is not a mild correction, it is a large error,
+while a baseline that never pools past `make|model` stays well behaved.
 Run 5's pre-registration constrained the trim-size distribution in detail and
-said **nothing** about price heterogeneity. Both corpora satisfy the
-registered shape; they are not comparable estimation problems. Nothing was
-violated — the registration was blind, in advance, to the variable that
-decided the outcome. That is the only way such a thing can be established,
-and it is the most useful finding either run produced.
-
-What this does **not** establish: that partial pooling is wrong for Iranian
-used cars. A corpus registered for homogeneity as well as shape would be a
-different experiment with a different question, and D35 forbids running it as
-a continuation of this one — *estimator loses → change the corpus → estimator
+said **nothing** about price heterogeneity: the registration was blind, in
+advance, to the variable that decided the outcome. That is the most useful
+finding either run produced. It does **not** establish that partial pooling
+is wrong for Iranian used cars, and D35 forbids testing that as a
+continuation of this run — *estimator loses → change the corpus → estimator
 wins* is the exact loop this project is built to refuse.
-
-The two slices the claim depends on carry n=54 and n=26 against the 58 a
-calibration verdict needs — 2.5 binomial standard errors on a 15-point
-coverage deviation. Their coverage numbers look excellent. They are noise
-that happens to look reassuring, and a demo would quote them.
 
 > **The fix is a corpus that can judge, not a tuning pass that makes the
 > question go away.**
 
-Three independent, *measured* reasons the appraiser stays locked — none of
-them a judgement call:
+Three independent, *measured* reasons the appraiser stays locked:
 
 | | finding | how it was established |
 |---|---|---|
@@ -98,10 +138,14 @@ them a judgement call:
 | **D31** | the acquisition ceiling is 63% | proved from the source's own trim census — 135 listings across 34 Pride trim pages, 22 holding fewer than five |
 | **D34** | the corpus cannot calibrate the estimator | n=54 and n=26 against a derived floor of 58 |
 
-## What the live runs actually found
+The runs published since, run11 to run16, hold 73 to 77 listings each, and
+no estimator has cleared the gate on any of them. Clearing it on real data is
+step 7 of the roadmap's order of work.
 
-Four collection runs against bama.ir. Each one broke something that looked
-like it worked:
+## What the live runs found
+
+The first collection runs against bama.ir, in September, broke things that
+looked like they worked:
 
 - **The sitemap does not list listings.** It lists brand pages. Run 1
   collected zero cars and reported success.
@@ -118,8 +162,12 @@ like it worked:
   ten listings. Reporting that as a homogeneous market would have blamed
   Iran's used-car trade for a bug in the crawler.
 
-Every one is recorded in [`docs/DECISIONS.md`](docs/DECISIONS.md) with what
-it replaced and what being wrong would have cost.
+The runs that are published came later. Every line of run16, the one the
+site serves, was read before it was published, and no district named like a
+province stands behind any of its 42 stated provinces (D80). Every finding is
+recorded in
+[`docs/DECISIONS.md`](docs/DECISIONS.md) with what it replaced and what being
+wrong would have cost.
 
 ## Why this shape
 
@@ -143,6 +191,8 @@ sensitivity.
 CARO reports uncertainty about prices. It also reports **uncertainty about
 its own ability to assess uncertainty**, and refuses on it.
 
+## Run it
+
 ```
 git clone https://github.com/Tecso-Dev/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
@@ -150,21 +200,21 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   webapp/web, for all fifteen suites
 
 python3 tests/run_all.py            # 2608 assertions, no API key, no network
-python3 tests/run_all.py ranking    # just the win-rate benchmark
+python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
 
 Those three run on a clean clone with no network. The run scripts do not:
 `scripts/benchmark_run3.py`, `benchmark_run5.py`, `run5_significance.py`,
 `rank_run3.py`, `rank_run5.py` and `demo/export_ranking.py` all raise
-`FileNotFoundError`, because the corpora they read were never committed (D46).
-Read their committed output in `docs/` instead — `RUN3_2026-09-07.txt`,
-`RUN5_2026-09-07.txt`, `BENCHMARK_RUN5_2026-09-07.txt`,
-`RUN5_SIGNIFICANCE_2026-09-07.txt`, `RANK_RUN5_2026-09-08.txt`,
-`GATE_DIAGNOSIS_2026-09-08.txt`.
+`FileNotFoundError` — three of them as `CorpusUnavailable`, which names D46 —
+because the corpora they read were never committed. Read their committed
+output in `docs/` instead: `RUN3_2026-09-07.txt`, `RUN5_2026-09-07.txt`,
+`BENCHMARK_RUN5_2026-09-07.txt`, `RUN5_SIGNIFICANCE_2026-09-07.txt`,
+`RANK_RUN5_2026-09-08.txt`, `GATE_DIAGNOSIS_2026-09-08.txt`.
 
-**numpy is the only hard dependency of `caro/`.** Three of the fifteen test suites
-need more, and the runner says so rather than failing:
+**numpy is the only hard dependency of `caro/`.** Three of the fifteen test
+suites need more, and the runner says so rather than failing:
 
 ```
 python3 tests/run_all.py            # 2062 assertions across 12 of 15 suites
@@ -173,43 +223,58 @@ python3 tests/run_all.py            # 2062 assertions across 12 of 15 suites
 python3 tests/run_all.py            # 2608 across all fifteen
 ```
 
-Use `setup.sh --extras` rather than a bare `pip install`: on Debian-family
-systems the system Python is externally managed (PEP 668), so `pip install
-scipy` fails with `externally-managed-environment` — and the venv that the
-error message recommends may itself be unavailable, because `python3-venv`
-is a separate package. The script walks four routes and needs root for none
-of them. Printing the raw pip command here instead would be handing the
-reader an instruction this repository already documents as broken.
-
 A suite whose extra module or program is absent is skipped by name with the
 command that enables it — skipped is never printed as passed, and the count
 reads "12 of 15". None of the extras is needed by the package: scipy builds
 an oracle inside `tests/test_appraisal.py`, fastapi is only reachable from
 `webapp/`, and node only draws the site's own components in
-`tests/test_screens.py` — all deliberately outside the core so that the
-sentence below stays true.
+`tests/test_screens.py`.
 
-Ridge regression is written out in
-four lines of linear algebra rather than imported, because depending on
-scikit-learn for it costs a heavyweight install that lags new Python
-releases by months — the kind of friction that stops a reviewer before they
-see a test pass. The closed-form solution is asserted, in
-`tests/test_hierarchical.py`, to match a solution found another way — least
-squares on the augmented system, solved by SVD — to 1e-9, on the design
-matrices both models build and on 200 seeded problems shaped like them.
+Use `setup.sh --extras` rather than a bare `pip install`. On Debian-family
+systems the system Python is externally managed (PEP 668), so `pip install
+scipy` fails with `externally-managed-environment`, and the venv that the
+error recommends may itself be unavailable, because `python3-venv` is a
+separate package. The script walks four routes in order of how little they
+disturb the machine — numpy already present, a venv, a `--user` install, and
+only then a mention of `sudo` — and needs root for none of them. **Nobody
+should need root to run a test suite.**
 
-No build tool either — the suites are plain scripts. A `Makefile` exists as a
-convenience but nothing depends on it.
+Ridge regression is written out in four lines of linear algebra rather than
+imported, because depending on scikit-learn for it costs a heavyweight
+install that lags new Python releases by months. The closed-form solution is
+asserted, in `tests/test_hierarchical.py`, to match a solution found another
+way — least squares on the augmented system, solved by SVD — to 1e-9, on the
+design matrices both models build and on 200 seeded problems shaped like
+them. No build tool either: the suites are plain scripts, and the `Makefile`
+is a convenience nothing depends on (`make winrate`, `make policy`).
 
-`setup.sh` tries four routes in order of how little they disturb the machine:
-numpy already present (common — distributions ship `python3-numpy`), then a
-venv, then a `--user` install into `~/.local`, and only then does it mention
-`sudo`. Debian-family systems make this necessary rather than fussy: the
-system Python is externally managed (PEP 668) *and* `python3-venv` is a
-separate package, so the obvious command fails and the obvious fix also
-fails. **Nobody should need root to run a test suite.**
+### The site, locally
 
-### First live collection
+Two processes, from the repository root; [webapp/README](webapp/README.md)
+has the rest — the environment variables, which corpus is served, and how
+the Vercel project is set up.
+
+```
+pip install -r webapp/requirements.txt          # or ./scripts/setup.sh --extras
+uvicorn webapp.api.main:app --reload            # the API, 127.0.0.1:8000
+(cd webapp/web && npm install && npm run dev)   # the site, 127.0.0.1:3000
+```
+
+The API is FastAPI and imports `caro` directly: `/api/search`,
+`/api/search/reweight`, `/api/listing/{id}`, `/api/compare`, `/api/corpus`,
+`/api/health`, and the contact and admin endpoints. The deployed site keeps
+its inbox off and points to GitHub Issues instead (`CARO_INBOX=off`, D68), and
+`/admin` opens only where `CARO_ADMIN_TOKEN` is set. The site
+is Next.js, TypeScript and Tailwind, in right-to-left Persian: `/`, `/search`,
+`/car/[id]`, `/compare`, `/how-it-works`, `/about`, `/contact` and `/admin`.
+`.github/workflows/ci.yml` runs every suite and the site's type check, lint and
+build on each push to `main` and each pull request, and fails when a suite is
+skipped.
+
+### A live collection
+
+Only the owner starts one, on his own machine. No script here runs on its
+own, and every suite passes with the network switched off.
 
 ```
 pip install playwright && playwright install chromium
@@ -234,10 +299,10 @@ artifact under `data/corpora/`, written by `scripts/promote_corpus.py`, which
 redacts seller-authored text and validates against
 [DATA_CONTRACT](docs/DATA_CONTRACT.md).
 
-`--replay` does not currently close that loop. It reads a top-level
-`listings` key and `write_snapshot` emits `outcomes`, so replaying a snapshot
-this script wrote yields zero listings — quietly, without failing. The formats
-have never matched. It is recorded here rather than described away.
+`--replay` does not close that loop. It reads a top-level `listings` key and
+`write_snapshot` emits `outcomes`, so replaying a snapshot this script wrote
+yields zero listings — quietly, without failing. The formats have never
+matched, and the script's own docstring says so.
 
 ---
 
@@ -245,7 +310,7 @@ have never matched. It is recorded here rather than described away.
 
 Torob works because one product has many sellers: one SKU, twelve prices, pick the cheapest trustworthy one. Matching is trivial; the value is the comparison.
 
-**In used cars that premise collapses.** No two cars are the same object — mileage, paint history, documents, region, and seller honesty all differ. So a naive "Torob for cars" is a marketplace with a sort button, and sorting by price actively harms the buyer, because the cheapest listing can systematically favour damaged cars.
+**In used cars that premise collapses.** No two cars are the same object — mileage, paint history, documents, region, and seller honesty all differ. So a naive "Torob for cars" is a marketplace with a sort button, and sorting by price can harm the buyer, because the cheapest listing can systematically favour damaged cars.
 
 CARO's answer is not a cheaper number. It is a **defensible** one — an estimate that carries its own evidence, its own uncertainty, and a record of the checks that tried to invalidate it.
 
@@ -253,21 +318,21 @@ CARO's answer is not a cheaper number. It is a **defensible** one — an estimat
 
 > **The adversarial reviewer is deterministic.**
 
-A reviewer written as an LLM prompt can be talked out of a finding, can invent one that is not there, and answers differently on a rerun. A reviewer written as checks over an evidence packet can do none of those. For a system whose entire pitch is *we do not overclaim*, the component that polices overclaiming is the last place to put a language model.
+A reviewer written as a language-model prompt can be talked out of a finding, can invent one that is not there, and answers differently on a rerun. A reviewer written as checks over an evidence packet can do none of those. For a system whose entire pitch is *we do not overclaim*, the component that polices overclaiming is the last place to put a language model.
 
 Two consequences:
 
-- **The whole system runs offline.** No API key. An LLM is optional and enters at exactly one point — rendering a finished verdict as prose.
+- **The whole system runs offline.** No API key. A language model is optional and enters at exactly one point — rendering a finished verdict as prose.
 - **`Verdict` is a frozen dataclass.** The language layer receives it after the decision is made and *structurally cannot* alter a number, a confidence level, or an outcome. There is a test that asserts the mutation raises.
 
-**LLMs may explain a decision. They may not make or overturn one.**
+**A language model may explain a decision. It may not make or overturn one.**
 
 ## Architecture
 
 ```
-  DivarCarAdapter · CsvAdapter    ← caro/ingest — deterministic, not agents
+  BamaAdapter · DivarCarAdapter · CsvAdapter    ← caro/ingest — deterministic, not agents
              │
-        FetchOutcome
+        FetchOutcome  →  scripts/promote_corpus.py  →  data/corpora/<run>.json
              │
     ┌────────▼─────────┐
     │  W0  tracking    │  snapshot integrity · repost identity · censoring
@@ -283,16 +348,19 @@ Two consequences:
     │                  │  → adversarial → judge → explanation
     └────────┬─────────┘
              ▼
-   Shortlist + Verdict + Evidence Ledger
+   Shortlist + Verdict + Evidence Ledger   →   webapp/api (FastAPI)  →  webapp/web (Next.js)
 ```
 
 | Layer | Module | What it guarantees |
 |---|---|---|
-| **Ingest** | `caro/ingest/` | A blocked source halts collection — no rotation, no retry-harder. A failed page is ignorance about that page, not absence of its listings. A raw seller identifier never reaches disk. |
+| **Ingest** | `caro/ingest/` | A blocked source halts collection — no rotation, no retry-harder. A failed page is ignorance about that page, not absence of its listings. A raw seller identifier never reaches disk. robots.txt is read before the first request and asked before every one after. |
 | **W0** | `caro/tracking.py` | A failed fetch is never an absence. A disappearance is never a sale. A blocked crawl cannot corrupt the history. Reposts link on precision, never on a guess. |
 | **W1** | `caro/appraisal.py` | No physical car appears on both sides of a split. Quantiles cannot cross. An unbenchmarked estimator cannot serve a number. |
-| **W3** | `caro/ranking.py` | Assumptions are surfaced, never silent. A deal-breaker is never relaxed away. Every scoring term is inspectable. Risk is priced in tomans, not normalised. |
+| **W3** | `caro/ranking.py` | Assumptions are surfaced, never silent. What the parser leaves is listed under «نفهمیدیم» where a rule finds it. A deal-breaker is never relaxed away. Every scoring term is inspectable. Risk is priced in tomans, not normalised. |
 | **W2** | `caro/agents.py` | Every user-facing claim resolves to an observation. Hard contradictions veto. Confidence is a published policy, not a fitted score. |
+| **Site** | `webapp/` | The API may not be more informative than the evidence behind it (D50). A REAL failure never becomes a SYNTHETIC success (D49). The corpus label is on every screen. |
+
+[ARCHITECTURE](docs/ARCHITECTURE.md) says which components are deliberately *not* agents, and why.
 
 ## Invariants, enforced in code
 
@@ -306,10 +374,11 @@ These are tested, not documented-and-hoped:
 - A model that loses to the comparable baseline is **rejected, and the failure message says to ship the baseline**.
 - Every `Claim` cites `EvidenceItem` ids; `EvidenceLedger.unsupported_claims()` must be empty on every path.
 - Target is an **asking price**. The vocabulary never says "fair price", "true value", or "transaction price".
+- A retired overclaim does not come back: `tests/test_claims.py` holds every one D36 catalogues, and says plainly that it cannot catch a new one.
 
 ## The number
 
-The thesis is that sorting by price harms the buyer, because the cheapest
+The thesis is that sorting by price can harm the buyer, because the cheapest
 listing can systematically favour damaged cars. That is a claim, so it gets
 an experiment — `make winrate`:
 
@@ -338,11 +407,37 @@ tomans, subtracted before normalisation. Risk is priced, not scored.
 
 ## Confidence is a rulebook, not a number
 
-`make policy` prints it. Six dimensions, each from a named band with a stated rationale — so "why 0.65?" has the answer *"that is the published band for 3–4 days of confirmed observation, and here is the table"*, not *"the scorer said so"*.
+`make policy` prints it: three dimensions — evidence, temporal and comparable
+strength — each from a named band with a stated rationale, and an overall
+status from fixed thresholds. So "why 0.65?" has the answer *"that is the
+published band for 3–4 days of confirmed observation, and here is the
+table"*, not *"the scorer said so"*.
 
 The tier of a comparable set sets a **ceiling**; the count decides how much of it is earned. No quantity of loosely matched listings can outrank a tightly matched set.
 
 These bands are calibrated by judgement, not fitted to data. That is stated in the code, in the policy printout, and here — see [ROADMAP](docs/ROADMAP.md).
+
+## What the parser reads
+
+`caro/ranking.py` reads a Persian request with rules, not a model; each rule
+added or changed since D82 was measured on phrasings written for it before it
+was built. It reads
+the model (by name, or by its number where the number stands alone), the
+ceiling of a budget (after «زیر», «تا», «حداکثر», «کمتر از», «بودجه»,
+«قیمت», or a lone amount, with the assumption printed), its floor (a cue, an
+amount of money and «به بالا», with nothing between them), the minimum year,
+an odometer cap in five shapes, the province where the car should be, the
+use, the risk profile and the red lines. It lists under «نفهمیدیم» what it
+does not read: a city after a cue it knows («در مشهد»), a figure with no
+scale word, a phrase it cannot place.
+
+What it does not read yet, each pinned by a test so that it changes on
+purpose, is in the roadmap's items 3 to 5 with the numbers measured for it:
+a city, the other words for a floor («حداقل», «بیشتر از»), a bare
+«X به بالا», ranges, a negated floor, and «بالای X» without «به بالا», which
+is read as a ceiling by the owner's choice. No log of what buyers type
+exists, so what the parser does is measured on made phrasings, and what
+buyers write is not.
 
 ## What is real, and what is not
 
@@ -352,11 +447,11 @@ blurred them before (D41). Five levels, weakest last:
 
 | | | Claim |
 |---|---|---|
-| **VALIDATED** | evidence on real data | ingestion and retrieval reach real Bama listings; parsing and normalisation to the level the 355 ingest assertions reach; the relaxation ladder; the refusal and uncertainty policy |
+| **VALIDATED** | evidence on real data | ingestion and retrieval reach real Bama listings; parsing and normalisation to the level the 515 ingest assertions reach; the relaxation ladder; the refusal and uncertainty policy; four published corpora |
 | **EVALUATED** | measured on real data, and it did not pass | conditional appraisal — Run 3 `UNJUDGEABLE_SLICE`, Run 5 `REJECTED` with D39's interval attached; the baseline class, which fails the gate on Run 5's corpus at 0.206 coverage error |
 | **AUDITABLE** | traceable on real data, no ground truth required | the decision ledger — which inputs each ranking decision actually had. On Run 5 it reports 38% mean completeness with a reason for every absence (`scripts/rank_run5.py`) |
 | **NOT VALIDATED** | correct within a contract this project wrote | ranking correctness — the win-rate beats price-sort on a synthetic corpus whose generating process this repository defines. It says the ranker responds correctly in a world built to have that property; it is not evidence about Iran |
-| **NO GROUND TRUTH** | not measurable here, and no substitute is honest | whether CARO's ordering is *better for a buyer* than the baseline on real listings. Disappearance is not a sale (D2); a rubric written here is the same self-written utility; an LLM asked to judge the ordering has only moved that utility into a prompt |
+| **NO GROUND TRUTH** | not measurable here, and no substitute is honest | whether CARO's ordering is *better for a buyer* than the baseline on real listings. Disappearance is not a sale (D2); a rubric written here is the same self-written utility; a language model asked to judge the ordering has only moved that utility into a prompt |
 
 And the specific gaps behind those rows:
 
@@ -364,14 +459,15 @@ And the specific gaps behind those rows:
 |---|---|
 | Tracking, appraisal, decision layer | ✅ built, tested |
 | Adversarial review, evidence ledger | ✅ built, tested |
+| The site and its API, deployed from `main` | ✅ built, tested by two suites of their own |
 | Demo page, fed from pipeline output | ✅ built |
 | Source adapter contract + CSV adapter | ✅ built |
-| Divar + Bama adapters; robots.txt read in code (RFC 9309) | ✅ built, tested offline |
+| Divar + Bama adapters; robots.txt read in code (RFC 9309, D73) | ✅ built, tested offline |
 | Cross-source identity and supply correction | ✅ built, tested |
-| **Real Bama corpus** | ✅ 5 live runs; Run 5 = 403 parsed, 228 appraisal-eligible |
+| **Real Bama corpora** | ✅ the September runs (Run 5: 403 parsed, 228 appraisal-eligible; never committed, D46) and four published since — the site serves run16 |
+| **The fields the ranking reads, on real data** | ✅ recorded — run16 carries the body condition, gearbox, fuel and province on all 73 listings and the colour on 70 — though no ranking runs on them yet (the next row) |
 | **A shortlist over real listings** | ❌ does not exist — no estimator clears the gate on any real corpus, so `Ranker.score` raises and every shortlist refuses |
-| **Four of six ranking terms, on real data** | ❌ constant. Bama publishes «وضعیت بدنه», both colours and gearbox on the detail page; Run 5 did not record them (D41 addendum) |
-| **Live collection run against Divar** | ❌ the network path is unexercised here |
+| **Live collection run against Divar** | ❌ the network path is unexercised |
 
 Two kinds of validation, and they support different claims.
 
@@ -380,38 +476,27 @@ The win-rate benchmark, the leakage-free split, the quantile machinery — all
 of it runs against a world whose true prices are known, which is the only way
 to check that the code does what it says.
 
-**The real Bama corpus tests the pipeline against market-shaped data**, and
-is where every finding in the section above came from — the currency label,
-the placeholder odometers, the silent redirects. But it does **not** yet
-establish conditional serving: D34 finds the thin and held-out slices too
-small to judge calibration. The honest result there is `UNJUDGEABLE_SLICE`,
-which is not a positive claim about the market.
+**The real Bama corpora test the pipeline against market-shaped data**, and
+are where every finding above came from — the currency label, the
+placeholder odometers, the silent redirects. They do **not** yet establish
+conditional serving: D34 finds the thin and held-out slices too small to
+judge calibration. The honest result there is `UNJUDGEABLE_SLICE`, which is
+not a positive claim about the market.
 
 What this repo does *not* claim: that CARO prices Iranian used cars
 correctly. Nothing here has been checked against a transaction, only against
 asking prices — and the appraiser is not serving.
 
-## Repository layout
-
-```
-caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
-                 ranking (W3) · agents (W2) · quality · coverage · stratification
-tests/           2608 assertions across fifteen suites
-scripts/         live runs, replays, the benchmark, the run-3/4 experiment plans
-data/snapshots/  NOT in the repository — see D46; a clone has no corpora
-demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) · eval
-```
-
 ## Sources, and what each is for
 
-Three offer sources, each with a role — not ten sites for volume.
+Each source has a role — not ten sites for volume.
 
-| Source | Role | Access, verified 2026-09-07 |
+| Source | Role | State |
 |---|---|---|
-| **Bama** | `primary_offers` — richest structured fields, sets the canonical schema | Publishes a **car sitemap**; nothing relevant disallowed. So discovery is sitemap-first: coverage is knowable rather than estimated, and it needs far fewer requests than crawling search pages. |
-| **Divar** | `breadth` — largest volume, private sellers the specialist sites never see | Category browsing and listing pages allowed; **search urls (`?q=`) disallowed**. `assert_allowed()` raises on a violating url rather than trusting a comment. |
-| **Sheypoor** | `corroboration` — its value is the cross-source clusters it creates, not the listings it adds | Not yet verified. |
+| **Bama** | `primary_offers` — richest structured fields, sets the canonical schema | Built and run. Publishes a car sitemap; nothing relevant disallowed (verified 2026-09-07, and read again by the adapter before every run). Discovery is sitemap-first, so coverage is knowable rather than estimated. |
+| **Divar** | `breadth` — largest volume, private sellers the specialist sites never see | Built and tested offline; never run live. Category browsing and listing pages allowed; **search urls (`?q=`) disallowed**, and a url robots.txt refuses is not requested. |
+| **Sheypoor** | `corroboration` — its value is the cross-source clusters it creates, not the listings it adds | No adapter. |
+| **Khodro45** | not yet given one | No adapter. |
 
 Both adapters read robots.txt before their first request and ask it before
 every request after (`caro/ingest/robots.py`, RFC 9309, a matcher of our
@@ -441,16 +526,11 @@ the opposite of confirmation:
 بررسی برای مذاکره است.
 ```
 
-An earlier version of this block printed «فروشنده خودش این خودرو را جایی
-۱.۴۲ میلیارد گذاشته؛ بالاتر از این عدد جای چانه‌زنی دارد» — the seller has
-put it somewhere at that price, so you can bargain above it. That copy was
-retired from the code, and survived here for one more revision because it
-sits below the paragraph that was being corrected. It is instance #7 in D36.
-
 The lowest public ask is a price the seller has publicly quoted for this
 car. It is actionable price evidence, not transaction evidence — the number
 may be stale, specific to one channel, or since raised, and none of that is
-visible from here.
+visible from here. An earlier version of this copy said more than that, and
+D36 records it as instance #7.
 
 ## Collection, and what was deliberately not built
 
@@ -464,20 +544,39 @@ Three of its components were **not** ported, and the omissions are the point:
 | Left behind | Why |
 |---|---|
 | Contact reveal (phone numbers) | The ingest contract forbids emitting a personal identifier. `seller_fingerprint` is a salted hash for deduplication and nothing else. A corpus of phone numbers is a liability in a public repo whatever the licence permits. |
-| Multi-account rotation | That is evasion. CARO stops when a source stops answering and records the gap. A test asserts it halts after three consecutive failures rather than continuing. |
+| Multi-account rotation | That is evasion. CARO stops when a source stops answering and records the gap. A test asserts it stops after three blocked requests rather than continuing. |
 | Session / OTP handling | Follows from the above — nothing here authenticates. |
 
-The cost is real: no contact details, a lower volume ceiling, and collection
-halts when Divar says halt. That is the correct trade for a system whose
-pitch is that it does not overclaim.
+Nor does anything here solve a CAPTCHA or work around a block. A seller is a
+dealer only where the source shows a business badge, never by a guess about
+the person (D26). The cost is real: no contact details, a lower volume
+ceiling, and collection halts when a source says halt. That is the correct
+trade for a system whose pitch is that it does not overclaim.
+
+## Repository layout
+
+```
+caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
+                 ranking (W3) · agents (W2) · corpus_reader · synthetic
+tests/           2608 assertions across fifteen suites
+webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
+scripts/         setup, live runs, promotion, replays, the benchmark, the probes
+data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed
+data/derived/    the date-watch rounds' summaries
+demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) · eval · roadmap
+```
 
 ## Documentation
 
-- [ARCHITECTURE](docs/ARCHITECTURE.md) — the layers, and which components are deliberately *not* agents
+- [ROADMAP](docs/ROADMAP.md) — everything left until the end of the project, in order, with what closes each item
+- [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md) — how the work is done: measured rounds, separate commits, and the rules no session breaks
 - [DECISIONS](docs/DECISIONS.md) — the design record, including bugs found and what they cost
+- [ARCHITECTURE](docs/ARCHITECTURE.md) — the layers, and which components are deliberately *not* agents
+- [DATA_CONTRACT](docs/DATA_CONTRACT.md) — what a published corpus holds, and what it may never hold
 - [EVAL](docs/EVAL.md) — how the benchmark harness was itself validated
-- [ROADMAP](docs/ROADMAP.md) — the honest gap list
+- [webapp/README](webapp/README.md) — running, configuring and deploying the site
 
 ## License
 
-MIT.
+MIT, in [LICENSE](LICENSE); what is adapted from elsewhere is credited in [NOTICE](NOTICE).
