@@ -1,11 +1,25 @@
-# Roadmap — the honest gap list
+# Roadmap — everything left, in order
 
-What is left to do, kept current. Each item says what is true now, where it
-was recorded, and what comes first. An open item goes into code only after it
-has been measured; the measurement comes first and the decision is made on
-it, in its own commit.
+What is left until the end of the project, kept current. Each item says what
+is true now, where it was recorded, who does it, what has to come first, and
+what closes it. An open item goes into code only after it has been measured:
+the predictions are written first, the measurement is run, the owner decides
+on it, and the change goes in, in its own commit
+([WORKING_AGREEMENT](WORKING_AGREEMENT.md)).
 
-Last revised 2026-10-18.
+Last revised 2026-10-25.
+
+Who does what:
+
+- **The owner** starts every live request to a source, on his own machine;
+  makes every choice of technology, of a rule about Persian, and of product;
+  pushes; and decides what is sent where.
+- **The deploy holder** owns the Vercel project and makes every change there
+  (D78). The owner passes him the steps.
+- **A session** — an assistant working on the owner's machine, or one that
+  hands him commits to apply — measures, builds what the owner has chosen,
+  commits under his name, writes the D-entry once his push is seen, and stops
+  before the push.
 
 ## Where it stands against the brief
 
@@ -14,13 +28,51 @@ intent → explain the best choice**.
 
 | Requirement | State |
 |---|---|
-| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs on one pin are published, and the API serves the fourth by default, `data/corpora/run16.json` (2026-10-15): 73 listings, 63 of them appraisable. run11 (2026-09-10), run13 (2026-10-06) and run14 (2026-10-11) stay published. `DivarCarAdapter` is built and tested offline, and its live path has never run. Sheypoor and Khodro45 have no adapter. |
-| normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, and body condition from free text. |
+| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` is built and tested offline, and its live path has never run. Sheypoor and Khodro45 have no adapter. |
+| normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `1ebbf4a` within about three minutes of its push on 2026-10-15, as seen from outside (D80); see «Deploying» below. |
+| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served the last push, `831b28e`, when it was read on 2026-10-25 (D84); see «Deploying» below. |
 
-## Next — small, open, recorded
+## The order of work
+
+The items below, in the order they are meant to be done. Each one names the
+section that holds its detail.
+
+1. **The next D-entry, once this round is pushed.** A session. First: the
+   owner pushes the four commits of 2026-10-25 (D84, the README, this roadmap,
+   the working agreement). Closes when both repositories hold them, CI is
+   green on the tip of the push, `/about` states 84 decisions, and the next
+   entry records the push with his hashes, as D84 does for the nine commits
+   before it.
+2. **The four floor topics** — the other words for a floor, the bare
+   «X به بالا», ranges, and the negated floor (the parser, item 5). A session
+   measures and builds; the owner decides each. Closes each when its round is
+   recorded in a D-entry after the push.
+3. **CI's warnings** (operations, item 1). The owner decides; a session builds
+   and measures on CI.
+4. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
+   owner, on his machine, after the review it names.
+5. **A larger real corpus, and collection over time** (the product gaps, item
+   1). The owner runs it; a session writes the run's plan and predictions and
+   reads what comes back.
+6. **Sheypoor and Khodro45** (the product gaps, item 1). The owner probes;
+   a session builds the adapter offline from what the probe kept.
+7. **An estimator that clears the gate on real data** (the product gaps, item
+   2). A session, on the corpus of step 5. It is what reopens the ranked
+   path's two items (the parser, items 1 and 2), compare's gated branch, and
+   the calibration of the confidence policy (the product gaps, item 6).
+8. **The product additions** — accident damage from listing photos, a login
+   by authenticator, and the contact inbox on the deployed site (the product
+   gaps, items 3, 4 and 5). The owner decides each design first.
+9. **The demo** (the end). The last: the demo script brought up to date with
+   the site as it is, recorded, and sent where the owner decides.
+
+Steps 1 to 3 need no live request and no new decision about data; 4 to 6 are
+the owner's live runs; 7 depends on 5; 8 and 9 can wait for 7, or not, as
+the owner chooses.
+
+## The parser — open, recorded
 
 1. **The ranked path's red lines — blocked by a real estimator** (D43, D66).
    `_passes` in `caro/ranking.py` has no rule for `manual` or `repaint` and
@@ -144,7 +196,11 @@ intent → explain the best choice**.
      69 and loses none of the 33, but stops reading a name with a prefix
      typed on, «وتیبا»; no letter on either side clears 63 and loses 16 of
      the 33; the same with a list of suffixes, written by hand for it,
-     clears 58 and loses 2.
+     clears 58 and loses 2. On 2026-10-18 the owner chose to leave all three
+     (D84).
+
+   Next: each case left in items 3 and 4 is a candidate round of its own,
+   and none is queued; the owner picks one, or none.
 
 5. **The budget floor — what is read, and what is left.** A floor is a
    cue («از» or «بالای», and not the end of a word), an amount of money, and
@@ -229,7 +285,8 @@ intent → explain the best choice**.
      ceiling it is: five of five phrases tried, and four of five when a
      negation after «به بالا» is skipped, since «نره», «نشه», «نرسه»,
      «نگذره» and «نزنه» are in no list of negations the parser holds. How
-     many buyers write it that way is not known.
+     many buyers write it that way is not known; a round on it measures the
+     hazard family first.
    - A range sets no floor, on 96 of 96: «از X تا Y», «بین X تا Y» and
      «X تا Y» give the upper end as the ceiling; «از X الی Y» gives the
      lower end, with the assumption printed.
@@ -238,15 +295,36 @@ intent → explain the best choice**.
      400 million): the meaning reversed, on 24 of 24. A rule that skips a
      negation after «به بالا» reads it as the ceiling, on 24 of 24.
 
-## Next — the product gaps
+   Next: the four topics above, one round each, in the order the owner
+   picks. Each round writes its predictions first, measures on phrasings
+   written for it and on the sets the last rounds used, puts the choice to
+   the owner, and builds only what he chooses, with tests that pin what is
+   read and what is left. The phrasings of the earlier rounds were written
+   outside the repository; the forms and counts given here are enough to
+   write them again.
+
+## The product gaps
 
 1. **Data.**
    - Divar: a first live run of `DivarCarAdapter`. Review Divar's terms and
      robots directives for the car category first, and record the finding
      whatever it says. One city and a handful of pages; volume is not the
      point. `CARO_SELLER_SALT` must be set. Expect to be blocked; the adapter
-     stops and says so, and that is the design.
-   - Sheypoor and Khodro45: adapters, under the same rules.
+     stops and says so, and that is the design. Who: the owner. Closes when
+     the run's inventory is read and recorded, published or not.
+   - Bama: a larger corpus. The four published runs hold 73 to 77 listings
+     each, and no estimator has cleared the gate on any of them. The size and
+     the spread a run needs are written down before it is collected (D35:
+     acquisition and estimator do not change in the same run). Who: the
+     owner runs it; a session writes the plan, the predictions and the
+     promotion. Closes when a corpus is promoted and its D-entry says what
+     it can and cannot judge.
+   - Sheypoor and Khodro45: adapters, under the same rules — robots.txt read
+     in code, no evasion, no contact details, a business badge the only
+     source of a seller's type (D26). The owner probes first; the probe's
+     pages stay on his machine, and the adapter is built and tested offline
+     against them. Closes when the adapter's suite runs offline and a first
+     small live run has been read.
    - `province` where the market is. run16, the corpus served, carries it
      on all 73 rows: 42 stated, 31 by a city that shares its province's
      name, where run14 had 76 of 77 and run13 34 of 74. Every line of run16
@@ -258,12 +336,14 @@ intent → explain the best choice**.
      is left out, one with none is held apart and named, and the panel
      lists «استان: تهران». On run16 that is 18 matches and none apart; on
      run13, 3 matches and 31 cars apart; on run11, which holds no province,
-     no match and every Pride apart. The ranked path does not read it (item
-     2 above).
+     no match and every Pride apart. The ranked path does not read it (the
+     parser, item 2).
    - Longitudinal collection. Time-dependent and unrecoverable: a day not
      collected is gone. A second discovery run is a new sample, not a
      series: on run11's pin, 26 days later, 3 of its 76 listings were drawn
-     again (TEMPORAL_CONTRACT.md §10).
+     again (TEMPORAL_CONTRACT.md §10). Who: the owner, on a schedule he
+     sets. Closes when a series is collected on one pin and its watch rounds
+     are recorded.
 
 2. **An estimator that clears the gate on real data** (D43). Run the ladder
    in `caro/appraisal.py` — `GlobalQuantiles`, `ComparableQuantiles`,
@@ -273,28 +353,62 @@ intent → explain the best choice**.
    is ranked on real data, and compare's gated branch stays unmeasurable:
    when it becomes measurable, build the three-state fixture (vehicle,
    assignment, `unknown`) and measure detail, compare alone, compare beside a
-   vehicle, and search.
+   vehicle, and search. Who: a session, on a corpus the owner collected. The
+   gate is not edited after its output is seen (D35). Closes when the gate's
+   verdict on a real corpus is recorded, whatever it is.
 
 3. **Accident damage from listing photos.** Not built. When it is, its output
    is recorded as inferred, not observed, and says «قابل تشخیص نیست» when it
-   cannot tell.
+   cannot tell. Who: the owner chooses the model and where it runs; a
+   session measures it on photos he provides before anything is shown.
+   Closes when its accuracy and its refusals are measured and recorded.
 
 4. **Authenticator-based login.** Not built. The admin view opens today with
-   `CARO_ADMIN_TOKEN`, and with the token unset it does not open at all.
+   `CARO_ADMIN_TOKEN`, and with the token unset it does not open at all. Who:
+   the owner designs it; nothing is built before he has. Closes when the
+   design is recorded and built, with its tests.
 
 5. **Deploying.** The Vercel project is in another account than the
    owner's, and its holder deployed `main` from `Tecso-Dev/caro` on
-   2026-10-14 (D78). A push to `main` now deploys: `1ebbf4a` was on the
-   site within about three minutes of its push on 2026-10-15, as
-   `.github/workflows/ci.yml` says the hosts build from each push (D80) —
-   unless the holder deployed it by hand in those minutes, which was not
-   asked. Not checked: the contact page's inbox — `CARO_INBOX=off`, with
-   Issues at `Tecso-Dev/caro` in its place (D68) — and the car page's
-   province cell on the live site.
+   2026-10-14 (D78). A push to `main` deploys: `1ebbf4a` was on the site
+   within about three minutes of its push on 2026-10-15 (D80), and the last
+   push, `831b28e`, was on the site when it was read on 2026-10-25. Checked
+   there the same day (D84):
+   the contact page has its inbox off and links to the repository's Issues
+   (`CARO_INBOX=off`, D68), and the car page draws the province with how it
+   was read. The inbox is off because a function's disk keeps nothing; it
+   can be on only where something keeps what is written, which is a choice
+   for the owner and steps for the deploy holder.
 
 6. **Calibrate the confidence policy.** The bands are judgement. With real
    data they should be revisited against observed decision quality and
-   relabelled — or kept, and described honestly as policy.
+   relabelled — or kept, and described honestly as policy. Who: a session,
+   after item 2. Closes when the bands are measured against real decisions
+   or recorded as policy.
+
+## Operations
+
+1. **CI's warnings.** Every run carries three: Node 20 is deprecated for
+   `actions/checkout@v4` and `actions/setup-node@v4` in the web job and for
+   those and `actions/setup-python@v5` in the suites job, and the build warns
+   of a custom font at `webapp/web/app/layout.tsx` line 29. None fails a run.
+   Moving an action to a new major version is the owner's choice; once he
+   makes it, the change is a commit and a run of its own, like the pin to
+   ubuntu-24.04 (D84). The font warning is a change to the site, measured by
+   the build and the screens suite.
+2. **After every push.** CI on both repositories, and the site read from the
+   outside: `/about`'s counts, and the queries the push changed. What was
+   read goes into the next D-entry.
+
+## The end
+
+The demo is the last item. `docs/DEMO_SCRIPT.md` was written for the
+submission and last changed on 2026-10-05; it describes the site as it was
+then, and is brought
+up to date with the site as it is, and every number it films is either
+re-derived on a clean clone or a committed transcript, as the script itself
+requires. Then it is recorded, and sent where the owner decides. The README
+is read once more against the tree, and the last round gets its D-entry.
 
 ## Requests
 
