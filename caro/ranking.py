@@ -158,6 +158,60 @@ _FLOOR_S = re.compile(_CUE + _SOFT + "(" + _MONEY.pattern + ")" + _UNIT_TAIL
 _FLOOR_Y = re.compile(_CUE + _SOFT + "(" + _MONEY.pattern + ")" + _UNIT_TAIL
                       + r"(?=\s*مدل\s*\d{2,4}\s*به\s*بالا)")
 
+# The OTHER WORDS for a floor. «حداقل ۴۰۰ میلیون» and «۴۰۰ میلیون و بالاتر» set
+# no floor, and the amount was taken for the ceiling, with «عدد قیمت را سقف
+# بودجه فرض کردیم» printed: the meaning reversed, said once and easy to miss.
+# Of 192 phrasings of eight forms (six amounts, with no model and with three)
+# all 192 were read so. Two words are read now, the two that carry no second
+# meaning:
+#
+#   _FLOOR_L  «حداقل», then «قیمت» if it is written, a soft word, an amount of
+#             money and the unit after it: «حداقل ۴۰۰ میلیون», «حداقل قیمت ۴۰۰
+#             میلیون تومان». The amount is right after the word, so «حداقل ۲ سال
+#             بیمه» and «حداقل ۱۰۰ هزار کیلومتر ۴۰۰ میلیون» are not it.
+#   _FLOOR_T  an amount of money and the unit after it, then «و» or «یا» and
+#             «بالاتر» or «بیشتر»: «۴۰۰ میلیون و بالاتر», «۱ میلیارد و ۲۰۰ میلیون
+#             یا بیشتر». Not «و بیشتر از»: «۴۰۰ میلیون و بیشتر از ۱۰۰ هزار
+#             کیلومتر» is two statements. Its amount takes «و ۲۰۰» only after a
+#             billion, where it means something: `_MONEY` takes it after a
+#             million too, and «زیر ۸۰۰ میلیون و ۴۰۰ میلیون و بالاتر» was one
+#             amount of 800 million, with no ceiling (found by hand, 2026-10-25).
+#
+# A phrase that a negation follows at once -- «۴۰۰ میلیون و بالاتر نباشه» -- is
+# no floor and is left to the ceiling rules, as it was. The words are the ones
+# `_NEGATED_AFTER` holds for the places and six more (نشه نره نرسه نگذره نزنه
+# خرج نکنم); a negation outside that list, or one before the phrase, is not
+# seen, and the phrase is read as a floor. Known, and left, each pinned by a
+# test so that it changes on purpose:
+#
+#   - «حداقل بودجه X» is a ceiling, as it was: the «بودجه» cue takes the amount.
+#     It may say what the buyer has to spend and not the price asked.
+#   - «بیشتر از X», «بیش از X» and «بالاتر از X» are ceilings, as they were. They
+#     are the ambiguity of «بالای X» (the owner chose to leave it): «نباید بیشتر
+#     از ۴۰۰ میلیون باشه» is a ceiling, and no guard that looks after the phrase
+#     sees the «نباید» before it. A year clause right after the amount is read
+#     by `_FLOOR_Y`, whose cue is the bare «از», as it was.
+#   - «حداقل ۴۰۰ میلیون پول دارم», what the buyer has, is read as a floor.
+_MONEY_T = (r"\d+(?:[.,]\d+)?\s*"
+            r"(?:(?:میلیارد|ملیارد)(?:\s*و\s*\d+)?|میلیون|ملیون|م(?!\w))")
+_FLOOR_L = re.compile(r"(?<!\w)حداقل\s*(?:قیمت\s*)?" + _SOFT
+                      + "(" + _MONEY.pattern + ")" + _UNIT_TAIL)
+_FLOOR_T = re.compile(r"(?<!\w)(" + _MONEY_T + ")" + _UNIT_TAIL
+                      + r"\s*(?:و|یا)\s*(?:بالاتر|بیشتر)(?!\w)(?!\s*از(?!\w))")
+_NOT_A_FLOOR_AFTER = re.compile(
+    r"\s*(?:نباش(?:ه|د|ن|ند)?|نیست(?:ن)?|نمی\s*خوا(?:م|هم|یم)"
+    r"|نخوا(?:م|هم|یم)|نشه|نره|نرسه|نگذره|نزنه|خرج\s+نکنم)(?!\w)")
+
+
+def _floor_by_word(q: str):
+    """The floor `_FLOOR_L` or `_FLOOR_T` reads in `q`, or None: the first
+    phrase of either that no negation follows at once."""
+    for rx in (_FLOOR_L, _FLOOR_T):
+        for m in rx.finditer(q):
+            if not _NOT_A_FLOOR_AFTER.match(q, m.end()):
+                return m
+    return None
+
 
 # Model aliases. Sellers and buyers type the same car a dozen ways; the
 # taxonomy is data, not code, so a new model is one line.
@@ -639,7 +693,7 @@ class RuleIntentParser:
         # floor's phrase blanked out: «از ۴۰۰ میلیون به بالا» is a floor and
         # nothing else, and its amount was also taken for the ceiling.
         qc = q
-        m = _FLOOR_S.search(q) or _FLOOR_Y.search(q)
+        m = _FLOOR_S.search(q) or _FLOOR_Y.search(q) or _floor_by_word(q)
         if m:
             budget_min = parse_amount(m.group(1))
             acted.append(m.group(0))

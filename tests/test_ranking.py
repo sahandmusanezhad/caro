@@ -590,6 +590,183 @@ for text, want, why in [   # what the floor's phrase and a ceiling clause leave 
 
 
 # ---------------------------------------------------------------------------
+print("\nother words for a floor: «حداقل X» and «X و بالاتر»")
+# «حداقل ۴۰۰ میلیون» and «۴۰۰ میلیون و بالاتر» set no floor, and the amount was
+# taken for the ceiling, with the assumption printed: the meaning reversed. Of
+# 192 phrasings of eight forms (six amounts, with no model and with three) all
+# 192 were read so. Two words are read now, «حداقل» (with «قیمت» if it is
+# written) and the suffix «و بالاتر» / «و بیشتر» / «یا بیشتر», and a negation
+# right after the phrase leaves it to the ceiling rules. «حداقل بودجه X» and
+# the three «more than» words are not read, and each of those is pinned below
+# as what it is, so that it changes on purpose. Every phrasing is made here; no
+# log of what buyers write exists.
+_N = "نباشه"
+for text, want, why in [
+    ("حداقل ۴۰۰ میلیون", 400_000_000, "the word and an amount"),
+    ("پراید حداقل ۴۰۰ میلیون", 400_000_000, "with a model"),
+    ("تیبا حداقل ۲۰۰ میلیون", 200_000_000, "  another"),
+    ("پژو ۲۰۶ حداقل ۶۰۰ میلیون", 600_000_000, "a model with a number"),
+    ("پراید حداقل ۱.۵ میلیارد", 1_500_000_000, "a decimal and a scale word"),
+    ("پراید حداقل ۱ میلیارد", 1_000_000_000, "a billion"),
+    ("پراید حداقل ۴۰۰م", 400_000_000, "«م» for «میلیون»"),
+    ("پراید حداقل ۴۰۰ ملیون", 400_000_000, "«ملیون»"),
+    ("پراید حداقل ۱ میلیارد و ۲۰۰ میلیون", 1_200_000_000, "«و» and a second unit"),
+    ("پراید حداقل ۴۰۰ میلیون تومان", 400_000_000, "a currency word after the amount"),
+    ("پراید حداقل حدود ۴۰۰ میلیون", 400_000_000, "a soft word before the amount"),
+    ("پراید حداقل تقریبا ۴۰۰ میلیون", 400_000_000, "  the other soft word"),
+    ("پراید حداقل 400 میلیون", 400_000_000, "Latin digits"),
+    ("پراید حداقل۴۰۰ میلیون", 400_000_000, "no space after the word"),
+    ("پراید حداقل  ۴۰۰   میلیون", 400_000_000, "runs of spaces"),
+    ("حداقل قیمت ۴۰۰ میلیون", 400_000_000, "«قیمت» after the word"),
+    ("پراید حداقل قیمت ۴۰۰ میلیون تومان", 400_000_000, "  and a currency word"),
+    ("پراید ۴۰۰ میلیون و بالاتر", 400_000_000, "the suffix «و بالاتر»"),
+    ("پراید ۴۰۰ میلیون و بیشتر", 400_000_000, "«و بیشتر»"),
+    ("پراید ۴۰۰ میلیون یا بیشتر", 400_000_000, "«یا بیشتر»"),
+    ("۴۰۰ میلیون و بالاتر", 400_000_000, "no model"),
+    ("پژو ۲۰۶ ۴۰۰ میلیون و بالاتر", 400_000_000, "a model's number before the amount"),
+    ("پراید ۱ میلیارد و ۲۰۰ میلیون و بالاتر", 1_200_000_000, "«و» and a second unit"),
+    ("پراید ۱ میلیارد و ۲۰۰ میلیون یا بیشتر", 1_200_000_000, "  with «یا بیشتر»"),
+    ("پراید ۴۰۰م و بالاتر", 400_000_000, "«م»"),
+    ("پراید ۴۰۰ میلیون تومان و بالاتر", 400_000_000, "a currency word"),
+    ("پراید از ۴۰۰ میلیون و بالاتر", 400_000_000, "«از» before the amount, with no «به بالا»"),
+    ("پراید ۴۰۰ میلیون و بالاتر.", 400_000_000, "a full stop after"),
+    ("پراید ۴۰۰ میلیون و بالاتر، سفید", 400_000_000, "a requirement after a comma"),
+    ("پراید حداقل ۴۰۰ میلیون، تصادفی نباشه", 400_000_000,
+     "a red line after a comma: its negation is the red line's"),
+    ("پراید حداقل ۴۰۰ میلیون در مشهد", 400_000_000, "a city after it"),
+    ("پراید در مشهد حداقل ۴۰۰ میلیون", 400_000_000, "  and before it"),
+    ("پراید حداقل ۴۰۰ میلیون در تهران", 400_000_000, "a province after it"),
+    ("تیبا و پراید حداقل ۳۰۰ میلیون", 300_000_000, "two models"),
+]:
+    sp_w = P.parse(text)
+    check(f"«{text}» → floor {want:,}, ceiling —  ({why})",
+          (sp_w.budget_min_toman, sp_w.budget_max_toman) == (want, None),
+          f"{sp_w.budget_min_toman} {sp_w.budget_max_toman}")
+
+for text, want, year, why in [   # with a year clause
+    ("پراید حداقل ۴۰۰ میلیون مدل ۹۸ به بالا", 400_000_000, 1398, "a year clause after"),
+    ("پراید حداقل ۴۰۰ میلیون، مدل ۱۴۰۱ به بالا", 400_000_000, 1401, "  after a comma"),
+    ("پراید حداقل ۴۰۰ میلیون مدل ۹۸", 400_000_000, 1398, "  with no «به بالا»"),
+    ("پراید ۴۰۰ میلیون و بالاتر مدل ۹۸ به بالا", 400_000_000, 1398, "the suffix, then a year clause"),
+    ("پراید ۴۰۰ میلیون و بالاتر، مدل ۹۸ به بالا", 400_000_000, 1398, "  after a comma"),
+    ("پراید مدل ۹۸ به بالا حداقل ۴۰۰ میلیون", 400_000_000, 1398, "the year clause first"),
+]:
+    sp_w = P.parse(text)
+    check(f"«{text}» → floor {want:,}, year {year}  ({why})",
+          (sp_w.budget_min_toman, sp_w.budget_max_toman, sp_w.year_min)
+          == (want, None, year),
+          f"{sp_w.budget_min_toman} {sp_w.budget_max_toman} {sp_w.year_min}")
+
+for text, want_f, want_c, why in [   # a floor and a ceiling, each read once
+    ("پراید حداقل ۴۰۰ میلیون، حداکثر ۸۰۰ میلیون", 400_000_000, 800_000_000, "after a comma"),
+    ("پراید حداقل ۴۰۰ میلیون و حداکثر ۸۰۰ میلیون", 400_000_000, 800_000_000, "  after «و»"),
+    ("پراید حداقل ۴۰۰ میلیون حداکثر ۸۰۰ میلیون", 400_000_000, 800_000_000, "  with nothing between"),
+    ("پراید حداقل ۴۰۰ میلیون تا ۸۰۰ میلیون", 400_000_000, 800_000_000,
+     "a range that opens with «حداقل»"),
+    ("پراید تا ۸۰۰ میلیون، حداقل ۴۰۰ میلیون", 400_000_000, 800_000_000, "the ceiling first"),
+    ("پراید ۴۰۰ میلیون و بالاتر، تا ۸۰۰ میلیون", 400_000_000, 800_000_000, "the suffix, then a ceiling"),
+    ("پراید ۴۰۰ میلیون و بالاتر و تا ۸۰۰ میلیون", 400_000_000, 800_000_000, "  after «و»"),
+    ("پراید زیر ۸۰۰ میلیون و ۴۰۰ میلیون و بالاتر", 400_000_000, 800_000_000,
+     "the «و ۴۰۰» after a million is no part of the amount before it (found by hand)"),
+    ("پراید ۸۰۰ میلیون و ۴۰۰ میلیون و بالاتر", 400_000_000, 800_000_000, "  with no cue"),
+]:
+    sp_w = P.parse(text)
+    check(f"«{text}» → floor {want_f:,}, ceiling {want_c:,}  ({why})",
+          (sp_w.budget_min_toman, sp_w.budget_max_toman) == (want_f, want_c),
+          f"{sp_w.budget_min_toman} {sp_w.budget_max_toman}")
+
+check("«پژو ۲۰۶ حداقل ۶۰۰ میلیون» → the model is 206 and nothing else",
+      P.parse("پژو ۲۰۶ حداقل ۶۰۰ میلیون").model_hints == ("206",))
+for text, printed, why in [   # the ceiling is not assumed from a floor's amount
+    ("پراید حداقل ۴۰۰ میلیون", False, "a floor alone: nothing is assumed"),
+    ("پراید ۴۰۰ میلیون و بالاتر", False, "  the suffix"),
+    ("پراید حداقل ۴۰۰ میلیون یا ۵۰۰ میلیون", True,
+     "a second amount is taken for the ceiling, and said so"),
+]:
+    got_n = any(_FL_NOTE in a for a in P.parse(text).assumptions)
+    check(f"«{text}» → the ceiling is "
+          f"{'assumed and said so' if printed else 'not assumed'}  ({why})",
+          got_n == printed, str(P.parse(text).assumptions))
+
+for text, want, why in [   # what the floor's phrase leaves behind
+    ("حداقل ۴۰۰ میلیون", (), "understood, not listed"),
+    ("پراید ۴۰۰ میلیون و بالاتر", (), "  the suffix"),
+    ("پراید ۴۰۰ میلیون و بالاتر باشه", (),
+     "the leftover after « و » was listed as «بالاتر باشه»"),
+    ("پراید ۴۰۰ میلیون و بیشتر می‌خوام", (), "  the same"),
+    ("پراید در مشهد حداقل ۴۰۰ میلیون", ("در مشهد",),
+     "the city, without the word that stood after it"),
+    ("پراید ۴۰۰ میلیون و بالاتر در مشهد", ("در مشهد",),
+     "  and without the leftover of the suffix"),
+]:
+    got_u = tuple(t.strip() for t in P.parse(text).unparsed)
+    check(f"«{text}» → listed: {list(want) or '—'}  ({why})", got_u == want, str(got_u))
+
+# A negation right after the phrase: no floor, and the amount is the ceiling as
+# before. Thirteen words: the places' own list and six more.
+_NEG13 = ["نباشه", "نباشد", "نباشن", "نیست", "نمی‌خوام", "نمیخوام", "نخوام",
+          "نشه", "نره", "نرسه", "نگذره", "نزنه", "خرج نکنم"]
+for _neg in _NEG13:
+    sp_w = P.parse(f"پراید ۴۰۰ میلیون و بالاتر {_neg}")
+    check(f"«پراید ۴۰۰ میلیون و بالاتر {_neg}» → no floor, ceiling 400,000,000",
+          (sp_w.budget_min_toman, sp_w.budget_max_toman) == (None, 400_000_000),
+          f"{sp_w.budget_min_toman} {sp_w.budget_max_toman}")
+for _neg in ["نباشه", "نشه", "نره", "نیست", "نمی‌خوام"]:
+    sp_w = P.parse(f"پراید حداقل ۴۰۰ میلیون {_neg}")
+    check(f"«پراید حداقل ۴۰۰ میلیون {_neg}» → no floor, ceiling 400,000,000",
+          (sp_w.budget_min_toman, sp_w.budget_max_toman) == (None, 400_000_000),
+          f"{sp_w.budget_min_toman} {sp_w.budget_max_toman}")
+
+for text, why in [   # not money, or not right after the word: no floor is read
+    ("پراید حداقل ۲ سال بیمه", "a figure with no scale word"),
+    ("پراید حداقل ۳۰۰", "  a bare figure"),
+    ("پراید حداقل ۱۰۰ هزار کیلومتر", "a distance"),
+    ("پراید حداقل ۵۰ هزار کیلومتر کارکرد", "  with «کارکرد»"),
+    ("پراید حداقل ۸۰۰ تومان", "a currency word with no scale"),
+    ("پراید ۳۰۰ و بالاتر", "the suffix after a figure with no scale word"),
+    ("پراید ۵۰ هزار کیلومتر و بالاتر", "  a distance"),
+    ("پراید حداقل ۱۰۰ هزار کیلومتر ۴۰۰ میلیون", "the amount is not right after the word"),
+    ("پراید ۴۰۰ میلیون و بیشتر از ۱۰۰ هزار کیلومتر کارکرد", "«و بیشتر از» is not the suffix"),
+    ("پراید ۴۰۰ میلیون و بالاتر از اون", "  «و بالاتر از»"),
+    ("پراید حداقلی ۴۰۰ میلیون", "a longer word"),
+    ("پراید بحداقل ۴۰۰ میلیون", "a prefix typed on the word"),
+    ("پراید ۴۰۰ میلیون و بالاترین", "a longer word after"),
+    ("پراید ۴۰۰ میلیون و بیشترین", "  the same"),
+    ("پراید ۴۰۰ میلیون تومنی و بالاتر", "«تومنی» is no unit the phrase holds"),
+]:
+    got_f = P.parse(text).budget_min_toman
+    check(f"«{text}» → no floor  ({why})", got_f is None, str(got_f))
+
+for text, want, why in [   # measured and left: the ceiling is read, as it was
+    ("پراید حداقل بودجه ۴۰۰ میلیون", 400_000_000,
+     "«بودجه» takes the amount: it may say what the buyer has to spend"),
+    ("پراید بیشتر از ۴۰۰ میلیون", 400_000_000, "«بیشتر از»: the ambiguity of «بالای X»"),
+    ("پراید بیش از ۴۰۰ میلیون", 400_000_000, "«بیش از»"),
+    ("پراید بالاتر از ۴۰۰ میلیون", 400_000_000, "«بالاتر از»"),
+    ("پراید بیشتر از ۴۰۰ میلیون نباشه", 400_000_000, "  negated, which is the ceiling it means"),
+    ("پراید نباید بیشتر از ۴۰۰ میلیون باشه", 400_000_000, "  a negation before the word"),
+    ("پراید ۴۰۰ میلیون به بالا", 400_000_000, "a bare «X به بالا» (its own round)"),
+    ("پراید بالای ۴۰۰ میلیون", 400_000_000, "«بالای X», the owner's choice"),
+]:
+    sp_w = P.parse(text)
+    check(f"«{text}» → no floor, ceiling {want:,}, left  ({why})",
+          (sp_w.budget_min_toman, sp_w.budget_max_toman) == (None, want),
+          f"{sp_w.budget_min_toman} {sp_w.budget_max_toman}")
+
+for text, why in [   # measured and left: read as a floor, and that is not always what is meant
+    ("پراید حداقل ۴۰۰ میلیون پول دارم", "what the buyer has to spend, not the price asked"),
+    ("پراید ۴۰۰ میلیون و بالاتر نمی‌رسه", "a negation outside the list of thirteen"),
+    ("پراید ۴۰۰ میلیون و بالاتر اصلا نباشه", "  a word between"),
+    ("پراید ۴۰۰ میلیون و بالاتر نباید باشه", "  «نباید»"),
+    ("پراید بیشتر از ۴۰۰ میلیون مدل ۹۸ به بالا", "the bare «از» of the year form reads «بیشتر از»"),
+    ("پراید کمتر از ۴۰۰ میلیون مدل ۹۸ به بالا",
+     "KNOWN FAULT: the same «از» is the tail of «کمتر از», a ceiling; its own round"),
+]:
+    got_f = P.parse(text).budget_min_toman
+    check(f"«{text}» → floor 400,000,000, left  ({why})", got_f == 400_000_000, str(got_f))
+
+
+# ---------------------------------------------------------------------------
 print("\na model's number is a model only where it stands alone (D83)")
 # A model's number was matched as a substring of the query: «دنا تا ۱۳۱۰ میلیون»
 # holds 131, which is Pride's, and «تیبا مدل ۱۴۰۵» holds 405, so each added a
