@@ -1,17 +1,117 @@
 # Working agreement for this repository
 
-Standing instructions from the project owner. They apply to every session,
-not just the one that recorded them.
+Standing instructions from the project owner. They apply to every session —
+whoever runs it, on his machine or away from it — not just the one that
+recorded them. Where a session's own defaults disagree with this file, this
+file wins. Where the owner says otherwise in a session, he wins, and this file
+is corrected in a commit of its own.
+
+What is left to do, and in what order, is in [ROADMAP](ROADMAP.md).
+
+## The round
+
+Every change goes through the same steps, and none is skipped because the
+change looks small.
+
+1. **Predictions first.** Before anything is run or changed, write down what
+   the measurement will show, in a file, with the sha256 of every input it
+   reads. A prediction that turns out wrong is reported as wrong, with its
+   number. It is never rewritten after the result is seen.
+2. **The measurement.** Run on the code as it is, in a copy of the tree, with
+   the network off where the system allows it (`unshare -n`). Inputs are
+   phrasings or data written for the measurement and said to be so; no log of
+   what buyers type exists, and none is invented. No synthetic fixture fills a
+   gap in a measurement of real data.
+3. **The owner decides,** on the measurement. Put the ways to go to him with
+   their numbers, say which one you would take and why, and say plainly where
+   you disagree with him. Nothing is built before he has chosen.
+4. **The build.** One commit per change, each with its reasoning in the
+   message. Before its tests are written, try the build by hand on phrasings
+   outside the measurement's sets: twice a fault was found only that way
+   (D84). Tests pin what is read and what is left, so that either changes on
+   purpose. Mutate each change and run the tests against every mutant; say
+   which survive and why, and do not add a row after the run just to catch
+   one. Every commit is green on its own: all fifteen suites, and the site's
+   build when the site is touched. The published counts — the README's four
+   numbers and `/about`'s — move in the commit that moves them, or
+   `tests/run_all.py` fails.
+5. **The push is the owner's.**
+6. **After the push,** read CI on both repositories and the site from the
+   outside, and only then write the D-entry, with his hashes and what was
+   seen. No D-number is cited anywhere before its entry exists.
+
+## Commits and pushes
+
+- **Every commit is authored and committed as
+  `sahandmusanezhad <sahand.mosanejad4488@gmail.com>`**, and under no other
+  name or address.
+- **No trailer of any kind** — no co-author line, no session link, no line
+  that credits a tool with the work — and no tool or vendor name in any file,
+  commit message or branch name of this repository.
+- **Separate commits, one per change**, each with the reasoning in the
+  message. The commit log is part of the design record here; the *why* lives
+  there, not only in the code. Pushed history is never squashed or rewritten.
+- **Add files by name**, never with `git add -A` or `git add .`; a build
+  directory or a link to one (`webapp/web/node_modules`) is never committed.
+- **A session on the owner's machine** commits in his checkout and stops
+  before `git push`. **A session that cannot reach his checkout** hands him
+  the commits as patches, with a script that applies them with `git am`,
+  checks the state it starts from and refuses any other, and is rehearsed on a
+  fresh clone before he gets it.
+- **The owner pushes**, to `github.com/Tecso-Dev/caro`, branch `main`, and the
+  same branch to his own copy, `github.com/sahandmusanezhad/caro`. Never
+  handle his GitHub token or any other credential; the credentials live on his
+  machine and stay there.
+- **Prepare each commit so it is green on its own.** The working tree may
+  hold several pending changes at once, so `run_all.py` before a commit
+  reports the tree rather than the commit. When more than one commit is
+  staged at a time, check each in isolation and say which number belongs to
+  which.
+
+## Data, sources and secrets
+
+- **No live request to any source without the owner's explicit permission.**
+  Each live run is his decision and runs on his machine; a session writes its
+  plan and its predictions, and reads what comes back.
+- **A seller's phone number is never stored or shown.** No evasion of a
+  block, no CAPTCHA solving, no rotation of accounts, no OTP handling;
+  robots.txt is read in code and obeyed (D73); a seller is a dealer only
+  where the source shows a business badge (D26).
+- **Snapshots and observations stay on the owner's machine.** What is
+  published is a promoted corpus under `data/corpora/`, under
+  [DATA_CONTRACT](DATA_CONTRACT.md).
+- **`CARO_SELLER_SALT` lives outside the repository, on the owner's
+  machine.** It is never printed, logged or committed. A key for any service
+  is entered by the owner on his machine: a session never asks for it to be
+  pasted into a conversation, and never reads, prints, logs or commits it.
+
+## Decisions that are the owner's
+
+- **Technology and language**: a new dependency, a framework, a model, a
+  storage service, a new major version of a CI action, the design of the
+  login. Propose with the reasons; he decides.
+- **Rules about Persian that are a choice and not a measurement** — which
+  letters may stand beside a word is one. He chose on 2026-10-18 to leave the
+  letter boundaries as they are (D84).
+- **Scope, and what is sent where.**
+
+## Talking to the owner
+
+He reads in Persian: a session replies to him in Persian, and keeps code,
+commands, commit messages and the prose of this repository in English, which
+is his choice for the repository. Say what was measured with its numbers, say
+plainly what went wrong — one's own errors first — and state a disagreement
+instead of complying in silence.
 
 ## The review loop
 
-**Every piece of work goes to ChatGPT for analysis.** Not a summary of the
-work — the work, with its numbers and its reasoning, and an explicit request
-for the strongest objection rather than approval. The loop continues until
-the project is finished, not until the reviews stop being critical.
-
-The conversation lives at `chatgpt.com` under the owner's account
-(«طراحی پرامپت چندعاملی»). It is reached with the Chrome extension.
+**Every piece of work goes to a second reviewer for analysis.** Not a summary
+of the work — the work, with its numbers and its reasoning, and an explicit
+request for the strongest objection rather than approval. The session writes
+it as a brief that stands on its own; the owner relays it himself and brings
+the answer back. A session never drives a reviewer's account itself. The loop
+continues until the project is finished, not until the reviews stop being
+critical.
 
 **What this loop is for, and what it is not.** Its value so far has been
 adversarial, not generative: it caught the missing confidence interval on
@@ -26,25 +126,6 @@ So: take the objection seriously, verify it against the code or the data
 before acting, and disagree in writing when it is wrong. A review that is
 accepted without checking is not a review, and two models agreeing with each
 other is not evidence of anything.
-
-## Commits and pushes
-
-- **Separate commits, one per change**, each with the reasoning in the
-  message. The commit log is part of the design record here; the *why* lives
-  there, not only in the code.
-- **The owner runs git.** An assistant session writes files into the
-  checkout and leaves a commit message beside it; the owner reads the
-  message, stages the files named in it, commits, and pushes. That is not a
-  fallback — a session has no shell on the owner's computer, so `git add`,
-  `git commit` and `git push` are his commands and nobody else's.
-- **Never handle the owner's GitHub token**, and never push from the
-  sandbox. The remote is `github.com/Tecso-Dev/caro`, branch `main`,
-  and the credentials for it live on his machine and stay there.
-- **Prepare each commit so it is green on its own.** The working tree may
-  hold several pending changes at once, so `run_all.py` before a commit
-  reports the tree rather than the commit. When more than one commit is
-  staged at a time, check each in isolation and say which number belongs to
-  which.
 
 ## What this project is about
 
