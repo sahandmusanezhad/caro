@@ -2637,6 +2637,115 @@ except SystemExit as _e:
 check("the command line with nothing to do is a usage error", _usage)
 
 
+# --- rows and scripts: found, not scrolled to
+# The first real page, Divar's car category (816,689 bytes), began with 400 lines
+# of menu and filters, and the listings were past them. And a listing token
+# with no digit in it (about one in four) made its card a row of its own.
+_PP_TOKS = ["AbCdEfGh", "xYzWvUtS", "QwErTyUi", "Ab3Cd3Ef", "pLoKiJuH", "zXcVbNmQ"]
+_PP_LIST = ("<ul class='sub'>" + "".join(
+    f"<li class='sub-item'>t{n}</li>" for n in range(4)) + "</ul>")
+_PP_CARDS = "".join(
+    f'<div class="card-wrap"><a class="kt-post-card" href="/v/pride-tamiz/'
+    f'{_PP_TOKS[i % 6]}"><h2 class="title">پراید ۱۱۱ مدل ۱۳۹۸ {i}</h2>'
+    f'<div class="desc">۱۲۰ کیلومتر</div><div class="desc">۲۵۰ تومان</div>'
+    f'{_PP_LIST}</a></div>' for i in range(1, 25))
+_PP_SIDE = ("<nav>" + "".join(
+    f'<a class="kt-chip" href="/s/tehran/cat{c}x">c{c}</a>'
+    for c in "abcdefghij") + "</nav><aside><ul>" + "".join(
+    f'<li class="acc"><a href="/s/tehran/{c}-category">name {c}</a></li>'
+    for c in "abcd") + "</ul></aside>")
+_PP_LISTING = f"<body>{_PP_SIDE}<main>{_PP_CARDS}</main></body>"
+_RW = _pp.rows(_PP_LISTING, with_text=False)
+_RW_HEADS = [l for l in _RW.splitlines() if l.startswith("# ×")]
+check("rows: the cards come first, with the count and where they sit",
+      _RW_HEADS and _RW_HEADS[0].startswith("# ×24,")
+      and "under: body > main" in _RW_HEADS[0], str(_RW_HEADS))
+check("  one instance of them is printed in full, and not 24",
+      _RW.count("kt-post-card [href=") == 1 and "title" in _RW)
+check("  cards whose tokens hold no digit are one row all the same, and no "
+      "token is printed",
+      "×24" in _RW and not any(t in _RW for t in _PP_TOKS)
+      and "[href=/v/pride-tamiz/<tok>]" in _RW)
+check("  the rows inside a card are not shown again as a group of their own",
+      len(_RW_HEADS) >= 1 and not any("sub" in l for l in _RW_HEADS))
+check("  a group of single elements (the chips) is not a row",
+      "kt-chip" not in _RW)
+check("  a group that is not inside a card is (the accordion)",
+      any("acc" in _RW.split(h)[1].split("#")[0] for h in _RW_HEADS[1:2]))
+check("  a group of two is not a row",
+      "none found" in _pp.rows("<ul><li class='a'><b>1</b></li>"
+                               "<li class='a'><b>2</b></li></ul>"))
+check("  top=1 shows one group",
+      len([l for l in _pp.rows(_PP_LISTING, top=1).splitlines()
+           if l.startswith("# ×")]) == 1)
+check("  with text, digits are # and a name is there; --no-text leaves it out",
+      '"پراید # مدل #' in _pp.rows(_PP_LISTING)
+      and "پراید" not in _pp.rows(_PP_LISTING, with_text=False))
+check("  it is deterministic", _pp.rows(_PP_LISTING) == _pp.rows(_PP_LISTING))
+
+_PP_STATE = {"listings": [{"token": "Ab3Cd3Ef", "title": "پراید ۱۱۱", "price": 250000000,
+                           "mileage": "120000", "phone": "09121234567", "seller": "رضایی",
+                           "image": "https://x.example/a.jpg", "bargain": True,
+                           "meta": {"lat": 35.7, "ids": [1, 2, 3]}}] * 24,
+             "filters": {f"k{i}": {"min": 1} for i in range(50)},
+             "by_id": {f"12345678{i}": {"n": 1} for i in range(3)}}
+_PP_SCRIPTS = (
+    "<html><head><script>window.__STATE__ = " + json.dumps(_PP_STATE, ensure_ascii=False)
+    + ";</script><script type='application/ld+json'>" + json.dumps(
+        {"@type": "ItemList", "itemListElement": [{"position": i, "url": f"https://d.ir/v/x{i}"}
+                                                  for i in range(1, 25)]})
+    + "</script><script>window.D = JSON.parse(" + json.dumps(json.dumps(
+        {"a": [{"b": "c" * 40}] * 9, "pad": "z" * 300}, ensure_ascii=False)) + ");</script>"
+    "<script>" + "var x = 1;" * 60 + "</script><script>var s = 1;</script>"
+    "<script src='/web-assets/main.js'></script></head></html>")
+_SC = _pp.scripts_report(_PP_SCRIPTS)
+check("scripts: the keys, the length of each list and the kind of each value "
+      "are printed, after an assignment",
+      all(x in _SC for x in ("listings: list of 24", "price: int", "title: fa-text",
+                             "phone: digits(11)", "image: url", "bargain: bool",
+                             "lat: float", "ids: list of 3")), _SC)
+check("  and no value is: not a phone, a name, a token, a price or a url",
+      not any(x in _SC for x in ("09121234567", "رضایی", "Ab3Cd3Ef", "250000000",
+                                 "120000", "x.example", "35.7")))
+check("  a bare JSON script (ld+json) and a JSON.parse(\"...\") are read too",
+      "itemListElement: list of 24" in _SC and "a: list of 9" in _SC)
+check("  fifty uniform keys are one line, and an id used as a key is masked",
+      "<50 keys such as" in _SC and "k#" in _SC and "12345678" not in _SC)
+check("  a long script that is not JSON is said not to be; a short one and an "
+      "external one are not read",
+      "not JSON" in _SC and "var s = 1" not in _SC and "main.js" not in _SC
+      and "1 external" in _SC)
+check("  it is deterministic", _pp.scripts_report(_PP_SCRIPTS) == _pp.scripts_report(_PP_SCRIPTS))
+
+check("the link table folds a first segment that holds many paths into one row",
+      "/s/<…>  (14)" in _pp.skeleton(_PP_LISTING)
+      and "/v/pride-tamiz/<tok>  (24)" in _pp.skeleton(_PP_LISTING))
+check("an id-like run is a token: a digit; in the path of a link also both "
+      "cases. A word is not, and camelCase is structure outside a path",
+      all(_pp._is_token(t) for t in ("Ab3Cd3Ef", "rawButton-W5tTZw", "3f9a1c2e"))
+      and all(_pp._is_token(t, strict=True) for t in ("AbCdEfGh", "Ab3Cd3Ef"))
+      and not any(_pp._is_token(t, strict=True) for t in (
+          "post-card", "buy-apartment", "kt-new-modal", "short"))
+      and not _pp._is_token("itemListElement")
+      and _pp._mask_token("itemListElement") == "itemListElement"
+      and _pp._mask_href("/s/tehran/buy-apartment") == "/s/tehran/buy-apartment"
+      and _pp._mask_href("/v/pride-tamiz/AbCdEfGh") == "/v/pride-tamiz/<tok>")
+check("a JSON key: a name stays, a digit run or a long hex id is data",
+      _pp._mask_key("itemListElement") == "itemListElement"
+      and _pp._mask_key("by_id") == "by_id"
+      and _pp._mask_key("123456780") == "<tok>" and _pp._mask_key("7") == "#"
+      and _pp._mask_key("k12") == "k#")
+with _tempfile.TemporaryDirectory() as _tmp:
+    _f = _Path(_tmp) / "p.html"
+    _f.write_text(_PP_LISTING + _PP_SCRIPTS, encoding="utf-8")
+    for _flag, _mark in (("--rows", "# rows of"), ("--scripts", "# scripts of")):
+        _out = _io.StringIO()
+        with _contextlib.redirect_stdout(_out):
+            _rc = _pp.main([_flag, str(_f)])
+        check(f"the command line {_flag} prints with no network and exits 0",
+              _rc == 0 and _mark in _out.getvalue())
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

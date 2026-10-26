@@ -199,7 +199,7 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all fifteen suites
 
-python3 tests/run_all.py            # 2750 assertions, no API key, no network
+python3 tests/run_all.py            # 2771 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -217,10 +217,10 @@ output in `docs/` instead: `RUN3_2026-09-07.txt`, `RUN5_2026-09-07.txt`,
 suites need more, and the runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2204 assertions across 12 of 15 suites
+python3 tests/run_all.py            # 2225 assertions across 12 of 15 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 2750 across all fifteen
+python3 tests/run_all.py            # 2771 across all fifteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -298,14 +298,18 @@ Sheypoor, Khodro45), the first step is a probe, not a collection:
 ```
 python3 scripts/page_probe.py --source divar --origin https://divar.ir \
     --render browser --url https://divar.ir/s/tehran/light
+python3 scripts/page_probe.py --rows     ~/caro-probes/<run>/01-….html --no-text
+python3 scripts/page_probe.py --scripts  ~/caro-probes/<run>/01-….html
 python3 scripts/page_probe.py --skeleton ~/caro-probes/<run>/01-….html --no-text
 ```
 
 It reads robots.txt through the same gate, asks for at most five urls under
 the same pause and User-Agent, keeps the pages outside the repository, and
 stops at the first one that does not return. No login, no click, no contact.
-The skeleton is the shape of a page with every digit taken from it as `#`;
-it is what can be sent to have a parser written.
+`--rows` finds the cards of a list and prints one in full; `--scripts` prints
+the shape of the JSON a page carries in a script (the keys and the kind of each
+value, never a value); `--skeleton` is the whole page. Every digit taken from a
+page is `#` in all three; they are what can be sent to have a parser written.
 
 Structured snapshot records land in `data/snapshots/` — one `FetchOutcome`
 per listing, not the raw HTTP response. That directory is **operational and
@@ -575,7 +579,7 @@ trade for a system whose pitch is that it does not overclaim.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           2750 assertions across fifteen suites
+tests/           2771 assertions across fifteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, replays, the benchmark, the probes
 data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed

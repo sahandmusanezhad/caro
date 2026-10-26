@@ -5,6 +5,8 @@ A few public pages of one source, fetched politely and kept on this machine.
     python3 scripts/page_probe.py --source divar --origin https://divar.ir \\
         --render browser --url https://divar.ir/s/tehran/light
     python3 scripts/page_probe.py --skeleton ~/caro-probes/<run>/01-3f9a1c2e.html
+    python3 scripts/page_probe.py --rows     ~/caro-probes/<run>/01-3f9a1c2e.html
+    python3 scripts/page_probe.py --scripts  ~/caro-probes/<run>/01-3f9a1c2e.html
 
 WHY THIS EXISTS
 
@@ -63,6 +65,23 @@ the text out altogether, and shows only that a text is there; the shape and
 the classes are usually enough to write the selectors, and the formats of a
 price and a mileage are already known to the parsers. Read what is printed
 before it is sent anywhere.
+
+TWO VIEWS THAT GO TO THE POINT
+
+The first real page (Divar's car category, 816,689 bytes) showed what the
+skeleton is bad at: its first 400 lines were the menu and the filters, and the
+listings, if they were in the page at all, were past them. So:
+
+  `--rows FILE` finds the groups of three or more siblings of one shape (the
+  cards of a list are the largest of them), ranks them by how much page they
+  take, and prints ONE instance of each in full, with where it sits. A group
+  inside one already shown is not shown again.
+
+  `--scripts FILE` is for a page that carries its data in a script instead of
+  in the markup: for each script of any size that holds JSON (bare, after an
+  assignment, or inside JSON.parse("...")) it prints the SHAPE of the JSON:
+  the names of the keys, the length of each list, and the kind of each value
+  (int, str, url, digits(n), fa-text ...). A value is never printed.
 """
 
 from __future__ import annotations
@@ -223,15 +242,34 @@ def _mask_digits(s: str) -> str:
     return re.sub(r"#(?:[\s,٬.٫،/:-]*#)+", "#", s)
 
 
-def _mask_token(s: str) -> str:
-    """A long run of Latin letters, digits and dashes that holds a digit (a
-    listing token, an id, a hash) becomes «<tok>», and then every digit left
-    becomes «#». The runs are found first: masking the digits first cuts a
-    token into pieces too short to be found. A word with a dash and no digit
-    (a data-testid like post-card) is structure and stays."""
+def _is_token(run: str, *, strict: bool = False) -> bool:
+    """A run of eight or more Latin letters, digits and dashes that holds a
+    digit is an id and not a word: post-card and buy-apartment are words.
+    `strict`, for the path of a link, also takes a run that holds both an upper
+    and a lower case letter (AbCdEfGh: about one listing token in four has no
+    digit at all). Elsewhere that is a camelCase name, itemListElement, and
+    it is structure."""
+    return bool(re.search(r"\d", run)
+                or (strict and re.search(r"[a-z]", run)
+                    and re.search(r"[A-Z]", run)))
+
+
+def _mask_token(s: str, *, strict: bool = False) -> str:
+    """An id-like run (see `_is_token`) becomes «<tok>», and then every digit
+    left becomes «#». The runs are found first: masking the digits first cuts
+    a token into pieces too short to be found."""
     return _mask_digits(re.sub(
         r"[A-Za-z0-9_-]{8,}",
-        lambda m: "<tok>" if re.search(r"\d", m.group(0)) else m.group(0), s))
+        lambda m: "<tok>" if _is_token(m.group(0), strict=strict)
+        else m.group(0), s))
+
+
+def _mask_key(k: str) -> str:
+    """A JSON key: a camelCase or snake_case name is the schema and stays; a
+    run of digits or a long hex id is data used as a key and does not."""
+    if re.fullmatch(r"[0-9a-fA-F-]{8,}|\d+", k) or re.search(r"\d{4,}", k):
+        return "<tok>" if len(k) >= 8 else "#"
+    return _mask_digits(k)
 
 
 def _mask_text(s: str) -> str:
@@ -251,14 +289,21 @@ def _mask_href(h: str) -> str:
     if scheme and scheme.group(1).lower() not in ("http", "https"):
         return scheme.group(1).lower() + ":…"
     h = re.sub(r"^https?://[^/]+", "", h.split("#", 1)[0].split("?", 1)[0])
-    return _mask_token(h) or "/"
+    return _mask_token(h, strict=True) or "/"
+
+
+def _href_kind(h: str) -> str:
+    """/v for /v/<slug>/<token>, / for the home page, tel:… for a phone link."""
+    masked = _mask_href(h)
+    return "/" + masked[1:].split("/")[0] if masked.startswith("/") else masked
 
 
 class _Node:
-    __slots__ = ("tag", "attrs", "kids")
+    __slots__ = ("tag", "attrs", "kids", "parent", "text")
 
-    def __init__(self, tag: str, attrs: dict[str, str | None]):
+    def __init__(self, tag: str, attrs: dict[str, str | None], parent=None):
         self.tag, self.attrs, self.kids = tag, attrs, []
+        self.parent, self.text = parent, ""
 
 
 class _Tree(html.parser.HTMLParser):
@@ -269,7 +314,7 @@ class _Tree(html.parser.HTMLParser):
         self._quiet = 0
 
     def handle_starttag(self, tag, attrs):
-        node = _Node(tag, dict(attrs))
+        node = _Node(tag, dict(attrs), self.stack[-1])
         self.stack[-1].kids.append(node)
         if tag not in _VOID:
             self.stack.append(node)
@@ -277,7 +322,7 @@ class _Tree(html.parser.HTMLParser):
                 self._quiet += 1
 
     def handle_startendtag(self, tag, attrs):
-        self.stack[-1].kids.append(_Node(tag, dict(attrs)))
+        self.stack[-1].kids.append(_Node(tag, dict(attrs), self.stack[-1]))
 
     def handle_endtag(self, tag):
         for i in range(len(self.stack) - 1, 0, -1):
@@ -289,7 +334,11 @@ class _Tree(html.parser.HTMLParser):
                 return
 
     def handle_data(self, data):
-        if not self._quiet and data.strip():
+        if self._quiet:
+            if self.stack[-1].tag == "script":      # kept for --scripts only
+                self.stack[-1].text += data
+            return
+        if data.strip():
             self.stack[-1].kids.append(data)
 
 
@@ -303,8 +352,11 @@ def _shape(n) -> str:
     if isinstance(n, str):
         return "t"
     # a digit in a class (c-1, c-2) does not make two cards different rows,
-    # and the kind of a link (/v/<tok>, tel:, mailto:) does
-    href = _mask_href(n.attrs["href"]) if n.attrs.get("href") else ""
+    # and the kind of a link (/v, tel:, mailto:) does. The kind is the scheme
+    # or the first segment of the path and no more: the rest of a listing's
+    # path is its own, and a card whose token happened to hold a letter in
+    # place of a digit would be a row of its own.
+    href = _href_kind(n.attrs["href"]) if n.attrs.get("href") else ""
     return (n.tag + "." + re.sub(r"\d+", "#", ".".join(_classes(n)))
             + "@" + href + "("
             + ",".join(_shape(k) for k in n.kids) + ")")
@@ -331,36 +383,60 @@ def _label(n: _Node, with_text: bool = True) -> str:
     return " ".join(out)
 
 
-def skeleton(page: str, *, name: str = "", with_text: bool = True) -> str:
-    """The shape of `page`: see the module docstring. Deterministic."""
+def _walk(n, depth: int, lines: list[str], with_text: bool,
+          max_depth: int = _MAX_DEPTH) -> None:
+    """The children of `n`, one line each, a run of siblings of one shape as
+    its first with the count."""
+    kids, i = n.kids, 0
+    while i < len(kids):
+        k = kids[i]
+        j = i + 1
+        if isinstance(k, str):
+            lines.append("  " * depth + '"' + _show_text(k, with_text) + '"')
+            i = j
+            continue
+        sig = _shape(k)
+        while (j < len(kids) and not isinstance(kids[j], str)
+               and _shape(kids[j]) == sig):
+            j += 1
+        reps = f"  ×{j - i}" if j - i > 1 else ""
+        lines.append("  " * depth + _label(k, with_text) + reps)
+        if depth + 1 < max_depth:
+            _walk(k, depth + 1, lines, with_text, max_depth)
+        elif k.kids:
+            lines.append("  " * (depth + 1) + "…")
+        i = j
+
+
+def _parse(page: str) -> _Tree:
     tree = _Tree()
     tree.feed(page)
     tree.close()
+    return tree
+
+
+def _link_table(paths: Counter) -> list[str]:
+    """Link paths by count. A first segment that holds more than five distinct
+    paths (/v/<slug>/<token>: one per listing) is one row, `/v/<…>`, with the
+    total, so that a list of listings is not lost behind twelve rows of
+    categories that occur once each."""
+    by_first: dict[str, set] = {}
+    for p in paths:
+        by_first.setdefault(p.split("/")[1] if p.startswith("/") else p, set()).add(p)
+    wide = {f for f, ps in by_first.items() if len(ps) > 5}
+    folded: Counter = Counter()
+    for p, c in paths.items():
+        first = p.split("/")[1] if p.startswith("/") else p
+        folded[f"/{first}/<…>" if first in wide else p] += c
+    return [f"#   {p}  ({c})" for p, c in folded.most_common(12)]
+
+
+def skeleton(page: str, *, name: str = "", with_text: bool = True) -> str:
+    """The shape of `page`: see the module docstring. Deterministic."""
+    tree = _parse(page)
     lines: list[str] = []
     links: Counter = Counter()
-
-    def walk(n, depth: int):
-        kids, i = n.kids, 0
-        while i < len(kids):
-            k = kids[i]
-            j = i + 1
-            if isinstance(k, str):
-                lines.append("  " * depth + '"' + _show_text(k, with_text) + '"')
-                i = j
-                continue
-            sig = _shape(k)
-            while (j < len(kids) and not isinstance(kids[j], str)
-                   and _shape(kids[j]) == sig):
-                j += 1
-            reps = f"  ×{j - i}" if j - i > 1 else ""
-            lines.append("  " * depth + _label(k, with_text) + reps)
-            if depth + 1 < _MAX_DEPTH:
-                walk(k, depth + 1)
-            elif k.kids:
-                lines.append("  " * (depth + 1) + "…")
-            i = j
-
-    walk(tree.root, 0)
+    _walk(tree.root, 0, lines, with_text)
 
     # links inside collapsed rows are shown once, so the table counts the
     # whole page
@@ -376,11 +452,221 @@ def skeleton(page: str, *, name: str = "", with_text: bool = True) -> str:
     head = [f"# skeleton of {name or 'a page'}: {len(page.encode('utf-8'))} "
             f"bytes, sha256 {hashlib.sha256(page.encode('utf-8')).hexdigest()}",
             "# links by masked path (count):"]
-    head += [f"#   {p}  ({c})" for p, c in links.most_common(12)]
+    head += _link_table(links)
     body = lines[:_MAX_LINES]
     if len(lines) > _MAX_LINES:
         body.append(f"… {len(lines) - _MAX_LINES} more lines")
     return "\n".join(head + ["# tree:"] + body) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Rows: the cards of a list, found rather than scrolled to
+# ---------------------------------------------------------------------------
+
+_ROW_MIN = 3
+_ROW_LINES = 150
+
+
+def _where(n: _Node) -> str:
+    """Where a node sits: its last six ancestors as tag#id.first-class."""
+    parts = []
+    while n is not None and n.tag != "#root":
+        c = _classes(n)
+        parts.append(n.tag + ("#" + _mask_token(n.attrs["id"])
+                              if n.attrs.get("id") else "")
+                     + ("." + c[0] if c else ""))
+        n = n.parent
+    return " > ".join(reversed(parts[:6])) or "(top)"
+
+
+def rows(page: str, *, name: str = "", with_text: bool = True,
+         top: int = 4) -> str:
+    """The `top` largest groups of three or more siblings of one shape, each
+    as one instance printed in full. Largest is count times elements in one."""
+    tree = _parse(page)
+    sizes: dict[int, int] = {}
+
+    def size(n) -> int:
+        if id(n) not in sizes:
+            sizes[id(n)] = 1 + sum(size(k) for k in n.kids
+                                   if not isinstance(k, str))
+        return sizes[id(n)]
+
+    found: list[tuple] = []
+
+    def visit(n):
+        kids, i = n.kids, 0
+        while i < len(kids):
+            if isinstance(kids[i], str):
+                i += 1
+                continue
+            sig, j = _shape(kids[i]), i + 1
+            while (j < len(kids) and not isinstance(kids[j], str)
+                   and _shape(kids[j]) == sig):
+                j += 1
+            if j - i >= _ROW_MIN and size(kids[i]) >= 2:
+                found.append(((j - i) * size(kids[i]), j - i, size(kids[i]),
+                              n, kids[i:j]))
+            i = j
+        for k in kids:
+            if not isinstance(k, str):
+                visit(k)
+
+    visit(tree.root)
+    found.sort(key=lambda f: (-f[0], -f[1]))
+    shown: list[tuple] = []
+    inside: set[int] = set()
+    for score, count, one, parent, run in found:
+        a, nested = parent, False
+        while a is not None:
+            if id(a) in inside:
+                nested = True
+                break
+            a = a.parent
+        if nested:
+            continue
+        shown.append((count, one, parent, run))
+        for r in run:
+            stack = [r]
+            while stack:
+                x = stack.pop()
+                inside.add(id(x))
+                stack.extend(k for k in x.kids if not isinstance(k, str))
+        if len(shown) == top:
+            break
+    out = [f"# rows of {name or 'a page'}: groups of {_ROW_MIN} or more "
+           f"siblings of one shape, largest first, one instance of each"]
+    if not shown:
+        out.append("# none found")
+    for count, one, parent, run in shown:
+        out.append(f"# ×{count}, about {one} elements each, under: "
+                   f"{_where(parent)}")
+        lines: list[str] = []
+        lines.append(_label(run[0], with_text))
+        _walk(run[0], 1, lines, with_text)
+        out.extend(lines[:_ROW_LINES])
+        if len(lines) > _ROW_LINES:
+            out.append(f"… {len(lines) - _ROW_LINES} more lines")
+        out.append("")
+    return "\n".join(out) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Scripts: the shape of the JSON a page carries, and never a value
+# ---------------------------------------------------------------------------
+
+_SCRIPT_MIN = 300
+_JSON_LINES = 120
+
+
+def _json_of(text: str):
+    """The JSON in a script, or None: bare, after `window.X =`, or inside
+    JSON.parse("...")."""
+    t = text.strip()
+    try:
+        return json.loads(t)
+    except ValueError:
+        pass
+    m = re.match(r"^[\w.$\[\]\"'-]+\s*=\s*(.*?);?\s*$", t, re.S)
+    if not m:
+        return None
+    body = m.group(1)
+    try:
+        return json.loads(body)
+    except ValueError:
+        pass
+    q = re.fullmatch(r"JSON\.parse\((\".*\")\)", body, re.S)
+    if q:
+        try:
+            return json.loads(json.loads(q.group(1)))
+        except ValueError:
+            return None
+    return None
+
+
+def _jkind(v) -> str:
+    """What a value is, and nothing of what it says."""
+    if isinstance(v, dict):
+        return "object"
+    if isinstance(v, list):
+        return "list"
+    if isinstance(v, bool):
+        return "bool"
+    if isinstance(v, int):
+        return "int"
+    if isinstance(v, float):
+        return "float"
+    if v is None:
+        return "null"
+    if isinstance(v, str):
+        if re.fullmatch(r"https?://\S+", v):
+            return "url"
+        if re.fullmatch(r"\d+", v):
+            return f"digits({len(v)})"
+        if re.search(r"[\u0600-\u06ff]", v):
+            return "fa-text"
+        return "str"
+    return type(v).__name__
+
+
+def _jlines(v, name: str, depth: int, out: list[str]) -> None:
+    pad = "  " * depth
+    if depth > 9:
+        out.append(f"{pad}{name}: …")
+    elif isinstance(v, dict):
+        out.append(f"{pad}{name}: object ({len(v)} keys)")
+        items = list(v.items())
+        if len(items) > 30 and len({_jkind(x) for _, x in items[:30]}) == 1:
+            out.append(f"{pad}  <{len(items)} keys such as "
+                       f"{_mask_key(str(items[0][0]))!r}>:")
+            _jlines(items[0][1], "value", depth + 2, out)
+            return
+        for k, x in items[:40]:
+            _jlines(x, _mask_key(str(k)), depth + 1, out)
+        if len(items) > 40:
+            out.append(f"{pad}  … {len(items) - 40} more keys")
+    elif isinstance(v, list):
+        out.append(f"{pad}{name}: list of {len(v)}")
+        if v:
+            _jlines(v[0], "[0]", depth + 1, out)
+    else:
+        out.append(f"{pad}{name}: {_jkind(v)}")
+
+
+def scripts_report(page: str, *, name: str = "") -> str:
+    tree = _parse(page)
+    scripts: list[_Node] = []
+
+    def find(n):
+        for k in n.kids:
+            if isinstance(k, str):
+                continue
+            if k.tag == "script":
+                scripts.append(k)
+            find(k)
+
+    find(tree.root)
+    out = [f"# scripts of {name or 'a page'}: {len(scripts)} script tag(s), "
+           f"{sum(1 for s in scripts if s.attrs.get('src'))} external; the "
+           f"shape of the JSON in each inline one of {_SCRIPT_MIN} characters "
+           "or more, and no value"]
+    for i, sc in enumerate(scripts, 1):
+        if sc.attrs.get("src") or len(sc.text) < _SCRIPT_MIN:
+            continue
+        tags = " ".join(f"[{k}={_mask_text(v)}]" if v else f"[{k}]"
+                        for k, v in sorted(sc.attrs.items()))
+        data = _json_of(sc.text)
+        if data is None:
+            out.append(f"# script {i} {tags} {len(sc.text)} characters: not "
+                       f"JSON; begins {_mask_text(sc.text.strip()[:60])!r}")
+            continue
+        out.append(f"# script {i} {tags} {len(sc.text)} characters: JSON")
+        lines: list[str] = []
+        _jlines(data, "(root)", 0, lines)
+        out.extend(lines[:_JSON_LINES])
+        if len(lines) > _JSON_LINES:
+            out.append(f"… {len(lines) - _JSON_LINES} more lines")
+    return "\n".join(out) + "\n"
 
 
 # ---------------------------------------------------------------------------
@@ -390,6 +676,12 @@ def main(argv: list[str] | None = None) -> int:
                                  formatter_class=argparse.RawTextHelpFormatter)
     ap.add_argument("--skeleton", nargs="+", type=Path, metavar="FILE",
                     help="print the shape of saved pages and exit; no network")
+    ap.add_argument("--rows", nargs="+", type=Path, metavar="FILE",
+                    help="print the largest repeated groups of saved pages, "
+                         "one instance of each, and exit; no network")
+    ap.add_argument("--scripts", nargs="+", type=Path, metavar="FILE",
+                    help="print the shape of the JSON in the scripts of saved "
+                         "pages, no value, and exit; no network")
     ap.add_argument("--source", help="a short name, e.g. divar, sheypoor")
     ap.add_argument("--origin", help="e.g. https://divar.ir")
     ap.add_argument("--url", action="append", default=[],
@@ -398,7 +690,7 @@ def main(argv: list[str] | None = None) -> int:
                     help="http for a server-rendered page, browser for one "
                          "rendered client-side (default: http)")
     ap.add_argument("--no-text", action="store_true",
-                    help="with --skeleton: leave every text out of it")
+                    help="with --skeleton or --rows: leave every text out")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT,
                     help=f"where runs are kept (default: {DEFAULT_OUT})")
     args = ap.parse_args(argv)
@@ -408,9 +700,17 @@ def main(argv: list[str] | None = None) -> int:
             print(skeleton(f.read_text(encoding="utf-8", errors="replace"),
                            name=f.name, with_text=not args.no_text))
         return 0
+    for flag, view in ((args.rows, lambda t, f: rows(
+            t, name=f.name, with_text=not args.no_text)),
+                       (args.scripts, lambda t, f: scripts_report(
+                           t, name=f.name))):
+        if flag:
+            for f in flag:
+                print(view(f.read_text(encoding="utf-8", errors="replace"), f))
+            return 0
     if not (args.source and args.origin and args.url):
         ap.error("--source, --origin and at least one --url are needed "
-                 "(or --skeleton FILE)")
+                 "(or --skeleton, --rows or --scripts FILE)")
 
     policy = PolitenessPolicy()
     if args.render == "browser":
@@ -450,9 +750,10 @@ def main(argv: list[str] | None = None) -> int:
     if any(p.get("saved_as") for p in m["pages"]):
         first = next(p["saved_as"] for p in m["pages"] if p.get("saved_as"))
         print("what can be sent to have a parser written (read it first; "
-              "add --no-text to leave the text out):\n"
-              f"  python3 scripts/page_probe.py --skeleton "
-              f"{res.out_dir / first}")
+              "add --no-text to leave the text out):")
+        for view in ("rows", "scripts", "skeleton"):
+            print(f"  python3 scripts/page_probe.py --{view} "
+                  f"{res.out_dir / first}")
     return res.exit_code
 
 
