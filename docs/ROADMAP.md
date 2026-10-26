@@ -28,7 +28,7 @@ intent → explain the best choice**.
 
 | Requirement | State |
 |---|---|
-| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, built and tested offline; the extraction of a listing page is not written (`first_run.py --source divar` raises after its first page), so its live path has never run. Sheypoor and Khodro45 have no adapter. `scripts/page_probe.py` is the first step for all three. |
+| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and its category-page extraction (`caro/ingest/divar_page.py`), written offline on 2026-10-26 from what the probe printed (a JSON-LD list of 24 vehicles, and the 24 cards beside it) and tested on pages made to that shape; it has not read a real page, and its live path has never run. Sheypoor and Khodro45 have no adapter. `scripts/page_probe.py` is the first step for all three. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
@@ -344,9 +344,10 @@ the owner chooses.
      whatever it says. Then probe: `scripts/page_probe.py` fetches up to five
      public pages under the same robots gate and pause, keeps them on his
      machine, and prints a skeleton that can be sent back with no digit and,
-     with `--no-text`, no text in it. The extraction of a listing page, which
-     `first_run.py --source divar` lacks and raises for, is written offline
-     from that, and tested. Only then the run: one city and a handful of
+     with `--no-text`, no text in it. The extraction of a category page is
+     written offline from what it printed on 2026-10-26, and tested on pages made
+     to that shape (`caro/ingest/divar_page.py`); `first_run.py --source divar`
+     does not call it yet. Only then the run: one city and a handful of
      pages; volume is not the point. `CARO_SELLER_SALT` must be set. Expect to be blocked; the adapter
      stops and says so, and that is the design. Who: the owner. Closes when
      the run's inventory is read and recorded, published or not.

@@ -2746,6 +2746,291 @@ with _tempfile.TemporaryDirectory() as _tmp:
               _rc == 0 and _mark in _out.getvalue())
 
 
+print("\ndivar's category page — read from the shape the probe found")
+# Invented to the SHAPE that `page_probe.py --rows/--scripts` printed on
+# 2026-10-26 (a list of vehicle objects in one ld+json script; the same
+# vehicles as article.kt-post-card with a link to /v/<slug>/<token>). No
+# value here was on that page: the probe prints none.
+import html as _html
+from caro.ingest import divar_page as _dp
+from caro.ingest.divar_page import (
+    DivarPageParser, PageTrace, parse_divar_page, read_cards, token_of,
+)
+from caro.ingest.quality import eligibility as _eligibility
+
+
+def _node(tok, name="پراید ۱۳۱ SE", *, year="1395", km="120000", price="4500000000",
+          cur="IRR", unit="KMT", city="تهران", district="پونک", gear="Manual",
+          vin="9SECRETVIN0001", host="https://divar.ir", slug="pride", extra=None):
+    n = {"@context": "https://schema.org", "@type": "Car", "name": name,
+         "productionDate": year, "vehicleModelDate": year,
+         "vehicleIdentificationNumber": vin,
+         "image": "https://s100.divarcdn.com/static/photo/" + tok + ".jpg",
+         "category": "passenger-car", "color": "سفید", "model": "131",
+         "vehicleTransmission": gear, "knownVehicleDamages": "ندارد",
+         "url": f"{host}/v/{slug}/{tok}",
+         "itemCondition": "https://schema.org/UsedCondition",
+         "brand": {"@type": "Brand", "name": "سایپا"},
+         "web_info": {"title": name, "city_persian": city,
+                      "district_persian": district,
+                      "category_slug_persian": "سواری"}}
+    if km is not None:
+        n["mileageFromOdometer"] = {"@type": "QuantitativeValue", "value": km,
+                                    "unitCode": unit}
+    if year is None:
+        del n["productionDate"], n["vehicleModelDate"]
+    offers = {"@type": "Offer", "availability": "https://schema.org/InStock"}
+    if price is not None:
+        offers["price"], offers["priceCurrency"] = price, cur
+    n["offers"] = offers
+    n.update(extra or {})
+    return n
+
+
+def _card(tok, title="پراید ۱۳۱ SE", lines=("۱۲۰٬۰۰۰ کیلومتر", "۴۵۰٬۰۰۰٬۰۰۰ تومان"),
+          slug="pride", classes="kt-post-card kt-post-card--outlined"):
+    ds = "".join(f'<div class="kt-post-card__description">{_html.escape(x)}</div>'
+                 for x in lines)
+    return (f'<div class="widget-col-d2306"><div><article class="{classes}">'
+            f'<a class="kt-post-card__action" href="/v/{slug}/{tok}">'
+            f'<div class="kt-post-card__body"><div class="kt-post-card__info">'
+            f'<h2 class="kt-post-card__title">{_html.escape(title)}</h2>{ds}'
+            f'<div class="kt-post-card__bottom"><span class="kt-post-card__bottom-description '
+            f'kt-text-truncate" title="x">لحظاتی پیش در تهران</span></div></div>'
+            f'<div class="kt-post-card-thumbnail"><div><picture><img class="kt-image-block__image" '
+            f'src="https://s100.divarcdn.com/p.webp" alt="x"></picture></div>'
+            f'<div class="kt-tag"><i class="kt-icon"></i><span class="kt-tag__text">نردبان</span></div>'
+            f'</div></div></a></article></div>')
+
+
+def _page(nodes, cards=(), *, extra_ld=()):
+    ld = [json.dumps(list(nodes), ensure_ascii=False)] if nodes is not None else []
+    ld += list(extra_ld)
+    return ("<html><head>"
+            + "".join(f'<script type="application/ld+json">{x}</script>' for x in ld)
+            + '</head><body><div class="post-list__items-container-e44b2">'
+            + "".join(cards) + "</div></body></html>")
+
+
+_T = ["AbCd1234", "EfGh5678", "IjKl9012"]
+_p1 = parse_divar_page(_page([_node(t) for t in _T], [_card(t) for t in _T]))
+check("X1: three nodes with their cards are three listings, in page order, "
+      "identified by the token",
+      [x.listing_id for x in _p1] == _T, str([x.listing_id for x in _p1]))
+_tr = PageTrace()
+parse_divar_page(_page([_node(t) for t in _T], [_card(t) for t in _T]), _tr)
+check("  read from json-ld, and the trace says how many of each",
+      (_tr.source, _tr.ld_nodes, _tr.cards, _tr.emitted) == ("jsonld", 3, 3, 3),
+      str(_tr))
+_a = _p1[0]
+check("X2: IRR 4,500,000,000 and a card that says 450,000,000 toman agree: "
+      "the price, display-confirmed, with what each side said kept",
+      (_a.asking_price_toman, _a.price_status, _a.price_provenance,
+       _a.price_displayed_toman, _a.price_currency_raw, _a.price_raw)
+      == (450_000_000, "display_confirmed", "jsonld+text", 450_000_000, "IRR",
+          "4500000000"), str(_a))
+
+
+def _one(node, card=None, **kw):
+    return parse_divar_page(_page([node], [card] if card else []), **kw)[0]
+
+
+_b = _one(_node("AbCd1234", price="450000000"), _card("AbCd1234"))
+check("X3: a toman figure under an IRR label is corrected by what the buyer sees",
+      (_b.asking_price_toman, _b.price_status) == (450_000_000, "label_corrected"),
+      str((_b.asking_price_toman, _b.price_status)))
+_c = _one(_node("AbCd1234"))
+check("X4: with no card the label is read literally, and the status says the "
+      "unit is unconfirmed",
+      (_c.asking_price_toman, _c.price_status, _c.price_provenance)
+      == (450_000_000, "structured_only", "jsonld"), str(_c))
+_d = _one(_node("AbCd1234", price=None), _card("AbCd1234", lines=("۱۲۰٬۰۰۰ کیلومتر", "توافقی")))
+check("X5: no price and «توافقی» on the card is negotiable, not absent, and the "
+      "listing is refused as a price",
+      (_d.asking_price_toman, _d.price_status, _d.price_kind)
+      == (None, "negotiable", "negotiable")
+      and not _eligibility(_d)[0], str(_d))
+_e = _one(_node("AbCd1234"), _card("AbCd1234", lines=("۱۲۰٬۰۰۰ کیلومتر",
+                                                        "پیش‌پرداخت ۲۰۰٬۰۰۰٬۰۰۰ تومان")))
+check("X6: a deposit on the card is no asking price, whatever the node says",
+      (_e.asking_price_toman, _e.price_status) == (None, "ambiguous"),
+      str((_e.asking_price_toman, _e.price_status)))
+_f = _one(_node("AbCd1234"), _card("AbCd1234", lines=("۱۲۰٬۰۰۰ کیلومتر", "۶۰۰٬۰۰۰٬۰۰۰ تومان")))
+check("X7: two prices that no unit explains are no price",
+      (_f.asking_price_toman, _f.price_status) == (None, "ambiguous"),
+      str((_f.asking_price_toman, _f.price_status)))
+_g = _one(_node("AbCd1234", price=None), _card("AbCd1234", lines=("۱۲۰٬۰۰۰ کیلومتر",)))
+check("X8: no price anywhere and no «توافقی» is absent, which is not a refusal "
+      "to name one",
+      (_g.asking_price_toman, _g.price_status) == (None, "absent"),
+      str((_g.asking_price_toman, _g.price_status)))
+_h = _one(_node("AbCd1234"), _card("AbCd1234", lines=("۴۵۰٬۰۰۰٬۰۰۰ تومان", "۱۰ میلیون تومان ماهانه")[:1]
+                                   + ("۳۰۰٬۰۰۰٬۰۰۰ تومان",)))
+check("X9: two «تومان» lines on a card show no price; the node's stands, unconfirmed",
+      (_h.price_displayed_toman, _h.asking_price_toman, _h.price_status)
+      == (None, 450_000_000, "structured_only"), str(_h))
+
+_i = _one(_node("AbCd1234"), _card("AbCd1234"))
+check("X10: the node and the card say the same odometer: 120,000 km, plausible",
+      (_i.mileage_km, _i.mileage_status) == (120000, "plausible"),
+      str((_i.mileage_km, _i.mileage_status)))
+_j = _one(_node("AbCd1234", km="5"), _card("AbCd1234"))
+check("X11: 5 against 120,000 is no odometer, and the note names both",
+      (_j.mileage_km, _j.mileage_status) == (None, "unknown")
+      and "5 vs 120000" in (_j.mileage_note or ""), str(_j.mileage_note))
+_k = _one(_node("AbCd1234", km="119800"), _card("AbCd1234", lines=("۱۲۰ هزار کیلومتر", "۴۵۰٬۰۰۰٬۰۰۰ تومان")))
+check("X12: a card that rounds to thousands agrees with the exact node; the "
+      "node's number is kept",
+      _k.mileage_km == 119800, str(_k.mileage_km))
+check("X13: the node's odometer alone is judged by age",
+      _one(_node("AbCd1234")).mileage_km == 120000
+      and _one(_node("AbCd1234", km="40000", year="1395")).mileage_status == "plausible"
+      and _one(_node("AbCd1234", km="9000", year="1395")).mileage_status == "suspicious")
+_l = _one(_node("AbCd1234", km=None), _card("AbCd1234", lines=("کارکرد ۸۰ هزار کیلومتر", "۴۵۰٬۰۰۰٬۰۰۰ تومان")))
+check("X14: no odometer on the node and one on the card is the card's",
+      _l.mileage_km == 80000, str(_l.mileage_km))
+_m = _one(_node("AbCd1234", km="0"))
+check("X15: 0 km on a ten-year-old car is the placeholder rule's, and the gate refuses it",
+      (_m.mileage_km, _m.mileage_status) == (0, "suspicious")
+      and not _eligibility(_m)[0], str((_m.mileage_km, _m.mileage_status)))
+check("X16: 1395 is 1395, the Gregorian 2016 is 1395, a title's «۹۵» is 1395 when "
+      "the node has no date, and the node beats a title that disagrees",
+      _one(_node("AbCd1234", year="1395")).year_jalali == 1395
+      and _one(_node("AbCd1234", year="2016")).year_jalali == 1395
+      and _one(_node("AbCd1234", year=None, name="پراید ۱۳۱ مدل ۹۵")).year_jalali == 1395
+      and _one(_node("AbCd1234", year="1395", name="پراید ۱۳۱ مدل ۹۰")).year_jalali == 1395)
+
+_secret = _page([_node("AbCd1234", vin="9SECRETVIN0001")], [_card("AbCd1234")],
+                extra_ld=[json.dumps({
+                    "@context": "https://schema.org", "@type": "Organization",
+                    "name": "x", "contactPoint": {"telephone": "+98-21-0000000",
+                                                   "email": "help@divar.example"},
+                    "telephone": "02100000000"})])
+_sl = parse_divar_page(_secret)
+_seen_text = repr(_sl) + repr([o.to_fetch_outcome("divar", "s") for o in _sl])
+check("X17: no vehicle identifier, no image and no contact from the page is in a "
+      "listing or in the outcome made from it",
+      len(_sl) == 1 and not any(x in _seen_text for x in (
+          "9SECRETVIN0001", "divarcdn", "02100000000", "help@divar", "+98-21")))
+_n = _one(_node("AbCd1234"))
+check("X18: Tehran is its own province, known from the city; the district stays in "
+      "the line that goes to the snapshot only",
+      (_n.city, _n.province_source, _n.location_raw) == ("تهران", "city", "تهران، پونک"),
+      str((_n.city, _n.province_source, _n.location_raw)))
+_o = _one(_node("AbCd1234", city="کرج", district="گلشهر"))
+check("X19: Karaj names no province here, and says so",
+      (_o.city, _o.province_source, _o.location_raw) == (None, "none", "کرج، گلشهر"),
+      str((_o.city, _o.province_source, _o.location_raw)))
+_tr = PageTrace()
+_bc = json.dumps({"@type": "BreadcrumbList", "itemListElement": []})
+parse_divar_page(_page([_node("AbCd1234")], [_card("AbCd1234")], extra_ld=[_bc]), _tr)
+check("X20: a breadcrumb and an organisation are not vehicles", _tr.ld_nodes == 1, str(_tr.ld_nodes))
+_tr = PageTrace()
+_bad = parse_divar_page(_page([_node("AbCd1234")], [], extra_ld=["{not json"]), _tr)
+check("X21: a script that is not JSON is skipped, and the others still read",
+      [x.listing_id for x in _bad] == ["AbCd1234"])
+_tr = PageTrace()
+_sk = parse_divar_page(_page([_node("AbCd1234"), _node("EfGh5678", host="https://evil.example"),
+                              {**_node("IjKl9012"), "url": "https://divar.ir/s/tehran/car"}],
+                             []), _tr)
+check("X22: a vehicle on another host, or with no token, is skipped and counted",
+      [x.listing_id for x in _sk] == ["AbCd1234"]
+      and _tr.skipped["foreign url"] == 1 and _tr.skipped["no token"] == 1, str(_tr.skipped))
+check("X23: the same token twice on a page is one listing",
+      len(parse_divar_page(_page([_node("AbCd1234"), _node("AbCd1234")], []))) == 1)
+_q = _one(_node("AbCd1234", name="حواله پراید ۱۳۱"))
+check("X24: «حواله» in the title is an assignment, and the gate refuses it",
+      _q.product_class == "assignment" and not _eligibility(_q)[0])
+_r = _one(_node("AbCd1234", name="پراید ۱۳۱ فول بدون رنگ"))
+check("X25: a condition the title states is read, and labelled as prose",
+      (_r.body_condition, _r.condition_source) == ("intact", "description"))
+check("X26: Persian and Latin digits on a card are the same numbers",
+      _one(_node("AbCd1234"), _card("AbCd1234", lines=("120,000 km کیلومتر", "450,000,000 تومان")))
+      .price_status == "display_confirmed")
+_cards = read_cards(_card("AbCd1234", slug="%D9%BE%D8%B1%D8%A7%DB%8C%D8%AF-%DB%B1%DB%B3%DB%B1"))
+check("X27: a percent-encoded Persian slug does not move the token",
+      token_of(_cards[0].href) == "AbCd1234" and token_of("/s/tehran/car") is None
+      and token_of("/v/gYx1Zq") == "gYx1Zq" and token_of("/v/") is None
+      and token_of("/s/tehran/car/AbCd1234") is None, str(_cards[0].href))
+_tr = PageTrace()
+_pr = parse_divar_page(_page([_node("AbCd1234"), _node("EfGh5678")],
+                             [_card("AbCd1234"), _card("ZzZz0000")]), _tr)
+check("X28: a card with no node is not a listing, and a node with no card is",
+      [x.listing_id for x in _pr] == ["AbCd1234", "EfGh5678"]
+      and (_tr.cards_without_ld, _tr.ld_without_card) == (1, 1), str(_tr))
+_tr = PageTrace()
+_co = parse_divar_page(_page(None, [_card(t, title=f"پژو ۲۰۶ تیپ ۵ مدل ۹۶") for t in _T]), _tr)
+check("X29: with no node at all the cards are read, and the price says it is the "
+      "displayed one only",
+      len(_co) == 3 and _tr.source == "cards"
+      and (_co[0].asking_price_toman, _co[0].price_status, _co[0].price_provenance,
+           _co[0].year_jalali) == (450_000_000, "displayed_only", "text", 1396)
+      and _co[0].url == "https://divar.ir/v/pride/AbCd1234", str(_co[0]))
+check("X30: nothing, an empty string and None are no listings and no exception",
+      parse_divar_page(_page(None, [])) == [] and parse_divar_page("") == []
+      and parse_divar_page(None) == [])
+check("X31: a gearbox is read from English or Persian, else from the title",
+      [_one(_node("AbCd1234", gear=g)).gearbox for g in ("Manual", "Automatic", "اتوماتیک")]
+      == ["manual", "automatic", "automatic"]
+      and _one(_node("AbCd1234", gear="???", name="پراید اتوماتیک")).gearbox == "automatic"
+      and _one(_node("AbCd1234", gear="???")).gearbox is None)
+_tr = PageTrace()
+parse_divar_page(_page([_node("AbCd1234", extra={"owner_name": "رضایی"})],
+                       [_card("AbCd1234")]), _tr)
+check("X32: the counted values are those six keys and no other, and a colour or a "
+      "name is not among them",
+      set(_tr.enums) == {"@type", "priceCurrency", "unitCode", "vehicleTransmission",
+                         "knownVehicleDamages", "category"}
+      and _tr.enums["priceCurrency"] == {"IRR": 1} and _tr.enums["unitCode"] == {"KMT": 1}
+      and "سفید" not in repr(_tr.enums) and "رضایی" not in repr(_tr.enums), str(_tr.enums))
+check("X33: a damage field no one has seen the values of sets no condition",
+      _one(_node("AbCd1234", extra={"knownVehicleDamages": "تصادفی"})).body_condition == "unknown")
+_pp2 = DivarPageParser()
+_x1 = _pp2(_page([_node("AbCd1234"), _node("EfGh5678")], []))
+_x2 = _pp2(_page([_node("EfGh5678"), _node("IjKl9012")], []))
+check("X34: a page served twice adds nothing, and the repeat is counted",
+      [x.listing_id for x in _x1] == ["AbCd1234", "EfGh5678"]
+      and [x.listing_id for x in _x2] == ["IjKl9012"]
+      and _pp2.traces[1].duplicates == 1, str(_pp2.traces[1]))
+_html_ok = _page([_node(t) for t in _T], [_card(t) for t in _T])
+_ad = DivarCarAdapter(max_pages=1, page_fetcher=lambda u: (200, _html_ok),
+                      parse_page=DivarPageParser(), salt="test-salt",
+                      sleeper=lambda s: None, robots_fetcher=divar_robots)
+_outs = list(_ad.fetch_all(date(2026, 10, 26)))
+check("X35: through the adapter: OK outcomes named divar:<token>, no seller fingerprint",
+      [o.listing_id for o in _outs] == [f"divar:{t}" for t in _T]
+      and all(o.status is FetchStatus.OK and o.seller_fingerprint is None for o in _outs))
+_trs = []
+for _pgs in (_page([_node("AbCd1234"), _node("EfGh5678", price="450000000")],
+                   [_card("AbCd1234", title="پراید خصوصی رضایی"), _card("EfGh5678")]),):
+    _t = PageTrace()
+    parse_divar_page(_pgs, _t)
+    _trs.append(_t)
+_rep = "\n".join(_dp.report(_trs))
+check("X37: the report names each price code and each value counted, and no title",
+      all(x in _rep for x in ("agree", "label_wrong", "IRR", "KMT", "Manual"))
+      and "رضایی" not in _rep and "AbCd1234" not in _rep, _rep)
+_cs = read_cards(_card("AbCd1234", classes="kt-post-card--outlined kt-post-card extra"))
+check("C1: a card is found by its class, in whatever order the classes come",
+      len(_cs) == 1 and _cs[0].href == "/v/pride/AbCd1234")
+check("C2: a card with no link has no token and is skipped, counted",
+      (lambda t: (parse_divar_page(_page([_node("AbCd1234")],
+                                         ['<article class="kt-post-card"><h2 class="kt-post-card__title">x</h2></article>',
+                                          _card("AbCd1234")]), t), t.skipped["card without a token"])[1])(PageTrace()) == 1)
+_cs = read_cards(_card("AbCd1234", title="A & B", lines=("a", "b", "c")))
+check("C3/C4: entities in a title are decoded, and every description line is kept in order",
+      _cs[0].title == "A & B" and _cs[0].lines == ["a", "b", "c"]
+      and _cs[0].bottom == "لحظاتی پیش در تهران" and _cs[0].tags == ["نردبان"], str(_cs))
+_torn = ('<article class="kt-post-card"><a class="kt-post-card__action" href="/v/s/AbCd1234">'
+         '<div class="kt-post-card__info"><h2 class="kt-post-card__title">اول</h2>'
+         '<div class="kt-post-card__description">یک</article>'
+         + _card("EfGh5678", title="دوم"))
+_tc = read_cards(_torn)
+check("an unclosed tag inside a card does not swallow the card after it",
+      [(c.title, c.href.rsplit("/", 1)[-1]) for c in _tc]
+      == [("اول", "AbCd1234"), ("دوم", "EfGh5678")], str(_tc))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
