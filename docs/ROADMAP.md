@@ -28,7 +28,7 @@ intent → explain the best choice**.
 
 | Requirement | State |
 |---|---|
-| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` is built and tested offline, and its live path has never run. Sheypoor and Khodro45 have no adapter. |
+| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, built and tested offline; the extraction of a listing page is not written (`first_run.py --source divar` raises after its first page), so its live path has never run. Sheypoor and Khodro45 have no adapter. `scripts/page_probe.py` is the first step for all three. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
@@ -53,7 +53,8 @@ section that holds its detail.
 3. **CI's warnings** (operations, item 1). The owner decides; a session builds
    and measures on CI.
 4. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
-   owner, on his machine, after the review it names.
+   owner, on his machine, after the review it names, and after a probe: the
+   extraction of a listing page is written offline from what the probe keeps.
 5. **A larger real corpus, and collection over time** (the product gaps, item
    1). The owner runs it; a session writes the run's plan and predictions and
    reads what comes back.
@@ -340,8 +341,13 @@ the owner chooses.
 1. **Data.**
    - Divar: a first live run of `DivarCarAdapter`. Review Divar's terms and
      robots directives for the car category first, and record the finding
-     whatever it says. One city and a handful of pages; volume is not the
-     point. `CARO_SELLER_SALT` must be set. Expect to be blocked; the adapter
+     whatever it says. Then probe: `scripts/page_probe.py` fetches up to five
+     public pages under the same robots gate and pause, keeps them on his
+     machine, and prints a skeleton that can be sent back with no digit and,
+     with `--no-text`, no text in it. The extraction of a listing page, which
+     `first_run.py --source divar` lacks and raises for, is written offline
+     from that, and tested. Only then the run: one city and a handful of
+     pages; volume is not the point. `CARO_SELLER_SALT` must be set. Expect to be blocked; the adapter
      stops and says so, and that is the design. Who: the owner. Closes when
      the run's inventory is read and recorded, published or not.
    - Bama: a larger corpus. The four published runs hold 73 to 77 listings
@@ -353,7 +359,8 @@ the owner chooses.
      it can and cannot judge.
    - Sheypoor and Khodro45: adapters, under the same rules — robots.txt read
      in code, no evasion, no contact details, a business badge the only
-     source of a seller's type (D26). The owner probes first; the probe's
+     source of a seller's type (D26). The owner probes first
+     (`scripts/page_probe.py --source sheypoor --origin … --url …`); the probe's
      pages stay on his machine, and the adapter is built and tested offline
      against them. Closes when the adapter's suite runs offline and a first
      small live run has been read.

@@ -21,7 +21,7 @@ intent → explain the best choice**.
 
 | Requirement | State, 2026-10-25 |
 |---|---|
-| crawl offers | ⚠️ **one source.** Four runs of `BamaAdapter` are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15): 76, 74, 77 and 73 listings, of which 71, 64, 64 and 63 can be appraised. The site serves run16. `DivarCarAdapter` is built and tested offline, and its live path has never run. Sheypoor and Khodro45 have no adapter. |
+| crawl offers | ⚠️ **one source.** Four runs of `BamaAdapter` are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15): 76, 74, 77 and 73 listings, of which 71, 64, 64 and 63 can be appraised. The site serves run16. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, built and tested offline; the extraction of a listing page is not written, so its live path has never run. Sheypoor and Khodro45 have no adapter. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province, with how each was read. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
 | explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
@@ -292,6 +292,21 @@ VERDICT
   NOT READY — under 80% usable prices. Fix extraction before fitting anything.
 ```
 
+For a source whose pages nothing here holds yet (Divar's listing page,
+Sheypoor, Khodro45), the first step is a probe, not a collection:
+
+```
+python3 scripts/page_probe.py --source divar --origin https://divar.ir \
+    --render browser --url https://divar.ir/s/tehran/light
+python3 scripts/page_probe.py --skeleton ~/caro-probes/<run>/01-….html --no-text
+```
+
+It reads robots.txt through the same gate, asks for at most five urls under
+the same pause and User-Agent, keeps the pages outside the repository, and
+stops at the first one that does not return. No login, no click, no contact.
+The skeleton is the shape of a page with every digit taken from it as `#`;
+it is what can be sent to have a parser written.
+
 Structured snapshot records land in `data/snapshots/` — one `FetchOutcome`
 per listing, not the raw HTTP response. That directory is **operational and
 never published**; a run whose numbers are published needs a publishable
@@ -496,7 +511,7 @@ Each source has a role — not ten sites for volume.
 | Source | Role | State |
 |---|---|---|
 | **Bama** | `primary_offers` — richest structured fields, sets the canonical schema | Built and run. Publishes a car sitemap; nothing relevant disallowed (verified 2026-09-07, and read again by the adapter before every run). Discovery is sitemap-first, so coverage is knowable rather than estimated. |
-| **Divar** | `breadth` — largest volume, private sellers the specialist sites never see | Built and tested offline; never run live. Category browsing and listing pages allowed; **search urls (`?q=`) disallowed**, and a url robots.txt refuses is not requested. |
+| **Divar** | `breadth` — largest volume, private sellers the specialist sites never see | The robots gate, the pause and the stop are built and tested offline; the extraction of a listing page is not written, and it has never run live. Category browsing and listing pages allowed; **search urls (`?q=`) disallowed**, and a url robots.txt refuses is not requested. |
 | **Sheypoor** | `corroboration` — its value is the cross-source clusters it creates, not the listings it adds | No adapter. |
 | **Khodro45** | not yet given one | No adapter. |
 
