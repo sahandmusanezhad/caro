@@ -71,12 +71,16 @@ from caro.ingest.persian import (
 )
 from caro.ingest.quality import (
     PriceStatus, Validity, classify_mileage, classify_price_kind,
+    classify_price_value,
 )
 
 # Every key whose values are counted, and no other. These are categories, not
-# content: a colour, a name or a number is not here and is never tallied.
+# content: a colour, a title or a price is not here and is never tallied. The
+# brand and the model are: the first real page left make and model at 58%,
+# because the table of thirteen is domestic only, and what the other ten
+# listings are called is the one thing to read before widening it.
 ENUM_KEYS = ("@type", "priceCurrency", "unitCode", "vehicleTransmission",
-             "knownVehicleDamages", "category")
+             "knownVehicleDamages", "category", "brand", "model")
 
 _VEHICLE_TYPES = frozenset({"car", "vehicle", "motorvehicle"})
 _VEHICLE_KEYS = ("vehicleModelDate", "productionDate", "mileageFromOdometer")
@@ -301,6 +305,14 @@ class PageTrace:
     year: Counter = field(default_factory=Counter)
     enums: dict = field(default_factory=lambda: {k: Counter()
                                                  for k in ENUM_KEYS})
+    # Numbers only, never a word: a price under the floor, a year the node and
+    # the title give differently, an odometer the node and the card give
+    # differently. What the counts above cannot say about why.
+    odd: dict = field(default_factory=lambda: {k: [] for k in ODD_KINDS})
+
+
+ODD_KINDS = ("price below the floor", "year differs", "odometer differs")
+_ODD_CAP = 12
 
 
 def _is_vehicle(node) -> bool:
@@ -323,10 +335,12 @@ def vehicle_nodes(html: str) -> list[dict]:
     return out
 
 
-# A value is counted only if it can be a category: short, with no digit and
-# no address in it. A field that turns out to hold the seller's own words
-# would otherwise put a phone number into a report that is pasted into a chat.
-_CATEGORICAL = re.compile(r"^[^\d@]{1,40}$")
+# A value is counted only if it can be a category: at most 40 characters, no
+# "@", and no run of five digits («206» and «207i» are models; a telephone
+# number is eleven digits). A field that turns out to hold the seller's own
+# words would otherwise put a phone number into a report that is pasted into a
+# chat.
+_CATEGORICAL = re.compile(r"^(?!.*\d{5})[^@]{1,40}$", re.S)
 _MAX_DISTINCT = 20
 
 
@@ -339,7 +353,10 @@ def _offers(node: dict) -> dict:
 
 def _count_enums(node: dict, trace: PageTrace) -> None:
     mil = node.get("mileageFromOdometer")
+    brand = node.get("brand")
     seen = {"@type": node.get("@type"), "category": node.get("category"),
+            "brand": brand.get("name") if isinstance(brand, dict) else brand,
+            "model": node.get("model"),
             "vehicleTransmission": node.get("vehicleTransmission"),
             "knownVehicleDamages": node.get("knownVehicleDamages"),
             "priceCurrency": _offers(node).get("priceCurrency"),
@@ -464,6 +481,8 @@ def build(url: str, token: str, node: dict | None, card: Card | None,
     y_title = parse_year_jalali(title) if title else None
     if y_ld and y_title:
         trace.year["agree" if y_ld == y_title else "differ"] += 1
+        if y_ld != y_title:
+            trace.odd["year differs"].append((y_ld, y_title))
     else:
         trace.year["ld_only" if y_ld else "title_only" if y_title
                    else "none"] += 1
@@ -473,9 +492,13 @@ def build(url: str, token: str, node: dict | None, card: Card | None,
     price, p_status, p_prov, displayed, p_code = _price(ld_price, shown)
     trace.price[p_code] += 1
 
-    km, m_code, m_note = _mileage(ld_mileage_km(node) if node else None,
-                                  shown["mileage"] if shown else None)
+    ld_km = ld_mileage_km(node) if node else None
+    km, m_code, m_note = _mileage(ld_km, shown["mileage"] if shown else None)
     trace.mileage[m_code] += 1
+    if m_code == "disagree":
+        trace.odd["odometer differs"].append((ld_km, shown["mileage"]))
+    if price is not None and not classify_price_value(price).usable:
+        trace.odd["price below the floor"].append((price,))
     if km is None:
         judge = (Validity.UNKNOWN, m_note or "not stated")
         m_status, m_reason = judge
@@ -654,6 +677,17 @@ def report(traces: list[PageTrace]) -> list[str]:
         if c:
             L.append(f"    {key:<22}" + "  ".join(f"{k}:{v}" for k, v in
                                                   c.most_common(8)))
+    odd = {k: [x for t in traces for x in t.odd[k]] for k in ODD_KINDS}
+    if any(odd.values()):
+        L.append("")
+        L.append("  odd cases (numbers only):")
+        for k, rows in odd.items():
+            for row in rows[:_ODD_CAP]:
+                L.append(f"    {k:<24}"
+                         + (f"{row[0]:,}" if len(row) == 1 else str(row)))
+            if len(rows) > _ODD_CAP:
+                L.append(f"    {k:<24}… and {len(rows) - _ODD_CAP} more")
+        L.append("")
     damages = Counter()
     for t in traces:
         damages.update(t.enums["knownVehicleDamages"])

@@ -2977,10 +2977,10 @@ check("X31: a gearbox is read from English or Persian, else from the title",
 _tr = PageTrace()
 parse_divar_page(_page([_node("AbCd1234", extra={"owner_name": "رضایی"})],
                        [_card("AbCd1234")]), _tr)
-check("X32: the counted values are those six keys and no other, and a colour or a "
+check("X32: the counted values are those eight keys and no other, and a colour or a "
       "name is not among them",
       set(_tr.enums) == {"@type", "priceCurrency", "unitCode", "vehicleTransmission",
-                         "knownVehicleDamages", "category"}
+                         "knownVehicleDamages", "category", "brand", "model"}
       and _tr.enums["priceCurrency"] == {"IRR": 1} and _tr.enums["unitCode"] == {"KMT": 1}
       and "سفید" not in repr(_tr.enums) and "رضایی" not in repr(_tr.enums), str(_tr.enums))
 check("X33: a damage field no one has seen the values of sets no condition",
@@ -3154,6 +3154,55 @@ check("Y3: no field and «بدون رنگ» in the title is intact, from the pro
       "neither is unknown with no source",
       _cond(None, "پراید ۱۳۱ فول بدون رنگ") == ("intact", "description")
       and _cond(None) == ("unknown", "none"))
+
+
+print("\ndivar's report: the odd cases as numbers, and the brand and the model")
+_odd_nodes = [_node("AbCd1234", price="50000000"),                       # 5,000,000 toman
+              _node("EfGh5678", year="1395", name="پراید ۱۳۱ مدل ۹۰"),    # 1395 vs 1390
+              _node("IjKl9012", km="5")]                                  # 5 vs 120,000
+_odd_cards = [_card("AbCd1234", lines=("۱۲۰٬۰۰۰ کیلومتر", "۵٬۰۰۰٬۰۰۰ تومان")),
+              _card("EfGh5678", title="پراید ۱۳۱ مدل ۹۰"),
+              _card("IjKl9012")]
+_t = PageTrace()
+parse_divar_page(_page(_odd_nodes, _odd_cards), _t)
+_rep = "\n".join(_dp.report([_t]))
+check("Y6: a price under the floor is printed as the figure, a year that differs "
+      "as the pair, an odometer that disagrees as the pair",
+      "odd cases (numbers only)" in _rep
+      and "price below the floor" in _rep and "5,000,000" in _rep
+      and "year differs" in _rep and "(1395, 1390)" in _rep
+      and "odometer differs" in _rep and "(5, 120000)" in _rep, _rep)
+check("  and no title, token or word of the page is among them",
+      not any(x in _rep for x in ("مدل ۹۰", "AbCd1234", "EfGh5678", "پراید")))
+_t = PageTrace()
+parse_divar_page(_page([_node("AbCd1234")], [_card("AbCd1234")]), _t)
+check("  a clean page prints no odd cases",
+      "odd cases" not in "\n".join(_dp.report([_t])))
+_t = PageTrace()
+_many = [f"Tk{i:06d}" for i in range(15)]
+parse_divar_page(_page([_node(k, price="50000000") for k in _many],
+                       [_card(k, lines=("۱۲۰٬۰۰۰ کیلومتر", "۵٬۰۰۰٬۰۰۰ تومان")) for k in _many]), _t)
+_rows = [ln for ln in _dp.report([_t]) if "price below the floor" in ln]
+check("  at most twelve of a kind, then the count of the rest",
+      len(_rows) == 13 and "… and 3 more" in _rows[-1], str(_rows))
+
+_t = PageTrace()
+parse_divar_page(_page([_node("AbCd1234", extra={"brand": {"@type": "Brand", "name": "Peugeot"},
+                                                  "model": "206"}),
+                        _node("EfGh5678", extra={"brand": {"@type": "Brand", "name": "Pars"},
+                                                  "model": "09123456789"}),
+                        _node("IjKl9012", extra={"brand": "a@b.example",
+                                                  "model": "x" * 41})], []), _t)
+check("Y7: «Peugeot» and «206» are counted; an eleven-digit string, an address and "
+      "forty-one characters are not",
+      _t.enums["brand"] == {"Peugeot": 1, "Pars": 1} and _t.enums["model"] == {"206": 1},
+      str((_t.enums["brand"], _t.enums["model"])))
+_t = PageTrace()
+_ks = [f"K{i:06d}" for i in range(25)]
+parse_divar_page(_page([_node(k, extra={"model": f"m{i}"}) for i, k in enumerate(_ks)], []), _t)
+check("  twenty distinct values per key, and the rest are «(other)»",
+      len(_t.enums["model"]) == 21 and _t.enums["model"]["(other)"] == 5,
+      str(_t.enums["model"]))
 
 
 print()
