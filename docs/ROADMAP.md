@@ -53,8 +53,9 @@ section that holds its detail.
 3. **CI's warnings** (operations, item 1). The owner decides; a session builds
    and measures on CI.
 4. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
-   owner, on his machine, after the review it names, and after a probe: the
-   extraction of a listing page is written offline from what the probe keeps.
+   owner, on his machine, after the review it names. The probe is done and the
+   extraction is written; what is left is to read it on the real page
+   (`first_run.py --page <the saved file>`), probe `?page=2`, and then run.
 5. **A larger real corpus, and collection over time** (the product gaps, item
    1). The owner runs it; a session writes the run's plan and predictions and
    reads what comes back.
@@ -348,10 +349,12 @@ the owner chooses.
      `/s/tehran/car`; the `light` slug the adapter held answered 404, and is
      gone from its table. robots.txt was unchanged (92 bytes, four rules) and
      the page is server-rendered, so no browser is needed: the 24 listings are
-     in one JSON-LD list and in the cards. The extraction of a category page is
-     written offline from that and tested on pages made to the shape
-     (`caro/ingest/divar_page.py`); `first_run.py --source divar` does not call
-     it yet. Only then the run: one city and a handful of
+     in one JSON-LD list and in the cards. The extraction is written from that
+     and tested on pages made to the shape (`caro/ingest/divar_page.py`); it has
+     not read the real page. Read it: `first_run.py --page <the saved file>`
+     prints the inventory and, in counts, what the parser had to assume (the
+     currency label, the odometer's unit, the damage field). Probe `?page=2`,
+     which has not been asked. Only then the run: one city and a handful of
      pages; volume is not the point. `CARO_SELLER_SALT` must be set. Expect to be blocked; the adapter
      stops and says so, and that is the design. Who: the owner. Closes when
      the run's inventory is read and recorded, published or not.

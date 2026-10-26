@@ -4,6 +4,7 @@ First live collection, and the inventory report that decides what comes next.
 
     python3 scripts/first_run.py --source bama --limit 50
     python3 scripts/first_run.py --source divar --city tehran --pages 2
+    python3 scripts/first_run.py --page ~/caro-probes/<run>/01-<hash>.html
     python3 scripts/first_run.py --replay <file with a top-level "listings">
 
 This is deliberately small. The point of a first run is not volume — it is
@@ -62,7 +63,10 @@ from caro.ingest.bama import (                                       # noqa: E40
     BamaAdapter, DiscoveryUnavailable, http_fetcher,
 )
 from caro.ingest.divar_car import (                                     # noqa: E402
-    DivarCarAdapter, SourceBlocked, parse_listing, playwright_fetcher,
+    DivarCarAdapter, SourceBlocked, parse_listing,
+)
+from caro.ingest.divar_page import (                                    # noqa: E402
+    DivarPageParser, report as divar_report,
 )
 from caro.ingest import coverage as cov_mod                           # noqa: E402
 from caro.ingest.robots import RobotsViolation, describe              # noqa: E402
@@ -527,7 +531,20 @@ def main() -> int:
                          "reproducible rather than incidental")
     ap.add_argument("--replay", type=Path,
                     help="parse a saved snapshot instead of fetching")
+    ap.add_argument("--page", type=Path,
+                    help="read ONE saved Divar category page (the file "
+                         "scripts/page_probe.py kept) and print what it holds. "
+                         "No network, no salt, nothing written")
     args = ap.parse_args()
+
+    if args.page:
+        parser = DivarPageParser()
+        listings = parser(args.page.read_text(encoding="utf-8",
+                                              errors="replace"))
+        print(f"read {len(listings)} listing(s) from {args.page}\n")
+        print(inventory(listings, fetched=len(listings)))
+        print("\n".join(divar_report(parser.traces)))
+        return 0
 
     if not args.replay and not os.environ.get("CARO_SELLER_SALT"):
         print("CARO_SELLER_SALT is not set.\n"
@@ -649,7 +666,7 @@ def sampling_spec(args) -> str:
 
 
 def collect(args, traces: list | None = None,
-            fetcher=None) -> tuple[list, object]:
+            fetcher=None, sleeper=None) -> tuple[list, object]:
     """Live collection. Returns (listings, snapshot path or None).
 
     The path comes back because the survival report re-reads what was
@@ -657,23 +674,38 @@ def collect(args, traces: list | None = None,
     the in-memory copy would report that nothing was lost no matter
     what the serialiser did with it.
 
-    `fetcher` replaces the HTTP fetcher, for tests; None is the network."""
+    `fetcher` replaces the HTTP fetcher, for tests; None is the network.
+    `sleeper` replaces the wait between Divar pages, for the same reason."""
     out: list = []
 
     if args.source == "divar":
-        def parse_page(_html):
-            raise NotImplementedError(
-                "Divar's listing-page selectors are not written yet. The "
-                "adapter, robots guard and politeness policy are; what is "
-                "missing is the DOM extraction, which has to be written "
-                "against the live markup. Start with --source bama.")
+        # The category page is server-rendered, so plain HTTP, no browser
+        # (caro/ingest/divar_page.py, measured 2026-10-26).
+        parser = DivarPageParser()
+
+        def parse_page(html):
+            got = parser(html)
+            out.extend(got)
+            return got
+
+        http = fetcher or http_fetcher()
         ad = DivarCarAdapter(city=args.city, max_pages=args.pages,
-                             page_fetcher=playwright_fetcher(),
-                             parse_page=parse_page,
-                             robots_fetcher=fetcher or http_fetcher(),
-                             salt=os.environ["CARO_SELLER_SALT"])
-        list(ad.fetch_all(date.today()))
-        return out, None       # divar writes no snapshot yet
+                             page_fetcher=http, parse_page=parse_page,
+                             robots_fetcher=http,
+                             salt=os.environ["CARO_SELLER_SALT"],
+                             **({"sleeper": sleeper} if sleeper else {}))
+        records = list(ad.fetch_all(date.today()))
+        print("\n".join(divar_report(parser.traces)))
+        print()
+        SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+        snap = assess_integrity(Snapshot(
+            snapshot_id(args), date.today(), records,
+            notes=[f"robots.txt {describe(ad.robots.record)}"]))
+        path = write_snapshot(SNAPSHOT_DIR, snap)
+        shown = path.relative_to(ROOT) if path.is_relative_to(ROOT) else path
+        print(f"{len(out)} listings parsed · snapshot "
+              f"{shown} (integrity: {snap.integrity.value})\n")
+        return out, path
 
     # The sitemap and Bama's pages are server-rendered, so plain HTTP is
     # correct here. Driving a browser to download static XML costs seconds and

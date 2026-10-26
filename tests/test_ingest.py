@@ -3037,6 +3037,68 @@ check("an unclosed tag inside a card does not swallow the card after it",
       == [("اول", "AbCd1234"), ("دوم", "EfGh5678")], str(_tc))
 
 
+print("\nfirst_run reads a Divar page, live (faked) and saved")
+
+
+def _divar_world(html_by_page):
+    asked = []
+
+    def fetch(url):
+        asked.append(url)
+        if url.endswith("/robots.txt"):
+            return divar_robots(url)
+        return 200, html_by_page(url)
+    return fetch, asked
+
+
+_fr_args = _argparse.Namespace(source="divar", limit=10, categories=None, makes="",
+                               seed=0, city="tehran", pages=2)
+_fetch, _asked = _divar_world(lambda u: _html_ok)
+with _tempfile.TemporaryDirectory() as _tmp:
+    _old, _first_run.SNAPSHOT_DIR = _first_run.SNAPSHOT_DIR, _Path(_tmp)
+    _out = _io.StringIO()
+    try:
+        with _contextlib.redirect_stdout(_out):
+            _got, _spath = _first_run.collect(_fr_args, [], fetcher=_fetch,
+                                              sleeper=lambda s: None)
+        _snap = json.loads(_spath.read_text(encoding="utf-8"))
+    finally:
+        _first_run.SNAPSHOT_DIR = _old
+check("first_run --source divar: the category page, then page 2, over plain HTTP",
+      [u for u in _asked if "/s/" in u]
+      == ["https://divar.ir/s/tehran/car", "https://divar.ir/s/tehran/car?page=2"],
+      str(_asked))
+check("  three listings, once, though page 2 served the same page again",
+      len(_got) == 3 and len([o for o in _snap["outcomes"]
+                              if o["listing_id"].startswith("divar:")]) == 3,
+      str(len(_got)))
+check("  the snapshot names the robots.txt it obeyed, and holds no vehicle number",
+      any(n.startswith("robots.txt ") for n in _snap["notes"])
+      and "9SECRETVIN0001" not in json.dumps(_snap, ensure_ascii=False))
+check("  and the page report was printed, with the duplicates counted",
+      "DIVAR PAGE READ" in _out.getvalue() and "duplicates" in _out.getvalue(),
+      _out.getvalue()[-400:])
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _pf = _Path(_tmp) / "01-abc.html"
+    _pf.write_text(_html_ok, encoding="utf-8")
+    _out = _io.StringIO()
+    _argv, _first_run.sys.argv = _first_run.sys.argv, ["first_run.py", "--page", str(_pf)]
+    _salt = os.environ.pop("CARO_SELLER_SALT", None)
+    try:
+        with _contextlib.redirect_stdout(_out):
+            _rc = _first_run.main()
+    finally:
+        _first_run.sys.argv = _argv
+        if _salt is not None:
+            os.environ["CARO_SELLER_SALT"] = _salt
+    _left = [x for x in _Path(_tmp).rglob("*") if x != _pf]
+check("first_run --page: offline, with no salt, writes nothing, prints the inventory "
+      "and the report",
+      _rc == 0 and "CORPUS INVENTORY  (3 listings)" in _out.getvalue()
+      and "DIVAR PAGE READ" in _out.getvalue() and _left == [], _out.getvalue()[:300])
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
