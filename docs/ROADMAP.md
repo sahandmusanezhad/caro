@@ -28,7 +28,7 @@ intent → explain the best choice**.
 
 | Requirement | State |
 |---|---|
-| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and its category-page extraction (`caro/ingest/divar_page.py`), written offline on 2026-10-26 from what the probe printed (a JSON-LD list of 24 vehicles, and the 24 cards beside it) and tested on pages made to that shape; it has not read a real page, and its live path has never run. Sheypoor and Khodro45 have no adapter. `scripts/page_probe.py` is the first step for all three. |
+| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and its category-page extraction (`caro/ingest/divar_page.py`), written offline on 2026-10-26 from what the probe printed (a JSON-LD list of 24 vehicles, and the 24 cards beside it); it has read the owner's saved copy of that page once (24 of 24 listings; see the product gaps, item 1), and its live path has never run. Sheypoor and Khodro45 have no adapter. `scripts/page_probe.py` is the first step for all three. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
@@ -53,9 +53,10 @@ section that holds its detail.
 3. **CI's warnings** (operations, item 1). The owner decides; a session builds
    and measures on CI.
 4. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
-   owner, on his machine, after the review it names. The probe is done and the
-   extraction is written; what is left is to read it on the real page
-   (`first_run.py --page <the saved file>`), probe `?page=2`, and then run.
+   owner, on his machine, after the review it names. The probe is done, the
+   extraction is written and has read one saved page; what is left is the
+   odd cases and the brands it lists (`first_run.py --page <the saved file>`),
+   a probe of `?page=2`, and then the run.
 5. **A larger real corpus, and collection over time** (the product gaps, item
    1). The owner runs it; a session writes the run's plan and predictions and
    reads what comes back.
@@ -350,12 +351,20 @@ the owner chooses.
      gone from its table. robots.txt was unchanged (92 bytes, four rules) and
      the page is server-rendered, so no browser is needed: the 24 listings are
      in one JSON-LD list and in the cards. The extraction is written from that
-     and tested on pages made to the shape (`caro/ingest/divar_page.py`); it has
-     not read the real page. Read it: `first_run.py --page <the saved file>`
-     prints the inventory and, in counts, what the parser had to assume (the
-     currency label, the odometer's unit, the damage field). Probe `?page=2`,
-     which has not been asked. Only then the run: one city and a handful of
-     pages; volume is not the point. `CARO_SELLER_SALT` must be set. Expect to be blocked; the adapter
+     (`caro/ingest/divar_page.py`) and has read the saved page once, by
+     `first_run.py --page <the saved file>`, which prints the inventory and, in
+     counts, what the parser had to assume. That first read (24 of 24 listings):
+     `IRR` and `KMT` on all 24; 22 prices equal to the card's toman figure (the
+     node's number is rials), 2 with no displayed price to confirm them; the damage field
+     holds four values (intact 18, some-scratches 3, some-paint 2, half-paint 1)
+     and is now the body condition; make and model filled on 14, because the
+     table is domestic only; three prices under the 10M floor, which the
+     eligibility gate did not refuse until now; three years on which the node
+     and the title disagree and one odometer on which the node and the card do.
+     Still to read: those four (the report lists them as numbers), what the ten
+     listings outside the table are called (the report counts the brand and the
+     model), and `?page=2`, which has not been asked. Only then the run: one
+     city and a handful of pages; volume is not the point. `CARO_SELLER_SALT` must be set. Expect to be blocked; the adapter
      stops and says so, and that is the design. Who: the owner. Closes when
      the run's inventory is read and recorded, published or not.
    - Bama: a larger corpus. The four published runs hold 73 to 77 listings
