@@ -228,7 +228,7 @@ check("  through robots_fetcher, never the browser",
 check("delays respect the floor", all(s >= PolitenessPolicy().delay_min_s
                                       for s in slept), str(slept))
 check("search url is category- and city-shaped",
-      ad.search_url(2).endswith("/tehran/light?page=2"), ad.search_url(2))
+      ad.search_url(2).endswith("/tehran/car?page=2"), ad.search_url(2))
 
 blocked_calls = {"n": 0}
 
@@ -3000,6 +3000,12 @@ _outs = list(_ad.fetch_all(date(2026, 10, 26)))
 check("X35: through the adapter: OK outcomes named divar:<token>, no seller fingerprint",
       [o.listing_id for o in _outs] == [f"divar:{t}" for t in _T]
       and all(o.status is FetchStatus.OK and o.seller_fingerprint is None for o in _outs))
+check("X36: the default category is the one that answered (/s/tehran/car); "
+      "/s/tehran/light answered 404 on 2026-10-26",
+      DivarCarAdapter().category == "car"
+      and DivarCarAdapter(robots_fetcher=divar_robots,
+                          sleeper=lambda s: None).search_url(1)
+      == "https://divar.ir/s/tehran/car")
 _trs = []
 for _pgs in (_page([_node("AbCd1234"), _node("EfGh5678", price="450000000")],
                    [_card("AbCd1234", title="پراید خصوصی رضایی"), _card("EfGh5678")]),):

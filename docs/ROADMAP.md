@@ -344,10 +344,14 @@ the owner chooses.
      whatever it says. Then probe: `scripts/page_probe.py` fetches up to five
      public pages under the same robots gate and pause, keeps them on his
      machine, and prints a skeleton that can be sent back with no digit and,
-     with `--no-text`, no text in it. The extraction of a category page is
-     written offline from what it printed on 2026-10-26, and tested on pages made
-     to that shape (`caro/ingest/divar_page.py`); `first_run.py --source divar`
-     does not call it yet. Only then the run: one city and a handful of
+     with `--no-text`, no text in it. That was done on 2026-10-26 for
+     `/s/tehran/car`; the `light` slug the adapter held answered 404, and is
+     gone from its table. robots.txt was unchanged (92 bytes, four rules) and
+     the page is server-rendered, so no browser is needed: the 24 listings are
+     in one JSON-LD list and in the cards. The extraction of a category page is
+     written offline from that and tested on pages made to the shape
+     (`caro/ingest/divar_page.py`); `first_run.py --source divar` does not call
+     it yet. Only then the run: one city and a handful of
      pages; volume is not the point. `CARO_SELLER_SALT` must be set. Expect to be blocked; the adapter
      stops and says so, and that is the design. Who: the owner. Closes when
      the run's inventory is read and recorded, published or not.

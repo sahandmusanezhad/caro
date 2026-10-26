@@ -7,8 +7,11 @@ listings; this one scrapes cars. Two things carried over, and three
 deliberately did not.
 
 CARRIED OVER
-    · Playwright over the public listing pages, because Divar renders
-      client-side and a plain HTTP fetch returns an empty shell.
+    · Playwright, kept for a page that needs JavaScript. The category page
+      does not: measured 2026-10-26, a plain HTTP GET of /s/tehran/car returns
+      the listings in the bytes (caro/ingest/divar_page.py), so a run uses
+      `http_fetcher` and no browser. This docstring said the opposite until
+      then, from an assumption that had not been measured.
     · Persian numeral, separator and amount-word normalisation, which is the
       genuinely reusable half of any Iranian marketplace scraper.
     · Heavy-tailed jittered delays between requests.
@@ -62,8 +65,13 @@ from caro.tracking import FetchOutcome, FetchStatus, classify_http
 DIVAR_ORIGIN = "https://divar.ir"
 
 # Divar's car categories. Kept as data so a new one is a line, not a patch.
+#
+# `car` is the one that answers: 200 and 24 listings on 2026-10-26. The `light`
+# slug this table held answered 404 on the same day, so the first live request
+# this adapter ever made would have stopped at "page 1 failed" — which is what
+# the probe (scripts/page_probe.py) is for, and why it was run before any
+# parser was written.
 CATEGORIES = {
-    "light": "https://divar.ir/s/{city}/light",           # سواری
     "car": "https://divar.ir/s/{city}/car",
 }
 
@@ -411,7 +419,7 @@ class DivarCarAdapter:
     so nothing is requested.
     """
     city: str = "tehran"
-    category: str = "light"
+    category: str = "car"
     max_pages: int = 5
     name: str = "divar"
     policy: PolitenessPolicy = field(default_factory=PolitenessPolicy)
@@ -481,9 +489,9 @@ class DivarCarAdapter:
 def playwright_fetcher(policy: PolitenessPolicy | None = None):
     """Live fetcher. Imported lazily so the package works without Playwright.
 
-    Divar renders client-side, so a plain HTTP GET returns a shell with no
-    listings — this is the one place a real browser is required rather than
-    merely convenient.
+    Not needed for the category page: it is server-rendered, so a plain GET
+    carries the listings (measured 2026-10-26; see caro/ingest/divar_page.py).
+    This stays for a page that does need JavaScript to show its content.
     """
     p = policy or PolitenessPolicy()
 
@@ -519,7 +527,7 @@ def playwright_fetcher(policy: PolitenessPolicy | None = None):
 # Two things follow, and the second is the one that would have been easy to
 # get wrong:
 #
-#   · Category browsing (/s/{city}/light) is ALLOWED, as are individual
+#   · Category browsing (/s/{city}/car) is ALLOWED, as are individual
 #     listing pages (/v/...). That is exactly the surface this adapter uses.
 #   · Free-text SEARCH urls are DISALLOWED. Any url carrying `q=` is off
 #     limits, so "just search for پژو 206" is not available to us — we browse

@@ -3,7 +3,7 @@
 A few public pages of one source, fetched politely and kept on this machine.
 
     python3 scripts/page_probe.py --source divar --origin https://divar.ir \\
-        --render browser --url https://divar.ir/s/tehran/light
+        --url https://divar.ir/s/tehran/car
     python3 scripts/page_probe.py --skeleton ~/caro-probes/<run>/01-3f9a1c2e.html
     python3 scripts/page_probe.py --rows     ~/caro-probes/<run>/01-3f9a1c2e.html
     python3 scripts/page_probe.py --scripts  ~/caro-probes/<run>/01-3f9a1c2e.html
