@@ -3120,6 +3120,42 @@ check("Y5: the funnel of first_run holds it back and says why",
           for ln in _first_run.funnel(2, [_low, _fine])), str(_first_run.funnel(2, [_low, _fine])))
 
 
+print("\ndivar's damage field is the page's own body condition")
+
+
+def _cond(value, name="پراید ۱۳۱ SE"):
+    x = _one(_node("AbCd1234", name=name, extra={"knownVehicleDamages": value}))
+    return x.body_condition, x.condition_source
+
+
+check("Y1: the four values the first real page showed, mapped, and the source "
+      "is the field",
+      [_cond(v) for v in ("intact", "some-scratches", "some-paint", "half-paint")]
+      == [("intact", "field"), ("minor_paint", "field"), ("minor_paint", "field"),
+          ("multi_paint", "field")], str([_cond(v) for v in ("intact",)]))
+check("  a value not seen is unknown with no source, and the report names it",
+      _cond("full-paint") == ("unknown", "none")
+      and any("full-paint:1" in ln and "⚠" in ln for ln in (lambda t: (
+          parse_divar_page(_page([_node("AbCd1234", extra={"knownVehicleDamages": "full-paint"})],
+                                 [_card("AbCd1234")]), t), _dp.report([t]))[1])(PageTrace())))
+check("  and the seen values raise no such warning",
+      not any("⚠ damage" in ln for ln in (lambda t: (
+          parse_divar_page(_page([_node("AbCd1234", extra={"knownVehicleDamages": "intact"})],
+                                 [_card("AbCd1234")]), t), _dp.report([t]))[1])(PageTrace())))
+check("Y2: the worse claim wins: a title that says «تصادفی» over a field that says "
+      "intact is an accident, from the prose",
+      _cond("intact", "پراید ۱۳۱ تصادفی") == ("accident", "description"))
+check("  and a field that says some-paint under a title that says «فول بدون رنگ» "
+      "stays some-paint, from the field",
+      _cond("some-paint", "پراید ۱۳۱ فول بدون رنگ") == ("minor_paint", "field"))
+check("  the same claim twice is the field's",
+      _cond("intact", "پراید ۱۳۱ فول بدون رنگ") == ("intact", "field"))
+check("Y3: no field and «بدون رنگ» in the title is intact, from the prose; "
+      "neither is unknown with no source",
+      _cond(None, "پراید ۱۳۱ فول بدون رنگ") == ("intact", "description")
+      and _cond(None) == ("unknown", "none"))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

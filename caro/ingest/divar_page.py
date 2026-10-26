@@ -22,14 +22,18 @@ WHAT THE PAGE IS, as the owner's probe found it on 2026-10-26 (`/s/tehran/car`,
       on bama (D20), and the mileage on the card is a second reading of the
       odometer.
 
-WHAT IS NOT KNOWN, and is counted rather than assumed. The probe printed shapes
-and no values. So this module does not know what `priceCurrency` holds, what
-unit `mileageFromOdometer` is in, what the card's two description lines say, or
-what `knownVehicleDamages` and `vehicleTransmission` hold. Each is read in a way
-that is right whatever the answer is, and each answer is counted on the way
-(`PageTrace`, `report`) so that the first run on the real page says what they
-were. The price and the mileage are cross-checked against the card; a number
-that the two readings do not explain is dropped, not chosen.
+WHAT WAS NOT KNOWN, and is counted rather than assumed. The probe printed shapes
+and no values, so the first version of this module did not know what
+`priceCurrency` holds, what unit `mileageFromOdometer` is in, what the card's
+two description lines say, or what `knownVehicleDamages` and
+`vehicleTransmission` hold. Each was read in a way that is right whatever the
+answer, and each answer is counted on the way (`PageTrace`, `report`). The
+first read of the real page (2026-10-26) answered: `IRR` and `KMT` on all 24,
+with the card's toman figure equal to a tenth of the node's on 22 of 22 that
+have a card; the gearbox as `automatic` and `manual`; and the damage field as
+the page's own body condition, four values (`DAMAGE_FIELD`). The price and the
+mileage are still cross-checked against the card; a number that the two
+readings do not explain is dropped, not chosen.
 
 WHAT IS NEVER READ. `vehicleIdentificationNumber` (a vehicle identifier whose
 meaning here is unknown), the image, anything on a node that is not a vehicle
@@ -38,11 +42,11 @@ any seller field. No seller identifier is on the page, so `seller_raw` stays
 None and no fingerprint is made; nothing here reveals a contact, because there
 is nothing to reveal on a list page.
 
-Not done here, and said so: body condition from a structured field (the nodes
-carry `knownVehicleDamages`, but its values have not been seen), the province of
-a city that is not one of the thirteen that share their province's name, and the
-list pagination (`has_next_page` is in the page state, but whether `?page=2` is
-served has not been probed).
+Not done here, and said so: the province of a city that is not one of the
+thirteen that share their province's name, make and model beyond the table of
+thirteen (the nodes carry a brand and a model; their values are counted in the
+report and not used), and the list pagination (`has_next_page` is in the page
+state, but whether `?page=2` is served has not been probed).
 """
 
 from __future__ import annotations
@@ -58,7 +62,8 @@ from caro.ingest.bama import (
     reconcile_price,
 )
 from caro.ingest.divar_car import (
-    DIVAR_ORIGIN, CarListing, extract_color, extract_gearbox, parse_listing,
+    BODY_CONDITION, DIVAR_ORIGIN, CarListing, extract_body_condition,
+    extract_color, extract_gearbox, parse_listing,
 )
 from caro.ingest.persian import (
     normalize, parse_mileage_km, parse_price, parse_year_jalali,
@@ -89,6 +94,23 @@ _MILEAGE = ("کیلومتر", "کارکرد")
 # this the two are different numbers.
 _KM_ROUNDING = 1_000
 _KM_REL = 0.02
+
+
+# The page's own body-condition field. The nodes carry it as
+# `knownVehicleDamages`, and the first real page (2026-10-26, 24 listings)
+# showed four values: intact 18, some-scratches 3, some-paint 2, half-paint 1.
+# Only those four are mapped, because only those have been seen; any other
+# value is `unknown`, counted, and named in the report, never guessed.
+#
+# The first two lines are plain. The next two are a CHOICE, and the owner's to
+# change: «some-paint» is read as light paint (minor_paint), and «half-paint»
+# as the worse of the two classes it could be (multi_paint), because a
+# condition that is read down is a car sold as better than it is.
+DAMAGE_FIELD = {"intact": "intact", "some-scratches": "minor_paint",
+                "some-paint": "minor_paint", "half-paint": "multi_paint"}
+
+# Worst first, from the table the prose reading already orders.
+_SEVERITY = tuple(label for label, _ in BODY_CONDITION)
 
 
 # ---------------------------------------------------------------------------
@@ -386,6 +408,28 @@ def _mileage(ld_km, shown_km):
             f"({ld_km} vs {shown_km})")
 
 
+def _condition(raw, title: str) -> tuple[str, str]:
+    """(body_condition, condition_source). The worse claim wins.
+
+    The field is the page's own statement; the title is the seller's. When
+    both say something the worse one is kept, as `extract_body_condition`
+    does for prose against prose — a title that says «بدون رنگ» over a field
+    that says half-paint is a half-painted car — and the source says which
+    side it came from. A tie goes to the field.
+    """
+    f = DAMAGE_FIELD.get(raw.strip()) if isinstance(raw, str) else None
+    p = extract_body_condition(title)
+    p = None if p == "unknown" else p
+    if f and p:
+        return (p, "description") if (_SEVERITY.index(p)
+                                      < _SEVERITY.index(f)) else (f, "field")
+    if f:
+        return f, "field"
+    if p:
+        return p, "description"
+    return "unknown", "none"
+
+
 def _gearbox(raw, blob: str):
     if isinstance(raw, str):
         low = raw.lower()
@@ -456,9 +500,12 @@ def build(url: str, token: str, node: dict | None, card: Card | None,
     kind, kind_src = classify_price_kind(
         " ".join(card.lines) if card else "", has_price=price is not None)
     ld_color = node.get("color") if isinstance(node.get("color"), str) else ""
+    condition, condition_source = _condition(node.get("knownVehicleDamages"),
+                                             title)
     return replace(
         listing,
         asking_price_toman=price, mileage_km=km, year_jalali=year,
+        body_condition=condition, condition_source=condition_source,
         gearbox=_gearbox(node.get("vehicleTransmission"), title),
         color=extract_color(ld_color) or listing.color,
         price_raw=(str(offers.get("price"))
@@ -607,6 +654,15 @@ def report(traces: list[PageTrace]) -> list[str]:
         if c:
             L.append(f"    {key:<22}" + "  ".join(f"{k}:{v}" for k, v in
                                                   c.most_common(8)))
+    damages = Counter()
+    for t in traces:
+        damages.update(t.enums["knownVehicleDamages"])
+    unmapped = {k: v for k, v in damages.items() if k.strip()
+                not in DAMAGE_FIELD}
+    if unmapped:
+        L.append("  ⚠ damage value(s) the parser has not seen and does not map, "
+                 "so those listings' condition is unknown: "
+                 + "  ".join(f"{k}:{v}" for k, v in sorted(unmapped.items())))
     ld_only = sum(t.price["ld_only"] for t in traces)
     if ld_only:
         L.append(f"  ⚠ {ld_only} price(s) rest on the structured block alone. "
