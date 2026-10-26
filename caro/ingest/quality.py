@@ -376,6 +376,17 @@ def eligibility(listing) -> tuple[bool, list[str]]:
         if getattr(listing, f, None) is None:
             missing.append(f"no {f}")
 
+    # A price that is present and below any car's floor is not an asking
+    # price. Divar's first real page (the owner's saved copy, 2026-10-26) had
+    # three of 24 below it, and the funnel counted them as able to inform an
+    # estimate: `classify_price_value` has existed since D20 and was read only
+    # by the report, never by this gate. What those three are is not known
+    # from the counts; whatever they are, a number under the floor is not what
+    # anyone asks for a car. An absent price is already said above, once.
+    pj = classify_price_value(getattr(listing, "asking_price_toman", None))
+    if getattr(listing, "asking_price_toman", None) is not None and not pj.usable:
+        missing.append(f"price is not an asking price: {pj.reason}")
+
     # Absence of a provenance field is UNKNOWN, and unknown fails CLOSED.
     #
     # Both reads below are getattr-with-default, which means this function

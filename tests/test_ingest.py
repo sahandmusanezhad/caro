@@ -3099,6 +3099,27 @@ check("first_run --page: offline, with no salt, writes nothing, prints the inven
       and "DIVAR PAGE READ" in _out.getvalue() and _left == [], _out.getvalue()[:300])
 
 
+print("\na price under the floor is not an asking price")
+_low = _one(_node("AbCd1234", price="50000000"),
+            _card("AbCd1234", lines=("۱۲۰٬۰۰۰ کیلومتر", "۵٬۰۰۰٬۰۰۰ تومان")))
+_ok, _why = _eligibility(_low)
+check("Y4: 5,000,000 toman, confirmed by the card and with everything else sound, "
+      "is not eligible, and the reason names the price",
+      _low.asking_price_toman == 5_000_000 and not _ok
+      and any("price is not an asking price" in w and "5,000,000" in w for w in _why),
+      str((_ok, _why)))
+_fine = _one(_node("AbCd1234"), _card("AbCd1234"))
+check("  450,000,000 is eligible, and a missing price has the one reason it had",
+      _eligibility(_fine) == (True, [])
+      and _eligibility(_one(_node("AbCd1234", price=None), _card("AbCd1234",
+                            lines=("۱۲۰٬۰۰۰ کیلومتر",))))[1].count("no asking_price_toman") == 1
+      and not any("not an asking price" in w for w in _eligibility(
+          _one(_node("AbCd1234", price=None), _card("AbCd1234", lines=("۱۲۰٬۰۰۰ کیلومتر",))))[1]))
+check("Y5: the funnel of first_run holds it back and says why",
+      any("price is not an asking price" in ln
+          for ln in _first_run.funnel(2, [_low, _fine])), str(_first_run.funnel(2, [_low, _fine])))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
