@@ -2393,6 +2393,250 @@ check("  and the scan saw every adapter the scripts build",
       _found == _written and _found > 0, f"{_found} of {_written}")
 
 
+# ---------------------------------------------------------------------------
+print("\npage_probe: a few public pages, kept on this machine")
+# The roadmap's method for a source whose markup nothing here holds: the owner
+# probes, the pages stay on his machine, the adapter is written offline against
+# them. Divar has no listing-page extraction and Sheypoor and Khodro45 have no
+# adapter. These tests run the probe against a fake world: no network, no
+# browser. Every page is made here; none is a page a source served.
+from caro.ingest.divar_car import PolitenessPolicy as _PPolicy        # noqa: E402
+from scripts import page_probe as _pp                                  # noqa: E402
+
+_PP_ROBOTS = "User-agent: *\nDisallow: /my-divar/*\nDisallow: /private\n"
+_PP_ORIGIN = "https://shop.example"
+_PP_A, _PP_B, _PP_C = (f"{_PP_ORIGIN}/cars/{n}" for n in "abc")
+
+
+def _pp_world(robots=(200, _PP_ROBOTS), pages=None):
+    """(fetch, robots_fetch, requested urls, robots urls, sleeps)."""
+    pages = pages or {}
+    asked, robots_asked, sleeps = [], [], []
+
+    def robots_fetch(url):
+        robots_asked.append(url)
+        return robots
+
+    def fetch(url):
+        asked.append(url)
+        r = pages.get(url, (404, ""))
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+    return fetch, robots_fetch, asked, robots_asked, sleeps
+
+
+def _pp_run(urls, *, tmp, source="shop", origin=_PP_ORIGIN, world=None,
+            sub="run"):
+    fetch, robots_fetch, asked, robots_asked, sleeps = (
+        world or _pp_world(pages={u: (200, f"<html>{u}</html>") for u in urls}))
+    res = _pp.probe(origin, urls, source=source, fetch=fetch,
+                    robots_fetch=robots_fetch, out_dir=_Path(tmp) / sub,
+                    policy=_PPolicy(), sleeper=sleeps.append)
+    return res, asked, robots_asked, sleeps
+
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _res, _asked, _rasked, _slept = _pp_run([_PP_A, _PP_B], tmp=_tmp)
+    _m = _res.manifest
+    _files = sorted(p.name for p in _res.out_dir.glob("*.html"))
+    check("a probe keeps each page that returned, numbered, beside probe.json",
+          len(_files) == 2 and _files[0].startswith("01-")
+          and _files[1].startswith("02-")
+          and (_res.out_dir / "probe.json").exists() and _res.exit_code == 0,
+          str(_files))
+    check("  the manifest's sha256 and size are those of the bytes kept",
+          all(hashlib_ok for hashlib_ok in [
+              p["sha256"] == _hashlib.sha256(
+                  (_res.out_dir / p["saved_as"]).read_bytes()).hexdigest()
+              and p["bytes"] == len((_res.out_dir / p["saved_as"]).read_bytes())
+              for p in _m["pages"]]))
+    check("  robots.txt is read once, and before any page",
+          _rasked == [_PP_ORIGIN + "/robots.txt"] and _asked == [_PP_A, _PP_B])
+    check("  it is recorded with the sha256 of what was read",
+          _hashlib.sha256(_PP_ROBOTS.encode("utf-8")).hexdigest()
+          in _m["robots_line"] and _m["robots"]["http_status"] == 200)
+    check("  the User-Agent is ours and says who to write to",
+          _m["user_agent"] == _PPolicy().user_agent
+          and PRODUCT_TOKEN in _m["user_agent"] and "contact:" in _m["user_agent"])
+    check("  the pause follows robots.txt and stands between two pages, not "
+          "after the last",
+          len(_slept) == 2 and all(s >= _PPolicy().delay_min_s for s in _slept),
+          str(_slept))
+    check("  the manifest parses as JSON",
+          json.loads((_res.out_dir / "probe.json").read_text(
+              encoding="utf-8"))["source"] == "shop")
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _res, _asked, _rasked, _slept = _pp_run([_PP_A], tmp=_tmp)
+    check("one page: the only pause is the one after robots.txt",
+          len(_slept) == 1, str(_slept))
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _priv = f"{_PP_ORIGIN}/private"
+    _res, _asked, _, _ = _pp_run([_PP_A, _priv, _PP_B], tmp=_tmp)
+    _mp = _res.manifest["pages"]
+    check("a url robots.txt disallows is not requested, and the probe goes on",
+          _asked == [_PP_A, _PP_B] and _mp[1]["requested"] is False
+          and "disallows" in _mp[1]["refused"] and _res.exit_code == 0,
+          str(_asked))
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _w = _pp_world(robots=(503, ""), pages={_PP_A: (200, "<html></html>")})
+    _res, _asked, _, _ = _pp_run([_PP_A, _PP_B], tmp=_tmp, world=_w)
+    check("robots.txt that gives no policy: nothing is requested, and it says so",
+          _asked == [] and _res.exit_code == 1
+          and "no policy" in (_res.manifest["halted"] or "")
+          and not list(_res.out_dir.glob("*.html")), str(_res.manifest["halted"]))
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _w = _pp_world(pages={_PP_A: (200, "<html>a</html>"), _PP_B: (403, ""),
+                          _PP_C: (200, "<html>c</html>")})
+    _res, _asked, _, _ = _pp_run([_PP_A, _PP_B, _PP_C], tmp=_tmp, world=_w)
+    _mp = _res.manifest["pages"]
+    check("the first page that does not return stops the probe: no retry, the "
+          "third is never asked",
+          _asked == [_PP_A, _PP_B] and _mp[1]["not_returned"] == "http 403"
+          and _res.exit_code == 1 and "recorded" in _res.manifest["halted"],
+          str(_asked))
+    check("  what returned before it is kept",
+          len(list(_res.out_dir.glob("*.html"))) == 1)
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _w = _pp_world(pages={_PP_A: RuntimeError("boom"), _PP_B: (200, "<html/>")})
+    _res, _asked, _, _ = _pp_run([_PP_A, _PP_B], tmp=_tmp, world=_w)
+    check("an error is not a page: recorded, and the probe stops",
+          _asked == [_PP_A] and _res.manifest["pages"][0]["not_returned"]
+          .startswith("RuntimeError") and _res.exit_code == 1)
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _w = _pp_world(pages={_PP_A: (200, "")})
+    _res, _, _, _ = _pp_run([_PP_A], tmp=_tmp, world=_w)
+    check("a 200 with an empty body is not a page",
+          _res.manifest["pages"][0]["not_returned"] == "empty body"
+          and _res.exit_code == 1)
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _res, _asked, _, _ = _pp_run(["https://other.example/x", _PP_A], tmp=_tmp)
+    check("a url on another origin is refused, not requested",
+          _asked == [_PP_A] and "not on" in _res.manifest["pages"][0]["refused"])
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _w = _pp_world()
+    _res, _asked, _, _ = _pp_run(
+        ["https://divar.ir/s/tehran/light?q=206"], tmp=_tmp, source="divar",
+        origin="https://divar.ir", world=_w)
+    check("divar: the 2026-09-07 transcription is asked as well; a search url "
+          "is refused and nothing is requested",
+          _asked == [] and "search urls" in _res.manifest["pages"][0]["refused"]
+          and _res.exit_code == 1)
+
+for _what, _kw in [
+    ("no url", dict(urls=[])),
+    (f"more than {_pp.MAX_URLS} urls",
+     dict(urls=[f"{_PP_ORIGIN}/{i}" for i in range(_pp.MAX_URLS + 1)])),
+    ("a source name with a path in it", dict(urls=[_PP_A], source="../x")),
+    ("a source name in capitals", dict(urls=[_PP_A], source="Divar")),
+]:
+    with _tempfile.TemporaryDirectory() as _tmp:
+        _w = _pp_world()
+        try:
+            _pp.probe(_PP_ORIGIN, _kw["urls"], source=_kw.get("source", "shop"),
+                      fetch=_w[0], robots_fetch=_w[1],
+                      out_dir=_Path(_tmp) / "run", sleeper=lambda s: None)
+            _raised = False
+        except _pp.ProbeRefused:
+            _raised = True
+        check(f"refused: {_what}; nothing was asked",
+              _raised and _w[2] == [] and _w[3] == [])
+
+_w = _pp_world()
+try:
+    _pp.probe(_PP_ORIGIN, [_PP_A], source="shop", fetch=_w[0],
+              robots_fetch=_w[1], out_dir=_pp.ROOT / "data" / "probe-test",
+              sleeper=lambda s: None)
+    _raised = False
+except _pp.ProbeRefused:
+    _raised = True
+check("a folder inside the repository is refused: what a probe keeps is never "
+      "committed", _raised and _w[2] == [] and _w[3] == []
+      and not (_pp.ROOT / "data" / "probe-test").exists())
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _pp_run([_PP_A], tmp=_tmp)
+    try:
+        _pp_run([_PP_A], tmp=_tmp)
+        _raised = False
+    except _pp.ProbeRefused:
+        _raised = True
+    check("a run is never overwritten", _raised)
+
+# --- the skeleton
+_PP_CARD = ('<article class="post-card" data-testid="post-card" '
+            'data-token="aB3dE5fGh{i}"><a href="/v/aB3dE5fGh{i}?src=feed" '
+            'class="card-link"><h2 class="title">پراید ۱۱۱ مدل ۱۳۹۸ تمیز {i}'
+            '</h2><div class="price">۲۵۰,۰۰۰,۰۰۰ تومان</div></a>'
+            '<span class="seller">نمایشگاه آقای رضایی</span>'
+            '<a href="tel:09121234567">تماس</a>'
+            '<a href="mailto:seller@example.com">ایمیل</a>'
+            '<img alt="09121234567" src="https://img.example/p/abc123def456.jpg?w=300">'
+            '</article>')
+_PP_PAGE = ("<html><head><script>var phone='09121234567'</script>"
+            "<style>.a{color:red}</style></head><body><main class='list'>"
+            + "".join(_PP_CARD.format(i=i) for i in range(1, 6))
+            + "<footer>۰۲۱-۱۲۳۴۵۶۷۸ — 0912 123 4567</footer></main></body></html>")
+_SK = _pp.skeleton(_PP_PAGE, name="fake.html")
+_SK_TREE = _SK.split("# tree:")[1]
+check("skeleton: no phone number, no email and no token of the page is in it",
+      not any(x in _SK for x in ("09121234567", "0912", "۰۹۱۲", "۰۲۱",
+                                 "seller@", "example.com", "aB3dE5fGh")))
+check("  and no digit taken from the page: what is left is the repeat counts "
+      "and the h1-h6 of a tag",
+      not _re.search(r"\d", _re.sub(r"\bh[1-6]\b", "h", _re.sub(
+          r"  ×\d+", "", _SK_TREE))), _SK_TREE)
+check("  script and style are not shown", "var phone" not in _SK
+      and "color:red" not in _SK)
+check("  five identical cards are one row with the count",
+      _SK_TREE.count("article") == 1 and "×5" in _SK_TREE)
+check("  the links are counted over the whole page, by masked path",
+      "/v/<tok>  (5)" in _SK and "tel:…  (5)" in _SK
+      and "mailto:…  (5)" in _SK)
+check("  a tel: and a mailto: link are their scheme alone, and not one row",
+      "[href=tel:…]" in _SK_TREE and "[href=mailto:…]" in _SK_TREE)
+check("  a test id with a dash and no digit stays: a selector needs it",
+      "[data-testid=post-card]" in _SK_TREE)
+check("  a text is cut at 40 characters and digits are #",
+      '"پراید # مدل # تمیز #"' in _SK_TREE
+      and '"' + "x" * 40 + '…"' in _pp.skeleton("<p>" + "x" * 90 + "</p>"))
+check("  --no-text leaves every text out and keeps the shape",
+      "رضایی" not in _pp.skeleton(_PP_PAGE, with_text=False)
+      and "span .seller" in _pp.skeleton(_PP_PAGE, with_text=False))
+check("  two rows of different shape are not merged",
+      _pp.skeleton("<ul><li class='a'>x</li><li class='b'>y</li></ul>")
+      .count("li .") == 2)
+check("  a digit in a class does not split a row",
+      _pp.skeleton("<ul><li class='c-1'>x</li><li class='c-2'>y</li></ul>")
+      .count("li .") == 1)
+check("  it is deterministic", _pp.skeleton(_PP_PAGE) == _pp.skeleton(_PP_PAGE))
+
+with _tempfile.TemporaryDirectory() as _tmp:
+    _f = _Path(_tmp) / "p.html"
+    _f.write_text(_PP_PAGE, encoding="utf-8")
+    _out = _io.StringIO()
+    with _contextlib.redirect_stdout(_out):
+        _rc = _pp.main(["--skeleton", str(_f)])
+    check("the command line prints a skeleton with no network and exits 0",
+          _rc == 0 and "# tree:" in _out.getvalue())
+try:
+    with _contextlib.redirect_stderr(_io.StringIO()):
+        _pp.main([])
+    _usage = False
+except SystemExit as _e:
+    _usage = _e.code == 2
+check("the command line with nothing to do is a usage error", _usage)
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
