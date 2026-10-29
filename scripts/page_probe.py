@@ -8,6 +8,7 @@ A few public pages of one source, fetched politely and kept on this machine.
     python3 scripts/page_probe.py --rows     ~/caro-probes/<run>/01-3f9a1c2e.html
     python3 scripts/page_probe.py --scripts  ~/caro-probes/<run>/01-3f9a1c2e.html
     python3 scripts/page_probe.py --survey   ~/caro-probes/<run>/01-3f9a1c2e.html
+    python3 scripts/page_probe.py --around /v/ ~/caro-probes/<run>/01-3f9a1c2e.html
 
 For a page the browser fills in after it loads (a table of rows that is only
 skeletons in the HTML), `--render browser --wait 8` gives it eight seconds
@@ -18,6 +19,17 @@ rather than one and a half. A Next.js page keeps its data in
 groups, the shape of the JSON and the categories in it (a currency, a unit, a
 brand, a city, with counts), in one answer. The other three were what Divar
 took, one round trip each, and a fourth to learn what the short strings said.
+A number is printed as a category if it is a boolean or under 100, and as a
+summary (how many, how many different, the smallest, the middle, the largest,
+how many zeros) if its name says it is a quantity of a car: price, mileage,
+year, views. That is how a price's unit is read (Khodro45 gave `price: int`).
+Nothing under a person's name (phone, mobile, seller, owner, user, contact,
+mail, address) is printed, whatever it holds.
+
+A page whose cards differ one from another, so that `--rows` finds none
+(Sheypoor), is read with `--around /v/ FILE`: the markup around the links
+whose path starts with that, `--up N` levels above (3), the first two printed
+in full, with the count of links and of different shapes.
 
 WHY THIS EXISTS
 
@@ -303,6 +315,30 @@ def _mask_href(h: str) -> str:
     return _mask_token(h, strict=True) or "/"
 
 
+def _path_of(h: str) -> str:
+    """The path of an http(s) or relative link, no host, no query, no fragment.
+    A tel: or mailto: link has no path that starts with «/»."""
+    return re.sub(r"^https?://[^/]+", "", h.strip().split("#", 1)[0].split("?", 1)[0])
+
+
+def _url_shape(u: str) -> str:
+    """A link as its masked path and the NAMES of its query parameters, each
+    with its value if that is one to three digits (a page number) or a
+    lowercase word of up to twelve letters, and `…` if it is anything else."""
+    scheme = re.match(r"^([A-Za-z][A-Za-z0-9+.-]*):", u.strip())
+    if scheme and scheme.group(1).lower() not in ("http", "https"):
+        return scheme.group(1).lower() + ":…"
+    query = u.strip().split("#", 1)[0].partition("?")[2]
+    pairs = []
+    for pair in query.split("&"):
+        k, _, val = pair.partition("=")
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_\[\]-]{0,24}", k):
+            keep = re.fullmatch(r"\d{1,3}|[a-z]{1,12}", val)
+            pairs.append(f"{k}={val if keep else '…'}")
+    return (_mask_token(_path_of(u), strict=True) or "/") \
+        + ("?" + "&".join(pairs) if pairs else "")
+
+
 def _href_kind(h: str) -> str:
     """/v for /v/<slug>/<token>, / for the home page, tel:… for a phone link."""
     masked = _mask_href(h)
@@ -562,6 +598,57 @@ def rows(page: str, *, name: str = "", with_text: bool = True,
     return "\n".join(out) + "\n"
 
 
+_AROUND_SHOWN = 2
+_AROUND_UP_MAX = 8
+
+
+def around(page: str, prefix: str, *, up: int = 3, name: str = "",
+           with_text: bool = True) -> str:
+    """The markup around the links whose path starts with `prefix`: how many
+    there are, how many different parents they have `up` levels above, and the
+    first two parents printed as `rows` prints a row. For a page whose cards
+    differ one from another, so that no three siblings are of one shape and
+    `rows` says "none found" (Sheypoor's, 2026-10-29)."""
+    tree = _parse(page)
+    anchors: list[_Node] = []
+
+    def find(n):
+        for k in n.kids:
+            if isinstance(k, str):
+                continue
+            if (k.tag == "a" and k.attrs.get("href")
+                    and _path_of(k.attrs["href"]).startswith(prefix)):
+                anchors.append(k)
+            find(k)
+
+    find(tree.root)
+    parents: list[_Node] = []
+    seen: set[int] = set()
+    for a in anchors:
+        n = a
+        for _ in range(up):
+            if n.parent is not None and n.parent.tag != "#root":
+                n = n.parent
+        if id(n) not in seen:
+            seen.add(id(n))
+            parents.append(n)
+    shapes = len({_shape(n) for n in parents})
+    out = [f"# around links starting with {prefix!r} in {name or 'a page'}: "
+           f"{len(anchors)} link(s), {len(parents)} different parent(s) {up} "
+           f"level(s) up, {shapes} different shape(s) among them"]
+    if not anchors:
+        out.append("# none found")
+    for i, n in enumerate(parents[:_AROUND_SHOWN], 1):
+        out.append(f"# parent {i}, under: {_where(n.parent) if n.parent else '(top)'}")
+        lines = [_label(n, with_text)]
+        _walk(n, 1, lines, with_text)
+        out.extend(lines[:_ROW_LINES])
+        if len(lines) > _ROW_LINES:
+            out.append(f"… {len(lines) - _ROW_LINES} more lines")
+        out.append("")
+    return "\n".join(out) + "\n"
+
+
 # ---------------------------------------------------------------------------
 # Scripts: the shape of the JSON a page carries, and never a value
 # ---------------------------------------------------------------------------
@@ -724,23 +811,71 @@ def _short_value(v) -> str | None:
     return v
 
 
-def _collect(v, path: str, out: dict, budget: list) -> None:
+# A boolean and an integer under 100 are categories as a short string is
+# (`price_type: 1`, `active: true`); a bigger number is a quantity, and a
+# quantity prints as a summary (min, median, max), and only under a name that
+# says it is a quantity of a car. The first survey of Khodro45 could not tell
+# a price's unit from `price: int` (2026-10-29).
+_SMALL_INT = 100
+# The name is split into words (final_price, finalPrice) and a word has to be
+# one of these: `image`, `page`, `message` and `generate` hold «age» and
+# «rate» and are not quantities.
+_QUANTITY_WORD = re.compile(
+    r"(?:price|amount|deposit|installment|discount|mileage|odometer|kilomet|"
+    r"views|total|count|capacity)\w*|(?:cost|fee|km|klm|year|age|power|size|"
+    r"rate|view)s?", re.I)
+
+
+def _is_quantity_name(name: str) -> bool:
+    words = re.split(r"[^a-z]+", re.sub(r"([a-z])([A-Z])", r"\1_\2", name).lower())
+    return any(_QUANTITY_WORD.fullmatch(w) for w in words if w)
+_DIGIT_STRING_MAX = 15
+
+
+def _category_of(v) -> str | None:
+    """The text a value is counted under, or None: a short string, a boolean
+    (`true`), a small integer, or null."""
+    if v is None:
+        return "null"
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, int):
+        return str(v) if abs(v) < _SMALL_INT else None
+    return _short_value(v)
+
+
+def _quantity_of(v) -> float | None:
+    """A number, or a string of up to 15 digits, as a number; else None."""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str) and re.fullmatch(r"\d{1,%d}" % _DIGIT_STRING_MAX, v.strip()):
+        return float(v.strip())
+    return None
+
+
+def _collect(v, path: str, out: dict, budget: list, nums: dict | None = None) -> None:
     if budget[0] <= 0:
         return
     budget[0] -= 1
     if isinstance(v, dict):
         for k, x in v.items():
             _collect(x, f"{path}.{_mask_key(str(k))}" if path else _mask_key(str(k)),
-                     out, budget)
+                     out, budget, nums)
     elif isinstance(v, list):
         for x in v:
-            _collect(x, f"{path}[]", out, budget)
+            _collect(x, f"{path}[]", out, budget, nums)
     else:
-        sv = _short_value(v)
+        sv = _category_of(v)
         if sv is not None:
             out.setdefault(path, Counter())[sv] += 1
         else:
-            out.setdefault(path, Counter())      # seen, not a short string
+            out.setdefault(path, Counter())      # seen, not a category
+        if nums is not None:
+            q = _quantity_of(v)
+            if q is not None:
+                nums.setdefault(path, []).append(q)
 
 
 # A Next.js page (the App Router) carries its data in scripts of the form
@@ -796,8 +931,10 @@ _LIST_TOP = 5
 _LIST_ITEM_LINES = 60
 
 
-def _row_lists(v, path: str, out: list, depth: int = 0) -> None:
-    """Lists of three or more objects that share at least three keys."""
+def _row_lists(v, path: str, out: list, depth: int = 0, beside: dict | None = None) -> None:
+    """Lists of three or more objects that share at least three keys, each
+    with the other keys of the object that holds it (`beside`: a page's
+    count, the link to the next page)."""
     if depth > 40:
         return
     if isinstance(v, list):
@@ -805,7 +942,7 @@ def _row_lists(v, path: str, out: list, depth: int = 0) -> None:
         if len(dicts) >= 3 and len(dicts) >= 0.8 * len(v):
             common = frozenset.intersection(*(frozenset(d) for d in dicts))
             if len(common) >= 3:
-                out.append((path or "(root)", dicts, len(common)))
+                out.append((path or "(root)", dicts, len(common), beside or {}))
         for x in v[:300]:
             if isinstance(x, (list, dict)):
                 _row_lists(x, f"{path}[]", out, depth + 1)
@@ -813,7 +950,32 @@ def _row_lists(v, path: str, out: list, depth: int = 0) -> None:
         for k, x in v.items():
             if isinstance(x, (list, dict)):
                 _row_lists(x, f"{path}.{_mask_key(str(k))}" if path else _mask_key(str(k)),
-                           out, depth + 1)
+                           out, depth + 1,
+                           {a: b for a, b in v.items() if b is not x})
+
+
+def _shown_numbers(nums: dict) -> list:
+    """The (path, n, distinct, min, median, max, zero) that may be printed: a
+    path whose last name is a quantity of a car, that is not a person's path,
+    with three numbers or more. `id`, `token` and `number` are not in the
+    names, and a private path prints none whatever its name."""
+    shown = []
+    for path, xs in nums.items():
+        last = re.sub(r"(\[\])+$", "", path).rsplit(".", 1)[-1]
+        if (len(xs) < _VALUE_MIN or _PRIVATE.search(path)
+                or not _is_quantity_name(last)):
+            continue
+        xs = sorted(xs)
+        shown.append((path, len(xs), len(set(xs)), xs[0], xs[len(xs) // 2],
+                      xs[-1], sum(1 for x in xs if x == 0)))
+    shown.sort(key=lambda t: (-t[1], t[0]))
+    return shown
+
+
+def _number_line(t: tuple) -> str:
+    path, n, distinct, lo, mid, hi, zero = t
+    return (f"{path}: n={n} distinct={distinct} min={lo:.15g} "
+            f"median={mid:.15g} max={hi:.15g} zero={zero}")
 
 
 def _shown_values(paths: dict) -> list:
@@ -840,6 +1002,50 @@ def _shown_values(paths: dict) -> list:
     return shown
 
 
+_BESIDE_KEYS = 12
+_BESIDE_INT = 1_000_000
+_LINK_KEY = re.compile(r"^(next|prev|previous)(_?page|_?url|_?link)?$", re.I)
+
+
+def _beside_lines(d: dict, path: str, depth: int = 0) -> list[str]:
+    """The keys beside a list, as a shape. A boolean, a null and an integer
+    under a million show their value (a total, a page number); the link to the
+    next or the previous page shows as its path and the names of its
+    parameters; no other string shows more than its kind."""
+    out: list[str] = []
+    pad = "  " * depth
+    for k, x in list(d.items())[:_BESIDE_KEYS]:
+        key = _mask_key(str(k))
+        here = f"{path}.{key}"
+        if isinstance(x, dict):
+            out.append(f"{pad}{key}: object ({len(x)} keys)")
+            if depth < 1:
+                out.extend(_beside_lines(x, here, depth + 1))
+        elif isinstance(x, list):
+            out.append(f"{pad}{key}: list of {len(x)}")
+            if x and depth < 1 and isinstance(x[0], dict):
+                out.extend(_beside_lines(x[0], here + "[]", depth + 1))
+            elif x and depth < 1 and not isinstance(x[0], list):
+                out.append(f"{pad}  [0]: " + _beside_scalar(x[0], here + "[]", key))
+        else:
+            out.append(f"{pad}{key}: " + _beside_scalar(x, here, key))
+    if len(d) > _BESIDE_KEYS:
+        out.append(f"{pad}… {len(d) - _BESIDE_KEYS} more keys")
+    return out
+
+
+def _beside_scalar(x, path: str, key: str) -> str:
+    if _PRIVATE.search(path):
+        return _jkind(x)
+    if x is None or isinstance(x, bool):
+        return _jkind(x) + " = " + json.dumps(x)
+    if isinstance(x, int) and abs(x) < _BESIDE_INT:
+        return f"int = {x}"
+    if isinstance(x, str) and _LINK_KEY.match(key) and re.match(r"(https?://|/)", x):
+        return "url = " + _url_shape(x)
+    return _jkind(x)
+
+
 def data_lists_report(page: str, *, name: str = "") -> str:
     """The lists of row-like objects in a page's JSON and RSC stream: where the
     listings are. Path, count, shared keys, the shape of the first object and
@@ -857,12 +1063,12 @@ def data_lists_report(page: str, *, name: str = "") -> str:
     for kind, d in docs:
         _row_lists(d, kind, found)
     # a list inside the items of a bigger one is the same data twice
-    found.sort(key=lambda t: -(len(t[1]) * t[2]))
+    found.sort(key=lambda t: -(len(t[1]) * t[2]))   # (path, objects, shared, beside)
     out = [f"# data lists of {name or 'a page'}: lists of 3 or more objects that share "
            f"3 or more keys, in its JSON and its Next.js data stream (rsc); the "
            f"{_LIST_TOP} largest, with the shape of the first and its categories"]
     seen = set()
-    for path, items, common in found:
+    for path, items, common, beside in found:
         sig = (len(items), common)
         if sig in seen:
             continue
@@ -870,20 +1076,29 @@ def data_lists_report(page: str, *, name: str = "") -> str:
         if len(seen) > _LIST_TOP:
             break
         out.append(f"## {path}: {len(items)} objects, {common} keys in common")
+        if beside:
+            out.append("  beside the list, in the object that holds it:")
+            out.extend("    " + ln for ln in _beside_lines(beside, path))
         lines: list[str] = []
         _jlines(items[0], "[0]", 0, lines)
         out.extend("  " + ln for ln in lines[:_LIST_ITEM_LINES])
         if len(lines) > _LIST_ITEM_LINES:
             out.append(f"  … {len(lines) - _LIST_ITEM_LINES} more lines")
         paths: dict = {}
+        nums: dict = {}
         budget = [50_000]
         for it in items:
-            _collect(it, "", paths, budget)
+            _collect(it, "", paths, budget, nums)
         vs = _shown_values(paths)
         if vs:
             out.append("  categories:")
             for _, p, vals in vs[:_VALUE_PATHS]:
                 out.append(f"    {p}: " + "  ".join(f"{v}:{n}" for v, n in vals))
+        ns = _shown_numbers(nums)
+        if ns:
+            out.append("  quantities (count, distinct, smallest, middle, largest, zeros):")
+            for t in ns[:_VALUE_PATHS]:
+                out.append("    " + _number_line(t))
     if len(out) == 1:
         out.append("  (none)")
     return "\n".join(out) + "\n"
@@ -902,13 +1117,14 @@ def values_report(page: str, *, name: str = "") -> str:
     scripts = [s for s in _inline_scripts(page)
                if not s.attrs.get("src") and len(s.text) >= _SCRIPT_MIN]
     paths: dict = {}
+    nums: dict = {}
     budget = [200_000]
     for sc in scripts:
         data = _json_of(sc.text)
         if data is not None:
-            _collect(data, "", paths, budget)
+            _collect(data, "", paths, budget, nums)
     for r in rsc_rows([sc.text for sc in scripts])[0]:
-        _collect(r, "rsc", paths, budget)
+        _collect(r, "rsc", paths, budget, nums)
     shown = _shown_values(paths)
     out = [f"# values of {name or 'a page'}: JSON strings that are categories "
            f"(at most {_VALUE_DISTINCT} distinct, {_VALUE_MIN} or more uses; "
@@ -919,6 +1135,12 @@ def values_report(page: str, *, name: str = "") -> str:
         out.append(f"… {len(shown) - _VALUE_PATHS} more paths")
     if not shown:
         out.append("  (none)")
+    ns = _shown_numbers(nums)
+    if ns:
+        out.append("# quantities: numbers under a name that says it is a quantity "
+                   "of a car (count, distinct, smallest, middle, largest, zeros)")
+        for t in ns[:_VALUE_PATHS]:
+            out.append("  " + _number_line(t))
     return "\n".join(out) + "\n"
 
 
@@ -935,19 +1157,33 @@ def pagination_hints(page: str) -> str:
                 names[k] += 1
     for m in re.finditer(r"""rel\s*=\s*["']?(next|prev|previous)\b""", page, re.I):
         rels[m.group(1).lower()] += 1
+    targets: list[str] = []
+    for tag in re.finditer(r"<(?:link|a)\b[^>]*>", page, re.I):
+        t = tag.group(0)
+        rel = re.search(r"""rel\s*=\s*["']?(next|prev|previous)\b""", t, re.I)
+        ref = re.search(r"""href\s*=\s*["']([^"']*)["']""", t, re.I)
+        if rel and ref:
+            line = f"{rel.group(1).lower()} -> {_url_shape(html.unescape(ref.group(1)))}"
+            if line not in targets:
+                targets.append(line)
     out = ["# pagination hints: query parameter names on links (count), and rel=next/prev"]
     out.append("  params: " + ("  ".join(f"{k}:{n}" for k, n in names.most_common(12))
                               if names else "(none)"))
     out.append("  rel: " + ("  ".join(f"{k}:{n}" for k, n in rels.most_common())
                             if rels else "(none)"))
+    if targets:
+        out.append("  rel targets (path, parameter names, a page number kept): "
+                   + "  ".join(targets[:4]))
     return "\n".join(out) + "\n"
 
 
 def survey(page: str, *, name: str = "") -> str:
-    """Everything a parser needs to be written, with no value in it that is
-    text and no digit that is not masked: the page's size and links, how it
-    paginates, its repeated groups, the shape of its JSON and the categories
-    in that JSON."""
+    """Everything a parser needs to be written, with no text in it and no digit
+    that is not masked, except a number under a name that says it is a quantity
+    of a car (a price, a mileage, a year: the smallest, the middle and the
+    largest of them) and the value of a boolean, a null or a small integer:
+    the page's size and links, how it paginates, its repeated groups, the
+    shape of its JSON, the categories in that JSON and its quantities."""
     sk = skeleton(page, name=name, with_text=False).split("# tree:")[0].rstrip("\n")
     return "\n".join([sk, pagination_hints(page).rstrip("\n"),
                        rows(page, name=name, with_text=False).rstrip("\n"),
@@ -971,6 +1207,13 @@ def main(argv: list[str] | None = None) -> int:
                     help="print the links, the pagination hints, the rows, the "
                          "shape of the JSON and the categories in it, in one "
                          "answer, and exit; no network, no text")
+    ap.add_argument("--around", nargs=2, metavar=("PREFIX", "FILE"),
+                    help="print the markup around the links of a saved page whose "
+                         "path starts with PREFIX (e.g. /v/), for a page whose cards "
+                         "differ so that --rows finds none; no network")
+    ap.add_argument("--up", type=int, default=3, metavar="N",
+                    help=f"with --around: how many levels above the link to print "
+                         f"(0 to {_AROUND_UP_MAX}, default 3)")
     ap.add_argument("--source", help="a short name, e.g. divar, sheypoor")
     ap.add_argument("--origin", help="e.g. https://divar.ir")
     ap.add_argument("--url", action="append", default=[],
@@ -983,11 +1226,21 @@ def main(argv: list[str] | None = None) -> int:
                          "page is ready for it to fill itself in, 0.5 to 30 "
                          "(default 1.5; a page that fetches its rows needs more)")
     ap.add_argument("--no-text", action="store_true",
-                    help="with --skeleton or --rows: leave every text out")
+                    help="with --skeleton, --rows or --around: leave every text out")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT,
                     help=f"where runs are kept (default: {DEFAULT_OUT})")
     args = ap.parse_args(argv)
 
+    if args.around:
+        prefix, path = args.around
+        if not prefix.startswith("/"):
+            ap.error("--around PREFIX is the start of a link's path, e.g. /v/")
+        if not 0 <= args.up <= _AROUND_UP_MAX:
+            ap.error(f"--up must be between 0 and {_AROUND_UP_MAX}")
+        f = Path(path)
+        print(around(f.read_text(encoding="utf-8", errors="replace"), prefix,
+                     up=args.up, name=f.name, with_text=not args.no_text))
+        return 0
     if args.skeleton:
         for f in args.skeleton:
             print(skeleton(f.read_text(encoding="utf-8", errors="replace"),
@@ -1004,7 +1257,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
     if not (args.source and args.origin and args.url):
         ap.error("--source, --origin and at least one --url are needed "
-                 "(or --skeleton, --rows, --scripts or --survey FILE)")
+                 "(or --skeleton, --rows, --scripts, --survey or --around)")
 
     policy = PolitenessPolicy()
     if args.render == "browser":

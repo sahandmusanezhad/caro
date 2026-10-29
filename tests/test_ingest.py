@@ -3534,7 +3534,7 @@ check("  and the listing is eligible for a model it only has from the page",
 
 print("\npage_probe --survey: one answer for a page nobody has read")
 _SV_VEHICLES = [{
-    "@type": "Car", "title": "پراید ۱۳۱ تیپ " + str(i), "offers": {"price": "4500000000", "priceCurrency": "IRR"},
+    "@type": "Car", "title": "پراید ۱۳۱ تیپ " + str(i), "offers": {"price": str(4500000000 + i * 10), "priceCurrency": "IRR"},
     "mileageFromOdometer": {"value": "120000", "unitCode": "KMT"},
     "damage": ["intact", "some-paint", "half-paint"][i % 3],
     "web_info": {"city_persian": "تهران", "title": f"عنوان آگهی شماره {i}"},
@@ -3554,16 +3554,18 @@ check("S2: the categories are printed under their paths: the currency, the unit,
                              "some-paint:8", "half-paint:8", "city_persian: تهران:24")), _SV[-900:])
 check("S3: no title, price, email, phone or seller name is printed; nor a Persian text under a key that "
       "names no kind of thing; nor a path of many values",
-      not any(x in _SV for x in ("عنوان آگهی", "4500000000", "seller0@", "0912", "Rezaei", "پراید ۱۳۱ تیپ",
+      not any(x in _SV for x in ("عنوان آگهی", "4500000010", "seller0@", "0912", "Rezaei", "پراید ۱۳۱ تیپ",
                                  "Tk000001x", "once")), _SV)
 _vals = _SV[_SV.index("# values of"):]
 check("  a value used fewer than three times, or a path of more than twelve, is not printed",
       "once" not in _vals and "token" not in _vals)
 _pg = _pp.pagination_hints(_SV_PAGE)
-check("S4: the pagination hints name the parameters, with counts, and rel=next, and no value",
-      "page:" in _pg and "p:" in _pg and "q9:" in _pg and "next:" in _pg and "=2" not in _pg, _pg)
+check("S4: the pagination hints name the parameters, with counts, and rel=next, and no value of a parameter "
+      "(the page number in the rel=next target is the one value kept: Q4)",
+      "page:" in _pg and "p:" in _pg and "q9:" in _pg and "next:" in _pg
+      and "=2" not in _pg.split("rel targets")[0] and "q9=" not in _pg, _pg)
 check("S5: the survey is deterministic and holds no raw price, id or phone",
-      _pp.survey(_SV_PAGE, name="p.html") == _SV and "4500000000" not in _SV and "Tk0000" not in _SV)
+      _pp.survey(_SV_PAGE, name="p.html") == _SV and "4500000010" not in _SV and "Tk0000" not in _SV)
 with _tempfile.TemporaryDirectory() as _tmp:
     _f = _Path(_tmp) / "p.html"
     _f.write_text(_SV_PAGE, encoding="utf-8")
@@ -3648,7 +3650,7 @@ check("R3: the list of five cars is found, with its shape and its categories",
       "5 objects, 8 keys in common" in _dl and "price: int" in _dl and "title: fa-text" in _dl
       and "brand: Pride:5" in _dl and "city: تهران:5" in _dl and "status: available:5" in _dl, _dl)
 check("R4: no title, price, phone or seller name is in it, nor in the survey",
-      not any(x in (_dl + _pp.survey(_RSC_PAGE)) for x in ("0912", "Rezaei", "پراید ۱۳۱", "4500000000", "c4")),
+      not any(x in (_dl + _pp.survey(_RSC_PAGE)) for x in ("0912", "Rezaei", "پراید ۱۳۱", "4500000001", "4500000003", "c4")),
       _dl)
 check("  and a page with no such list says so",
       "(none)" in _pp.data_lists_report("<html><body><p>x</p></body></html>"))
@@ -3689,6 +3691,117 @@ finally:
 check("R5: --wait 7 reaches the browser fetcher as 7000 ms; 0.1 and 31 are refused; the default is 1500",
       _rc7 == 0 and _w7 == 7000 and _refused == [True, True] and _seen.get("wait") == 1500,
       str((_rc7, _w7, _refused, _seen)))
+
+
+print("\npage_probe shows numbers, booleans, what sits beside a list, and the markup around a link")
+_kh = [{"slug": f"car-{i}-x", "active": True, "guaranteed": i % 3 == 0, "price_type": [1, 2][i % 2],
+        "price": 1250000000 + i * 1000000, "final_price": "1200000000", "views": 100 + i * 7,
+        "image": {"count": i % 2 + 5}, "page": 40 + i, "message": 50 + i, "identifier": 770000 + i,
+        "token": 910000 + i, "number": 880000 + i,
+        "car_specifications": {"klm": 50000 + i * 1000, "document": None},
+        "car_properties": {"year": "1403" if i % 4 else "2017", "brand": {"title_en": "Peugeot"}},
+        "city": {"title_en": "Tehran"}, "phone": 9123456789 + i, "seller": {"name": "Rezaei", "price": 111111 + i,
+                                                                             "mobile": 9120000000 + i}}
+       for i in range(12)]
+_kh_state = {"queries": [{"queryKey": ["cars", {"page": 1}], "state": {"status": "success", "data": {
+    "pages": [{"count": 4817, "title": "فهرست خودروهای دست دوم", "owner_name": "Rezaei",
+               "next": "https://khodro45.example/api/cars/?page=2&city=tehran&cursor=AbCdEfGhIjKl&q=%D8%B3",
+               "previous": None, "results": _kh}], "pageParams": [1]}}}]}
+_kh_row = "5:" + json.dumps({"children": ["$", "div", None, {"dehydratedState": _kh_state}]}, ensure_ascii=False) + "\n"
+_KH_PAGE = ("<html><head><link rel='next' href='/buy-car/?page_num=2&amp;q=AbCdEfGhIjKl&amp;sort=new'>"
+            "<link rel=prev href=\"/buy-car/\"><link rel=\"next\" href=\"/buy-car/?page_num=2&amp;q=AbCdEfGhIjKl&amp;sort=new\">"
+            "</head><body><script>" + _push(_kh_row) + "</script></body></html>")
+_KH_DL = _pp.data_lists_report(_KH_PAGE, name="k.html")
+_KH_V = _pp.values_report(_KH_PAGE, name="k.html")
+check("Q1: a boolean and a small integer are categories: true:12, false:8 / true:4, 1:6  2:6; views (12 values) is none",
+      "active: true:12" in _KH_DL and "guaranteed: false:8  true:4" in _KH_DL and "price_type: 1:6  2:6" in _KH_DL
+      and "car_specifications.document: null:12" in _KH_DL
+      and "    views: " not in _KH_DL.split("  categories:")[1].split("  quantities")[0], _KH_DL)
+check("Q2: a price, a mileage and a year have a summary: count, distinct, smallest, middle, largest; "
+      "a digit string is a number",
+      "price: n=12 distinct=12 min=1250000000 median=1256000000 max=1261000000 zero=0" in _KH_DL
+      and "car_specifications.klm: n=12 distinct=12 min=50000 median=56000 max=61000 zero=0" in _KH_DL
+      and "car_properties.year: n=12 distinct=2 min=1403 median=1403 max=2017 zero=0" in _KH_DL
+      and "final_price: n=12 distinct=1 min=1200000000 median=1200000000 max=1200000000 zero=0" in _KH_DL,
+      _KH_DL)
+check("  an id, a token, a number, a phone, a person's price, and the words image / page / message "
+      "have no summary, nor does a list of two",
+      not any(f"    {x}: n=" in _KH_DL for x in ("identifier", "token", "number", "phone", "seller.price",
+                                                 "seller.mobile", "message", "page"))
+      and "n=12 distinct=12 min=770000" not in _KH_DL and "111111" not in _KH_DL and "9123456789" not in _KH_DL
+      and "message: n=" not in _KH_V and "page: n=" not in _KH_V, _KH_DL)
+_two = ("<html><body><script type='application/ld+json'>" + json.dumps(
+    {"pad": "z" * 400, "offers": [{"price": 1}, {"price": 2}], "more": [{"price": 5}, {"price": 6}, {"price": 7}]})
+        + "</script></body></html>")
+check("  a path with two numbers has none, and one with three has (the same script: it is read)",
+      "more[].price: n=3 distinct=3 min=5 median=6 max=7 zero=0" in _pp.values_report(_two)
+      and "offers" not in _pp.values_report(_two).split("# quantities")[1], _pp.values_report(_two))
+check("Q3: beside the list: the total, the next page's path and the NAMES of its parameters "
+      "(a page number kept, an id not), a null; no title, no name",
+      "count: int = 4817" in _KH_DL and "previous: null = null" in _KH_DL
+      and "next: url = /api/cars/?page=2&city=tehran&cursor=…&q=…" in _KH_DL
+      and "فهرست" not in _KH_DL and "owner_name: str" in _KH_DL and "Rezaei" not in _KH_DL,
+      _KH_DL[:700])
+check("  a list with nothing beside it has no such line",
+      "beside the list" not in _pp.data_lists_report(
+          "<html><body><script type='application/ld+json'>" + json.dumps(_kh[:4]) + "</script></body></html>"))
+_pg2 = _pp.pagination_hints(_KH_PAGE)
+check("Q4: rel=next / rel=prev show their path and parameter names; a page number kept, an id not; "
+      "the same target once",
+      "next -> /buy-car/?page_num=2&q=…&sort=new" in _pg2 and "prev -> /buy-car/" in _pg2
+      and _pg2.count("next -> ") == 1 and "AbCdEf" not in _pg2, _pg2)
+
+_SP_CARDS = (
+    '<div class="list"><div class="card"><a href="/v/pride-131/AbCd1234Ef"><img src="a.jpg"><span>پراید ۱۳۱ مدل ۱۳۹۰</span></a>'
+    '<div class="price">۱۲۰ میلیون تومان</div></div>'
+    '<div class="card promoted"><a href="/v/peugeot-206/GhIj5678Kl"><img src="b.jpg"><img src="c.jpg"><span>پژو ۲۰۶</span></a>'
+    '<span class="badge">نردبان</span><div class="price">۲۵۰ میلیون تومان</div><div class="place">تهران</div></div>'
+    '<div class="card"><a href="/v/samand/MnOp9012Qr"><span>سمند</span></a><div class="price">توافقی</div></div>'
+    '<div class="card"><a href="/v/tiba/StUv3456Wx"><img src="d.jpg"></a><p>تیبا</p><p class="price">۹۰ میلیون</p>'
+    '<p class="place">کرج</p><i class="icon"></i></div>'
+    '<a href="tel:09123456789">0912 345 6789</a><a href="/s/iran/car">همه</a></div>')
+_SP_PAGE = "<html><body>" + _SP_CARDS + "</body></html>"
+_rw = _pp.rows(_SP_PAGE, name="s.html")
+_ar = _pp.around(_SP_PAGE, "/v/", up=1, name="s.html")
+check("Q5: cards that differ in shape: `rows` finds none, `around` prints the first two with where they sit",
+      "# none found" in _rw and "4 link(s), 4 different parent(s) 1 level(s) up, 4 different shape(s)" in _ar
+      and _ar.count("# parent ") == 2 and "div .card\n" in _ar and "div .card .promoted\n" in _ar
+      and "img [src=….jpg]  ×2" in _ar and "under: html > body > div.list" in _ar and "# parent 3" not in _ar
+      and "تیبا" not in _ar, _ar)
+_a0, _a8 = _pp.around(_SP_PAGE, "/v/", up=0), _pp.around(_SP_PAGE, "/v/", up=8)
+check("  --up 0 is the link itself, and 8 climbs to the page's root and no further",
+      _a0.splitlines()[2] == "a [href=/v/<tok>/<tok>]" and "4 different parent(s) 0 level(s) up" in _a0
+      and "1 different parent(s) 8 level(s) up" in _a8 and _a8.splitlines()[2].startswith("html"), _a0 + _a8[:300])
+check("  no link with that prefix: it says so",
+      "0 link(s)" in _pp.around(_SP_PAGE, "/x/") and "# none found" in _pp.around(_SP_PAGE, "/x/"))
+_ar_t = _pp.around(_SP_PAGE, "/v/", up=1)
+check("Q6: texts as `rows` shows them: 40 characters, every digit «#»; tel: is not a link under «/»",
+      "پراید ###" not in _ar_t and "پراید # مدل #" in _ar_t and "# میلیون تومان" in _ar_t
+      and "4 link(s)" in _pp.around(_SP_PAGE, "/v/") and "5 link(s)" in _pp.around(_SP_PAGE, "/")
+      and "tel:09" not in _pp.around(_SP_PAGE, "/"), _ar_t)
+with _tempfile.TemporaryDirectory() as _tmp:
+    _f = _Path(_tmp) / "s.html"
+    _f.write_text(_SP_PAGE, encoding="utf-8")
+    _o = _io.StringIO()
+    with _contextlib.redirect_stdout(_o):
+        _rc = _pp.main(["--around", "/v/", str(_f), "--up", "1", "--no-text"])
+    _bad = []
+    for _argv in (["--around", "/v/", str(_f), "--up", "9"], ["--around", "/v/", str(_f), "--up", "-1"],
+                  ["--around", "v/", str(_f)]):
+        try:
+            with _contextlib.redirect_stderr(_io.StringIO()):
+                _pp.main(_argv)
+            _bad.append(False)
+        except SystemExit as _e:
+            _bad.append(_e.code == 2)
+check("  --around PREFIX FILE [--up N] on the command line: exits 0 with no network and no text; "
+      "--up 9 and -1, and a prefix that is not a path, are refused",
+      _rc == 0 and "4 link(s)" in _o.getvalue() and "پراید" not in _o.getvalue()
+      and "[href=/v/<tok>/<tok>]" in _o.getvalue() and _bad == [True, True, True], _o.getvalue()[:300])
+_all = _KH_DL + _KH_V + _pg2 + _pp.survey(_KH_PAGE) + _pp.around(_SP_PAGE, "/v/", with_text=False)
+check("Q7: no phone, no name, no person's price, no title, no token and no id in any of them",
+      not any(x in _all for x in ("9123456789", "0912", "Rezaei", "111111", "فهرست", "AbCd1234", "GhIj5678",
+                                  "پراید", "770000", "910000", "880000", "AbCdEfGh")), _all[:400])
 
 
 print()
