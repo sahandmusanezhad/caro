@@ -834,6 +834,42 @@ check(f"«{q_dec}» → floor 2,500,000,000  (so does «و بالاتر»)",
       P.parse(q_dec).budget_min_toman == 2_500_000_000, str(P.parse(q_dec).budget_min_toman))
 
 # ---------------------------------------------------------------------------
+print("\na floor that a negation follows is a ceiling (2026-10-29, the owner's call)")
+# «پراید از ۴۰۰ میلیون به بالا نباشه» is not-above-400-million. It was read as a
+# floor of 400 million and no ceiling, the meaning reversed: 312 of 312 made
+# phrasings (thirteen negations, six amounts, four contexts). The thirteen
+# words `_floor_by_word` already refuses after its phrase are refused after
+# `_FLOOR_S`'s too, and the ceiling rules read the query, with the assumption
+# printed. After a year clause the negation may be the year's and is not read.
+for neg in ("نباشه", "نباشد", "نباشن", "نباشند", "نیست", "نیستن", "نمی‌خوام", "نمی‌خواهم",
+            "نمی‌خوایم", "نخوام", "نخواهم", "نخوایم", "نشه", "نره", "نرسه", "نگذره", "نزنه",
+            "خرج نکنم"):
+    q_neg = f"پراید از ۴۰۰ میلیون به بالا {neg}"
+    sp_n = P.parse(q_neg)
+    check(f"«{q_neg}» → no floor, ceiling 400,000,000, assumption printed",
+          (sp_n.budget_min_toman, sp_n.budget_max_toman) == (None, 400_000_000)
+          and any("سقف" in a for a in sp_n.assumptions),
+          f"{sp_n.budget_min_toman} {sp_n.budget_max_toman} {sp_n.assumptions}")
+for q_neg in ("206 بالای ۸۰۰ میلیون به بالا نباشه", "سمند، از ۱ میلیارد به بالا نشه",
+              "از ۵۵۰ میلیون به بالا نباشه پراید"):
+    sp_n = P.parse(q_neg)
+    check(f"«{q_neg}» → no floor",
+          sp_n.budget_min_toman is None and sp_n.budget_max_toman is not None,
+          f"{sp_n.budget_min_toman} {sp_n.budget_max_toman}")
+for q_neg, why in [
+    ("پراید از ۴۰۰ میلیون به بالا باشه", "a positive tail"),
+    ("پراید از ۴۰۰ میلیون به بالا، سفید", "a comma and a colour"),
+    ("پراید از ۴۰۰ میلیون به بالا می‌خوام", "«می‌خوام» is not «نمی‌خوام»"),
+    ("پراید از ۴۰۰ میلیون به بالا نمی‌رسه", "a negation outside the list, left"),
+    ("پراید از ۴۰۰ میلیون به بالا نباید باشه", "«نباید», left"),
+    ("پراید از ۴۰۰ میلیون به بالا اصلا نباشه", "a word between, left"),
+    ("پراید از ۴۰۰ میلیون مدل ۹۸ به بالا نباشه", "after a year clause: the year's, left"),
+    ("پراید از ۴۰۰ میلیون مدل ۱۳۹۸ به بالا نشه", "after a year clause, left"),
+]:
+    got_n = P.parse(q_neg).budget_min_toman
+    check(f"«{q_neg}» → still floor 400,000,000  ({why})", got_n == 400_000_000, str(got_n))
+
+# ---------------------------------------------------------------------------
 print("\na model's number is a model only where it stands alone (D83)")
 # A model's number was matched as a substring of the query: «دنا تا ۱۳۱۰ میلیون»
 # holds 131, which is Pride's, and «تیبا مدل ۱۴۰۵» holds 405, so each added a

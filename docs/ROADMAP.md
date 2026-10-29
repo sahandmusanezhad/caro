@@ -348,10 +348,19 @@ the owner chooses.
    - A range sets no floor, on 96 of 96: «از X تا Y», «بین X تا Y» and
      «X تا Y» give the upper end as the ceiling; «از X الی Y» gives the
      lower end, with the assumption printed.
-   - A negated floor, «پراید از ۴۰۰ میلیون به بالا نباشه», is read as a
-     floor of 400 million with no ceiling (before: a floor and a ceiling of
-     400 million): the meaning reversed, on 24 of 24. A rule that skips a
-     negation after «به بالا» reads it as the ceiling, on 24 of 24.
+   - A negated floor, «پراید از ۴۰۰ میلیون به بالا نباشه», was read as a
+     floor of 400 million with no ceiling: the meaning reversed, on 312 of 312
+     made phrasings (thirteen negations, six amounts, four contexts) and 96
+     of 96 with «بالای». Built, on the optional branch only (it is a rule
+     about Persian, and the owner's): the negations `_floor_by_word` already
+     refuses after its phrase are refused after the «به بالا» of «از X» and
+     «بالای X» too, and the query reads as a ceiling with the assumption
+     printed, on 312 of 312 and 96 of 96; 0 of the 1,609 other made
+     phrasings change (a positive tail, three negations outside the list, the
+     negation after a year clause, and the sets of the earlier rounds). Left,
+     each pinned by a test: a negation outside the list («نمی‌رسه», «نباید
+     باشه»), a word between the phrase and the negation, and a negation after
+     a year clause («از X مدل ۹۸ به بالا نباشه»), where it may be the year's.
 
    Next: the three topics above, one round each, in the order the owner
    picks. Each round writes its predictions first, measures on phrasings

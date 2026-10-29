@@ -222,8 +222,16 @@ def _floor_by_cue(q: str):
     before; None if there is none."""
     for rx in (_FLOOR_S, _FLOOR_Y):
         for m in rx.finditer(q):
-            if not _COMPARATIVE_BEFORE.search(q[:m.start()]):
-                return m
+            if _COMPARATIVE_BEFORE.search(q[:m.start()]):
+                continue
+            # «از ۴۰۰ میلیون به بالا نباشه» is a ceiling: not above 400 million.
+            # Read as a floor, on 312 of 312 made phrasings, it was the
+            # meaning reversed. Only `_FLOOR_S`, whose phrase ends at «به
+            # بالا»: after a year clause («… مدل ۹۸ به بالا نباشه») the
+            # negation may be about the year, and that stays as it was.
+            if rx is _FLOOR_S and _NOT_A_FLOOR_AFTER.match(q, m.end()):
+                continue
+            return m
     return None
 
 
