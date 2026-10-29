@@ -4301,6 +4301,48 @@ check("V9: the report has counts and categories: no title, no id, the price show
       and "/s/iran/car?page_num" in _sp9, _sp9)
 
 
+print("\nfirst_run reads Sheypoor, saved and live (faked)")
+with _tempfile.TemporaryDirectory() as _tmp:
+    _f1 = _Path(_tmp) / "01-s.html"
+    _f1.write_text(_SP, encoding="utf-8")
+    _out = _io.StringIO()
+    _argv, _first_run.sys.argv = _first_run.sys.argv, ["first_run.py", "--source", "sheypoor", "--page", str(_f1)]
+    _salt = os.environ.pop("CARO_SELLER_SALT", None)
+    try:
+        with _contextlib.redirect_stdout(_out):
+            _rc = _first_run.main()
+    finally:
+        _first_run.sys.argv = _argv
+        if _salt is not None:
+            os.environ["CARO_SELLER_SALT"] = _salt
+    _left = sorted(x.name for x in _Path(_tmp).rglob("*"))
+check("V8: --source sheypoor --page reads a saved list offline, with no salt, writes nothing, and prints the "
+      "inventory, the funnel that holds them back for the year, and the Sheypoor report",
+      _rc == 0 and "CORPUS INVENTORY  (4 listings)" in _out.getvalue() and "SHEYPOOR PAGE READ" in _out.getvalue()
+      and "no year_jalali" in _out.getvalue() and _left == ["01-s.html"], _out.getvalue()[:600])
+_sfr = _argparse.Namespace(source="sheypoor", limit=10, categories=None, makes="", seed=0, city=None, pages=2)
+_sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), _SP2: (200, _SP_P2)})
+with _tempfile.TemporaryDirectory() as _tmp:
+    _old, _first_run.SNAPSHOT_DIR = _first_run.SNAPSHOT_DIR, _Path(_tmp)
+    _out = _io.StringIO()
+    try:
+        with _contextlib.redirect_stdout(_out):
+            _sgot, _sspath = _first_run.collect(_sfr, [], fetcher=_sw, sleeper=lambda s: None)
+            _sw2, _sasked2 = _sp_world({"https://www.sheypoor.com/s/tehran/car": (200, _SP)})
+            _first_run.collect(_argparse.Namespace(**{**vars(_sfr), "city": "tehran", "pages": 1}), [],
+                               fetcher=_sw2, sleeper=lambda s: None)
+        _ssnap = json.loads(_sspath.read_text(encoding="utf-8"))
+    finally:
+        _first_run.SNAPSHOT_DIR = _old
+check("  --source sheypoor live: robots.txt, /s/iran/car and its rel=next; five listings in the snapshot, the "
+      "robots line kept; --city tehran asks /s/tehran/car",
+      _sasked == ["https://www.sheypoor.com/robots.txt", "https://www.sheypoor.com/s/iran/car", _SP2]
+      and len(_sgot) == 5 and len([o for o in _ssnap["outcomes"] if o["listing_id"].startswith("sheypoor:")]) == 5
+      and any(n.startswith("robots.txt ") for n in _ssnap["notes"])
+      and _sasked2 == ["https://www.sheypoor.com/robots.txt", "https://www.sheypoor.com/s/tehran/car"],
+      str((_sasked, _sasked2)))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

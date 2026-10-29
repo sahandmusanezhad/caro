@@ -5,8 +5,10 @@ First live collection, and the inventory report that decides what comes next.
     python3 scripts/first_run.py --source bama --limit 50
     python3 scripts/first_run.py --source divar --city tehran --pages 2
     python3 scripts/first_run.py --source khodro45 --pages 2
+    python3 scripts/first_run.py --source sheypoor --pages 2
     python3 scripts/first_run.py --page ~/caro-probes/<run>/01-<hash>.html [<page 2>]
     python3 scripts/first_run.py --source khodro45 --page ~/caro-probes/<run>/01-<hash>.html
+    python3 scripts/first_run.py --source sheypoor --page ~/caro-probes/<run>/01-<hash>.html
     python3 scripts/first_run.py --replay <file with a top-level "listings">
 
 This is deliberately small. The point of a first run is not volume — it is
@@ -75,6 +77,9 @@ from caro.ingest.divar_page import (                                    # noqa: 
 from caro.ingest.khodro45 import (                                      # noqa: E402
     Khodro45Adapter, Khodro45Parser, report as khodro45_report,
 )
+from caro.ingest.sheypoor import (                                      # noqa: E402
+    SheypoorAdapter, SheypoorParser, report as sheypoor_report,
+)
 from caro.ingest import coverage as cov_mod                           # noqa: E402
 from caro.ingest.robots import RobotsViolation, describe              # noqa: E402
 from caro.ingest.quality import (                                     # noqa: E402
@@ -85,6 +90,14 @@ from caro.tracking import (                                          # noqa: E40
 )
 
 SNAPSHOT_DIR = ROOT / "data" / "snapshots"
+
+# The sources whose every page names the next one (caro/ingest/paging.py):
+# the adapter, the parser of a run, its report, and the city its list is for
+# when --city is not given (Sheypoor's list was probed for all of Iran).
+NEXT_LINK_SOURCES = {
+    "khodro45": (Khodro45Adapter, Khodro45Parser, khodro45_report, None),
+    "sheypoor": (SheypoorAdapter, SheypoorParser, sheypoor_report, "iran"),
+}
 
 # Model-level category slugs verified against the live sitemap on 2026-09-07
 # and recorded in caro/ingest/bama.py's docstring. NOT manufacturer slugs:
@@ -535,9 +548,11 @@ def outcomes_from_snapshot(raw: dict) -> list[FetchOutcome]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--source", choices=["bama", "divar", "khodro45"],
+    ap.add_argument("--source", choices=["bama", "divar", *NEXT_LINK_SOURCES],
                     default="bama")
-    ap.add_argument("--city", default="tehran")
+    ap.add_argument("--city", default=None,
+                    help="divar: the city's slug (default tehran); sheypoor: "
+                         "the list's place (default iran)")
     ap.add_argument("--limit", type=int, default=50)
     ap.add_argument("--pages", type=int, default=2)
     # A POLITENESS ceiling, not a target. Discovery stops as soon as the
@@ -568,7 +583,8 @@ def main() -> int:
                          "a listing once; with two, whether the second holds "
                          "other listings than the first. Divar's, or with "
                          "--source khodro45 Khodro45's (its list page or a page "
-                         "of its API). No network, no salt, nothing written")
+                         "of its API), or with --source sheypoor Sheypoor's. "
+                         "No network, no salt, nothing written")
     args = ap.parse_args()
 
     if args.page:
@@ -577,8 +593,9 @@ def main() -> int:
         # `?page=2` holds other listings than the first. Khodro45's parser
         # remembers more: which price the cards showed, which a saved page of
         # its API (no cards) is then read by.
-        if args.source == "khodro45":
-            parser, page_report = Khodro45Parser(), khodro45_report
+        if args.source in NEXT_LINK_SOURCES:
+            _, make_parser, page_report, _ = NEXT_LINK_SOURCES[args.source]
+            parser = make_parser()
         else:
             parser, page_report = DivarPageParser(), divar_report
         listings = []
@@ -739,7 +756,7 @@ def collect(args, traces: list | None = None,
             return got
 
         http = fetcher or http_fetcher()
-        ad = DivarCarAdapter(city=args.city, max_pages=args.pages,
+        ad = DivarCarAdapter(city=args.city or "tehran", max_pages=args.pages,
                              page_fetcher=http, parse_page=parse_page,
                              robots_fetcher=http,
                              salt=os.environ["CARO_SELLER_SALT"],
@@ -759,19 +776,21 @@ def collect(args, traces: list | None = None,
               f"{shown} (integrity: {snap.integrity.value})\n")
         return out, path
 
-    if args.source == "khodro45":
-        # `/buy-car/` is server-rendered with its data in the page, and the
-        # pages after it are JSON from the site's API: plain HTTP for both
-        # (caro/ingest/khodro45.py, the owner's probe of 2026-10-29).
-        parser = Khodro45Parser()
+    if args.source in NEXT_LINK_SOURCES:
+        # Khodro45's `/buy-car/` and Sheypoor's `/s/iran/car` are
+        # server-rendered, and Khodro45's later pages are JSON from its API:
+        # plain HTTP for all of them (the owner's probes of 2026-10-29).
+        make_adapter, make_parser, page_report, city = NEXT_LINK_SOURCES[args.source]
+        parser = make_parser()
         http = fetcher or http_fetcher()
-        ad = Khodro45Adapter(max_pages=args.pages, page_fetcher=http,
-                             parser=parser, robots_fetcher=http,
-                             salt=os.environ["CARO_SELLER_SALT"],
-                             **({"sleeper": sleeper} if sleeper else {}))
+        ad = make_adapter(max_pages=args.pages, page_fetcher=http,
+                          parser=parser, robots_fetcher=http,
+                          salt=os.environ["CARO_SELLER_SALT"],
+                          **({"city": args.city or city} if city else {}),
+                          **({"sleeper": sleeper} if sleeper else {}))
         records = list(ad.fetch_all(date.today()))
         out.extend(parser.listings)
-        print("\n".join(khodro45_report(parser.traces)))
+        print("\n".join(page_report(parser.traces)))
         if ad.stopped:
             print(f"  stopped early: {ad.stopped}")
         print()
