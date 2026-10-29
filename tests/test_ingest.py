@@ -4279,9 +4279,10 @@ _SP_P2 = _sp_page([_spc[3], _sp_card("462349999", "تارا اتوماتیک م�
                   nxt="/s/iran/car?page_num=3")
 _sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), _SP2: (200, _SP_P2)})
 _sad = SheypoorAdapter(max_pages=2, page_fetcher=_sw, robots_fetcher=_sw, parser=SheypoorParser(),
-                       sleeper=lambda s: None)
+                       sleeper=lambda s: None, max_listings=0)
 _sout = list(_sad.fetch_all(date(2026, 10, 29)))
-check("V7: robots.txt, the list, the page its rel=next names; the promoted card shown again is counted, not new",
+check("V7: robots.txt, the list, the page its rel=next names; the promoted card shown again is counted, not new "
+      "(no listing page: max_listings 0, SP2-7)",
       _sasked == ["https://www.sheypoor.com/robots.txt", "https://www.sheypoor.com/s/iran/car", _SP2]
       and [o.listing_id for o in _sout][-1] == "sheypoor:462349999" and len(_sout) == 5
       and _sad.parser.traces[1].duplicates == 1 and _sad.stopped is None, str((_sasked, len(_sout))))
@@ -4328,7 +4329,7 @@ check("V8: --source sheypoor --page reads a saved list offline, with no salt, wr
       "inventory, the funnel that holds them back for the year, and the Sheypoor report",
       _rc == 0 and "CORPUS INVENTORY  (4 listings)" in _out.getvalue() and "SHEYPOOR PAGE READ" in _out.getvalue()
       and "no year_jalali" in _out.getvalue() and _left == ["01-s.html"], _out.getvalue()[:600])
-_sfr = _argparse.Namespace(source="sheypoor", limit=10, categories=None, makes="", seed=0, city=None, pages=2)
+_sfr = _argparse.Namespace(source="sheypoor", limit=0, categories=None, makes="", seed=0, city=None, pages=2)
 _sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), _SP2: (200, _SP_P2)})
 with _tempfile.TemporaryDirectory() as _tmp:
     _old, _first_run.SNAPSHOT_DIR = _first_run.SNAPSHOT_DIR, _Path(_tmp)
@@ -4343,7 +4344,7 @@ with _tempfile.TemporaryDirectory() as _tmp:
     finally:
         _first_run.SNAPSHOT_DIR = _old
 check("  --source sheypoor live: robots.txt, /s/iran/car and its rel=next; five listings in the snapshot, the "
-      "robots line kept; --city tehran asks /s/tehran/car",
+      "robots line kept; --city tehran asks /s/tehran/car (--limit 0: no listing page, SP2-7)",
       _sasked == ["https://www.sheypoor.com/robots.txt", "https://www.sheypoor.com/s/iran/car", _SP2]
       and len(_sgot) == 5 and len([o for o in _ssnap["outcomes"] if o["listing_id"].startswith("sheypoor:")]) == 5
       and any(n.startswith("robots.txt ") for n in _ssnap["notes"])
@@ -4464,6 +4465,169 @@ _kout = list(_kad.fetch_all(date(2026, 10, 29)))
 check("  and the adapter asks for it so: robots.txt, the list, the API page over https; four listings",
       _kasked == ["https://khodro45.com/robots.txt", "https://khodro45.com/buy-car/", _K3_HTTPS]
       and len(_kout) == 4 and _kad.stopped is None, str((_kasked, _kad.stopped)))
+
+
+print("\nsheypoor's listing page -- read from the shape the owner's probe of two found, and merged into its card")
+# Invented to the SHAPE of /v/…-468697524.html (2026-10-29): one ld+json object whose mainEntity
+# is the car (mileageFromOdometer, vehicleModelDate, vehicleTransmission, knownVehicleDamages,
+# color, vehicleEngine.fuelType, bodyType, category, brand.name, offers {priceCurrency, Price, sku}),
+# and six cards of other listings. No value here was on that page.
+
+
+def _sp_listing(id_, *, price=4500000000, cur="IRR", key="Price", km="120000", unit="KMT", year="1395",
+                gear="دنده‌ای", damages="بدون رنگ", color="سفید", fuel="بنزینی", brand="پراید",
+                name="پراید صبا دوگانه کارخانه", desc="ماشین تمیز", sku=None, slug="پراید-صبا", others=6):
+    url = "https://www.sheypoor.com/v/" + _quote(slug) + f"-{id_}.html"
+    offers = {"@type": "Offer", "priceCurrency": cur, "availability": "https://schema.org/InStock",
+              "sku": id_ if sku is None else sku, "mainEntityOfPage": url}
+    if price is not None:
+        offers[key] = price
+    ent = {"bodyType": "سدان", "mileageFromOdometer": {"@type": "QuantitativeValue", "unitCode": unit, "value": km},
+           "vehicleModelDate": year, "vehicleTransmission": gear, "knownVehicleDamages": damages, "color": color,
+           "vehicleEngine": {"@type": "EngineSpecification", "fuelType": fuel}, "category": "سواری",
+           "brand": {"@type": "Brand", "name": brand}, "offers": offers, "name": name, "url": url,
+           "image": [{"@type": "ImageObject", "contentUrl": "https://cdn.example/x.webp"}],
+           "description": desc, "itemCondition": "https://schema.org/UsedCondition",
+           "@context": "https://schema.org", "@type": "Car", "@id": url}
+    root = {"headLine": name, "inLanguage": "fa", "isPartOf": {"name": "شیپور", "url": "https://www.sheypoor.com"},
+            "mainEntity": ent, "url": url, "description": desc, "@context": "https://schema.org",
+            "@type": "WebPage", "@id": url}
+    crumbs = {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "شیپور", "item": "https://www.sheypoor.com"}]}
+    return ('<html><head><script type="application/ld+json">' + json.dumps(root, ensure_ascii=False)
+            + '</script><script type="application/ld+json">' + json.dumps(crumbs, ensure_ascii=False)
+            + "</script></head><body><main><h1>" + name + "</h1>"
+            + "".join(_sp_card(str(470000000 + i), "پژو ۴۰۵ مدل ۹۰") for i in range(others))
+            + "</main></body></html>")
+
+
+_spl_tr = []
+_spl = parse_sheypoor(_sp_listing("462345678"), _spl_tr)
+check("SP2-1: a listing page is its own car only: one listing, not the six cards of others on it",
+      [x.listing_id for x in _spl] == ["462345678"] and _spl_tr[0].kind == "listing"
+      and _spl_tr[0].merged == Counter({"alone": 1}), str([x.listing_id for x in _spl]))
+_spl2_tr = []
+_spl2 = parse_sheypoor(_sp_listing("462345678", sku="462345699"), _spl2_tr)
+_spl3_tr = []
+_spl3 = parse_sheypoor(_sp_listing("x", sku="", slug="بی-شماره"), _spl3_tr)
+check("SP2-2: the id is the sku, checked against the link's digits; a page with neither is no listing",
+      _spl_tr[0].id_check == Counter({"sku and url agree": 1})
+      and _spl2_tr[0].id_check == Counter({"sku and url differ": 1}) and _spl2[0].listing_id == "462345699"
+      and _spl3 == [] and _spl3_tr[0].skipped["listing page without an id"] == 1,
+      str((_spl2_tr[0].id_check, _spl3_tr[0].skipped)))
+_s3 = _spl[0]
+_s3a = parse_sheypoor(_sp_listing("462345671", desc="تصادفی جزئی، سند آزاد", year="2018", km="75", unit="SMI"))[0]
+_s3b = parse_sheypoor(_sp_listing("462345672", unit="XYZ", gear="اتوماتیک", fuel="دوگانه سوز"))[0]
+check("SP2-3: the page's year, odometer, gearbox, fuel, colour and condition (a field); a description that "
+      "says worse wins; 2018 is 1397; miles are converted; an unknown unit gives no odometer",
+      (_s3.year_jalali, _s3.mileage_km, _s3.gearbox, _s3.fuel, _s3.color, _s3.body_condition, _s3.condition_source)
+      == (1395, 120000, "manual", "petrol", "سفید", "intact", "field")
+      and (_s3a.body_condition, _s3a.condition_source, _s3a.year_jalali, _s3a.mileage_km, _s3a.document_issue)
+      == ("accident", "description", 1397, 121, False)
+      and (_s3b.mileage_km, _s3b.gearbox, _s3b.fuel) == (None, "automatic", "dual")
+      and (_s3.make, _s3.model) == ("Saipa", "Pride"),
+      str((_s3.year_jalali, _s3.mileage_km, _s3.gearbox, _s3.fuel, _s3a.mileage_km, _s3b.mileage_km)))
+_spp4 = SheypoorParser()
+_spp4(_SP)                       # its first card: 462345678, «۲۵۰٬۰۰۰٬۰۰۰» toman shown
+_m1 = _spp4(_sp_listing("462345678", price=2500000000, cur="IRR"))[0]
+_spp5 = SheypoorParser()
+_spp5(_SP)
+_m2 = _spp5(_sp_listing("462345678", price=250000000, cur="IRR"))[0]
+_spp6 = SheypoorParser()
+_spp6(_SP)
+_m3 = _spp6(_sp_listing("462345678", price=250000000, cur="USD"))[0]
+_spp7 = SheypoorParser()
+_spp7(_SP)
+_m4 = _spp7(_sp_listing("462345678", price=250000000, cur="TOMAN", key="price"))[0]
+_spp8 = SheypoorParser()
+_spp8(_SP)
+_m5 = _spp8(_sp_listing("462345678", price=1999000000, cur="IRR"))[0]
+check("SP2-4: the page's price against the card's: IRR a tenth that agrees is confirmed; a toman figure "
+      "under IRR is corrected; an unknown code leaves the card's; TOMAN under `price` agrees; another number "
+      "is none; read alone, structured_only",
+      (_m1.asking_price_toman, _m1.price_status) == (250000000, "display_confirmed")
+      and (_m2.asking_price_toman, _m2.price_status) == (250000000, "label_corrected")
+      and (_m3.asking_price_toman, _m3.price_status) == (250000000, "displayed_only")
+      and _spp6.traces[-1].price_check["unrecognised currency USD"] == 1
+      and (_m4.asking_price_toman, _m4.price_status) == (250000000, "display_confirmed")
+      and (_m5.asking_price_toman, _m5.price_status) == (None, "ambiguous")
+      and (_s3.asking_price_toman, _s3.price_status) == (450000000, "structured_only"),
+      str([(m.asking_price_toman, m.price_status) for m in (_m1, _m2, _m3, _m4, _m5, _s3)]))
+_spp9 = SheypoorParser()
+_spp9(_SP)
+_m9 = _spp9(_sp_listing("462345679", price=2500000000, cur="IRR"))[0]
+check("SP2-5: merged into its card: the same place in the run's listings, the card's place and province kept, "
+      "the page's year and odometer, and the run still four listings",
+      len(_spp4.listings) == 4 and _spp4.listings[0] is _m1 and _m1.year_jalali == 1395
+      and _m1.mileage_km == 120000 and (_m1.location_raw, _m1.city) == ("دیواندره", None)
+      and (_m9.location_raw, _m9.city, _m9.province_source) == ("قم", "قم", "city")
+      and _spp4.traces[-1].merged == Counter({"into its card": 1}) and _eligibility(_m1)[0],
+      str((len(_spp4.listings), _eligibility(_m1))))
+_sp6 = "\n".join(_sh.report(_spp4.traces))
+check("SP2-6: the report counts the listing pages: the merge, the id and price checks, the price key, and the "
+      "values of the entity's categories",
+      "listing pages  1" in _sp6 and "merged        into its card:1" in _sp6 and "price check   agree:1" in _sp6
+      and "price key     Price:1" in _sp6 and "priceCurrency       IRR:1" in _sp6 and "unitCode            KMT:1" in _sp6
+      and "vehicleTransmission دنده‌ای:1" in _sp6 and "itemCondition       UsedCondition:1" in _sp6
+      and "462345678" not in _sp6 and "پراید صبا" not in _sp6, _sp6)
+
+_SPL = {x.url: (200, _sp_listing(x.listing_id, price=(x.asking_price_toman or 1) * 10, cur="IRR"))
+        for x in parse_sheypoor(_SP)}
+_sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), **_SPL})
+_sad = SheypoorAdapter(max_pages=1, page_fetcher=_sw, robots_fetcher=_sw, parser=SheypoorParser(),
+                       sleeper=(_ssl := []).append, max_listings=2)
+_sout = list(_sad.fetch_all(date(2026, 10, 29)))
+check("SP2-7: the listing pages of the first two new listings are asked for, after a pause each; their "
+      "listings come with a year; the other two as the cards gave them",
+      _sasked[:2] == ["https://www.sheypoor.com/robots.txt", "https://www.sheypoor.com/s/iran/car"]
+      and len(_sasked) == 4 and all("/v/" in u for u in _sasked[2:])
+      and [o.price_status for o in _sout] == ["display_confirmed", "display_confirmed", "negotiable", "displayed_only"]
+      and _sad.listing_pages == Counter({"read": 2}) and len(_ssl) == 3, str((_sasked, _sad.listing_pages, _ssl)))
+_sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP)})
+_sad = SheypoorAdapter(max_pages=1, page_fetcher=_sw, robots_fetcher=_sw, parser=SheypoorParser(),
+                       sleeper=lambda s: None, max_listings=10)
+_sout = list(_sad.fetch_all(date(2026, 10, 29)))
+check("  three listing pages that do not answer end the listing pages; every card's listing is kept",
+      len(_sout) == 4 and len([u for u in _sasked if "/v/" in u]) == 3
+      and _sad.listing_pages["http 404"] == 3, str(_sad.listing_pages))
+_sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP)}, robots="User-agent: *\nDisallow: /v/\n")
+_sad = SheypoorAdapter(max_pages=1, page_fetcher=_sw, robots_fetcher=_sw, parser=SheypoorParser(),
+                       sleeper=lambda s: None, max_listings=10)
+_sout = list(_sad.fetch_all(date(2026, 10, 29)))
+check("  a listing page robots.txt disallows is not asked for, and is counted",
+      len(_sout) == 4 and not any("/v/" in u for u in _sasked) and _sad.listing_pages["not allowed"] == 4,
+      str(_sad.listing_pages))
+_sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), **_SPL})
+with _tempfile.TemporaryDirectory() as _tmp:
+    _old, _first_run.SNAPSHOT_DIR = _first_run.SNAPSHOT_DIR, _Path(_tmp)
+    _out = _io.StringIO()
+    try:
+        with _contextlib.redirect_stdout(_out):
+            _sg, _ = _first_run.collect(_argparse.Namespace(**{**vars(_sfr), "limit": 1, "pages": 1}), [],
+                                        fetcher=_sw, sleeper=lambda s: None)
+    finally:
+        _first_run.SNAPSHOT_DIR = _old
+check("  first_run passes --limit as the number of listing pages, and prints what they did",
+      len([u for u in _sasked if "/v/" in u]) == 1 and "listing pages  read:1" in _out.getvalue()
+      and [x.price_status for x in _sg] == ["display_confirmed", "displayed_only", "negotiable", "displayed_only"],
+      _out.getvalue()[-500:])
+with _tempfile.TemporaryDirectory() as _tmp:
+    _f1, _f2 = _Path(_tmp) / "01-list.html", _Path(_tmp) / "02-v.html"
+    _f1.write_text(_SP, encoding="utf-8")
+    _f2.write_text(_sp_listing("462345681", price=4500000000, cur="IRR", name="پژو ۲۰۶ مدل ۹۵"), encoding="utf-8")
+    _out = _io.StringIO()
+    _argv, _first_run.sys.argv = _first_run.sys.argv, ["first_run.py", "--source", "sheypoor", "--page",
+                                                       str(_f1), str(_f2)]
+    try:
+        with _contextlib.redirect_stdout(_out):
+            _rc = _first_run.main()
+    finally:
+        _first_run.sys.argv = _argv
+check("  --page with the list and a listing page: four listings, the second page merged into its card, and the "
+      "listing pages in the report",
+      _rc == 0 and "page 2 of 2: a listing page, merged into its card" in _out.getvalue()
+      and "CORPUS INVENTORY  (4 listings)" in _out.getvalue() and "listing pages  1" in _out.getvalue(),
+      _out.getvalue()[:500])
 
 
 print()

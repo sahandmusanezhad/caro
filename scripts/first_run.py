@@ -92,11 +92,15 @@ from caro.tracking import (                                          # noqa: E40
 SNAPSHOT_DIR = ROOT / "data" / "snapshots"
 
 # The sources whose every page names the next one (caro/ingest/paging.py):
-# the adapter, the parser of a run, its report, and the city its list is for
-# when --city is not given (Sheypoor's list was probed for all of Iran).
+# the adapter, the parser of a run, its report, the city its list is for
+# when --city is not given (Sheypoor's list was probed for all of Iran), and
+# what else the adapter takes from the command line: Sheypoor asks for the
+# listing page of each new listing, at most --limit in the run.
 NEXT_LINK_SOURCES = {
-    "khodro45": (Khodro45Adapter, Khodro45Parser, khodro45_report, None),
-    "sheypoor": (SheypoorAdapter, SheypoorParser, sheypoor_report, "iran"),
+    "khodro45": (Khodro45Adapter, Khodro45Parser, khodro45_report, None,
+                 lambda a: {}),
+    "sheypoor": (SheypoorAdapter, SheypoorParser, sheypoor_report, "iran",
+                 lambda a: {"max_listings": a.limit}),
 }
 
 # Model-level category slugs verified against the live sitemap on 2026-09-07
@@ -594,17 +598,25 @@ def main() -> int:
         # remembers more: which price the cards showed, which a saved page of
         # its API (no cards) is then read by.
         if args.source in NEXT_LINK_SOURCES:
-            _, make_parser, page_report, _ = NEXT_LINK_SOURCES[args.source]
+            _, make_parser, page_report, _, _ = NEXT_LINK_SOURCES[args.source]
             parser = make_parser()
         else:
             parser, page_report = DivarPageParser(), divar_report
-        listings = []
+        by_id: dict = {}
         for i, f in enumerate(args.page, 1):
             got = parser(f.read_text(encoding="utf-8", errors="replace"))
-            listings += got
-            if len(args.page) > 1:
+            # A Sheypoor listing page returns the listing its card made, merged:
+            # the later version replaces the earlier one, in its place.
+            merged = getattr(parser.traces[-1], "kind", "") == "listing"
+            for x in got:
+                by_id[x.listing_id] = x
+            if len(args.page) > 1 and merged:
+                how = "merged into its card" if parser.traces[-1].merged["into its card"] else "read alone"
+                print(f"page {i} of {len(args.page)}: a listing page, {how}  ({f})")
+            elif len(args.page) > 1:
                 print(f"page {i} of {len(args.page)}: {len(got)} new, "
                       f"{parser.traces[-1].duplicates} repeated  ({f})")
+        listings = list(by_id.values())
         print(f"read {len(listings)} listing(s) from "
               f"{args.page[0] if len(args.page) == 1 else str(len(args.page)) + ' pages'}\n")
         print(inventory(listings, fetched=len(listings)))
@@ -780,17 +792,21 @@ def collect(args, traces: list | None = None,
         # Khodro45's `/buy-car/` and Sheypoor's `/s/iran/car` are
         # server-rendered, and Khodro45's later pages are JSON from its API:
         # plain HTTP for all of them (the owner's probes of 2026-10-29).
-        make_adapter, make_parser, page_report, city = NEXT_LINK_SOURCES[args.source]
+        make_adapter, make_parser, page_report, city, extra = NEXT_LINK_SOURCES[args.source]
         parser = make_parser()
         http = fetcher or http_fetcher()
         ad = make_adapter(max_pages=args.pages, page_fetcher=http,
                           parser=parser, robots_fetcher=http,
                           salt=os.environ["CARO_SELLER_SALT"],
                           **({"city": args.city or city} if city else {}),
+                          **extra(args),
                           **({"sleeper": sleeper} if sleeper else {}))
         records = list(ad.fetch_all(date.today()))
         out.extend(parser.listings)
         print("\n".join(page_report(parser.traces)))
+        if getattr(ad, "listing_pages", None):
+            print("  listing pages  " + "  ".join(
+                f"{k}:{v}" for k, v in ad.listing_pages.most_common()))
         if ad.stopped:
             print(f"  stopped early: {ad.stopped}")
         print()

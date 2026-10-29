@@ -66,6 +66,11 @@ class NextLinkAdapter:
             self.origin, self.robots_fetcher, source=self.name,
             pause=lambda: self.sleeper(self.policy.sleep()))
 
+    def enrich(self, listings):
+        """What a source adds to a page's listings before they are yielded:
+        nothing, here. Sheypoor's adapter asks for each listing's page."""
+        yield from listings
+
     def fetch_all(self, on: date) -> Iterator[FetchOutcome]:
         if self.page_fetcher is None or self.parser is None:
             raise RuntimeError(
@@ -87,7 +92,7 @@ class NextLinkAdapter:
                 status, body = None, ""
             if classify_http(status) is FetchStatus.OK and body:
                 got = self.parser(body)
-                for x in got:
+                for x in self.enrich(got):
                     yield x.to_fetch_outcome(self.name, self.salt)
                 if not got:
                     self.stopped = f"page {page} added no new listing"
