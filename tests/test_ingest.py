@@ -3859,10 +3859,10 @@ def _k45_result(slug, *, brand=("پژو", "Peugeot", "peugeot"), model=("پار�
             "created_time": "2026-10-28T10:00:00", "fmp_tags": [{"id": 6, "title": t} for t in tags]}
 
 
-def _k45_card(r, *, figure="final", km=None, year=None, negotiable=False):
+def _k45_card(r, *, figure="final", km=None, year=None, negotiable=False, code=None):
     cp = r["car_properties"]
     href = (f"/buy-car/{cp['brand']['seo_slug']}-{cp['model']['seo_slug']}/"
-            f"{r['city']['title_en'].lower()}/{r['slug']}/")
+            f"{r['city']['title_en'].lower()}/{code or r['slug']}/")
     if figure == "final":
         fig = f"{r['final_price']:,}"
     elif figure == "price":
@@ -4366,6 +4366,52 @@ check("I2: the report says how many say NewCondition, and that they are read lik
 check("I3: the new car's listing is the same as it was: price, year, odometer, condition",
       [(x.asking_price_toman, x.year_jalali, x.mileage_km) for x in _ilst][1]
       == (_ilst[0].asking_price_toman, _ilst[0].year_jalali, _ilst[0].mileage_km), str(_ilst[1]))
+
+
+print("\nkhodro45: a card whose link does not end in the result's slug is joined by what both show")
+# The owner's real page (2026-10-29): 24 results, 24 cards, and 0 joined by the slug.
+_jr = [_k45_result("tsznel", klm=127860, year="1402"),
+       _k45_result("x7k2m9q4", klm=10303, year="1404", option="تیپ ۲", tags=("بی رنگ",)),
+       _k45_result("umvzwp", klm=234951, year="2017")]
+_jr[1]["car_properties"]["trim"] = "MC اتوماتیک"
+_jcards = [_k45_card(_jr[0], code="cla-tsznel"), _k45_card(_jr[1], code="cla-umvzwq"),
+           _k45_card(_jr[2], code="cla-p0q1r2")]
+_jtr = []
+_jl = parse_khodro45(_k45_page(_jr, _jcards), _jtr)
+check("K2-1: three cards whose links end in another code are joined by odometer and year: the card's price, "
+      "its address",
+      [(x.listing_id, x.asking_price_toman, x.price_status) for x in _jl]
+      == [("tsznel", 1212000000, "display_confirmed"), ("x7k2m9q4", 1212000000, "display_confirmed"),
+          ("umvzwp", 1212000000, "display_confirmed")]
+      and _jl[1].url == "https://khodro45.com/buy-car/peugeot-pars/zahedan/cla-umvzwq/"
+      and _jtr[0].joined == Counter({"odometer and year": 3}) and _jtr[0].cards_without_result == 0,
+      str((_jtr[0].joined, [x.asking_price_toman for x in _jl])))
+_jr2 = [_k45_result("aaaaaa", klm=50000, year="1400"), _k45_result("bbbbbb", klm=50000, year="1400"),
+        _k45_result("cccccc", klm=60000, year="1401")]
+_jtr2 = []
+_jl2 = parse_khodro45(_k45_page(_jr2, [_k45_card(r, code="cla-" + r["slug"][:3] + "zzz") for r in _jr2]), _jtr2)
+check("  two results with the same odometer and year are joined to neither card; the third is joined",
+      [x.asking_price_toman for x in _jl2] == [None, None, 1212000000]
+      and _jtr2[0].joined == Counter({"odometer and year": 1, "no card": 2}) and _jtr2[0].cards_without_result == 2,
+      str(_jtr2[0].joined))
+check("K2-3: how the slug relates to the code, and the shapes, with no value",
+      _jtr[0].slug_relation == Counter({"the code ends with the slug": 1, "neither": 2})
+      and _jtr[0].slug_shapes == Counter({"aaaaaa / aaa-aaaaaa": 1, "a#a#a#a# / aaa-aaaaaa": 1,
+                                          "aaaaaa / aaa-a#a#a#": 1}),
+      str((_jtr[0].slug_relation, _jtr[0].slug_shapes)))
+_jrep = "\n".join(_k45.report(_jtr))
+_jtr3 = []
+parse_khodro45(_k45_page(_jr[:1], [_k45_card(_jr[0])], nxt="/api/v2/car_listing/?limit=12&offset=24&ordering=-created_time"), _jtr3)
+_jtr4 = []
+parse_khodro45(_k45_page(_jr[:1], [_k45_card(_jr[0])], nxt="https://api.khodro45.com/v2/x/?offset=12"), _jtr4)
+check("K2-4: each list's size and its next page with the small numbers kept, and where that page is",
+      "a list of 3    next /api/v#/car_listing/?limit=12&offset=12&ordering=…  (khodro45.com)" in _jrep
+      and "offset=24" in "\n".join(_k45.report(_jtr3)) and "(relative)" in "\n".join(_k45.report(_jtr3))
+      and "(another origin)" in "\n".join(_k45.report(_jtr4))
+      and "tsznel" not in _jrep and "x7k2m9q4" not in _jrep, _jrep)
+check("K2-5: the gearbox from the trim when the option says none; the option's and the trim's values are counted",
+      _jl[1].gearbox == "automatic" and _jl[0].gearbox is None
+      and "option         XU7:2  تیپ ۲:1" in _jrep and "MC اتوماتیک:1" in _jrep, _jrep)
 
 
 print()

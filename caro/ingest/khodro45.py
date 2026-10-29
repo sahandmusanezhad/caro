@@ -300,6 +300,65 @@ def rule_path(r: dict) -> str | None:
     return f"/buy-car/{parts[0]}-{parts[1]}/{parts[2]}/{parts[3]}/"
 
 
+def next_view(url: str | None) -> str:
+    """The next page as its path (digits «#») and its parameters, a value
+    kept when it is one to three digits or a lowercase word of up to twelve
+    letters (`offset=12`), anything else «…»."""
+    if not url:
+        return "(none)"
+    path, _, query = re.sub(r"^https?://[^/]+", "", url).partition("?")
+    pairs = []
+    for pair in query.split("&"):
+        k, _, v = pair.partition("=")
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,24}", k):
+            keep = re.fullmatch(r"\d{1,3}|[a-z]{1,12}", v)
+            pairs.append(f"{k}={v if keep else '…'}")
+    return re.sub(r"\d+", "#", path) + ("?" + "&".join(pairs) if pairs else "")
+
+
+def where_is(url: str | None) -> str:
+    """khodro45.com, another origin, or a relative link."""
+    if not url:
+        return "none"
+    if url.startswith("/"):
+        return "relative"
+    m = re.match(r"^https?://([^/?#]+)", url)
+    host = m.group(1).lower() if m else ""
+    return "khodro45.com" if host in ("khodro45.com", "www.khodro45.com") else "another origin"
+
+
+def _shape_of(s: str) -> str:
+    return re.sub(r"[A-Za-z]", "a", re.sub(r"\d", "#", s))
+
+
+def _relation(slug: str, code: str | None) -> str:
+    if not code:
+        return "no code"
+    if slug == code:
+        return "equal"
+    if code.endswith(slug):
+        return "the code ends with the slug"
+    if slug.endswith(code):
+        return "the slug ends with the code"
+    if slug in code or code in slug:
+        return "one holds the other"
+    return "neither"
+
+
+def _result_key(r: dict) -> tuple | None:
+    """(odometer, year) as the data gives them, for the join by content."""
+    cp = r.get("car_properties") if isinstance(r.get("car_properties"), dict) else {}
+    spec = (r.get("car_specifications")
+            if isinstance(r.get("car_specifications"), dict) else {})
+    km, y = _num(spec.get("klm")), _num(cp.get("year"))
+    return (km, y) if km is not None and y else None
+
+
+def _card_key(card: Card) -> tuple | None:
+    km, y = _figure(card.km_text), _card_year(card)
+    return (km, y) if km is not None and y else None
+
+
 # ---------------------------------------------------------------------------
 # The trace
 # ---------------------------------------------------------------------------
@@ -332,6 +391,17 @@ class Khodro45Trace:
     brands: Counter = field(default_factory=Counter)
     cities: Counter = field(default_factory=Counter)
     tags: Counter = field(default_factory=Counter)
+    options: Counter = field(default_factory=Counter)
+    trims: Counter = field(default_factory=Counter)
+    # How each result found its card, and, for a pair found by what both
+    # show, how the result's slug relates to the code at the end of the
+    # card's link and the shape of each (letters «a», digits «#»).
+    joined: Counter = field(default_factory=Counter)
+    slug_relation: Counter = field(default_factory=Counter)
+    slug_shapes: Counter = field(default_factory=Counter)
+    # Each list of results found: its size, the next page it names (its
+    # small numbers kept) and where that page is.
+    lists: list = field(default_factory=list)
     refused: Counter = field(default_factory=Counter)
     odd: dict = field(default_factory=lambda: {k: [] for k in ODD_KINDS})
     prices: list = field(default_factory=list)    # asking prices taken, toman
@@ -430,7 +500,11 @@ def build(r: dict, card: Card | None, trace: Khodro45Trace,
     spec = (r.get("car_specifications")
             if isinstance(r.get("car_specifications"), dict) else {})
     option, trim_raw = _str(cp.get("option")), _str(cp.get("trim"))
+    spec_text = f"{option} {trim_raw}".strip()
     trace.price_types[str(r.get("price_type"))] += 1
+    for c, v, key in ((trace.options, option, "option"), (trace.trims, trim_raw, "trim")):
+        if v:
+            _count(c, v, trace, key)
     _count(trace.brands, b.get("title_en"), trace, "brand")
     _count(trace.cities, city.get("title_en"), trace, "city")
 
@@ -508,7 +582,7 @@ def build(r: dict, card: Card | None, trace: Khodro45Trace,
         make=make, model=model,
         trim=extract_trim(f"{option} {trim_raw}") or _category(trim_raw),
         year_jalali=year, mileage_km=km,
-        gearbox=extract_gearbox(option), fuel=extract_fuel(option), color=None,
+        gearbox=extract_gearbox(spec_text), fuel=extract_fuel(spec_text), color=None,
         body_condition=condition,
         condition_source="field" if condition != "unknown" else "none",
         document_issue=None, city=province, seller_raw=None,
@@ -575,8 +649,14 @@ class Khodro45Parser:
             tr.kind = "html" if pages else "none"
             cards = read_cards(text)
         tr.cards = len(cards)
-        by_slug: dict[str, Card] = {}
+        unique: list[Card] = []
+        hrefs: set[str] = set()
         for c in cards:
+            if c.href not in hrefs:
+                hrefs.add(c.href)
+                unique.append(c)
+        by_slug: dict[str, Card] = {}
+        for c in unique:
             s = slug_of(c.href)
             if s and s not in by_slug:
                 by_slug[s] = c
@@ -587,8 +667,10 @@ class Khodro45Parser:
             if tr.count is None and _num(pg.get("count")) is not None:
                 tr.count = _num(pg.get("count"))
             nxt = pg.get("next")
-            if isinstance(nxt, str) and nxt.strip():
-                self.next_url = _absolute(nxt.strip())
+            nxt = nxt.strip() if isinstance(nxt, str) and nxt.strip() else None
+            tr.lists.append((len(pg["results"]), next_view(nxt), where_is(nxt)))
+            if nxt:
+                self.next_url = _absolute(nxt)
             for r in pg["results"]:
                 s = _str(r.get("slug")) if isinstance(r, dict) else ""
                 if not _SLUG.match(s):
@@ -600,12 +682,50 @@ class Khodro45Parser:
                 results.append(r)
         tr.next_shape = url_shape(self.next_url)
         tr.results = len(results)
-        tr.cards_without_result = sum(1 for s in by_slug if s not in got)
+
+        # Each result's card: by its slug first, and where no card's link ends
+        # in it, by what both show. The owner's real page (2026-10-29) joined
+        # 0 of 24 by the slug: its `slug` is not the code its card's link ends
+        # in. The 24 cards are the 24 results, and an odometer and a year are
+        # one car's on a page of 24 when no other result and no other card
+        # has the same pair; where two have, neither is joined.
+        join: dict[int, Card] = {}
+        for i, r in enumerate(results):
+            c = by_slug.get(_str(r.get("slug")))
+            if c is not None:
+                join[i] = c
+                tr.joined["slug"] += 1
+        used = {id(c) for c in join.values()}
+        by_rkey: dict[tuple, list[int]] = {}
+        for i, r in enumerate(results):
+            k = _result_key(r) if i not in join else None
+            if k:
+                by_rkey.setdefault(k, []).append(i)
+        by_ckey: dict[tuple, list[Card]] = {}
+        for c in unique:
+            k = _card_key(c) if id(c) not in used else None
+            if k:
+                by_ckey.setdefault(k, []).append(c)
+        for k, idx in by_rkey.items():
+            if len(idx) == 1 and len(by_ckey.get(k, [])) == 1:
+                c = by_ckey[k][0]
+                join[idx[0]] = c
+                used.add(id(c))
+                tr.joined["odometer and year"] += 1
+                slug = _str(results[idx[0]].get("slug"))
+                code = slug_of(c.href)
+                tr.slug_relation[_relation(slug, code)] += 1
+                shape = f"{_shape_of(slug)} / {_shape_of(code or '')}"
+                if shape in tr.slug_shapes or len(tr.slug_shapes) < 6:
+                    tr.slug_shapes[shape] += 1
+        if len(join) < len(results):
+            tr.joined["no card"] += len(results) - len(join)
+        tr.cards_without_result = sum(1 for c in unique if id(c) not in used)
 
         # what the cards of this page show, before any result is built, so a
         # result without a card on the same page is read by them as well
-        for r in results:
-            card = by_slug.get(_str(r.get("slug")))
+        for i, r in enumerate(results):
+            card = join.get(i)
             if card is None:
                 continue
             shown = _shown_field(r, _card_price(card))
@@ -616,12 +736,11 @@ class Khodro45Parser:
             self.rule["rule agrees" if rp and rp == card.href else "rule differs"] += 1
 
         fresh: list[CarListing] = []
-        for r in results:
-            s = _str(r.get("slug"))
+        for i, r in enumerate(results):
             if r.get("active") is False:
                 tr.skipped["not active"] += 1
                 continue
-            card = by_slug.get(s)
+            card = join.get(i)
             if card is None:
                 tr.results_without_card += 1
             x = build(r, card, tr, self.learned_field(), self.url_rule_ok())
@@ -695,6 +814,9 @@ def report(traces: list[Khodro45Trace]) -> list[str]:
         if c:
             L.append(f"  {label:<15}" + "  ".join(f"{k}:{v}" for k, v in c.most_common(top)))
 
+    line("joined", "joined")
+    line("slug vs code", "slug_relation")
+    line("their shapes", "slug_shapes")
     line("card shows", "shown")
     line("price", "price")
     line("price type", "price_types")
@@ -705,11 +827,16 @@ def report(traces: list[Khodro45Trace]) -> list[str]:
     line("brand", "brands", 12)
     line("city", "cities", 12)
     line("tags", "tags", 12)
+    line("option", "options", 12)
+    line("trim", "trims", 12)
     prices = sorted(p for t in traces for p in t.prices)
     if prices:
         L.append(f"  asking price   min {_b(prices[0])}   median "
                  f"{_b(prices[len(prices) // 2])}   max {_b(prices[-1])}   (toman)")
     L.append(f"  next page      {traces[-1].next_shape}")
+    for t in traces[-1:]:
+        for n, view, where in t.lists:
+            L.append(f"  a list of {n:<4} next {view}  ({where})")
     for k, v in (("duplicates", sum(t.duplicates for t in traces)),
                  ("cards without a result", sum(t.cards_without_result for t in traces)),
                  ("results without a card", sum(t.results_without_card for t in traces))):
