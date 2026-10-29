@@ -311,7 +311,8 @@ class PageTrace:
     odd: dict = field(default_factory=lambda: {k: [] for k in ODD_KINDS})
 
 
-ODD_KINDS = ("price below the floor", "year differs", "odometer differs")
+ODD_KINDS = ("price below the floor", "year differs", "year fields differ",
+             "odometer differs")
 _ODD_CAP = 12
 
 
@@ -495,13 +496,26 @@ def build(url: str, token: str, node: dict | None, card: Card | None,
     y_ld = ld_year_jalali(node)
     y_title = parse_year_jalali(title) if title else None
     if y_ld and y_title:
-        trace.year["agree" if y_ld == y_title else "differ"] += 1
-        if y_ld != y_title:
+        gap = abs(y_ld - y_title)
+        trace.year["agree" if gap == 0 else "differ_near" if gap == 1
+                   else "differ_far"] += 1
+        if gap:
             trace.odd["year differs"].append((y_ld, y_title))
+        # Two years that differ by two or more are two readings of one car,
+        # and neither is chosen: the real page had (1405, 1385) and (1405,
+        # 1360), the node saying this year of a car the seller's title says
+        # is twenty or forty-five years old. A listing with no year is held
+        # back by the gate, and that is the right answer to "we do not know".
+        # One year apart is the Gregorian/Jalali edge and the node's is kept.
+        year = None if gap >= 2 else y_ld
     else:
         trace.year["ld_only" if y_ld else "title_only" if y_title
                    else "none"] += 1
-    year = y_ld or y_title
+        year = y_ld or y_title
+    ym = ld_year_jalali({"vehicleModelDate": node.get("vehicleModelDate")})
+    yp = ld_year_jalali({"productionDate": node.get("productionDate")})
+    if ym and yp and ym != yp:
+        trace.odd["year fields differ"].append((ym, yp))
 
     ld_price, _ = ld_price_toman(node.get("offers"))
     price, p_status, p_prov, displayed, p_code = _price(ld_price, shown)

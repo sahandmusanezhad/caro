@@ -2895,11 +2895,11 @@ check("X15: 0 km on a ten-year-old car is the placeholder rule's, and the gate r
       (_m.mileage_km, _m.mileage_status) == (0, "suspicious")
       and not _eligibility(_m)[0], str((_m.mileage_km, _m.mileage_status)))
 check("X16: 1395 is 1395, the Gregorian 2016 is 1395, a title's «۹۵» is 1395 when "
-      "the node has no date, and the node beats a title that disagrees",
+      "the node has no date, and the node beats a title one year apart",
       _one(_node("AbCd1234", year="1395")).year_jalali == 1395
       and _one(_node("AbCd1234", year="2016")).year_jalali == 1395
       and _one(_node("AbCd1234", year=None, name="پراید ۱۳۱ مدل ۹۵")).year_jalali == 1395
-      and _one(_node("AbCd1234", year="1395", name="پراید ۱۳۱ مدل ۹۰")).year_jalali == 1395)
+      and _one(_node("AbCd1234", year="1395", name="پراید ۱۳۱ مدل ۹۴")).year_jalali == 1395)   # one apart: the node's (J2)
 
 _secret = _page([_node("AbCd1234", vin="9SECRETVIN0001")], [_card("AbCd1234")],
                 extra_ld=[json.dumps({
@@ -3448,6 +3448,38 @@ check("  but 0 against 120,000 and 5 against 120,000 are still no odometer",
       and _one(_node("AbCd1234", km="5"), _card("AbCd1234")).mileage_km is None)
 check("  and a node that already agrees in km is not read as thousands",
       _one(_node("AbCd1234", km="120000"), _card("AbCd1234")).mileage_km == 120_000)
+
+
+print("\ntwo years that differ by two or more are no year")
+_yt = PageTrace()
+_ys = parse_divar_page(_page([_node("AbCd1234", year="1405", name="پژو ۲۰۶ مدل ۸۵"),
+                              _node("EfGh5678", year="1405", name="پژو ۲۰۶ مدل ۶۰"),
+                              _node("IjKl9012", year="1404", name="پژو ۲۰۶ مدل ۱۴۰۵"),
+                              _node("MnOp3456", year="1399", name="پژو ۲۰۶ مدل ۹۹")], []), _yt)
+check("J2: the node's 1405 against a title's 85 or 60 is no year; 1404 against 1405 is the "
+      "node's; equal is equal; the counts say which",
+      [x.year_jalali for x in _ys] == [None, None, 1404, 1399]
+      and (_yt.year["differ_far"], _yt.year["differ_near"], _yt.year["agree"]) == (2, 1, 1),
+      str(([x.year_jalali for x in _ys], dict(_yt.year))))
+check("  a listing with no year is held back by the gate, with that reason",
+      "no year_jalali" in _eligibility(_ys[0])[1] and not _eligibility(_ys[0])[0])
+check("  the pair is printed as numbers: (1405, 1385) and (1405, 1360), and (1404, 1405)",
+      all(x in "\n".join(_dp.report([_yt])) for x in ("(1405, 1385)", "(1405, 1360)", "(1404, 1405)")))
+check("  exactly two apart is no year too, and the pair is still printed",
+      _one(_node("AbCd1234", year="1403", name="پژو ۲۰۶ مدل ۱۴۰۵")).year_jalali is None)
+check("  a node with no title year keeps its year, and a title with no node year keeps its",
+      _one(_node("AbCd1234", year="1405", name="پژو")).year_jalali == 1405
+      and _one(_node("AbCd1234", year=None, name="پژو ۲۰۶ مدل ۸۵")).year_jalali == 1385)
+_yf = PageTrace()
+parse_divar_page(_page([_node("AbCd1234", extra={"vehicleModelDate": "1385", "productionDate": "1405"}),
+                        _node("EfGh5678", extra={"vehicleModelDate": "1399", "productionDate": "1399"})], []), _yf)
+_yg = PageTrace()
+parse_divar_page(_page([_node("AbCd1234", year=None, extra={"vehicleModelDate": "1385"})], []), _yg)
+check("J3: a node with one year field only lists no pair",
+      _yg.odd["year fields differ"] == [])
+check("J3: a node whose two year fields differ is listed as the pair (model date, production date)",
+      _yf.odd["year fields differ"] == [(1385, 1405)]
+      and "year fields differ" in "\n".join(_dp.report([_yf])) and "(1385, 1405)" in "\n".join(_dp.report([_yf])))
 
 
 print()
