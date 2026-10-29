@@ -2277,7 +2277,8 @@ def _first_run_into(tmp, fetcher):
     out = _io.StringIO()
     try:
         with _contextlib.redirect_stdout(out):
-            _, path = _first_run.collect(args, [], fetcher=fetcher)
+            _, path = _first_run.collect(args, [], fetcher=fetcher,
+                                         sleeper=lambda s: None)
         return json.loads(path.read_text(encoding="utf-8")), out.getvalue()
     finally:
         _first_run.SNAPSHOT_DIR = old

@@ -675,7 +675,7 @@ def collect(args, traces: list | None = None,
     what the serialiser did with it.
 
     `fetcher` replaces the HTTP fetcher, for tests; None is the network.
-    `sleeper` replaces the wait between Divar pages, for the same reason."""
+    `sleeper` replaces the wait between requests, for the same reason."""
     out: list = []
 
     if args.source == "divar":
@@ -718,7 +718,8 @@ def collect(args, traces: list | None = None,
                      only_makes=make_list(args),
                      sample_seed=None if make_list(args) else args.seed,
                      salt=os.environ["CARO_SELLER_SALT"],
-                     on_listing=out.append)
+                     on_listing=out.append,
+                     **({"sleeper": sleeper} if sleeper else {}))
 
     records = list(ad.fetch_all(date.today()))
     if traces is not None:
