@@ -801,6 +801,39 @@ for text in ("پراید زیر ۴۰۰ میلیون مدل ۹۸ به بالا", 
 
 
 # ---------------------------------------------------------------------------
+print("\nthe decimal part of an amount: «.» «,» «/» «٫» (2026-10-29, the owner's call)")
+# «۱/۵ میلیارد» and «۱٫۵ میلیارد» (U+066B) were read as 5 billion, silently; «.» and
+# «,» were read right. 20 phrasings a separator were made (five amounts, four
+# shapes): «/» and «٫» 0 of 20 before and 20 of 20 now. «،» is not a decimal
+# mark here: it is the clause separator and a thousands separator, and stays
+# 0 of 20. A part of three digits is not a decimal («۱۱۱/۳۰۰ میلیون»).
+for sep, name in [(".", "«.»"), (",", "«,»"), ("/", "«/»"), ("٫", "«٫» (U+066B)")]:
+    for amount, want in [("۱{s}۵ میلیارد", 1_500_000_000), ("۲{s}۵ میلیارد", 2_500_000_000),
+                         ("۱{s}۲۵ میلیارد", 1_250_000_000), ("۳{s}۷۵ میلیارد", 3_750_000_000)]:
+        for shape in ("پراید زیر {a}", "{a} پراید", "بودجه {a}، پراید سفید"):
+            q_dec = shape.format(a=amount.format(s=sep))
+            got_dec = P.parse(q_dec).budget_max_toman
+            check(f"«{q_dec}» → ceiling {want:,}  ({name})", got_dec == want, str(got_dec))
+q_dec = "پراید زیر ۱،۵ میلیارد"
+check(f"«{q_dec}» → NOT 1.5 billion: «،» is left  (clause and thousands separator)",
+      P.parse(q_dec).budget_max_toman != 1_500_000_000, str(P.parse(q_dec).budget_max_toman))
+for q_dec, want in [("پراید ۱۱۱/۳۰۰ میلیون", 300_000_000),
+                    ("پراید ۱۳۱/۱۱۱ تا ۳۰۰ میلیون", 300_000_000),
+                    ("پراید مدل ۱۴۰۰/۰۵/۰۲ زیر ۳۰۰ میلیون", 300_000_000)]:
+    check(f"«{q_dec}» → ceiling {want:,}  (a part of three digits, or a date, is no decimal)",
+          P.parse(q_dec).budget_max_toman == want, str(P.parse(q_dec).budget_max_toman))
+q_dec = "پراید ۱۰/۱۲ میلیون کارکرد"
+check(f"«{q_dec}» → 10,120,000, left  (two numbers with a slash between and a scale word "
+      "are read as one decimal; as a range they are 10 to 12)",
+      P.parse(q_dec).budget_max_toman == 10_120_000, str(P.parse(q_dec).budget_max_toman))
+q_dec = "پراید از ۱/۲ میلیارد به بالا"
+check(f"«{q_dec}» → floor 1,200,000,000  (the floor's amount reads it too)",
+      P.parse(q_dec).budget_min_toman == 1_200_000_000, str(P.parse(q_dec).budget_min_toman))
+q_dec = "پراید ۲/۵ میلیارد و بالاتر"
+check(f"«{q_dec}» → floor 2,500,000,000  (so does «و بالاتر»)",
+      P.parse(q_dec).budget_min_toman == 2_500_000_000, str(P.parse(q_dec).budget_min_toman))
+
+# ---------------------------------------------------------------------------
 print("\na model's number is a model only where it stands alone (D83)")
 # A model's number was matched as a substring of the query: «دنا تا ۱۳۱۰ میلیون»
 # holds 131, which is Pride's, and «تیبا مدل ۱۴۰۵» holds 405, so each added a

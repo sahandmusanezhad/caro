@@ -507,12 +507,16 @@ is read once more against the tree, and the last round gets its D-entry.
 Items to add. Each one moves into a list above once it has been measured and
 decided.
 
-- **Decimal separators.** «۱/۵ میلیارد», «۱٫۵ میلیارد» (the Arabic separator,
-  U+066B) and «۱،۵ میلیارد» are read as 5 billion, silently: of 20 made
-  phrasings per separator (five amounts, four shapes of ceiling) 0 are read
-  right, where «.» and «,» are read right on 20 of 20. `normalize_fa` folds
-  neither, and «،» is also the clause separator. The panel shows the wrong
-  ceiling. A round of its own, and a rule about Persian that is the owner's.
+- **Decimal separators — «،» still.** «۱/۵ میلیارد» and «۱٫۵ میلیارد» (U+066B)
+  are read as 1.5 billion, and were read as 5 billion (0 of 20 phrasings each,
+  five amounts and four shapes; «.» and «,» were 20 of 20, and are). The
+  decimal part is one or two digits after «/» or «٫» with no digit after
+  them, inside an amount with a scale word: «۱۱۱/۳۰۰ میلیون» is still 300
+  million and a date is no amount. Known, and left, each pinned by a test:
+  «۱۰/۱۲ میلیون», two numbers with a slash between and a scale word, is
+  10.12 million (read as a range it would be 10 to 12); and «۱،۵ میلیارد»
+  is read as before, wrong, on 20 of 20, because «،» is also the clause
+  separator and a thousands separator — a rule for it is the owner's.
 
 ## Deliberately not planned
 

@@ -70,8 +70,14 @@ def normalize_fa(s: str) -> str:
 _SCALE = {"میلیارد": 1_000_000_000, "ملیارد": 1_000_000_000,
           "میلیون": 1_000_000, "ملیون": 1_000_000, "م": 1_000_000}
 
+# The decimal part of an amount is «.» or «,», as before, or «/» or «٫» (the
+# Arabic decimal separator, U+066B) with one or two digits and no digit after
+# them: «۱/۵ میلیارد» is 1.5 billion, and «۱۱۱/۳۰۰ میلیون» (a model, a slash and
+# an amount) is still 300 million. «،» is not one: it is also the clause
+# separator and a thousands separator (docs/ROADMAP.md, the parser, item 5).
+_DECIMAL = r"(?:[.,]\d+|[/٫]\d{1,2}(?!\d))?"
 _AMOUNT = re.compile(
-    r"(\d+(?:[.,]\d+)?)\s*(میلیارد|ملیارد|میلیون|ملیون|م)?(?:\s*و\s*(\d+))?")
+    r"(\d+" + _DECIMAL + r")\s*(میلیارد|ملیارد|میلیون|ملیون|م)?(?:\s*و\s*(\d+))?")
 
 
 def parse_amount(text: str) -> int | None:
@@ -79,7 +85,7 @@ def parse_amount(text: str) -> int | None:
     m = _AMOUNT.search(text)
     if not m:
         return None
-    base = float(m.group(1).replace(",", "."))
+    base = float(m.group(1).replace(",", ".").replace("/", ".").replace("٫", "."))
     unit = m.group(2)
     tail = m.group(3)
     if unit in ("میلیارد", "ملیارد"):
@@ -118,7 +124,7 @@ def parse_amount(text: str) -> int | None:
 # because a currency word with no scale is genuinely ambiguous at these
 # magnitudes; the text stays in `unparsed`, where the user can see it.
 _MONEY = re.compile(
-    r"\d+(?:[.,]\d+)?\s*"
+    r"\d+" + _DECIMAL + r"\s*"
     r"(?:(?:میلیارد|ملیارد|میلیون|ملیون)(?:\s*و\s*\d+)?|م(?!\w))")
 
 
@@ -192,7 +198,7 @@ _FLOOR_Y = re.compile(_CUE + _SOFT + "(" + _MONEY.pattern + ")" + _UNIT_TAIL
 #     sees the «نباید» before it. A year clause right after the amount is read
 #     by `_FLOOR_Y`, whose cue is the bare «از», as it was.
 #   - «حداقل ۴۰۰ میلیون پول دارم», what the buyer has, is read as a floor.
-_MONEY_T = (r"\d+(?:[.,]\d+)?\s*"
+_MONEY_T = (r"\d+" + _DECIMAL + r"\s*"
             r"(?:(?:میلیارد|ملیارد)(?:\s*و\s*\d+)?|میلیون|ملیون|م(?!\w))")
 _FLOOR_L = re.compile(r"(?<!\w)حداقل\s*(?:قیمت\s*)?" + _SOFT
                       + "(" + _MONEY.pattern + ")" + _UNIT_TAIL)
