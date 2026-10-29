@@ -2978,10 +2978,10 @@ check("X31: a gearbox is read from English or Persian, else from the title",
 _tr = PageTrace()
 parse_divar_page(_page([_node("AbCd1234", extra={"owner_name": "رضایی"})],
                        [_card("AbCd1234")]), _tr)
-check("X32: the counted values are those eight keys and no other, and a colour or a "
-      "name is not among them",
+check("X32: the counted values are those nine keys and no other, and a colour or a "
+      "name is not among them (itemCondition the ninth since I1)",
       set(_tr.enums) == {"@type", "priceCurrency", "unitCode", "vehicleTransmission",
-                         "knownVehicleDamages", "category", "brand", "model"}
+                         "knownVehicleDamages", "category", "brand", "model", "itemCondition"}
       and _tr.enums["priceCurrency"] == {"IRR": 1} and _tr.enums["unitCode"] == {"KMT": 1}
       and "سفید" not in repr(_tr.enums) and "رضایی" not in repr(_tr.enums), str(_tr.enums))
 check("X33: a damage field no one has seen the values of sets no condition",
@@ -4341,6 +4341,23 @@ check("  --source sheypoor live: robots.txt, /s/iran/car and its rel=next; five 
       and any(n.startswith("robots.txt ") for n in _ssnap["notes"])
       and _sasked2 == ["https://www.sheypoor.com/robots.txt", "https://www.sheypoor.com/s/tehran/car"],
       str((_sasked, _sasked2)))
+
+
+print("\ndivar: itemCondition is counted, and a new car is said")
+_itr = PageTrace()
+_inodes = [_node("AbCd1234"), _node("EfGh5678", extra={"itemCondition": "https://schema.org/NewCondition"}),
+           _node("IjKl9012", extra={"itemCondition": "x" * 41})]
+_ilst = parse_divar_page(_page(_inodes, [_card(t) for t in ("AbCd1234", "EfGh5678", "IjKl9012")]), _itr)
+_irep = "\n".join(_dp.report([_itr]))
+check("I1: itemCondition is counted by its schema.org term; a value that is not a category is refused",
+      _itr.enums["itemCondition"] == Counter({"UsedCondition": 1, "NewCondition": 1})
+      and _itr.refused["itemCondition: long"] == 1 and "itemCondition" in _irep, str(_itr.enums["itemCondition"]))
+check("I2: the report says how many say NewCondition, and that they are read like the others",
+      "1 listing(s) say itemCondition NewCondition" in _irep
+      and "NewCondition" not in "\n".join(_dp.report([PageTrace()])), _irep[-500:])
+check("I3: the new car's listing is the same as it was: price, year, odometer, condition",
+      [(x.asking_price_toman, x.year_jalali, x.mileage_km) for x in _ilst][1]
+      == (_ilst[0].asking_price_toman, _ilst[0].year_jalali, _ilst[0].mileage_km), str(_ilst[1]))
 
 
 print()

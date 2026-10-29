@@ -81,7 +81,8 @@ from caro.ingest.quality import (
 # because the table of thirteen is domestic only, and what the other ten
 # listings are called is the one thing to read before widening it.
 ENUM_KEYS = ("@type", "priceCurrency", "unitCode", "vehicleTransmission",
-             "knownVehicleDamages", "category", "brand", "model")
+             "knownVehicleDamages", "category", "brand", "model",
+             "itemCondition")
 
 _VEHICLE_TYPES = frozenset({"car", "vehicle", "motorvehicle"})
 _VEHICLE_KEYS = ("vehicleModelDate", "productionDate", "mileageFromOdometer")
@@ -378,6 +379,16 @@ def _offers(node: dict) -> dict:
     return o if isinstance(o, dict) else {}
 
 
+def _schema_term(v):
+    """«https://schema.org/NewCondition» -> «NewCondition»; anything else as
+    it is, for the same guard as every other value."""
+    if isinstance(v, str):
+        m = re.fullmatch(r"https?://schema\.org/([A-Za-z]{1,40})", v.strip())
+        if m:
+            return m.group(1)
+    return v
+
+
 def _count_enums(node: dict, trace: PageTrace) -> None:
     mil = node.get("mileageFromOdometer")
     brand = node.get("brand")
@@ -387,7 +398,10 @@ def _count_enums(node: dict, trace: PageTrace) -> None:
             "vehicleTransmission": node.get("vehicleTransmission"),
             "knownVehicleDamages": node.get("knownVehicleDamages"),
             "priceCurrency": _offers(node).get("priceCurrency"),
-            "unitCode": mil.get("unitCode") if isinstance(mil, dict) else None}
+            "unitCode": mil.get("unitCode") if isinstance(mil, dict) else None,
+            # A new car on a used-car list: the owner's second read had 4 of
+            # 24. Counted, and read like the others until he decides.
+            "itemCondition": _schema_term(node.get("itemCondition"))}
     for key, raw in seen.items():
         for v in raw if isinstance(raw, list) else [raw]:
             why = _refusal(v)
@@ -793,6 +807,11 @@ def report(traces: list[PageTrace]) -> list[str]:
         L.append("  ⚠ damage value(s) the parser has not seen and does not map, "
                  "so those listings' condition is unknown: "
                  + "  ".join(f"{k}:{v}" for k, v in sorted(unmapped.items())))
+    new = sum(t.enums["itemCondition"].get("NewCondition", 0) for t in traces)
+    if new:
+        L.append(f"  ⚠ {new} listing(s) say itemCondition NewCondition: a new car on a "
+                 "used-car list. They are read like the others until the owner "
+                 "decides what a new car is in this corpus.")
     ld_only = sum(t.price["ld_only"] for t in traces)
     if ld_only:
         L.append(f"  ⚠ {ld_only} price(s) rest on the structured block alone. "
