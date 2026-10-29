@@ -37,12 +37,13 @@ per listing, not the raw HTTP response. That directory is operational and
 never published; the publishable artifact is produced separately by
 scripts/promote_corpus.py into data/corpora/ (docs/DATA_CONTRACT.md).
 
-KNOWN DEFECT, recorded rather than described away: `--replay` reads
-`raw["listings"]`, and write_snapshot emits `outcomes`. Replaying a snapshot
-this script wrote therefore yields zero listings and says so without failing.
-The two formats have never matched. Fixing it is a behaviour change and is not
-this docstring's business, but a reader should not be told the loop closes
-when it does not.
+`--replay FILE` reads a snapshot this script wrote (its "outcomes": each record of
+status ok is a listing; an unknown or absent page is not one) or the older file
+with a top-level "listings". Until 2026-10-29 it read only the second, and
+replaying a snapshot yielded zero listings and said so without failing; the loop
+now closes. What a replayed snapshot cannot show is what only the live objects
+carry (the provenance section needs the parse traces, and the field survival
+compares the snapshot with itself), so those two are left out of a replay.
 """
 
 from __future__ import annotations
@@ -53,6 +54,7 @@ import json
 import os
 import sys
 from collections import Counter
+from dataclasses import fields as dc_fields
 from datetime import date
 from pathlib import Path
 
@@ -73,7 +75,9 @@ from caro.ingest.robots import RobotsViolation, describe              # noqa: E4
 from caro.ingest.quality import (                                     # noqa: E402
     classify_mileage, classify_price_value, eligibility,
 )
-from caro.tracking import FetchStatus, Snapshot, assess_integrity, write_snapshot  # noqa: E402
+from caro.tracking import (                                          # noqa: E402
+    FetchOutcome, FetchStatus, Snapshot, assess_integrity, write_snapshot,
+)
 
 SNAPSHOT_DIR = ROOT / "data" / "snapshots"
 
@@ -503,6 +507,27 @@ def inventory(listings: list, traces: list | None = None,
     return "\n".join(L)
 
 
+def outcomes_from_snapshot(raw: dict) -> list[FetchOutcome]:
+    """The listings of a snapshot: its records of status ok, as FetchOutcomes.
+
+    A record of an unknown or absent page is a fetch and not a listing, and
+    counting it would put an empty row in every rate (survival()'s lesson).
+    Keys this version of FetchOutcome does not have are dropped, so a snapshot
+    from a later or an earlier one still reads.
+    """
+    known = {f.name for f in dc_fields(FetchOutcome)}
+    out = []
+    for r in raw.get("outcomes") or []:
+        if not isinstance(r, dict) or r.get("status") != FetchStatus.OK.value:
+            continue
+        kw = {k: v for k, v in r.items() if k in known}
+        kw["status"] = FetchStatus.OK
+        if "image_phashes" in kw:
+            kw["image_phashes"] = tuple(kw["image_phashes"] or ())
+        out.append(FetchOutcome(**kw))
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--source", choices=["bama", "divar"], default="bama")
@@ -558,6 +583,8 @@ def main() -> int:
     snapshot_path = None
     if args.replay:
         raw = json.loads(args.replay.read_text(encoding="utf-8"))
+        if "outcomes" in raw and "listings" not in raw:
+            listings = outcomes_from_snapshot(raw)
         for r in raw.get("listings", []):
             listings.append(parse_listing(
                 r["listing_id"], r["url"], r.get("title", ""),

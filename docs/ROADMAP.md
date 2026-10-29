@@ -7,7 +7,7 @@ the predictions are written first, the measurement is run, the owner decides
 on it, and the change goes in, in its own commit
 ([WORKING_AGREEMENT](WORKING_AGREEMENT.md)).
 
-Last revised 2026-10-25.
+Last revised 2026-10-29.
 
 Who does what:
 

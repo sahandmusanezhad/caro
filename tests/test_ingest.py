@@ -3377,6 +3377,61 @@ check("400 pages, each with 1 to 4 fields of 6 vehicles set to a value of the wr
       not _crashes and _read == 400, str(_crashes[:2]))
 
 
+print("\nfirst_run --replay reads a snapshot, so the loop closes")
+
+
+def _replay(path_or_obj):
+    """first_run.main() on --replay; its stdout and return code."""
+    with _tempfile.TemporaryDirectory() as tmp:
+        f = _Path(tmp) / "snap.json"
+        f.write_text(path_or_obj if isinstance(path_or_obj, str)
+                     else json.dumps(path_or_obj, ensure_ascii=False), encoding="utf-8")
+        argv, _first_run.sys.argv = _first_run.sys.argv, ["first_run.py", "--replay", str(f)]
+        out = _io.StringIO()
+        try:
+            with _contextlib.redirect_stdout(out):
+                rc = _first_run.main()
+        finally:
+            _first_run.sys.argv = argv
+    return rc, out.getvalue()
+
+
+_fetch3, _ = _divar_world(lambda u: _three)
+with _tempfile.TemporaryDirectory() as _tmp:
+    _old, _first_run.SNAPSHOT_DIR = _first_run.SNAPSHOT_DIR, _Path(_tmp)
+    _live = _io.StringIO()
+    try:
+        with _contextlib.redirect_stdout(_live):
+            _lst, _sp = _first_run.collect(_fr_args, [], fetcher=_fetch3, sleeper=lambda s: None)
+            print(_first_run.inventory(_lst, None, fetched=len(_lst)))
+        _snap_text = _sp.read_text(encoding="utf-8")
+    finally:
+        _first_run.SNAPSHOT_DIR = _old
+_rc, _txt = _replay(_snap_text)
+check("R1: a snapshot the Divar collect wrote replays as its listings",
+      _rc == 0 and "replayed 3 listings" in _txt and "CORPUS INVENTORY  (3 listings)" in _txt,
+      _txt[:200])
+_snap_obj = json.loads(_snap_text)
+_snap_obj["outcomes"].append({"listing_id": "__page__:divar:2", "status": "unknown", "http_status": 403})
+_rc, _txt = _replay(_snap_obj)
+check("R2: a record of a page that did not answer is a fetch and not a listing",
+      "replayed 3 listings" in _txt, _txt[:120])
+_rows = lambda t: [ln for ln in t.splitlines()
+                   if ln.split(" ")[0] in ("asking_price_toman", "year_jalali", "mileage_km", "make",
+                                           "model", "trim", "gearbox", "fuel", "color", "body_condition")]
+check("R3: the field rates of the replay are the ones printed at collection",
+      _rows(_txt) == _rows(_live.getvalue()) and len(_rows(_txt)) == 10,
+      str((_rows(_txt)[:2], _rows(_live.getvalue())[:2])))
+_rc, _txt = _replay({"listings": [{"listing_id": "a1", "url": "https://divar.ir/v/a1",
+                                    "title": "پراید ۱۳۱ مدل ۹۵", "description": "کارکرد ۲۱۰ هزار",
+                                    "price_text": "۲۸۰ میلیون"}]})
+check("R4: the older file, with a top-level listings, replays as before",
+      _rc == 0 and "replayed 1 listings" in _txt)
+_rc, _txt = _replay({"nothing": 1})
+check("R5: a file with neither key replays as nothing, and does not raise",
+      _rc == 0 and "replayed 0 listings" in _txt and "nothing to report" in _txt, _txt[:120])
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

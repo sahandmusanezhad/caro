@@ -199,7 +199,7 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all fifteen suites
 
-python3 tests/run_all.py            # 2870 assertions, no API key, no network
+python3 tests/run_all.py            # 2875 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -217,10 +217,10 @@ output in `docs/` instead: `RUN3_2026-09-07.txt`, `RUN5_2026-09-07.txt`,
 suites need more, and the runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2324 assertions across 12 of 15 suites
+python3 tests/run_all.py            # 2329 assertions across 12 of 15 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 2870 across all fifteen
+python3 tests/run_all.py            # 2875 across all fifteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -319,10 +319,11 @@ artifact under `data/corpora/`, written by `scripts/promote_corpus.py`, which
 redacts seller-authored text and validates against
 [DATA_CONTRACT](docs/DATA_CONTRACT.md).
 
-`--replay` does not close that loop. It reads a top-level `listings` key and
-`write_snapshot` emits `outcomes`, so replaying a snapshot this script wrote
-yields zero listings — quietly, without failing. The formats have never
-matched, and the script's own docstring says so.
+`--replay FILE` reads a snapshot this script wrote (the records of status ok
+are the listings) or the older file with a top-level `listings`, and prints the
+inventory again with no network, no salt and nothing written. Until 2026-10-29
+it read only the second, and replaying a snapshot yielded zero listings, quietly.
+`--page FILE` does the same for one saved Divar category page.
 
 ---
 
@@ -580,7 +581,7 @@ trade for a system whose pitch is that it does not overclaim.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           2870 assertions across fifteen suites
+tests/           2875 assertions across fifteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, replays, the benchmark, the probes
 data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed
