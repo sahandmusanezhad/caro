@@ -44,26 +44,22 @@ from __future__ import annotations
 
 import json
 import re
-import time
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import date
 from html.parser import HTMLParser
-from typing import Callable, Iterator
 
 from caro.ingest.bama import ld_year_jalali
 from caro.ingest.divar_car import (
-    CarListing, PolitenessPolicy, extract_body_condition, extract_fuel,
-    extract_gearbox, extract_make_model, extract_trim,
+    CarListing, extract_body_condition, extract_fuel, extract_gearbox,
+    extract_make_model, extract_trim,
 )
 from caro.ingest.nextjs import page_rows
+from caro.ingest.paging import NextLinkAdapter, url_shape
 from caro.ingest.persian import digits_only, normalize, province_from_city
 from caro.ingest.quality import (
     PriceStatus, Validity, classify_mileage, classify_price_value,
     classify_product,
 )
-from caro.ingest.robots import RobotsGate
-from caro.tracking import FetchOutcome, FetchStatus, classify_http
 
 KHODRO45_ORIGIN = "https://khodro45.com"
 LIST_URL = KHODRO45_ORIGIN + "/buy-car/"
@@ -286,16 +282,6 @@ def _absolute(url: str) -> str:
     if url.startswith("/"):
         return KHODRO45_ORIGIN + url
     return url
-
-
-def url_shape(url: str | None) -> str:
-    """A link as its path, digits as «#», and the names of its parameters."""
-    if not url:
-        return "(none)"
-    path, _, query = re.sub(r"^https?://[^/]+", "", url).partition("?")
-    names = [p.split("=", 1)[0] for p in query.split("&") if p]
-    names = [n for n in names if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]{0,24}", n)]
-    return re.sub(r"\d+", "#", path) + ("?" + "&".join(names) if names else "")
 
 
 def rule_path(r: dict) -> str | None:
@@ -665,74 +651,18 @@ def parse_khodro45(text: str, trace_into: list | None = None) -> list[CarListing
 # ---------------------------------------------------------------------------
 
 @dataclass
-class Khodro45Adapter:
+class Khodro45Adapter(NextLinkAdapter):
     """Collects Khodro45's public list. No login, no contact, no rotation.
 
     The first page is `/buy-car/`; each next page is the one the page before
-    named (`next`), and is asked for only if it is on the same origin and
-    robots.txt allows it. The site's API serves those pages: what its own
-    list loads when a visitor scrolls, asked for at the same pace as a page.
-    Anything else ends the run, and the reason is kept in `stopped`.
+    named (`next`), asked for only if it is on the same origin and robots.txt
+    allows it (caro/ingest/paging.py). The site's API serves those pages: what
+    its own list loads when a visitor scrolls, asked for at the same pace as a
+    page. Anything else ends the run, and the reason is kept in `stopped`.
     """
-    max_pages: int = 2
-    name: str = "khodro45"
+    origin: str = KHODRO45_ORIGIN
     start_url: str = LIST_URL
-    policy: PolitenessPolicy = field(default_factory=PolitenessPolicy)
-    salt: str | None = None
-    page_fetcher: Callable[[str], tuple[int, str]] | None = None
-    parser: Khodro45Parser | None = None
-    sleeper: Callable[[float], None] = time.sleep
-    robots_fetcher: Callable[[str], tuple[int, str]] | None = None
-    robots: RobotsGate = field(init=False, repr=False, compare=False)
-    stopped: str | None = field(default=None, init=False, compare=False)
-
-    def __post_init__(self):
-        self.robots = RobotsGate(
-            KHODRO45_ORIGIN, self.robots_fetcher, source=self.name,
-            pause=lambda: self.sleeper(self.policy.sleep()))
-
-    def fetch_all(self, on: date) -> Iterator[FetchOutcome]:
-        if self.page_fetcher is None or self.parser is None:
-            raise RuntimeError(
-                "Khodro45Adapter needs a page_fetcher and a parser. Use "
-                "http_fetcher() for live collection, or inject fixtures in "
-                "tests. Refusing to guess.")
-        url = self.start_url
-        for page in range(1, self.max_pages + 1):
-            if page == 1:
-                self.robots.check(url)        # raises: nothing is requested
-            elif not self.robots.allows(url):
-                self.stopped = (f"the next page ({url_shape(url)}) is not "
-                                "requested: robots.txt disallows it, or it is "
-                                f"not on {KHODRO45_ORIGIN}")
-                return
-            try:
-                status, body = self.page_fetcher(url)
-            except Exception:
-                status, body = None, ""
-            if classify_http(status) is FetchStatus.OK and body:
-                got = self.parser(body)
-                for x in got:
-                    yield x.to_fetch_outcome(self.name, self.salt)
-                if not got:
-                    self.stopped = f"page {page} added no new listing"
-                    return
-                if page == self.max_pages:
-                    return
-                if not self.parser.next_url:
-                    self.stopped = f"page {page} names no next page"
-                    return
-                url = self.parser.next_url
-            else:
-                # The next page is known only from this one, so the run ends
-                # here. No retry and no other way of asking.
-                yield FetchOutcome(
-                    listing_id=f"__page__:{self.name}:{page}",
-                    status=FetchStatus.UNKNOWN, http_status=status)
-                self.stopped = (f"page {page} did not answer (http {status}); "
-                                "the next page is known only from it")
-                return
-            self.sleeper(self.policy.sleep())
+    name: str = "khodro45"
 
 
 # ---------------------------------------------------------------------------

@@ -4152,6 +4152,155 @@ check("  --source khodro45 live: robots.txt, the list, the API page, over plain 
       str(_kasked) + _out.getvalue()[-300:])
 
 
+print("\nsheypoor's list -- read from the cards the owner's --around printed")
+# Invented to the SHAPE of `/s/iran/car` (2026-10-29): cards a[href=/v/<slug>-<digits>.html]
+# with an h2, a figure before data-test-id=icon-toman or «قیمت» «توافقی», and two smalls,
+# the place and the time; rel=next to ?page_num=2. No value here was on that page.
+from urllib.parse import quote as _quote                              # noqa: E402
+from caro.ingest import sheypoor as _sh                               # noqa: E402
+from caro.ingest.paging import NextLinkAdapter                        # noqa: E402
+from caro.ingest.sheypoor import SheypoorAdapter, SheypoorParser, parse_sheypoor  # noqa: E402
+
+
+def _sp_card(id_, title, *, price="۲۵۰٬۰۰۰٬۰۰۰", negotiable=False, place="قم", when="ساعاتی پیش",
+             corner=False, promoted=False, slug="پراید-صبا", test_id=None, href=None):
+    href = href or ("/v/" + _quote(slug) + f"-{id_}.html")
+    if negotiable:
+        pb = '<small class="ml-1 w-max">قیمت</small><span class="text-heading-5-normal">توافقی</span>'
+    elif price is None:
+        pb = ""
+    else:
+        pb = (f'<span class="text-heading-4-bolder">{price}</span>'
+              '<span class="-mt-1 flex" data-test-id="icon-toman"><template></template></span>')
+    return (f'<a class="border-b-[1px] flex flex-row-reverse" data-test-id="{test_id or id_}" href="{href}">'
+            '<div class="aspect-square relative rounded-lg"><img class="rounded-lg" alt="x" src="https://cdn.example/p.webp">'
+            + ('<div class="absolute left-auto right-1 top-1"><img class="!size-10 border" alt="l" '
+               'src="https://cdn.example/l.webp"></div>' if corner else "")
+            + '<div class="absolute bottom-1 left-1"></div>'
+            '<div class="absolute bg-light-4 left-1 top-1 rounded-full"><span><span class="flex size-6" '
+            'data-test-id="icon-bookmark"><template></template></span></span></div>'
+            '<div class="absolute bottom-1 right-1"><div class="flex"><span data-test-id="icon-imageGallery">'
+            '<template></template></span><span class="text-heading-5-normal">۴</span></div></div></div>'
+            f'<div class="flex flex-1 flex-col"><h2 class="line-clamp-2">{title}</h2>'
+            + ('<div class="bg-teal-4 rounded-full">Ad تابلو شده</div>' if promoted else "")
+            + f'<div><div><div class="flex items-center">{pb}</div></div>'
+            f'<div class="flex flex-col"><small class="truncate">{place}</small>'
+            f'<small class="whitespace-nowrap">{when}</small></div></div></div></a>')
+
+
+def _sp_page(cards, nxt="/s/iran/car?page_num=2"):
+    return ("<html><head>" + (f'<link rel="next" href="{nxt}">' if nxt else "")
+            + '</head><body><section><div class="container"><div class="grid">'
+            + "".join(cards) + "</div></div></section>"
+            '<a href="/s/iran/car">همه</a><a href="tel:09123456789">0912 345 6789</a></body></html>')
+
+
+_spc = [_sp_card("462345678", "پراید صبا دوگانه کارخانه", place="دیواندره"),
+        _sp_card("462345679", "ری را، فروش سازمانی", corner=True, place="قم", when="لحظاتی پیش"),
+        _sp_card("462345680", "فروش حواله خودرو رانا پلاس", negotiable=True, place="بابل، بندارکلاآغوزین"),
+        _sp_card("462345681", "پژو ۲۰۶ مدل ۹۵ کارکرد ۸۰ هزار بدون رنگ", promoted=True, price="۴۵۰٬۰۰۰٬۰۰۰",
+                 place="سراسر استان گلستان")]
+_SP = _sp_page(_spc)
+_sptr = []
+_sp1 = parse_sheypoor(_SP, _sptr)
+check("V0: the paging loop is one: Khodro45's adapter and Sheypoor's are both NextLinkAdapter",
+      issubclass(Khodro45Adapter, NextLinkAdapter) and issubclass(SheypoorAdapter, NextLinkAdapter)
+      and SheypoorAdapter().start_url == "https://www.sheypoor.com/s/iran/car"
+      and SheypoorAdapter(city="tehran").start_url == "https://www.sheypoor.com/s/tehran/car")
+check("V1: four cards are four listings, in page order, by the digits before .html, at the card's address",
+      [x.listing_id for x in _sp1] == ["462345678", "462345679", "462345680", "462345681"]
+      and _sp1[0].url == "https://www.sheypoor.com/v/" + _quote("پراید-صبا") + "-462345678.html"
+      and _sptr[0].cards == 4 and _sptr[0].ids == Counter({"href": 4}), str([x.listing_id for x in _sp1]))
+_sptr2 = []
+_sp1b = parse_sheypoor(_sp_page([_sp_card("x", "سمند", href="/v/سمند-سفید.html", test_id="471234567"),
+                                 _sp_card("y", "سمند", href="/v/سمند-مشکی.html", test_id="abc"),
+                                 _sp_card("462345678", "پراید"), _sp_card("462345678", "پراید")]), _sptr2)
+check("  no digits in the link: the data-test-id; neither: skipped and counted; a card twice on a page: once",
+      [x.listing_id for x in _sp1b] == ["471234567", "462345678"]
+      and _sptr2[0].skipped["card without an id"] == 1 and _sptr2[0].ids["test id"] == 1,
+      str(([x.listing_id for x in _sp1b], _sptr2[0].skipped)))
+_spw = parse_sheypoor(_sp_page([_sp_card("462340001", "تیبا", price="۱٫۲ میلیارد"),
+                                _sp_card("462340002", "تیبا", price=None)]))
+check("V2: the figure before the toman icon is the price shown; «توافقی» is negotiable; a figure with a word, "
+      "or none, is no price",
+      (_sp1[0].asking_price_toman, _sp1[0].price_status, _sp1[0].price_provenance, _sp1[0].price_displayed_toman)
+      == (250000000, "displayed_only", "text", 250000000)
+      and (_sp1[2].asking_price_toman, _sp1[2].price_status, _sp1[2].price_kind) == (None, "negotiable", "negotiable")
+      and [(x.asking_price_toman, x.price_status) for x in _spw] == [(None, "ambiguous"), (None, "absent")],
+      str([(x.asking_price_toman, x.price_status) for x in _sp1 + _spw]))
+check("V3: from the seller's title: Pride dual-fuel; a حواله is an assignment (Runna); «مدل ۹۵» is 1395, "
+      "«کارکرد ۸۰ هزار» 80,000 km, «بدون رنگ» intact from the description",
+      (_sp1[0].make, _sp1[0].model, _sp1[0].fuel, _sp1[0].product_class) == ("Saipa", "Pride", "dual", "vehicle")
+      and (_sp1[2].product_class, _sp1[2].model) == ("assignment", "Runna")
+      and (_sp1[3].year_jalali, _sp1[3].mileage_km, _sp1[3].body_condition, _sp1[3].condition_source)
+      == (1395, 80000, "intact", "description") and _sp1[0].year_jalali is None,
+      str([(x.make, x.model, x.year_jalali, x.mileage_km) for x in _sp1]))
+check("  a year only where the title states one: «مدل ۱۳۹۸», «سمند ۱۳۹۸», «model 2018»; «پراید ۱۳۱» and "
+      "«پیکان وانت ۱۵۰» state none",
+      [_sh.year_in_title(t) for t in ("سمند مدل ۱۳۹۸", "سمند ۱۳۹۸ سالم", "model 2018", "پراید ۱۳۱",
+                                      "پیکان وانت ۱۵۰ نقدی")] == [1398, 1398, 1397, None, None])
+check("V4: the place: Qom from the city; «سراسر استان گلستان» states Golestan; «بابل، …» gives none; "
+      "«قیمت» and the time are never the place",
+      [(x.city, x.province_source, x.location_raw) for x in _sp1]
+      == [(None, "none", "دیواندره"), ("قم", "city", "قم"), (None, "none", "بابل، بندارکلاآغوزین"),
+          ("گلستان", "stated", "سراسر استان گلستان")], str([(x.city, x.location_raw) for x in _sp1]))
+check("V5: the corner image and «تابلو شده» are counted, and no seller is given a type",
+      _sptr[0].marks == Counter({"corner image": 1, "تابلو شده": 1})
+      and {x.seller_type for x in _sp1} == {"unknown"} and {x.seller_raw for x in _sp1} == {None},
+      str(_sptr[0].marks))
+_spp = SheypoorParser()
+_spp(_SP)
+check("V6: the next page is the page's own rel=next, kept as its shape",
+      _spp.next_url == "https://www.sheypoor.com/s/iran/car?page_num=2"
+      and _spp.traces[0].next_shape == "/s/iran/car?page_num", str(_spp.next_url))
+
+
+def _sp_world(pages, robots="User-agent: *\nDisallow: /session/\n"):
+    asked = []
+
+    def fetch(url):
+        asked.append(url)
+        if url.endswith("/robots.txt"):
+            return 200, robots
+        return pages.get(url, (404, ""))
+    return fetch, asked
+
+
+_SP2 = "https://www.sheypoor.com/s/iran/car?page_num=2"
+_SP_P2 = _sp_page([_spc[3], _sp_card("462349999", "تارا اتوماتیک مدل ۱۴۰۲", place="زنجان")],
+                  nxt="/s/iran/car?page_num=3")
+_sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), _SP2: (200, _SP_P2)})
+_sad = SheypoorAdapter(max_pages=2, page_fetcher=_sw, robots_fetcher=_sw, parser=SheypoorParser(),
+                       sleeper=lambda s: None)
+_sout = list(_sad.fetch_all(date(2026, 10, 29)))
+check("V7: robots.txt, the list, the page its rel=next names; the promoted card shown again is counted, not new",
+      _sasked == ["https://www.sheypoor.com/robots.txt", "https://www.sheypoor.com/s/iran/car", _SP2]
+      and [o.listing_id for o in _sout][-1] == "sheypoor:462349999" and len(_sout) == 5
+      and _sad.parser.traces[1].duplicates == 1 and _sad.stopped is None, str((_sasked, len(_sout))))
+_sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP)},
+                         robots="User-agent: *\nDisallow: /*page_num=\n")
+_sad = SheypoorAdapter(max_pages=3, page_fetcher=_sw, robots_fetcher=_sw, parser=SheypoorParser(),
+                       sleeper=lambda s: None)
+_sout = list(_sad.fetch_all(date(2026, 10, 29)))
+check("  a next page robots.txt disallows is not asked for; the first page kept",
+      len(_sout) == 4 and _SP2 not in _sasked and "not requested" in (_sad.stopped or ""), str(_sasked))
+_sw, _sasked = _sp_world({}, robots="User-agent: *\nDisallow: /s/\n")
+try:
+    list(SheypoorAdapter(page_fetcher=_sw, robots_fetcher=_sw, parser=SheypoorParser(),
+                         sleeper=lambda s: None).fetch_all(date(2026, 10, 29)))
+    _raised = False
+except _RV:
+    _raised = True
+check("  a robots.txt that disallows the list stops the run before its first page",
+      _raised and _sasked == ["https://www.sheypoor.com/robots.txt"], str(_sasked))
+_sp9 = "\n".join(_sh.report(_sptr))
+check("V9: the report has counts and categories: no title, no id, the price shown as smallest, middle and "
+      "largest, and what the list cannot give",
+      "پراید" not in _sp9 and "4623456" not in _sp9 and "min 0.25B   median 0.25B   max 0.45B" in _sp9
+      and "no year and no odometer" in _sp9 and "corner image:1" in _sp9 and "province" in _sp9
+      and "/s/iran/car?page_num" in _sp9, _sp9)
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
