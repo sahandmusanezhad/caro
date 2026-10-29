@@ -284,10 +284,15 @@ def _absolute(url: str) -> str:
     return url
 
 
-def rule_path(r: dict) -> str | None:
-    """`/buy-car/<brand>-<model>/<city>/<slug>/`, from the result's own slugs.
-    What the cards' links are on the owner's page; a run checks it on every
-    card before using it for a result that has none."""
+def rule_path(r: dict, prefix: str | None = "") -> str | None:
+    """`/buy-car/<brand>-<model>/<city>/<prefix><slug>/`, from the result's
+    own slugs, the slug lower-cased. The owner's page (2026-10-29) ended its
+    links in «cla-» and a code shaped as the slug; `prefix` is the part before
+    the slug that the run's cards showed (`Khodro45Parser.learned_prefix`), and
+    None when they showed none, which gives no address. A run checks the rule
+    on every card before using it for a result that has none."""
+    if prefix is None:
+        return None
     cp = r.get("car_properties") if isinstance(r.get("car_properties"), dict) else {}
     b = cp.get("brand") if isinstance(cp.get("brand"), dict) else {}
     m = cp.get("model") if isinstance(cp.get("model"), dict) else {}
@@ -297,7 +302,7 @@ def rule_path(r: dict) -> str | None:
     if not all(re.fullmatch(r"[a-z0-9_-]{1,40}", p or "") for p in parts[:3]) \
             or not _SLUG.match(parts[3]):
         return None
-    return f"/buy-car/{parts[0]}-{parts[1]}/{parts[2]}/{parts[3]}/"
+    return f"/buy-car/{parts[0]}-{parts[1]}/{parts[2]}/{prefix}{parts[3].lower()}/"
 
 
 def next_view(url: str | None) -> str:
@@ -317,14 +322,26 @@ def next_view(url: str | None) -> str:
 
 
 def where_is(url: str | None) -> str:
-    """khodro45.com, another origin, or a relative link."""
+    """khodro45.com, khodro45.com over http, another origin, or relative."""
     if not url:
         return "none"
     if url.startswith("/"):
         return "relative"
-    m = re.match(r"^https?://([^/?#]+)", url)
-    host = m.group(1).lower() if m else ""
-    return "khodro45.com" if host in ("khodro45.com", "www.khodro45.com") else "another origin"
+    m = re.match(r"^(https?)://([^/?#]+)", url)
+    host = m.group(2).lower() if m else ""
+    if host not in ("khodro45.com", "www.khodro45.com"):
+        return "another origin"
+    return "khodro45.com" if m.group(1).lower() == "https" else "khodro45.com over http"
+
+
+def ours_over_https(url: str) -> str:
+    """A link to khodro45.com given as http:// is the same page over https://:
+    the API names its next page `http://khodro45.com/api/…` (the owner's page,
+    2026-10-29) while the site is served over https, and the gate reads the
+    https origin's robots.txt. The host, the path and the query are kept; any
+    other host is left as it is."""
+    m = re.match(r"^http://(khodro45\.com)([/?#].*)?$", url, re.I)
+    return f"https://{m.group(1).lower()}{m.group(2) or '/'}" if m else url
 
 
 def _shape_of(s: str) -> str:
@@ -338,11 +355,24 @@ def _relation(slug: str, code: str | None) -> str:
         return "equal"
     if code.endswith(slug):
         return "the code ends with the slug"
+    sl, cl = slug.lower(), code.lower()
+    if sl == cl:
+        return "equal, case aside"
+    if cl.endswith(sl):
+        return "the code ends with the slug, case aside"
     if slug.endswith(code):
         return "the slug ends with the code"
-    if slug in code or code in slug:
+    if sl in cl or cl in sl:
         return "one holds the other"
     return "neither"
+
+
+def _code_holds(code: str | None, slug: str) -> bool:
+    """The card's code is the slug, or ends in «-» and the slug, case aside."""
+    if not code or not slug:
+        return False
+    cl, sl = code.lower(), slug.lower()
+    return cl == sl or cl.endswith("-" + sl)
 
 
 def _result_key(r: dict) -> tuple | None:
@@ -402,6 +432,7 @@ class Khodro45Trace:
     # Each list of results found: its size, the next page it names (its
     # small numbers kept) and where that page is.
     lists: list = field(default_factory=list)
+    next_upgraded: int = 0
     refused: Counter = field(default_factory=Counter)
     odd: dict = field(default_factory=lambda: {k: [] for k in ODD_KINDS})
     prices: list = field(default_factory=list)    # asking prices taken, toman
@@ -491,7 +522,8 @@ def _make_model(cp: dict) -> tuple[str | None, str | None]:
 
 
 def build(r: dict, card: Card | None, trace: Khodro45Trace,
-          learned: str | None, url_rule_ok: bool) -> CarListing:
+          learned: str | None, url_rule_ok: bool,
+          prefix: str | None = "") -> CarListing:
     slug = _str(r.get("slug"))
     cp = r.get("car_properties") if isinstance(r.get("car_properties"), dict) else {}
     b = cp.get("brand") if isinstance(cp.get("brand"), dict) else {}
@@ -510,7 +542,7 @@ def build(r: dict, card: Card | None, trace: Khodro45Trace,
 
     # the address: the card's, else the rule the cards confirmed
     path = card.href if card else None
-    rp = rule_path(r)
+    rp = rule_path(r, prefix)
     if card is not None:
         trace.url["rule agrees" if rp and rp == card.href else "rule differs"] += 1
     elif rp and url_rule_ok:
@@ -614,6 +646,8 @@ class Khodro45Parser:
         self.listings: list[CarListing] = []
         self.shown: Counter = Counter()
         self.rule: Counter = Counter()
+        self.prefixes: Counter = Counter()
+        self.prefix_misses = 0
         self.next_url: str | None = None
 
     def learned_field(self) -> str | None:
@@ -622,6 +656,14 @@ class Khodro45Parser:
             return "price"
         if f >= LEARN_MIN_CARDS and p == 0:
             return "final_price"
+        return None
+
+    def learned_prefix(self) -> str | None:
+        """The part of the cards' codes before the slug, when every joined
+        card has the same one and three or more do; else None."""
+        if (len(self.prefixes) == 1 and self.prefix_misses == 0
+                and sum(self.prefixes.values()) >= LEARN_MIN_CARDS):
+            return next(iter(self.prefixes))
         return None
 
     def url_rule_ok(self) -> bool:
@@ -670,7 +712,9 @@ class Khodro45Parser:
             nxt = nxt.strip() if isinstance(nxt, str) and nxt.strip() else None
             tr.lists.append((len(pg["results"]), next_view(nxt), where_is(nxt)))
             if nxt:
-                self.next_url = _absolute(nxt)
+                https = ours_over_https(nxt)
+                tr.next_upgraded += https != nxt
+                self.next_url = _absolute(https)
             for r in pg["results"]:
                 s = _str(r.get("slug")) if isinstance(r, dict) else ""
                 if not _SLUG.match(s):
@@ -691,8 +735,14 @@ class Khodro45Parser:
         # has the same pair; where two have, neither is joined.
         join: dict[int, Card] = {}
         for i, r in enumerate(results):
-            c = by_slug.get(_str(r.get("slug")))
-            if c is not None:
+            slug = _str(r.get("slug"))
+            c = by_slug.get(slug)
+            if c is None:
+                # the owner's page ends its links in «cla-» and the slug in
+                # another case (round K3): the one card whose code holds it
+                held = [x for x in unique if _code_holds(slug_of(x.href), slug)]
+                c = held[0] if len(held) == 1 else None
+            if c is not None and id(c) not in {id(x) for x in join.values()}:
                 join[i] = c
                 tr.joined["slug"] += 1
         used = {id(c) for c in join.values()}
@@ -712,12 +762,19 @@ class Khodro45Parser:
                 join[idx[0]] = c
                 used.add(id(c))
                 tr.joined["odometer and year"] += 1
-                slug = _str(results[idx[0]].get("slug"))
-                code = slug_of(c.href)
-                tr.slug_relation[_relation(slug, code)] += 1
-                shape = f"{_shape_of(slug)} / {_shape_of(code or '')}"
-                if shape in tr.slug_shapes or len(tr.slug_shapes) < 6:
-                    tr.slug_shapes[shape] += 1
+        # how each joined result's slug relates to its card's code, and the
+        # part of the code before the slug, which is the address rule's
+        for i, c in join.items():
+            slug = _str(results[i].get("slug"))
+            code = slug_of(c.href)
+            tr.slug_relation[_relation(slug, code)] += 1
+            shape = f"{_shape_of(slug)} / {_shape_of(code or '')}"
+            if shape in tr.slug_shapes or len(tr.slug_shapes) < 6:
+                tr.slug_shapes[shape] += 1
+            if _code_holds(code, slug):
+                self.prefixes[code[:len(code) - len(slug)].lower()] += 1
+            else:
+                self.prefix_misses += 1
         if len(join) < len(results):
             tr.joined["no card"] += len(results) - len(join)
         tr.cards_without_result = sum(1 for c in unique if id(c) not in used)
@@ -732,7 +789,7 @@ class Khodro45Parser:
             if shown:
                 tr.shown[shown] += 1
                 self.shown[shown] += 1
-            rp = rule_path(r)
+            rp = rule_path(r, self.learned_prefix())
             self.rule["rule agrees" if rp and rp == card.href else "rule differs"] += 1
 
         fresh: list[CarListing] = []
@@ -743,7 +800,8 @@ class Khodro45Parser:
             card = join.get(i)
             if card is None:
                 tr.results_without_card += 1
-            x = build(r, card, tr, self.learned_field(), self.url_rule_ok())
+            x = build(r, card, tr, self.learned_field(), self.url_rule_ok(),
+                      self.learned_prefix())
             if x.listing_id in self.seen:
                 tr.duplicates += 1
                 continue
@@ -837,6 +895,9 @@ def report(traces: list[Khodro45Trace]) -> list[str]:
     for t in traces[-1:]:
         for n, view, where in t.lists:
             L.append(f"  a list of {n:<4} next {view}  ({where})")
+        if t.next_upgraded:
+            L.append("  the next page is given as http:// on khodro45.com and is asked "
+                     "for as https://, the same host, path and query")
     for k, v in (("duplicates", sum(t.duplicates for t in traces)),
                  ("cards without a result", sum(t.cards_without_result for t in traces)),
                  ("results without a card", sum(t.results_without_card for t in traces))):

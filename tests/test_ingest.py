@@ -4378,13 +4378,13 @@ _jcards = [_k45_card(_jr[0], code="cla-tsznel"), _k45_card(_jr[1], code="cla-umv
            _k45_card(_jr[2], code="cla-p0q1r2")]
 _jtr = []
 _jl = parse_khodro45(_k45_page(_jr, _jcards), _jtr)
-check("K2-1: three cards whose links end in another code are joined by odometer and year: the card's price, "
-      "its address",
+check("K2-1: three cards whose links end in another code are joined: the one whose code is «cla-» and the slug "
+      "by the slug (K3-1), the two others by odometer and year; the card's price, its address",
       [(x.listing_id, x.asking_price_toman, x.price_status) for x in _jl]
       == [("tsznel", 1212000000, "display_confirmed"), ("x7k2m9q4", 1212000000, "display_confirmed"),
           ("umvzwp", 1212000000, "display_confirmed")]
       and _jl[1].url == "https://khodro45.com/buy-car/peugeot-pars/zahedan/cla-umvzwq/"
-      and _jtr[0].joined == Counter({"odometer and year": 3}) and _jtr[0].cards_without_result == 0,
+      and _jtr[0].joined == Counter({"slug": 1, "odometer and year": 2}) and _jtr[0].cards_without_result == 0,
       str((_jtr[0].joined, [x.asking_price_toman for x in _jl])))
 _jr2 = [_k45_result("aaaaaa", klm=50000, year="1400"), _k45_result("bbbbbb", klm=50000, year="1400"),
         _k45_result("cccccc", klm=60000, year="1401")]
@@ -4412,6 +4412,58 @@ check("K2-4: each list's size and its next page with the small numbers kept, and
 check("K2-5: the gearbox from the trim when the option says none; the option's and the trim's values are counted",
       _jl[1].gearbox == "automatic" and _jl[0].gearbox is None
       and "option         XU7:2  تیپ ۲:1" in _jrep and "MC اتوماتیک:1" in _jrep, _jrep)
+
+
+print("\nkhodro45: the slug in another case, the address rule, and the next page given as http://")
+# The owner's second read (2026-10-29): «aaaaaa / aaa-aaaaaa» on every pair, 0 equal, and
+# next = http://khodro45.com/api/v2/car_listing/?limit=12&offset=24&ordering=-created_time.
+_k3r = [_k45_result("TSZNEL"), _k45_result("5ME012", klm=10303, year="1404"),
+        _k45_result("NA1IK9", klm=234951, year="2017")]
+_K3_HTTP = "http://khodro45.com/api/v2/car_listing/?limit=12&offset=24&ordering=-created_time"
+_K3_PAGE = _k45_page(_k3r, [_k45_card(r, code="cla-" + r["slug"].lower()) for r in _k3r], nxt=_K3_HTTP)
+_k3p = Khodro45Parser()
+_k3l = _k3p(_K3_PAGE)
+_k3t = _k3p.traces[0]
+check("K3-1: a code that is «cla-» and the slug in lower case joins by the slug, three of three",
+      _k3t.joined == Counter({"slug": 3})
+      and _k3t.slug_relation == Counter({"the code ends with the slug, case aside": 3})
+      and [x.url for x in _k3l][0] == "https://khodro45.com/buy-car/peugeot-pars/zahedan/cla-tsznel/",
+      str((_k3t.joined, _k3t.slug_relation)))
+_k3api = json.dumps({"count": 1812, "next": None, "previous": None,
+                     "results": [_k45_result("APIONE", price=1500000000, final=1530300000)]})
+_k3a = _k3p(_k3api)
+check("K3-2: the rule is learned from the cards (the prefix «cla-», the slug lower-cased), the three agree, "
+      "and a page of the API has its address by it",
+      _k3p.learned_prefix() == "cla-" and _k3t.url == Counter({"rule agrees": 3})
+      and _k3a[0].url == "https://khodro45.com/buy-car/peugeot-pars/zahedan/cla-apione/"
+      and _k3a[0].asking_price_toman == 1530300000, str((_k3p.learned_prefix(), _k3t.url, _k3a[0].url)))
+_k3m = Khodro45Parser()
+_k3m(_k45_page(_k3r, [_k45_card(_k3r[0], code="cla-tsznel"), _k45_card(_k3r[1], code="xyz-5me012"),
+                      _k45_card(_k3r[2], code="cla-na1ik9")]))
+_k3n = Khodro45Parser()
+_k3z = _k45_result("ZZZZZZ", klm=77777, year="1399")
+_k3n(_k45_page(_k3r + [_k3z], [_k45_card(r, code="cla-" + r["slug"].lower()) for r in _k3r]
+               + [_k45_card(_k3z, code="cla-q0q0q0")]))
+check("  two prefixes, or a joined card whose code does not hold its slug, teach no rule: no address for the API",
+      _k3m.learned_prefix() is None and _k3n.learned_prefix() is None
+      and _k3m(_k3api)[0].url == "" and _k3n(_k3api)[0].url == "",
+      str((_k3m.prefixes, _k3n.prefixes, _k3n.prefix_misses)))
+_k3rep = "\n".join(_k45.report(_k3p.traces[:1]))
+check("K3-3: the http:// next page on khodro45.com is asked for as https://, same path and query, and the "
+      "report says so; another host's http:// link is left as it is",
+      _k3p.traces[0].next_upgraded == 1 and "(khodro45.com over http)" in _k3rep
+      and "is asked for as https://" in _k3rep
+      and _k45.ours_over_https(_K3_HTTP) == "https://khodro45.com/api/v2/car_listing/?limit=12&offset=24&ordering=-created_time"
+      and _k45.ours_over_https("http://api.khodro45.com/v2/x/") == "http://api.khodro45.com/v2/x/"
+      and _k45.ours_over_https("http://khodro45.com") == "https://khodro45.com/", _k3rep)
+_K3_HTTPS = "https://khodro45.com/api/v2/car_listing/?limit=12&offset=24&ordering=-created_time"
+_kw, _kasked = _k45_world({"https://khodro45.com/buy-car/": (200, _K3_PAGE), _K3_HTTPS: (200, _k3api)})
+_kad = Khodro45Adapter(max_pages=2, page_fetcher=_kw, robots_fetcher=_kw, parser=Khodro45Parser(),
+                       sleeper=lambda s: None)
+_kout = list(_kad.fetch_all(date(2026, 10, 29)))
+check("  and the adapter asks for it so: robots.txt, the list, the API page over https; four listings",
+      _kasked == ["https://khodro45.com/robots.txt", "https://khodro45.com/buy-car/", _K3_HTTPS]
+      and len(_kout) == 4 and _kad.stopped is None, str((_kasked, _kad.stopped)))
 
 
 print()
