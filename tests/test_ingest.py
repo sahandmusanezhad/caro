@@ -3799,6 +3799,28 @@ check("  --around PREFIX FILE [--up N] on the command line: exits 0 with no netw
       _rc == 0 and "4 link(s)" in _o.getvalue() and "پراید" not in _o.getvalue()
       and "[href=/v/<tok>/<tok>]" in _o.getvalue() and _bad == [True, True, True], _o.getvalue()[:300])
 _all = _KH_DL + _KH_V + _pg2 + _pp.survey(_KH_PAGE) + _pp.around(_SP_PAGE, "/v/", with_text=False)
+_a4 = _pp.around(_SP_PAGE, "/v/", up=1, show=4, name="s.html")
+_a9 = _pp.around(_SP_PAGE, "/v/", up=1, show=9)
+check("Q9a: show=4 prints four parents, the header is the one of the default; more than there are prints those there are",
+      _a4.count("# parent ") == 4 and _a9.count("# parent ") == 4 and _a9.count("\n\n\n") == 0
+      and _a4.splitlines()[0] == _ar.splitlines()[0] and _pp.around(_SP_PAGE, "/v/", up=1, show=1).count("# parent ") == 1,
+      _a9)
+with _tempfile.TemporaryDirectory() as _tmp:
+    _f = _Path(_tmp) / "s.html"
+    _f.write_text(_SP_PAGE, encoding="utf-8")
+    _o = _io.StringIO()
+    with _contextlib.redirect_stdout(_o):
+        _rc = _pp.main(["--around", "/v/", str(_f), "--up", "1", "--show", "3", "--no-text"])
+    _bad = []
+    for _n in ("0", "7", "-1"):
+        try:
+            with _contextlib.redirect_stderr(_io.StringIO()):
+                _pp.main(["--around", "/v/", str(_f), "--show", _n])
+            _bad.append(False)
+        except SystemExit as _e:
+            _bad.append(_e.code == 2)
+check("  --show 3 on the command line prints three; 0, 7 and -1 are refused",
+      _rc == 0 and _o.getvalue().count("# parent ") == 3 and _bad == [True, True, True], _o.getvalue()[:200])
 check("Q7: no phone, no name, no person's price, no title, no token and no id in any of them",
       not any(x in _all for x in ("9123456789", "0912", "Rezaei", "111111", "فهرست", "AbCd1234", "GhIj5678",
                                   "پراید", "770000", "910000", "880000", "AbCdEfGh")), _all[:400])

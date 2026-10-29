@@ -29,7 +29,8 @@ mail, address) is printed, whatever it holds.
 A page whose cards differ one from another, so that `--rows` finds none
 (Sheypoor), is read with `--around /v/ FILE`: the markup around the links
 whose path starts with that, `--up N` levels above (3), the first two printed
-in full, with the count of links and of different shapes.
+in full, with the count of links and of different shapes. A page whose menu
+has such links too (Khodro45's) needs `--show 6` to reach the cards.
 
 WHY THIS EXISTS
 
@@ -599,16 +600,19 @@ def rows(page: str, *, name: str = "", with_text: bool = True,
 
 
 _AROUND_SHOWN = 2
+_AROUND_SHOW_MAX = 6
 _AROUND_UP_MAX = 8
 
 
 def around(page: str, prefix: str, *, up: int = 3, name: str = "",
-           with_text: bool = True) -> str:
+           with_text: bool = True, show: int = _AROUND_SHOWN) -> str:
     """The markup around the links whose path starts with `prefix`: how many
     there are, how many different parents they have `up` levels above, and the
     first two parents printed as `rows` prints a row. For a page whose cards
     differ one from another, so that no three siblings are of one shape and
-    `rows` says "none found" (Sheypoor's, 2026-10-29)."""
+    `rows` says "none found" (Sheypoor's, 2026-10-29). `show` parents are
+    printed: the first ones, which on a page with a menu full of such links
+    (Khodro45's) may be the menu's and not a card."""
     tree = _parse(page)
     anchors: list[_Node] = []
 
@@ -638,7 +642,7 @@ def around(page: str, prefix: str, *, up: int = 3, name: str = "",
            f"level(s) up, {shapes} different shape(s) among them"]
     if not anchors:
         out.append("# none found")
-    for i, n in enumerate(parents[:_AROUND_SHOWN], 1):
+    for i, n in enumerate(parents[:show], 1):
         out.append(f"# parent {i}, under: {_where(n.parent) if n.parent else '(top)'}")
         lines = [_label(n, with_text)]
         _walk(n, 1, lines, with_text)
@@ -1211,6 +1215,9 @@ def main(argv: list[str] | None = None) -> int:
                     help="print the markup around the links of a saved page whose "
                          "path starts with PREFIX (e.g. /v/), for a page whose cards "
                          "differ so that --rows finds none; no network")
+    ap.add_argument("--show", type=int, default=_AROUND_SHOWN, metavar="N",
+                    help=f"with --around: how many of the parents to print, the "
+                         f"first ones (1 to {_AROUND_SHOW_MAX}, default {_AROUND_SHOWN})")
     ap.add_argument("--up", type=int, default=3, metavar="N",
                     help=f"with --around: how many levels above the link to print "
                          f"(0 to {_AROUND_UP_MAX}, default 3)")
@@ -1237,9 +1244,12 @@ def main(argv: list[str] | None = None) -> int:
             ap.error("--around PREFIX is the start of a link's path, e.g. /v/")
         if not 0 <= args.up <= _AROUND_UP_MAX:
             ap.error(f"--up must be between 0 and {_AROUND_UP_MAX}")
+        if not 1 <= args.show <= _AROUND_SHOW_MAX:
+            ap.error(f"--show must be between 1 and {_AROUND_SHOW_MAX}")
         f = Path(path)
         print(around(f.read_text(encoding="utf-8", errors="replace"), prefix,
-                     up=args.up, name=f.name, with_text=not args.no_text))
+                     up=args.up, name=f.name, with_text=not args.no_text,
+                     show=args.show))
         return 0
     if args.skeleton:
         for f in args.skeleton:
