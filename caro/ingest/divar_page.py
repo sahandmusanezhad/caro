@@ -62,8 +62,9 @@ from caro.ingest.bama import (
     reconcile_price,
 )
 from caro.ingest.divar_car import (
-    BODY_CONDITION, DIVAR_ORIGIN, CarListing, extract_body_condition,
-    extract_color, extract_gearbox, parse_listing,
+    BODY_CONDITION, DIVAR_ORIGIN, MAKE_MODEL, CarListing,
+    extract_body_condition, extract_color, extract_gearbox, extract_make_model,
+    parse_listing,
 )
 from caro.ingest.persian import (
     normalize, parse_mileage_km, parse_price, parse_year_jalali,
@@ -309,6 +310,9 @@ class PageTrace:
     # the title give differently, an odometer the node and the card give
     # differently. What the counts above cannot say about why.
     odd: dict = field(default_factory=lambda: {k: [] for k in ODD_KINDS})
+    # How many values of a counted key were NOT counted, and why: absent,
+    # empty, long, address, digits. Counts and those five words only.
+    refused: Counter = field(default_factory=Counter)
 
 
 ODD_KINDS = ("price below the floor", "year differs", "year fields differ",
@@ -347,9 +351,24 @@ _MAX_LEN = 40
 _MAX_DIGITS = 4
 
 
+def _refusal(v) -> str | None:
+    """Why a value is not counted (one of five words), or None if it is."""
+    if not isinstance(v, str):
+        return "absent"
+    v = v.strip()
+    if not v:
+        return "empty"
+    if len(v) > _MAX_LEN:
+        return "long"
+    if "@" in v:
+        return "address"
+    if sum(c.isdigit() for c in v) > _MAX_DIGITS:
+        return "digits"
+    return None
+
+
 def _categorical(v: str) -> bool:
-    return (0 < len(v) <= _MAX_LEN and "@" not in v
-            and sum(c.isdigit() for c in v) <= _MAX_DIGITS)
+    return _refusal(v) is None
 
 
 def _offers(node: dict) -> dict:
@@ -371,7 +390,9 @@ def _count_enums(node: dict, trace: PageTrace) -> None:
             "unitCode": mil.get("unitCode") if isinstance(mil, dict) else None}
     for key, raw in seen.items():
         for v in raw if isinstance(raw, list) else [raw]:
-            if not isinstance(v, str) or not _categorical(v.strip()):
+            why = _refusal(v)
+            if why:
+                trace.refused[f"{key}: {why}"] += 1
                 continue
             c = trace.enums[key]
             v = v.strip()
@@ -461,6 +482,42 @@ def _condition(raw, title: str) -> tuple[str, str]:
     if p:
         return p, "description"
     return "unknown", "none"
+
+
+# The model names the table of thirteen already holds, lower-cased. A brand the
+# page gives that is one of them («Pride», «Saina», «Tara») is a model of the
+# table's, whose make is the table's to say, and is left to it.
+_TABLE_MODELS = frozenset(m.lower() for _, m in MAKE_MODEL)
+
+
+def structured_make_model(node: dict) -> tuple[str | None, str | None]:
+    """(make, model) from the page's own brand and model, or (None, None).
+
+    Used only where the table of thirteen found nothing in the title. The
+    brand is the make; the model is the first word of the page's model once
+    the brand's own name is taken off its front («Gac Emkoo Hybrid 2.0L Pro»
+    under «Gac» is «Emkoo»). A word the table knows for that make is its
+    canonical one («207i» is `207`), so a car is one model whether or not its
+    title matched. The first read of the real page had eight brands and
+    eight models; this is a rule drawn from them and from nothing else.
+    """
+    b = node.get("brand")
+    brand = (b.get("name") if isinstance(b, dict) else b)
+    model = node.get("model")
+    if _refusal(brand) or _refusal(model):
+        return None, None
+    brand, model = brand.strip(), model.strip()
+    if brand.lower() in _TABLE_MODELS:
+        return None, None
+    if model.lower().startswith(brand.lower()):
+        model = model[len(brand):].strip()
+    word = model.split()[0] if model.split() else ""
+    if not word or len(word) > 20 or _refusal(word):
+        return None, None
+    mk, md = extract_make_model(word)
+    if md and mk and mk.lower() == brand.lower():
+        return mk, md
+    return brand, word
 
 
 def _gearbox(raw, blob: str):
@@ -554,9 +611,13 @@ def build(url: str, token: str, node: dict | None, card: Card | None,
     ld_color = node.get("color") if isinstance(node.get("color"), str) else ""
     condition, condition_source = _condition(node.get("knownVehicleDamages"),
                                              title)
+    make, model = listing.make, listing.model
+    if model is None:
+        make, model = structured_make_model(node)
     return replace(
         listing,
         asking_price_toman=price, mileage_km=km, year_jalali=year,
+        make=make, model=model,
         body_condition=condition, condition_source=condition_source,
         gearbox=_gearbox(node.get("vehicleTransmission"), title),
         color=extract_color(ld_color) or listing.color,
@@ -706,6 +767,12 @@ def report(traces: list[PageTrace]) -> list[str]:
         if c:
             L.append(f"    {key:<22}" + "  ".join(f"{k}:{v}" for k, v in
                                                   c.most_common(8)))
+    refused = Counter()
+    for t in traces:
+        refused.update(t.refused)
+    if refused:
+        L.append("  not counted: " + "  ".join(
+            f"{k} {v}" for k, v in sorted(refused.items())))
     odd = {k: [x for t in traces for x in t.odd[k]] for k in ODD_KINDS}
     if any(odd.values()):
         L.append("")

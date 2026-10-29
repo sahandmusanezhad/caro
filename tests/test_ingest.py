@@ -3482,6 +3482,56 @@ check("J3: a node whose two year fields differ is listed as the pair (model date
       and "year fields differ" in "\n".join(_dp.report([_yf])) and "(1385, 1405)" in "\n".join(_dp.report([_yf])))
 
 
+print("\nthe report says how many values it did not count, and why")
+_tn = PageTrace()
+parse_divar_page(_page([
+    _node("Tk000001", extra={"brand": {"@type": "Brand", "name": ""}, "model": "x" * 41}),
+    _node("Tk000002", extra={"brand": {"@type": "Brand", "name": "a@b.example"}, "model": "0912 345 6789"}),
+    _node("Tk000003", extra={"brand": None, "model": "206"}),
+    _node("Tk000004", extra={"brand": {"@type": "Brand", "name": "Gac"}, "model": "Gac Emkoo"})], []), _tn)
+_rep_n = "\n".join(_dp.report([_tn]))
+check("J4: empty, longer than forty, an address, more than four digits and absent are named, "
+      "with a count each, and only those words",
+      all(x in _rep_n for x in ("brand: empty 1", "model: long 1", "brand: address 1",
+                                "model: digits 1", "brand: absent 1"))
+      and "a@b.example" not in _rep_n and "0912" not in _rep_n, _rep_n)
+_tn = PageTrace()
+parse_divar_page(_page([_node("Tk000001")], []), _tn)
+check("  a page whose values are all counted lists none of the first four reasons",
+      not any(f"{k}: {w}" in "\n".join(_dp.report([_tn])) for k in ("brand", "model")
+              for w in ("empty", "long", "address", "digits")))
+
+print("\nmake and model from the page's own brand and model, where the table has nothing")
+_sm = lambda b, m, name="سواری": _one(_node("AbCd1234", name=name,
+                                            extra={"brand": {"@type": "Brand", "name": b}, "model": m}))
+check("J5: «Gac» under «Gac Emkoo Hybrid 2.0L Pro» is (Gac, Emkoo); «Lamari ECHO 1.5 Turbo» "
+      "(Lamari, ECHO); «Fownix Fx Premium-normal» (Fownix, Fx)",
+      [(x.make, x.model) for x in (_sm("Gac", "Gac Emkoo Hybrid 2.0L Pro"),
+                                    _sm("Lamari", "Lamari ECHO 1.5 Turbo"),
+                                    _sm("Fownix", "Fownix Fx Premium-normal"))]
+      == [("Gac", "Emkoo"), ("Lamari", "ECHO"), ("Fownix", "Fx")])
+check("  a word the table knows for that make is its canonical one: «207i» is 207, «Pars» is Pars",
+      [(x.make, x.model) for x in (_sm("Peugeot", "Peugeot 207i Automatic TU5P"),
+                                    _sm("Peugeot", "Peugeot Pars latest"))]
+      == [("Peugeot", "207"), ("Peugeot", "Pars")])
+check("  a model that does not begin with the brand's name is taken from its first word",
+      (lambda x: (x.make, x.model))(_sm("Gac", "Emkoo Hybrid")) == ("Gac", "Emkoo"))
+check("  the table wins where it matches: a title that says «پراید» is Saipa Pride, "
+      "whatever the page's brand says",
+      (lambda x: (x.make, x.model))(_sm("Gac", "Gac Emkoo", name="پراید ۱۳۱ SE")) == ("Saipa", "Pride"))
+check("  a brand that is a model of the table's («Pride», «Saina», «Tara») is left to the table, "
+      "and with no title match it stays unread",
+      [(x.make, x.model) for x in (_sm("Pride", "Pride Saba GLXI"), _sm("Saina", "Saina manual S"),
+                                    _sm("Tara", "Tara"))] == [(None, None)] * 3)
+check("  no brand, an empty one, no model, a word of forty-one characters or a telephone number: unread",
+      [(x.make, x.model) for x in (
+          _one(_node("AbCd1234", name="سواری", extra={"brand": None, "model": "Gac Emkoo"})),
+          _sm("", "Emkoo"), _sm("Gac", ""), _sm("Gac", "Gac " + "x" * 41),
+          _sm("Gac", "Gac 0912 345 6789"))] == [(None, None)] * 5)
+check("  and the listing is eligible for a model it only has from the page",
+      "no model" not in " ".join(_eligibility(_sm("Gac", "Gac Emkoo Hybrid"))[1]))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
