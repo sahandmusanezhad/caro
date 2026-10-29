@@ -31,7 +31,12 @@ change looks small.
    (D84). Tests pin what is read and what is left, so that either changes on
    purpose. Mutate each change and run the tests against every mutant; say
    which survive and why, and do not add a row after the run just to catch
-   one. Every commit is green on its own: all fifteen suites, and the site's
+   one. Run every mutant with `python3 -B` and `PYTHONDONTWRITEBYTECODE=1`,
+   and restore the file by moving the copy back: a mutant and the original of
+   the same size, written in the same second, share the bytecode of the first
+   (found 2026-10-26: a restored `first_run.py` still ran its mutant, `return
+   1`, and a run of the suites failed for it). The earlier rounds' mutations
+   were rerun that way and gave the same survivors. Every commit is green on its own: all fifteen suites, and the site's
    build when the site is touched. The published counts — the README's four
    numbers and `/about`'s — move in the commit that moves them, or
    `tests/run_all.py` fails.
