@@ -3205,6 +3205,36 @@ check("  twenty distinct values per key, and the rest are «(other)»",
       str(_t.enums["model"]))
 
 
+print("\na number in prose is a price or an odometer only where the words say so")
+
+
+def _pl(title, desc="", **kw):
+    x = parse_listing("t", "https://divar.ir/v/t", title, desc, **kw)
+    return x.asking_price_toman, x.mileage_km
+
+
+check("A1: «پژو 206 تیپ 5» is neither a price of 206 toman nor an odometer of 206 km",
+      _pl("پژو 206 تیپ 5") == (None, None) and _pl("۲۰۶ تیپ ۵ مدل ۹۶") == (None, None),
+      str(_pl("پژو 206 تیپ 5")))
+check("A2: «کارکرد ۸۰ هزار» is an odometer and not a price of 80,000",
+      _pl("پراید ۱۳۱ مدل ۹۵", "کارکرد ۸۰ هزار") == (None, 80_000),
+      str(_pl("پراید ۱۳۱ مدل ۹۵", "کارکرد ۸۰ هزار")))
+check("A3: a price in prose: a scale word, or a long figure and a currency word",
+      [_pl("پراید", d)[0] for d in (
+          "۲۸۰ میلیون تومان", "۱ میلیارد و ۴۸۰ میلیون", "قیمت ۱٬۴۸۰٬۰۰۰٬۰۰۰ تومان",
+          "پیش ۲۰٬۰۰۰ تومان قیمت ۸۵۰٬۰۰۰٬۰۰۰ تومان")]
+      == [280_000_000, 1_480_000_000, 1_480_000_000, 850_000_000])
+check("  six digits and «هزار» are no price",
+      _pl("پراید", "۵۰۰٬۰۰۰ تومان")[0] is None and _pl("پراید", "۱۲۰ هزار تومان")[0] is None)
+check("A4: an odometer in prose: next to «کارکرد» or «کیلومتر», or «صفر کیلومتر»",
+      [_pl("پراید", d)[1] for d in (
+          "کارکرد ۱۲۰٬۰۰۰ کیلومتر", "۸۰ هزار کیلومتر", "کارکرد ۸۰", "صفر کیلومتر",
+          "کیلومتر ۴۵۰۰۰")] == [120_000, 80_000, 80_000, 0, 45_000])
+check("A5: an explicit price_text and mileage_text are read as before, and win",
+      _pl("پژو ۲۰۶", "۳۰۰ میلیون، کارکرد ۱۰ هزار", price_text="۲۸۰ میلیون",
+          mileage_text="۱۲۰٬۰۰۰ کیلومتر") == (280_000_000, 120_000))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

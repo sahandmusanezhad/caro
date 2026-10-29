@@ -333,6 +333,42 @@ class CarListing:
         )
 
 
+# A number in prose is read as a price or an odometer only where the words
+# around it say so. Until 2026-10-29 the fallbacks below were
+# `parse_price(blob)` and `parse_mileage_km(blob)`, which take the FIRST number
+# in the text, tied to nothing: «پژو 206 تیپ 5» was a price of 206 toman and an
+# odometer of 206 km, and «کارکرد ۸۰ هزار» a price of 80,000.
+_PRICE_SCALED = re.compile(r"\d+(?:\.\d+)?\s*(?:میلیارد|ملیارد|میلیون|ملیون)")
+_PRICE_CURRENCY = re.compile(r"[\d٬،,]+\s*(?:تومان|تومن|ریال)")
+_KM_LABELLED = re.compile(
+    r"کارکرد\s*[:\-]?\s*[\d٬،,.]+(?:\s*هزار)?"
+    r"|[\d٬،,.]+(?:\s*هزار)?\s*(?:کیلومتر|کیلو|km)(?![\w])"
+    r"|کیلومتر\s*[:\-]?\s*[\d٬،,.]+(?:\s*هزار)?")
+
+
+def price_in_prose(text: str) -> int | None:
+    """A price from free text: an amount with a scale word, or a long figure
+    with a currency word. A bare number, or «هزار» alone, is none."""
+    s = normalize(text)
+    m = _PRICE_SCALED.search(s)
+    if m:
+        return parse_price(s[m.start():])
+    for m in _PRICE_CURRENCY.finditer(s):
+        if sum(c.isdigit() for c in m.group(0)) >= 7:      # digits, not marks
+            return parse_price(m.group(0))
+    return None
+
+
+def mileage_in_prose(text: str) -> int | None:
+    """An odometer from free text: a figure next to «کارکرد» or «کیلومتر», or
+    «صفر کیلومتر». A bare number in a title is none."""
+    s = normalize(text)
+    if re.search(r"(صفر کیلومتر|کارکرد صفر|صفرکیلومتر)", s):
+        return 0
+    m = _KM_LABELLED.search(s)
+    return parse_mileage_km(m.group(0)) if m else None
+
+
 def parse_listing(listing_id: str, url: str, title: str, description: str,
                   *, price_text: str = "", mileage_text: str = "",
                   year_text: str = "", city: str | None = None,
@@ -353,7 +389,7 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
     # Divar publishes no canonical product name; the title is the seller's.
     # Read anyway, and the weaker provenance is recorded rather than hidden.
     pclass, psource = classify_product(title, from_canonical=False)
-    price = parse_price(price_text) or parse_price(blob)
+    price = parse_price(price_text) or price_in_prose(blob)
     pkind, pksource = classify_price_kind(blob, has_price=price is not None)
     return CarListing(
         listing_id=listing_id, url=url, title=title, description=description,
@@ -361,7 +397,7 @@ def parse_listing(listing_id: str, url: str, title: str, description: str,
         make=make, model=model, trim=extract_trim(blob),
         year_jalali=parse_year_jalali(year_text) or parse_year_jalali(title),
         mileage_km=(parse_mileage_km(mileage_text)
-                    if mileage_text else parse_mileage_km(blob)),
+                    if mileage_text else mileage_in_prose(blob)),
         gearbox=extract_gearbox(blob), fuel=extract_fuel(blob),
         color=extract_color(blob),
         body_condition=condition,
