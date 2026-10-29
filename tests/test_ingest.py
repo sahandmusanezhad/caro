@@ -3326,6 +3326,57 @@ check("  and none of them is in the report",
       not any(x in "\n".join(_dp.report([_t])) for x in ("0912", "۰۹۱۲", "12345", "09 12")))
 
 
+print("\nthe Divar reader meets pages of any shape and does not crash")
+import copy as _copy
+import random as _random
+_rnd = _random.Random(7)
+_WEIRD = [None, 0, -1, 1.5, True, "", " ", "x" * 500, [], {}, [None], {"a": 1}, "۱۲۳", "9" * 40,
+          ["a", 1], {"value": None}, {"value": "abc"}, {"value": [1]}, 1e30, "NaN", "\u0000"]
+_KEYS = ["name", "productionDate", "vehicleModelDate", "mileageFromOdometer", "color", "model",
+         "vehicleTransmission", "knownVehicleDamages", "url", "offers", "web_info", "brand",
+         "category", "@type", "image", "vehicleIdentificationNumber"]
+_LINES = ["۱۲۰٬۰۰۰ کیلومتر", "۴۵۰٬۰۰۰٬۰۰۰ تومان", "توافقی", "", "x", "۹۹۹۹۹۹۹۹۹۹۹۹ تومان",
+          "پیش‌پرداخت ۱ تومان"]
+
+
+def _fuzz_node(n):
+    n = _copy.deepcopy(n)
+    for _ in range(_rnd.randint(1, 4)):
+        k = _rnd.choice(_KEYS)
+        r = _rnd.random()
+        if r < 0.15 and k in n:
+            del n[k]
+        elif r < 0.6 or not isinstance(n.get(k), dict) or not n[k]:
+            n[k] = _copy.deepcopy(_rnd.choice(_WEIRD))
+        else:
+            n[k][_rnd.choice(list(n[k]))] = _copy.deepcopy(_rnd.choice(_WEIRD))
+    return n
+
+
+_crashes, _read = [], 0
+_tk = [f"Tk{i:06d}" for i in range(6)]
+for _it in range(400):
+    _pg = _page([_fuzz_node(_node(t)) if _rnd.random() < 0.8 else _node(t) for t in _tk],
+                [_card(t, lines=tuple(_rnd.choice(_LINES) for _ in range(_rnd.randint(0, 4))))
+                 for t in _tk if _rnd.random() < 0.8])
+    if _rnd.random() < 0.3:
+        _pg = _pg[:_rnd.randint(0, len(_pg))]
+    elif _rnd.random() < 0.3:
+        _i = _rnd.randint(0, len(_pg) - 1)
+        _pg = _pg[:_i] + _pg[_i + _rnd.randint(1, 50):]
+    try:
+        _tr = PageTrace()
+        for _x in parse_divar_page(_pg, _tr):
+            _x.to_fetch_outcome("divar", "s")
+        _dp.report([_tr])
+        _read += 1
+    except Exception as _e:                          # noqa: BLE001
+        _crashes.append(f"{type(_e).__name__}: {_e}")
+check("400 pages, each with 1 to 4 fields of 6 vehicles set to a value of the wrong type, "
+      "some cut or torn: none raises, in the reader, in the outcome or in the report",
+      not _crashes and _read == 400, str(_crashes[:2]))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
