@@ -3624,6 +3624,73 @@ check("M3: one page prints what it did: the line naming the file, and no per-pag
       "read 3 listing(s) from /" in _txt and "page 1 of" not in _txt, _txt[:120])
 
 
+print("\npage_probe reads a Next.js page's data stream, and the browser can be waited for")
+_cars = [{"id": f"c{i}", "title": f"پراید ۱۳۱ شمارهٔ {i}", "price": 4500000000 + i, "city": "تهران",
+          "brand": "Pride", "status": "available", "phone": "0912 345 6789", "seller_name": "Rezaei"}
+         for i in range(5)]
+_row0 = '0:["$","$L1",null,{"children":["$","div",null,{"cars":' + json.dumps(_cars, ensure_ascii=False) + ',"pad":"' + "z" * 200 + '"}]}]\n'
+_row1 = '1:I["chunks/main.js",[],"default"]\n'
+_cut = len(_row0) // 2
+_push = lambda chunk: "self.__next_f.push([1," + json.dumps(chunk, ensure_ascii=False) + "])"
+_RSC_PAGE = ("<html><body><script>" + _push(_row0[:_cut]) + "</script><script>"
+             + _push(_row0[_cut:] + _row1 + "x" * 300) + "</script></body></html>")
+_texts = [_push(_row0[:_cut]), _push(_row0[_cut:] + _row1)]
+_rows, _n, _size = _pp.rsc_rows(_texts)
+check("R1: the pushes are joined, a row cut between two is whole, and the module row is not JSON",
+      _n == 2 and len(_rows) == 1 and _rows[0][3]["children"][3]["cars"][4]["id"] == "c4",
+      str((_n, len(_rows))))
+_sc = _pp.scripts_report(_RSC_PAGE)
+check("R2: the scripts view says once what the stream is, and does not call each push «not JSON»",
+      "Next.js data stream (self.__next_f.push): 2 script(s)" in _sc and "1 JSON row(s)" in _sc
+      and "not JSON" not in _sc, _sc)
+_dl = _pp.data_lists_report(_RSC_PAGE, name="p.html")
+check("R3: the list of five cars is found, with its shape and its categories",
+      "5 objects, 8 keys in common" in _dl and "price: int" in _dl and "title: fa-text" in _dl
+      and "brand: Pride:5" in _dl and "city: تهران:5" in _dl and "status: available:5" in _dl, _dl)
+check("R4: no title, price, phone or seller name is in it, nor in the survey",
+      not any(x in (_dl + _pp.survey(_RSC_PAGE)) for x in ("0912", "Rezaei", "پراید ۱۳۱", "4500000000", "c4")),
+      _dl)
+check("  and a page with no such list says so",
+      "(none)" in _pp.data_lists_report("<html><body><p>x</p></body></html>"))
+_seen = {}
+_real_pw = _pp.playwright_fetcher
+_pp.playwright_fetcher = lambda policy=None, wait_ms=1500: (_seen.update(wait=wait_ms)
+                                                             or (lambda u: (200, _RSC_PAGE)))
+_real_probe2 = _pp.probe
+_pp.probe = lambda *a, **k: _real_probe2(*a, **k, sleeper=lambda s: None)
+_real_http2 = _pp.http_fetcher
+_pp.http_fetcher = lambda policy=None: (lambda u: (200, "User-agent: *\nDisallow: /private\n"))
+for _mod in ("playwright", "playwright.sync_api"):
+    sys_modules = __import__("sys").modules
+    sys_modules.setdefault(_mod, type(__import__("sys"))(_mod))
+try:
+    with _tempfile.TemporaryDirectory() as _tmp:
+        _o = _io.StringIO()
+        with _contextlib.redirect_stdout(_o):
+            _rc7 = _pp.main(["--source", "shop", "--origin", "https://shop.example", "--url",
+                             "https://shop.example/cars", "--render", "browser", "--wait", "7", "--out", _tmp])
+        _w7 = _seen.get("wait")
+        _refused = []
+        for _bad in ("0.1", "31"):
+            try:
+                with _contextlib.redirect_stderr(_io.StringIO()):
+                    _pp.main(["--source", "shop", "--origin", "https://shop.example", "--url",
+                              "https://shop.example/cars", "--render", "browser", "--wait", _bad,
+                              "--out", _tmp])
+                _refused.append(False)
+            except SystemExit as _e:
+                _refused.append(_e.code == 2)
+        _seen.clear()
+        with _contextlib.redirect_stdout(_io.StringIO()):
+            _pp.main(["--source", "shop", "--origin", "https://shop.example", "--url",
+                      "https://shop.example/cars", "--render", "browser", "--out", _tmp + "/b"])
+finally:
+    _pp.playwright_fetcher, _pp.probe, _pp.http_fetcher = _real_pw, _real_probe2, _real_http2
+check("R5: --wait 7 reaches the browser fetcher as 7000 ms; 0.1 and 31 are refused; the default is 1500",
+      _rc7 == 0 and _w7 == 7000 and _refused == [True, True] and _seen.get("wait") == 1500,
+      str((_rc7, _w7, _refused, _seen)))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

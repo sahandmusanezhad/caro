@@ -535,12 +535,17 @@ class DivarCarAdapter:
                 self.sleeper(self.policy.sleep())
 
 
-def playwright_fetcher(policy: PolitenessPolicy | None = None):
+def playwright_fetcher(policy: PolitenessPolicy | None = None,
+                       wait_ms: int = 1500):
     """Live fetcher. Imported lazily so the package works without Playwright.
 
     Not needed for the category page: it is server-rendered, so a plain GET
     carries the listings (measured 2026-10-26; see caro/ingest/divar_page.py).
     This stays for a page that does need JavaScript to show its content.
+    `wait_ms` is how long to wait after the page's DOM is ready for the
+    browser to fill it in: 1.5 seconds is enough for a page that only
+    hydrates, and not for one that fetches its rows (khodro45's auction page
+    shows skeletons until it has them).
     """
     p = policy or PolitenessPolicy()
 
@@ -554,7 +559,7 @@ def playwright_fetcher(policy: PolitenessPolicy | None = None):
                 page = ctx.new_page()
                 resp = page.goto(url, wait_until="domcontentloaded",
                                  timeout=30_000)
-                page.wait_for_timeout(1500)
+                page.wait_for_timeout(wait_ms)
                 return (resp.status if resp else 0), page.content()
             finally:
                 browser.close()

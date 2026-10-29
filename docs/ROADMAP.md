@@ -400,8 +400,11 @@ the owner chooses.
      then `page_probe.py --survey <the saved list page>`, whose whole output is
      counts, shapes and short categories and can be sent as it is. If the list
      is drawn in the browser and the page comes back empty, the same probe with
-     `--render browser`. Closes when the adapter's suite runs offline and a
-     first small live run has been read.
+     `--render browser`, with `--wait 8` where the rows arrive after the page
+     does (Khodro45's auction table is skeletons in the HTML). Sheypoor and
+     Khodro45 are both Next.js; the survey reads their data stream. Closes
+     when the adapter's suite runs offline and a first small live run has
+     been read.
    - `province` where the market is. run16, the corpus served, carries it
      on all 73 rows: 42 stated, 31 by a city that shares its province's
      name, where run14 had 76 of 77 and run13 34 of 74. Every line of run16

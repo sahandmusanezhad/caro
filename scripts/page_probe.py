@@ -9,6 +9,11 @@ A few public pages of one source, fetched politely and kept on this machine.
     python3 scripts/page_probe.py --scripts  ~/caro-probes/<run>/01-3f9a1c2e.html
     python3 scripts/page_probe.py --survey   ~/caro-probes/<run>/01-3f9a1c2e.html
 
+For a page the browser fills in after it loads (a table of rows that is only
+skeletons in the HTML), `--render browser --wait 8` gives it eight seconds
+rather than one and a half. A Next.js page keeps its data in
+`self.__next_f.push(...)` scripts; the survey reads them (its "data lists").
+
 `--survey` is the one to send: the links, how the page paginates, the repeated
 groups, the shape of the JSON and the categories in it (a currency, a unit, a
 brand, a city, with counts), in one answer. The other three were what Divar
@@ -656,8 +661,16 @@ def scripts_report(page: str, *, name: str = "") -> str:
            f"{sum(1 for s in scripts if s.attrs.get('src'))} external; the "
            f"shape of the JSON in each inline one of {_SCRIPT_MIN} characters "
            "or more, and no value"]
+    pushes = [sc.text for sc in scripts if not sc.attrs.get("src")]
+    rows_, n_push, size_push = rsc_rows(pushes)
+    if n_push:
+        out.append(f"# Next.js data stream (self.__next_f.push): {n_push} script(s), "
+                   f"{size_push} characters, {len(rows_)} JSON row(s); its lists of "
+                   "objects are in the survey's data lists")
     for i, sc in enumerate(scripts, 1):
         if sc.attrs.get("src") or len(sc.text) < _SCRIPT_MIN:
+            continue
+        if _RSC_PUSH.match(sc.text):
             continue
         tags = " ".join(f"[{k}={_mask_text(v)}]" if v else f"[{k}]"
                         for k, v in sorted(sc.attrs.items()))
@@ -730,17 +743,42 @@ def _collect(v, path: str, out: dict, budget: list) -> None:
             out.setdefault(path, Counter())      # seen, not a short string
 
 
-def values_report(page: str, *, name: str = "") -> str:
-    """The values of the JSON strings that can be categories, with counts.
+# A Next.js page (the App Router) carries its data in scripts of the form
+# `self.__next_f.push([1,"<a JS string>"])`: React Server Component rows, one
+# `id:json` per line once the strings are joined. That is where the listings of
+# a server-rendered Next.js list are, and `_json_of` sees "not JSON" in it.
+_RSC_PUSH = re.compile(
+    r'^\s*self\.__next_f\.push\(\s*\[\s*\d+\s*,\s*(".*")\s*\]\s*\)\s*;?\s*$', re.S)
+_RSC_ROW = re.compile(r"^[0-9A-Za-z]+:([\[{].*)$")
 
-    A path is printed only if it has at most 12 distinct values, each short,
-    and at least 3 occurrences in all: a currency, a unit, a brand, a city.
-    Ids, titles, prices and addresses have many values and print none. A path
-    named for a person (phone, mail, seller, owner, user, contact, name) never
-    prints one, and a Persian text only under a key that names a kind of thing.
-    """
+
+def rsc_rows(script_texts: list[str]) -> tuple[list, int, int]:
+    """(parsed JSON rows, scripts that were pushes, characters in them)."""
+    chunks, n, size = [], 0, 0
+    for t in script_texts:
+        m = _RSC_PUSH.match(t)
+        if not m:
+            continue
+        n += 1
+        size += len(t)
+        try:
+            chunks.append(json.loads(m.group(1)))
+        except ValueError:
+            continue
+    rows = []
+    for line in "".join(c for c in chunks if isinstance(c, str)).split("\n"):
+        m = _RSC_ROW.match(line)
+        if m:
+            try:
+                rows.append(json.loads(m.group(1)))
+            except ValueError:
+                pass
+    return rows, n, size
+
+
+def _inline_scripts(page: str) -> list:
     tree = _parse(page)
-    scripts: list[_Node] = []
+    scripts: list = []
 
     def find(n):
         for k in n.kids:
@@ -751,18 +789,46 @@ def values_report(page: str, *, name: str = "") -> str:
             find(k)
 
     find(tree.root)
-    paths: dict = {}
-    budget = [200_000]
-    for sc in scripts:
-        if sc.attrs.get("src") or len(sc.text) < _SCRIPT_MIN:
-            continue
-        data = _json_of(sc.text)
-        if data is not None:
-            _collect(data, "", paths, budget)
+    return scripts
+
+
+_LIST_TOP = 5
+_LIST_ITEM_LINES = 60
+
+
+def _row_lists(v, path: str, out: list, depth: int = 0) -> None:
+    """Lists of three or more objects that share at least three keys."""
+    if depth > 40:
+        return
+    if isinstance(v, list):
+        dicts = [x for x in v if isinstance(x, dict)]
+        if len(dicts) >= 3 and len(dicts) >= 0.8 * len(v):
+            common = frozenset.intersection(*(frozenset(d) for d in dicts))
+            if len(common) >= 3:
+                out.append((path or "(root)", dicts, len(common)))
+        for x in v[:300]:
+            if isinstance(x, (list, dict)):
+                _row_lists(x, f"{path}[]", out, depth + 1)
+    elif isinstance(v, dict):
+        for k, x in v.items():
+            if isinstance(x, (list, dict)):
+                _row_lists(x, f"{path}.{_mask_key(str(k))}" if path else _mask_key(str(k)),
+                           out, depth + 1)
+
+
+def _shown_values(paths: dict) -> list:
+    """The (total, path, [(value, count)]) that may be printed. See values_report."""
     shown = []
     for path, c in paths.items():
         total = sum(c.values())
+        if re.fullmatch(r"rsc(\[\])*", path):        # the tag names of React elements
+            continue
+        # A category repeats: a path whose values are each used about once is
+        # an id, a title or a slug, one per item, and prints none. The first
+        # version counted uses in all, and a list of five cars printed its
+        # five ids (found by a row of the tests, 2026-10-29).
         if (not c or len(c) > _VALUE_DISTINCT or total < _VALUE_MIN
+                or total < 2 * len(c)
                 or (_PRIVATE.search(path) and not path.endswith("brand.name"))):
             continue
         vals = [(v, n) for v, n in c.most_common()
@@ -771,6 +837,79 @@ def values_report(page: str, *, name: str = "") -> str:
         if vals:
             shown.append((total, path, vals))
     shown.sort(key=lambda t: (-t[0], t[1]))
+    return shown
+
+
+def data_lists_report(page: str, *, name: str = "") -> str:
+    """The lists of row-like objects in a page's JSON and RSC stream: where the
+    listings are. Path, count, shared keys, the shape of the first object and
+    the categories among them; no other value."""
+    scripts = [s for s in _inline_scripts(page)
+               if not s.attrs.get("src") and len(s.text) >= _SCRIPT_MIN]
+    docs = []
+    for sc in scripts:
+        data = _json_of(sc.text)
+        if data is not None:
+            docs.append(("json", data))
+    rows, _, _ = rsc_rows([s.text for s in scripts])
+    docs += [("rsc", r) for r in rows]
+    found: list = []
+    for kind, d in docs:
+        _row_lists(d, kind, found)
+    # a list inside the items of a bigger one is the same data twice
+    found.sort(key=lambda t: -(len(t[1]) * t[2]))
+    out = [f"# data lists of {name or 'a page'}: lists of 3 or more objects that share "
+           f"3 or more keys, in its JSON and its Next.js data stream (rsc); the "
+           f"{_LIST_TOP} largest, with the shape of the first and its categories"]
+    seen = set()
+    for path, items, common in found:
+        sig = (len(items), common)
+        if sig in seen:
+            continue
+        seen.add(sig)
+        if len(seen) > _LIST_TOP:
+            break
+        out.append(f"## {path}: {len(items)} objects, {common} keys in common")
+        lines: list[str] = []
+        _jlines(items[0], "[0]", 0, lines)
+        out.extend("  " + ln for ln in lines[:_LIST_ITEM_LINES])
+        if len(lines) > _LIST_ITEM_LINES:
+            out.append(f"  … {len(lines) - _LIST_ITEM_LINES} more lines")
+        paths: dict = {}
+        budget = [50_000]
+        for it in items:
+            _collect(it, "", paths, budget)
+        vs = _shown_values(paths)
+        if vs:
+            out.append("  categories:")
+            for _, p, vals in vs[:_VALUE_PATHS]:
+                out.append(f"    {p}: " + "  ".join(f"{v}:{n}" for v, n in vals))
+    if len(out) == 1:
+        out.append("  (none)")
+    return "\n".join(out) + "\n"
+
+
+def values_report(page: str, *, name: str = "") -> str:
+    """The values of the JSON strings that can be categories, with counts.
+
+    A path is printed only if it has at most 12 distinct values, each short,
+    and each used twice on average (and 3 uses in all): a currency, a unit, a
+    brand, a city. A value used once in a path of values used once is an id.
+    Ids, titles, prices and addresses have many values and print none. A path
+    named for a person (phone, mail, seller, owner, user, contact, name) never
+    prints one, and a Persian text only under a key that names a kind of thing.
+    """
+    scripts = [s for s in _inline_scripts(page)
+               if not s.attrs.get("src") and len(s.text) >= _SCRIPT_MIN]
+    paths: dict = {}
+    budget = [200_000]
+    for sc in scripts:
+        data = _json_of(sc.text)
+        if data is not None:
+            _collect(data, "", paths, budget)
+    for r in rsc_rows([sc.text for sc in scripts])[0]:
+        _collect(r, "rsc", paths, budget)
+    shown = _shown_values(paths)
     out = [f"# values of {name or 'a page'}: JSON strings that are categories "
            f"(at most {_VALUE_DISTINCT} distinct, {_VALUE_MIN} or more uses; "
            "short, at most 4 digits, no person's field), with counts"]
@@ -813,6 +952,7 @@ def survey(page: str, *, name: str = "") -> str:
     return "\n".join([sk, pagination_hints(page).rstrip("\n"),
                        rows(page, name=name, with_text=False).rstrip("\n"),
                        scripts_report(page, name=name).rstrip("\n"),
+                       data_lists_report(page, name=name).rstrip("\n"),
                        values_report(page, name=name).rstrip("\n")]) + "\n"
 
 
@@ -838,6 +978,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--render", choices=["http", "browser"], default="http",
                     help="http for a server-rendered page, browser for one "
                          "rendered client-side (default: http)")
+    ap.add_argument("--wait", type=float, default=1.5, metavar="SECONDS",
+                    help="with --render browser: seconds to wait after the "
+                         "page is ready for it to fill itself in, 0.5 to 30 "
+                         "(default 1.5; a page that fetches its rows needs more)")
     ap.add_argument("--no-text", action="store_true",
                     help="with --skeleton or --rows: leave every text out")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT,
@@ -871,7 +1015,9 @@ def main(argv: list[str] | None = None) -> int:
                   "  pip install playwright && playwright install chromium",
                   file=sys.stderr)
             return 2
-        fetch = playwright_fetcher(policy)
+        if not 0.5 <= args.wait <= 30:
+            ap.error("--wait must be between 0.5 and 30 seconds")
+        fetch = playwright_fetcher(policy, wait_ms=int(args.wait * 1000))
     else:
         fetch = http_fetcher(policy)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
