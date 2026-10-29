@@ -121,3 +121,48 @@ python3 scripts/page_probe.py --survey ~/caro-probes/<the new run>/01-….html
 - **Divar.** What a NewCondition car is in a used-car corpus (counted since
   this round), and what «paintless-dent-removal» is (the optional branch maps
   it to `minor_paint`, as the prose table reads «صافکاری»).
+
+## Addendum — 2026-10-29, after the offline reads
+
+The sections above are as they were written before the reads; this one says
+what the reads found and what that changes for the live runs. The full
+record goes in the D-entry after the owner's push.
+
+- **Khodro45.** The page holds 24 results in two lists of 12, not 12, and 24
+  cards (the survey shows one list of each size). Its `slug` is not the code
+  the card's link ends in, so the first read joined no card and priced
+  nothing; joined by odometer and year, all 24 matched, the cards show
+  `final_price` on all 24, and 23 are eligible (one is `price_type` 4). The
+  shapes say the code is «cla-» and the slug in another case, and the adapter
+  now joins by that and learns the address rule from the cards. The next page
+  is given as `http://khodro45.com/api/v2/car_listing/?limit=12&offset=24&…`
+  and is asked for over `https://`, the same host, path and query.
+- **Sheypoor.** 26 listings from the list, 24 with a price, none with an
+  odometer; the listing page, probed since, holds the year, the odometer, the
+  gearbox, the fuel, the colour, the condition and a price with its currency
+  code in its JSON-LD. A live run now asks for the listing page of each new
+  listing, up to `--limit` (50 by default), so the first one should be small.
+
+Before the live Sheypoor run, the owner's three saved pages read offline, the
+list and the two listing pages (no request):
+
+```
+python3 scripts/first_run.py --source sheypoor --page ~/caro-probes/20261029T024503Z-sheypoor/01-6c76758a.html ~/caro-probes/20261029T162509Z-sheypoor/01-ca72f8d7.html ~/caro-probes/20261029T162509Z-sheypoor/02-f3f9c8ea.html
+```
+
+It should print 26 listings, the two listing pages merged into their cards,
+one currency code on both (which one is not known: IRR, IRT or TOMAN, else
+«unrecognised currency» and the card's price stands) and the unit code KMT
+(sha256 `f782aa9b…`, written before the code).
+
+The live runs, as they are now:
+
+```
+python3 scripts/first_run.py --source khodro45 --pages 2
+python3 scripts/first_run.py --source sheypoor --pages 1 --limit 10
+```
+
+Khodro45: robots.txt, `/buy-car/` (24 listings) and the API page at offset 24
+(12 more) if robots.txt allows `/api/`; three requests. Sheypoor: robots.txt,
+`/s/iran/car` and ten listing pages; twelve requests, the pause after each.
+

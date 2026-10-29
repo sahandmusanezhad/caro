@@ -796,8 +796,8 @@ def report(traces: list[SheypoorTrace]) -> list[str]:
     n = sum(t.emitted for t in traces if t.kind == "list")
     if n and years < n:
         L.append(f"  ⚠ the cards give no year and no odometer: {n - years} of {n} have no "
-                 "year (a title stated the rest). The listing page is where both "
-                 "are, and it has not been probed.")
+                 "year (a title or a listing page gave the rest). The listing page "
+                 "gives both: a live run asks for up to --limit of them.")
     corner = sum(t.marks["corner image"] for t in traces)
     if corner:
         L.append(f"  ⚠ {corner} card(s) carry an image at the top right of the photo; "

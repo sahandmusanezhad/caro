@@ -63,10 +63,11 @@ section that holds its detail.
    reads what comes back.
 6. **Sheypoor and Khodro45** (the product gaps, item 1). The owner probes;
    a session builds the adapter offline from what the probe kept. Both are
-   built (2026-10-29), against one saved list page each; what is left is the
-   offline read of those pages, the first live runs, and for Sheypoor a probe
-   of a listing page, whose year and odometer the list does not give. The plan
-   and its predictions: [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
+   built (2026-10-29), against the owner's saved pages: Khodro45's list,
+   Sheypoor's list and two of its listing pages, whose year and odometer the
+   list does not give. The offline reads have been made and acted on (the
+   plan's addendum); what is left is the first live runs. The plan and its
+   predictions: [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
 7. **An estimator that clears the gate on real data** (the product gaps, item
    2). A session, on the corpus of step 5. It is what reopens the ranked
    path's two items (the parser, items 1 and 2), compare's gated branch, and
