@@ -4244,10 +4244,12 @@ check("V4: the place: Qom from the city; «سراسر استان گلستان» 
       [(x.city, x.province_source, x.location_raw) for x in _sp1]
       == [(None, "none", "دیواندره"), ("قم", "city", "قم"), (None, "none", "بابل، بندارکلاآغوزین"),
           ("گلستان", "stated", "سراسر استان گلستان")], str([(x.city, x.location_raw) for x in _sp1]))
-check("V5: the corner image and «تابلو شده» are counted, and no seller is given a type",
+check("V5: the corner image and «تابلو شده» are counted; the card with the image is a dealer's (O2, the "
+      "optional rule), every other seller unknown",
       _sptr[0].marks == Counter({"corner image": 1, "تابلو شده": 1})
-      and {x.seller_type for x in _sp1} == {"unknown"} and {x.seller_raw for x in _sp1} == {None},
-      str(_sptr[0].marks))
+      and [x.seller_type for x in _sp1] == ["unknown", "dealer", "unknown", "unknown"]
+      and {x.seller_raw for x in _sp1} == {None}
+      and any("read as a shop's badge" in ln for ln in _sh.report(_sptr)), str(_sptr[0].marks))
 _spp = SheypoorParser()
 _spp(_SP)
 check("V6: the next page is the page's own rel=next, kept as its shape",
@@ -4680,6 +4682,12 @@ _k4s(_sp_listing("462345681", price=4500000000, cur="IRR"))
 _k4srep = "\n".join(_sh.report(_k4s.traces))
 check("K4-3: Sheypoor's report counts a listing page merged into its card once, and its price once",
       "pages 2   listings 4   cards 4" in _k4srep and "min 0.25B   median 0.25B   max 0.45B" in _k4srep, _k4srep)
+print("\noptional: the corner image's seller type survives the listing page (O2)")
+_o2p = SheypoorParser()
+_o2p(_SP)
+check("O2: a listing page merged into a card with the corner image keeps the card's dealer; one without stays unknown",
+      _o2p(_sp_listing("462345679", price=2500000000, cur="IRR"))[0].seller_type == "dealer"
+      and _o2p(_sp_listing("462345678", price=2500000000, cur="IRR"))[0].seller_type == "unknown")
 
 
 print()

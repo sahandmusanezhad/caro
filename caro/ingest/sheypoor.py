@@ -22,7 +22,9 @@ WHAT WAS NOT KNOWN, and is counted rather than assumed. Some cards carry a
 40-px bordered image at the top right of the photo: on the owner's page every
 one of them was titled «فروش سازمانی» or «فروش دولتی», so it may be a shop's
 logo. It is counted, and `seller_type` stays `unknown`: D26 allows a type only
-from a badge known to be one, and what this image is has not been read.
+from a badge known to be one, and what this image is has not been read. (On
+this branch, the optional one, the image IS read as a shop's badge: the
+owner's rule to take or leave, in `build`.)
 
 The title is the seller's own words, and everything read from it is recorded
 as such: make and model by the table of thirteen, the condition by the prose
@@ -386,7 +388,11 @@ def build(card: Card, listing_id: str, trace: SheypoorTrace) -> CarListing:
         price_provenance=prov, mileage_status=m_status.value,
         mileage_note=m_reason, product_class=pclass,
         product_class_source=psource, price_kind=kind,
-        price_kind_source=kind_src, seller_type="unknown",
+        # The optional branch's rule, the owner's to take or leave: the image
+        # at the top right of the photo is a shop's badge (on the owner's
+        # page every card with one was titled «فروش سازمانی» or «فروش دولتی»).
+        price_kind_source=kind_src,
+        seller_type="dealer" if card.corner_image else "unknown",
         province_source=p_source, location_raw=place, source_url=url,
     )
 
@@ -808,6 +814,7 @@ def report(traces: list[SheypoorTrace]) -> list[str]:
                  "gives both: a live run asks for up to --limit of them.")
     corner = sum(t.marks["corner image"] for t in traces)
     if corner:
-        L.append(f"  ⚠ {corner} card(s) carry an image at the top right of the photo; "
-                 "seller_type stays unknown until what it is has been read.")
+        L.append(f"  ⚠ {corner} card(s) carry an image at the top right of the photo, "
+                 "read as a shop's badge (seller_type dealer) by the optional "
+                 "branch's rule; see one on the site before trusting it.")
     return L
