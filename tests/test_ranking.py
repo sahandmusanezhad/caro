@@ -759,11 +759,45 @@ for text, why in [   # measured and left: read as a floor, and that is not alway
     ("پراید ۴۰۰ میلیون و بالاتر اصلا نباشه", "  a word between"),
     ("پراید ۴۰۰ میلیون و بالاتر نباید باشه", "  «نباید»"),
     ("پراید بیشتر از ۴۰۰ میلیون مدل ۹۸ به بالا", "the bare «از» of the year form reads «بیشتر از»"),
-    ("پراید کمتر از ۴۰۰ میلیون مدل ۹۸ به بالا",
-     "KNOWN FAULT: the same «از» is the tail of «کمتر از», a ceiling; its own round"),
 ]:
     got_f = P.parse(text).budget_min_toman
     check(f"«{text}» → floor 400,000,000, left  ({why})", got_f == 400_000_000, str(got_f))
+
+# The fault that stood in that list until 2026-10-29, now its own round: the
+# bare «از» of the year form is the tail of «کمتر از», a ceiling. A comparative
+# right before the cue refuses the floor, and the ceiling rules read the query
+# as they do for «زیر». 288 phrasings were measured (six comparatives, six
+# amounts, two years, four contexts); these are a few of them.
+for text, want_max, want_year in [
+    ("پراید کمتر از ۴۰۰ میلیون مدل ۹۸ به بالا", 400_000_000, 1398),
+    ("پراید کم‌تر از ۴۰۰ میلیون مدل ۹۸ به بالا", 400_000_000, 1398),
+    ("پراید پایین تر از ۳۰۰ میلیون مدل ۱۳۹۸ به بالا", 300_000_000, 1398),
+    ("پراید پایین‌تر از ۸۰۰ میلیون مدل ۹۸ به بالا", 800_000_000, 1398),
+    ("206 ارزان تر از ۱ میلیارد مدل ۹۸ به بالا", 1_000_000_000, 1398),
+    ("سمند، ارزون‌تر از ۵۵۰ میلیون مدل ۹۸ به بالا", 550_000_000, 1398),
+    ("ارزان‌تر از ۱.۵ میلیارد مدل ۱۴۰۰ به بالا", 1_500_000_000, 1400),
+]:
+    sp_c = P.parse(text)
+    check(f"«{text}» → no floor, ceiling {want_max:,}, year {want_year}",
+          (sp_c.budget_min_toman, sp_c.budget_max_toman, sp_c.year_min)
+          == (None, want_max, want_year),
+          f"{sp_c.budget_min_toman} {sp_c.budget_max_toman} {sp_c.year_min}")
+for text, why in [   # what the guard must not touch
+    ("پراید از ۴۰۰ میلیون مدل ۹۸ به بالا", "the plain floor with a year clause"),
+    ("پراید از ۴۰۰ میلیون به بالا", "the plain floor"),
+    ("پراید بالای ۴۰۰ میلیون به بالا", "«بالای»"),
+    ("پراید بیشتر از ۴۰۰ میلیون مدل ۹۸ به بالا", "«بیشتر از», the owner's choice (D84)"),
+    ("پراید بالاتر از ۴۰۰ میلیون مدل ۹۸ به بالا", "«بالاتر از», the same"),
+    ("پراید بیش از ۴۰۰ میلیون مدل ۹۸ به بالا", "«بیش از», the same"),
+]:
+    got_g = P.parse(text).budget_min_toman
+    check(f"«{text}» → still floor 400,000,000  ({why})", got_g == 400_000_000, str(got_g))
+for text in ("پراید زیر ۴۰۰ میلیون مدل ۹۸ به بالا", "پراید کمتر از ۴۰۰ میلیون، مدل ۹۸ به بالا",
+             "پراید تا ۴۰۰ میلیون مدل ۹۸ به بالا", "پراید کمتر از ۴۰۰ میلیون"):
+    sp_h = P.parse(text)
+    check(f"«{text}» → no floor, ceiling 400,000,000, as before",
+          (sp_h.budget_min_toman, sp_h.budget_max_toman) == (None, 400_000_000),
+          f"{sp_h.budget_min_toman} {sp_h.budget_max_toman}")
 
 
 # ---------------------------------------------------------------------------
@@ -782,7 +816,7 @@ for _n, _key in _NUMBERS:
         ("تیبا یا {N}", ("tiba",), "beside another model"),
         ("تا ۳۰۰ میلیون {N}", (), "after a budget, in its clause"),
         ("زیر ۴۰۰ میلیون {N} سفید", (), "after a budget, with a word after it"),
-    ]:
+]:
         _q = _t.format(N=_n)
         _got = set(P.parse(_q).model_hints)
         check(f"«{_q}» → {sorted({_key, *_extra})} ({_why})",

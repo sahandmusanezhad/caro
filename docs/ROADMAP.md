@@ -310,6 +310,20 @@ the owner chooses.
      list kept as a ceiling), and a number glued to a word, «پراید۴۰۰ میلیون
      و بالاتر», is not read.
 
+   A ceiling read as a floor before a year clause — built. «پراید کمتر از ۴۰۰
+   میلیون مدل ۹۸ به بالا» was a floor of 400 million and no ceiling, and nothing
+   listed, because `_CUE` is the bare «از», which is the tail of «کمتر از»:
+   288 of 288 made phrasings (six comparatives, six amounts, two years, four
+   contexts). A floor whose cue a comparative stands right before («کمتر»,
+   «پایین‌تر», «ارزان‌تر», «ارزون‌تر») is refused, and the ceiling rules read
+   the query as they do for «زیر»: all 288 are a ceiling of the amount with the
+   year clause as it was. 0 of the 1,104 other made phrasings change (the plain
+   floor with a year clause, «بیشتر از», «بالاتر از», «بیش از», «بالای X به
+   بالا», the ceilings that were right, a comparative with no year clause), and
+   of 25 ordinary sentences one does, the same fault. Left: «بیشتر از» and
+   «بالاتر از» still read the floor (D84); two floors in one query, and a
+   floor by word beside one by cue, are not pinned.
+
    Not built, each measured on made phrasings and each a round of its own,
    with the predictions written first:
    - A bare «X به بالا» («پراید ۴۰۰ میلیون به بالا») is read as a ceiling,
@@ -471,18 +485,6 @@ is read once more against the tree, and the last round gets its D-entry.
 Items to add. Each one moves into a list above once it has been measured and
 decided.
 
-- **A ceiling read as a floor before a year clause.** «پراید کمتر از ۴۰۰
-  میلیون مدل ۹۸ به بالا», with no comma before «مدل», is read as a floor of
-  400 million and no ceiling, and nothing is listed: `_FLOOR_Y`'s cue is the
-  bare «از», which is the tail of «کمتر از». Measured on made phrasings (48 a
-  shape: six amounts, two years, four contexts): «کمتر از», «پایین تر از»,
-  «پایین‌تر از», «ارزان تر از» and «ارزون تر از» are read as a floor on 240 of
-  240; with a comma before «مدل», or «زیر», «تا» or «حداکثر» in place of the
-  comparative, 48 of 48 each are read right. It is the same in `d053acb`, the
-  commit before the floor was tied to its words. On run16 it matches 2
-  listings, priced 550 and 1,350 million, above the 400 million the buyer
-  named. One row in `tests/test_ranking.py` holds it as a known fault. A round
-  of its own.
 - **Decimal separators.** «۱/۵ میلیارد», «۱٫۵ میلیارد» (the Arabic separator,
   U+066B) and «۱،۵ میلیارد» are read as 5 billion, silently: of 20 made
   phrasings per separator (five amounts, four shapes of ceiling) 0 are read

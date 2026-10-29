@@ -198,6 +198,29 @@ _FLOOR_L = re.compile(r"(?<!\w)حداقل\s*(?:قیمت\s*)?" + _SOFT
                       + "(" + _MONEY.pattern + ")" + _UNIT_TAIL)
 _FLOOR_T = re.compile(r"(?<!\w)(" + _MONEY_T + ")" + _UNIT_TAIL
                       + r"\s*(?:و|یا)\s*(?:بالاتر|بیشتر)(?!\w)(?!\s*از(?!\w))")
+# A COMPARATIVE right before the cue makes it a ceiling's: the «از» of «کمتر از»,
+# «پایین‌تر از», «ارزان‌تر از», «ارزون‌تر از». `_CUE` is the bare «از» (and the
+# end of a word is refused, not the end of a phrase), so «پراید کمتر از ۴۰۰
+# میلیون مدل ۹۸ به بالا» was read as a floor of 400 million with no ceiling and
+# nothing listed: 288 of 288 made phrasings (six comparatives, six amounts, two
+# years, four contexts), 2026-10-29; «زیر», «تا», «حداکثر», or a comma before
+# «مدل», were right already. A floor whose cue is so preceded is refused, and
+# the ceiling rules read the query as they do for those. «بیشتر از» and
+# «بالاتر از» are not in the list: they are the owner's choice (D84).
+_COMPARATIVE_BEFORE = re.compile(
+    r"(?:کم\s?تر|پایین\s?تر|ارزان\s?تر|ارزون\s?تر)\s*$")
+
+
+def _floor_by_cue(q: str):
+    """The first `_FLOOR_S`, then `_FLOOR_Y`, whose cue no comparative stands
+    before; None if there is none."""
+    for rx in (_FLOOR_S, _FLOOR_Y):
+        for m in rx.finditer(q):
+            if not _COMPARATIVE_BEFORE.search(q[:m.start()]):
+                return m
+    return None
+
+
 _NOT_A_FLOOR_AFTER = re.compile(
     r"\s*(?:نباش(?:ه|د|ن|ند)?|نیست(?:ن)?|نمی\s*خوا(?:م|هم|یم)"
     r"|نخوا(?:م|هم|یم)|نشه|نره|نرسه|نگذره|نزنه|خرج\s+نکنم)(?!\w)")
@@ -693,7 +716,7 @@ class RuleIntentParser:
         # floor's phrase blanked out: «از ۴۰۰ میلیون به بالا» is a floor and
         # nothing else, and its amount was also taken for the ceiling.
         qc = q
-        m = _FLOOR_S.search(q) or _FLOOR_Y.search(q) or _floor_by_word(q)
+        m = _floor_by_cue(q) or _floor_by_word(q)
         if m:
             budget_min = parse_amount(m.group(1))
             acted.append(m.group(0))
