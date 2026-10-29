@@ -3833,6 +3833,282 @@ check("Q7: no phone, no name, no person's price, no title, no token and no id in
                                   "پراید", "770000", "910000", "880000", "AbCdEfGh")), _all[:400])
 
 
+print("\nkhodro45's list -- read from the shape the owner's survey and --around found")
+# Invented to the SHAPE of `/buy-car/` (2026-10-29): a Next.js page whose data
+# stream holds state.queries[].state.data.pages[] = {count, next, previous,
+# results}, and the same results as cards a[href=/buy-car/<brand>-<model>/<city>/<slug>/]
+# with «قیمت», a figure and the toman icon. No value here was on that page.
+from collections import Counter                                      # noqa: E402
+from caro.ingest import khodro45 as _k45                             # noqa: E402
+from caro.ingest.khodro45 import Khodro45Adapter, Khodro45Parser, parse_khodro45  # noqa: E402
+from caro.ingest.robots import RobotsViolation as _RV                 # noqa: E402
+
+
+def _k45_result(slug, *, brand=("پژو", "Peugeot", "peugeot"), model=("پارس", "Pars", "pars"),
+                year="1402", price=1188000000, final=1212000000, ptype=2, klm=127860,
+                city=("زاهدان", "Zahedan"), tags=("شاسی پلمپ",), option="XU7", active=True):
+    return {"slug": slug, "active": active, "guaranteed": False, "immediate_delivery": False,
+            "price_type": ptype, "price": price, "final_price": final, "has_installment": True,
+            "views": 40, "car_properties": {
+                "brand": {"title": brand[0], "title_en": brand[1], "seo_slug": brand[2]},
+                "model": {"title": model[0], "title_en": model[1], "seo_slug": model[2]},
+                "option": option, "trim": "", "year": year},
+            "city": {"title": city[0], "title_en": city[1]}, "branch": None,
+            "car_specifications": {"document": None, "klm": klm, "is_klm_matched": None},
+            "image": {"uuid": "u", "url": "https://cdn.example/x.webp"}, "identifier": 770001,
+            "created_time": "2026-10-28T10:00:00", "fmp_tags": [{"id": 6, "title": t} for t in tags]}
+
+
+def _k45_card(r, *, figure="final", km=None, year=None, negotiable=False):
+    cp = r["car_properties"]
+    href = (f"/buy-car/{cp['brand']['seo_slug']}-{cp['model']['seo_slug']}/"
+            f"{r['city']['title_en'].lower()}/{r['slug']}/")
+    if figure == "final":
+        fig = f"{r['final_price']:,}"
+    elif figure == "price":
+        fig = f"{r['price']:,}"
+    else:
+        fig = figure
+    price_block = ('<p class="font-normal">قیمت</p><div class="flex"><p class="font-semibold">توافقی</p></div>'
+                   if negotiable else
+                   f'<p class="font-normal">قیمت</p><div class="flex"><p class="font-semibold">{fig}</p>'
+                   '<span class="icon-toman text-lg"></span></div>') if fig is not None or negotiable else ""
+    km_text = km if km is not None else f"{r['car_specifications']['klm']:,} km"
+    return (f'<div class="gap-4"><a class="flex h-full w-full" href="{href}" target="_blank">'
+            '<div class="bg-common-100"><div class="aspect"><div class="AsyncImage-root"></div></div>'
+            '<div class="flex p-3"><h2 class="flex"><span class="font-semibold">' + cp["brand"]["title"] + '</span>'
+            '<span class="mx-2">|</span><span class="flex"><span><span class="block" title="t">'
+            + cp["model"]["title"] + '</span></span><span class="mx-2">|</span>'
+            f'<span class="font-semibold">{year if year is not None else cp["year"]}</span></span></h2>'
+            f'<ul><li><p title="o">{cp["option"]}</p><span>|</span></li><li><p>{km_text}</p><span>|</span></li>'
+            f'<li><p>{r["city"]["title"]}</p></li></ul>'
+            '<div class="flex"><div class="flex" data-tag-item=""><span data-testid="website.abc12345.listing-tag.'
+            + (r["fmp_tags"][0]["title"] if r["fmp_tags"] else "x") + '"><p>'
+            + (r["fmp_tags"][0]["title"] if r["fmp_tags"] else "x") + '</p></span></div></div></div>'
+            '<div class="flex"><span>خدمات خودرو45</span></div>'
+            f'<div class="bg-common-200">{price_block}</div></div></a></div>')
+
+
+def _k45_page(results, cards=(), *, count=1812,
+              nxt="https://khodro45.com/api/v2/car_listing/?limit=12&offset=12&ordering=-created_time"):
+    state = {"queries": [
+        {"queryKey": ["brands"], "state": {"status": "success", "data": [
+            {"id": 96, "title": "پژو", "title_en": "Peugeot", "seo_slug": "peugeot", "logo": {}}] * 3}},
+        {"queryKey": ["car_listing", {"limit": 12}], "state": {"status": "success", "data": {
+            "pages": [{"count": count, "next": nxt, "previous": None, "results": list(results)}],
+            "pageParams": [None]}}}]}
+    row = "7:" + json.dumps(["$", "$L1b", None, {"state": state}], ensure_ascii=False) + "\n"
+    half = len(row) // 2
+    push = lambda chunk: "self.__next_f.push([1," + json.dumps(chunk, ensure_ascii=False) + "])"
+    return ("<!DOCTYPE html><html><head><script src='/_next/static/chunks/main.js'></script></head><body>"
+            "<header><nav><ul><li><a href='/buy-car/'><p>خرید خودرو</p></a></li></ul></nav></header>"
+            "<main><div class='pt-6'>" + "".join(cards) + "</div></main>"
+            "<script>" + push('0:["$","html",null,{}]\n' + row[:half]) + "</script>"
+            "<script>" + push(row[half:] + '8:I["chunks/x.js",[],"default"]\n') + "</script>"
+            "</body></html>")
+
+
+_kr = [_k45_result("cla-tsznel"), _k45_result("cla-umvzwp", brand=("فونیکس", "Fownix", "fownix"),
+                                               model=("تیگو ۷ پرو", "Tiggo 7 Pro", "tiggo7pro"),
+                                               price=2970000000, final=3030000000, klm=10303, option="MC اتوماتیک"),
+       _k45_result("cla-dbqpay", brand=("هایما", "Haima", "haima"), model=("اس ۷", "S7", "s7"),
+                   price=8415990000, final=8585990000, klm=234951, year="2017",
+                   city=("اصفهان", "Isfahan"), tags=("بدون رنگ",))]
+_K45_PAGE = _k45_page(_kr, [_k45_card(r) for r in _kr])
+_ktr = []
+_k1 = parse_khodro45(_K45_PAGE, _ktr)
+check("K1: three results with their cards are three listings, in page order, by slug, at the card's address",
+      [x.listing_id for x in _k1] == ["cla-tsznel", "cla-umvzwp", "cla-dbqpay"]
+      and _k1[0].url == "https://khodro45.com/buy-car/peugeot-pars/zahedan/cla-tsznel/"
+      and _k1[0].source_url == _k1[0].url and _ktr[0].kind == "html"
+      and (_ktr[0].results, _ktr[0].cards, _ktr[0].emitted, _ktr[0].count) == (3, 3, 3, 1812),
+      str([(x.listing_id, x.url) for x in _k1]) + str(_ktr[0]))
+check("K2: the card shows final_price: that is the asking price, display-confirmed, with what the card showed kept",
+      (_k1[0].asking_price_toman, _k1[0].price_status, _k1[0].price_provenance,
+       _k1[0].price_displayed_toman, _k1[0].price_raw) == (1212000000, "display_confirmed", "data+card",
+                                                           1212000000, "1212000000")
+      and _ktr[0].shown == Counter({"final_price": 3}), str(_k1[0]))
+_k2p = parse_khodro45(_k45_page(_kr[:1], [_k45_card(_kr[0], figure="price")]))[0]
+_k2n_tr = []
+_k2n = parse_khodro45(_k45_page(_kr[:1], [_k45_card(_kr[0], figure="999,000,000")]), _k2n_tr)[0]
+check("  the card shows price: price; the card shows a third number: no price, both fields listed",
+      (_k2p.asking_price_toman, _k2p.price_raw) == (1188000000, "1188000000")
+      and (_k2n.asking_price_toman, _k2n.price_status) == (None, "ambiguous")
+      and _k2n_tr[0].odd["card price is neither field"] == [(1188000000, 1212000000, 999000000)],
+      str((_k2p.asking_price_toman, _k2n.asking_price_toman, _k2n_tr[0].odd)))
+_k2w = parse_khodro45(_k45_page(_kr[:1], [_k45_card(_kr[0], figure="1.2 میلیارد")]))[0]
+_k2v = parse_khodro45(_k45_page(_kr[:1], [_k45_card(_kr[0], negotiable=True)]))[0]
+check("  a figure with a word in it is not read; «توافقی» is negotiable; neither has a price",
+      (_k2w.asking_price_toman, _k2w.price_status) == (None, "ambiguous")
+      and (_k2v.asking_price_toman, _k2v.price_status, _k2v.price_kind) == (None, "negotiable", "negotiable"),
+      str((_k2w.price_status, _k2v.price_status)))
+
+_api = json.dumps({"count": 1812, "next": None, "previous": "x",
+                   "results": [_k45_result("cla-api001", price=1500000000, final=1530300000),
+                               _k45_result("cla-api002", price=1600000000, final=1632320000)]})
+_kp = Khodro45Parser()
+_kp(_K45_PAGE)
+_ka = _kp(_api)
+check("K3: a page of the API, with no card, takes the field the run's three cards showed: structured_only",
+      [(x.listing_id, x.asking_price_toman, x.price_status) for x in _ka]
+      == [("cla-api001", 1530300000, "structured_only"), ("cla-api002", 1632320000, "structured_only")]
+      and _kp.traces[-1].kind == "api" and _kp.traces[-1].results_without_card == 2
+      and _kp.next_url is None, str([(x.listing_id, x.asking_price_toman, x.price_status) for x in _ka]))
+_kp2 = Khodro45Parser()
+_kp2(_k45_page(_kr[:2], [_k45_card(r) for r in _kr[:2]]))
+_ka2 = _kp2(_api)
+_kp3 = Khodro45Parser()
+_kp3(_k45_page(_kr, [_k45_card(_kr[0], figure="price"), _k45_card(_kr[1]), _k45_card(_kr[2])]))
+_ka3 = _kp3(_api)
+check("  two cards are not enough, and cards that showed both fields settle nothing: no price",
+      [x.asking_price_toman for x in _ka2] == [None, None] and [x.asking_price_toman for x in _ka3] == [None, None]
+      and _kp2.traces[-1].price["no card, no field settled"] == 2
+      and any("show price on some" in ln for ln in _k45.report(_kp3.traces)),
+      str([x.price_status for x in _ka2]))
+check("  and their address is the rule the cards' links followed, three of three",
+      _ka[0].url == "https://khodro45.com/buy-car/peugeot-pars/zahedan/cla-api001/"
+      and [x.url for x in _ka2] == ["", ""], str((_ka[0].url, _ka2[0].url)))
+
+_k4tr = []
+_k4 = parse_khodro45(_k45_page([_k45_result("cla-type4x", ptype=4)], [_k45_card(_k45_result("cla-type4x", ptype=4))]),
+                     _k4tr)[0]
+check("K4: a price type other than 2 has no price, and the report says what is not known",
+      (_k4.asking_price_toman, _k4.price_status) == (None, "ambiguous")
+      and _k4tr[0].price["price_type 4"] == 1 and _k4tr[0].price_types["4"] == 1
+      and any("price type other than 2" in ln for ln in _k45.report(_k4tr)), str(_k4tr[0].price))
+
+_k5a = parse_khodro45(_k45_page([_k45_result("cla-km500x", klm=500, year="1405")],
+                                [_k45_card(_k45_result("cla-km500x", klm=500, year="1405"), km="500 km")]))[0]
+_k5tr = []
+_k5d = parse_khodro45(_k45_page([_k45_result("cla-kmdiff", klm=120000)],
+                                [_k45_card(_k45_result("cla-kmdiff", klm=120000), km="90,000 km")]), _k5tr)[0]
+_k5o = parse_khodro45(_api)[0]
+check("K5: the odometer as written: 500 km is 500; the card agrees with klm; 120,000 against 90,000 is none, listed; "
+      "with no card klm alone",
+      _k5a.mileage_km == 500 and _k1[0].mileage_km == 127860 and _k5d.mileage_km is None
+      and _k5tr[0].mileage["disagree"] == 1 and _k5tr[0].odd["odometer differs"] == [(120000, 90000)]
+      and _k5o.mileage_km == 127860 and _ktr[0].mileage == Counter({"agree": 3}),
+      str((_k5a.mileage_km, _k5d.mileage_km, _k5o.mileage_km, _ktr[0].mileage)))
+_k6tr = []
+_k6 = parse_khodro45(_k45_page([_k45_result("cla-yrdiff")], [_k45_card(_k45_result("cla-yrdiff"), year="1401")]),
+                     _k6tr)[0]
+check("K6: 1402 is 1402; 2017 is 1396 and counted Gregorian; a card year that differs gives no year, listed",
+      _k1[0].year_jalali == 1402 and _k1[2].year_jalali == 1396
+      and _ktr[0].calendar == Counter({"jalali": 2, "gregorian": 1}) and _k6.year_jalali is None
+      and _k6tr[0].odd["year differs"] == [(1402, 1401)], str((_k1[2].year_jalali, _ktr[0].calendar)))
+_k7s = parse_khodro45(_k45_page([_k45_result("cla-samand", brand=("سمند", "Samand", "samand"),
+                                             model=("LX", "LX", "lx"))]))[0]
+_k7x = parse_khodro45(_k45_page([_k45_result("cla-longnm", brand=("برند", "B" * 41, "b"),
+                                             model=("مدل", "M", "m"))]))[0]
+check("K7: the table on the site's Persian names first (Peugeot Pars, IKCO Samand); else the English titles "
+      "as given (Fownix Tiggo 7 Pro, Haima S7); a name that is not a category is none",
+      [(x.make, x.model) for x in _k1] == [("Peugeot", "Pars"), ("Fownix", "Tiggo 7 Pro"), ("Haima", "S7")]
+      and (_k7s.make, _k7s.model) == ("IKCO", "Samand") and (_k7x.make, _k7x.model) == (None, None),
+      str([(x.make, x.model) for x in _k1]))
+check("K8: Zahedan gives no province, Isfahan gives Isfahan from the city; the city's title is kept as the line",
+      (_k1[0].city, _k1[0].province_source, _k1[0].location_raw) == (None, "none", "زاهدان")
+      and (_k1[2].city, _k1[2].province_source, _k1[2].location_raw) == ("اصفهان", "city", "اصفهان"),
+      str((_k1[0].city, _k1[2].city)))
+check("K9: a tag «بدون رنگ» is intact, from a field; «شاسی پلمپ» leaves it unknown; the tags are counted",
+      (_k1[2].body_condition, _k1[2].condition_source) == ("intact", "field")
+      and (_k1[0].body_condition, _k1[0].condition_source) == ("unknown", "none")
+      and _ktr[0].tags == Counter({"شاسی پلمپ": 2, "بدون رنگ": 1}), str(_ktr[0].tags))
+_k10 = _k1[0].to_fetch_outcome("khodro45", "salt")
+check("K10: seller unknown and no fingerprint, a vehicle by its canonical names, a cash price, automatic from "
+      "the option, and the whole record eligible",
+      (_k1[0].seller_type, _k1[0].seller_raw, _k10.seller_fingerprint) == ("unknown", None, None)
+      and (_k1[0].product_class, _k1[0].product_class_source) == ("vehicle", "canonical_name")
+      and _k1[0].price_kind == "cash" and _k1[1].gearbox == "automatic" and _k10.listing_id == "khodro45:cla-tsznel"
+      and _eligibility(_k1[0]) == (True, []), str(_eligibility(_k1[0])))
+_k11r = [_k45_result(f"cla-p{i}xyz", price=1000000000 + i * 100000000, final=1000000000 + i * 100000000)
+         for i in range(5)]
+_k11tr = []
+parse_khodro45(_k45_page(_k11r, [_k45_card(r) for r in _k11r]), _k11tr)
+_k11 = "\n".join(_k45.report(_k11tr))
+check("K11: the report has counts and categories: no slug, no title, no price but the smallest, middle and "
+      "largest; the site's count; the next page as its shape",
+      "cla-" not in _k11 and "پارس" not in _k11 and "1.10B" not in _k11 and "1.30B" not in _k11
+      and "min 1.00B   median 1.20B   max 1.40B" in _k11 and "the site's count 1812" in _k11
+      and "/api/v#/car_listing/?limit&offset&ordering" in _k11 and "card shows" in _k11, _k11)
+_k11i = parse_khodro45(_k45_page([_k45_result("cla-inactv", active=False)]), _k11tr)
+check("  an inactive result is not a listing, and is counted; a page with no stream has none",
+      _k11i == [] and _k11tr[-1].skipped["not active"] == 1
+      and parse_khodro45("<html><body><a href='/buy-car/a-b/c/cla-zzz/'>x</a></body></html>") == []
+      and parse_khodro45("") == [] and parse_khodro45("{not json") == [], str(_k11tr[-1].skipped))
+
+
+def _k45_world(pages, robots="User-agent: *\nDisallow: /panel/\n"):
+    asked = []
+
+    def fetch(url):
+        asked.append(url)
+        if url.endswith("/robots.txt"):
+            return 200, robots
+        return pages.get(url, (404, ""))
+    return fetch, asked
+
+
+_K45_API2 = "https://khodro45.com/api/v2/car_listing/?limit=12&offset=12&ordering=-created_time"
+_kw, _kasked = _k45_world({"https://khodro45.com/buy-car/": (200, _K45_PAGE), _K45_API2: (200, _api)})
+_sleeps = []
+_kad = Khodro45Adapter(max_pages=2, page_fetcher=_kw, robots_fetcher=_kw, parser=Khodro45Parser(),
+                       sleeper=_sleeps.append)
+_kout = list(_kad.fetch_all(date(2026, 10, 29)))
+check("K12: the list, then the API page it names: robots.txt first, five listings, a pause after robots.txt and "
+      "one between the pages, and two pages is all",
+      _kasked == ["https://khodro45.com/robots.txt", "https://khodro45.com/buy-car/", _K45_API2]
+      and [o.listing_id for o in _kout] == ["khodro45:cla-tsznel", "khodro45:cla-umvzwp", "khodro45:cla-dbqpay",
+                                           "khodro45:cla-api001", "khodro45:cla-api002"]
+      and len(_sleeps) == 2 and _kad.stopped is None, str((_kasked, _kad.stopped, len(_sleeps))))
+_kw, _kasked = _k45_world({"https://khodro45.com/buy-car/": (200, _K45_PAGE)},
+                          robots="User-agent: *\nDisallow: /buy-car/\n")
+_kad = Khodro45Adapter(page_fetcher=_kw, robots_fetcher=_kw, parser=Khodro45Parser(), sleeper=lambda s: None)
+try:
+    list(_kad.fetch_all(date(2026, 10, 29)))
+    _raised = False
+except _RV:
+    _raised = True
+check("  a robots.txt that disallows /buy-car/ stops the run before its first page is asked for",
+      _raised and _kasked == ["https://khodro45.com/robots.txt"], str(_kasked))
+_kw, _kasked = _k45_world({"https://khodro45.com/buy-car/": (200, _K45_PAGE)},
+                          robots="User-agent: *\nDisallow: /api/\n")
+_kad = Khodro45Adapter(max_pages=3, page_fetcher=_kw, robots_fetcher=_kw, parser=Khodro45Parser(),
+                       sleeper=lambda s: None)
+_kout = list(_kad.fetch_all(date(2026, 10, 29)))
+check("  the API disallowed: page 1 is kept, page 2 is not asked for, and the run says why",
+      len(_kout) == 3 and _K45_API2 not in _kasked and "not requested" in (_kad.stopped or ""),
+      str((_kasked, _kad.stopped)))
+_kw, _kasked = _k45_world({"https://khodro45.com/buy-car/": (200, _k45_page(
+    _kr, [_k45_card(r) for r in _kr], nxt="https://api.khodro45.com/v2/car_listing/?offset=12"))})
+_kad = Khodro45Adapter(max_pages=3, page_fetcher=_kw, robots_fetcher=_kw, parser=Khodro45Parser(),
+                       sleeper=lambda s: None)
+_kout = list(_kad.fetch_all(date(2026, 10, 29)))
+check("  a next page on another origin is not asked for",
+      len(_kout) == 3 and not any("api.khodro45" in u for u in _kasked) and "not requested" in (_kad.stopped or ""),
+      str((_kasked, _kad.stopped)))
+_kw, _kasked = _k45_world({"https://khodro45.com/buy-car/": (200, _K45_PAGE), _K45_API2: (500, "")})
+_kad = Khodro45Adapter(max_pages=3, page_fetcher=_kw, robots_fetcher=_kw, parser=Khodro45Parser(),
+                       sleeper=lambda s: None)
+_kout = list(_kad.fetch_all(date(2026, 10, 29)))
+check("  a page that does not answer is an unknown outcome, the run stops, and nothing is asked again",
+      [o.status for o in _kout][-1] is FetchStatus.UNKNOWN and _kasked.count(_K45_API2) == 1
+      and "did not answer" in (_kad.stopped or ""), str((_kasked, _kad.stopped)))
+_kw, _kasked = _k45_world({"https://khodro45.com/buy-car/": (200, _K45_PAGE),
+                           _K45_API2: (200, _k45_page(_kr, [_k45_card(r) for r in _kr]))})
+_kad = Khodro45Adapter(max_pages=3, page_fetcher=_kw, robots_fetcher=_kw, parser=Khodro45Parser(),
+                       sleeper=lambda s: None)
+_kout = list(_kad.fetch_all(date(2026, 10, 29)))
+check("  a page that adds nothing new stops the run; no page_fetcher or parser: it refuses to guess",
+      len(_kout) == 3 and _kasked.count(_K45_API2) == 1 and "added no new listing" in (_kad.stopped or ""),
+      str((_kasked, _kad.stopped)))
+try:
+    list(Khodro45Adapter(robots_fetcher=_kw).fetch_all(date(2026, 10, 29)))
+    _refused = False
+except RuntimeError:
+    _refused = True
+check("  and with no fetcher it refuses", _refused)
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
