@@ -3641,6 +3641,13 @@ _rows, _n, _size = _pp.rsc_rows(_texts)
 check("R1: the pushes are joined, a row cut between two is whole, and the module row is not JSON",
       _n == 2 and len(_rows) == 1 and _rows[0][3]["children"][3]["cars"][4]["id"] == "c4",
       str((_n, len(_rows))))
+from caro.ingest import nextjs as _nx
+check("K0: the reader is caro/ingest/nextjs.py's, and the probe uses that one",
+      _pp.rsc_rows is _nx.rsc_rows and _nx.page_rows(_RSC_PAGE) == _rows)
+check("  inline_scripts reads the two pushes and no external script; a page without one has no rows",
+      _nx.inline_scripts("<html><script src='a.js'></script>" + _RSC_PAGE[6:]) == _nx.inline_scripts(_RSC_PAGE)
+      and len(_nx.inline_scripts(_RSC_PAGE)) == 2 and _nx.page_rows("<html><p>x</p></html>") == []
+      and _nx.page_rows("") == [], str(len(_nx.inline_scripts(_RSC_PAGE))))
 _sc = _pp.scripts_report(_RSC_PAGE)
 check("R2: the scripts view says once what the stream is, and does not call each push «not JSON»",
       "Next.js data stream (self.__next_f.push): 2 script(s)" in _sc and "1 JSON row(s)" in _sc

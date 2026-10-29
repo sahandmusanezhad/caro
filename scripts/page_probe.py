@@ -130,6 +130,7 @@ from caro.ingest.bama import http_fetcher                              # noqa: E
 from caro.ingest.divar_car import (                                      # noqa: E402
     PolitenessPolicy, assert_allowed, playwright_fetcher,
 )
+from caro.ingest.nextjs import RSC_PUSH, rsc_rows                      # noqa: E402
 from caro.ingest.robots import RobotsGate, RobotsViolation, describe     # noqa: E402
 
 # A probe looks; it does not crawl. Five pages is a category page, a few
@@ -761,7 +762,7 @@ def scripts_report(page: str, *, name: str = "") -> str:
     for i, sc in enumerate(scripts, 1):
         if sc.attrs.get("src") or len(sc.text) < _SCRIPT_MIN:
             continue
-        if _RSC_PUSH.match(sc.text):
+        if RSC_PUSH.match(sc.text):
             continue
         tags = " ".join(f"[{k}={_mask_text(v)}]" if v else f"[{k}]"
                         for k, v in sorted(sc.attrs.items()))
@@ -885,34 +886,9 @@ def _collect(v, path: str, out: dict, budget: list, nums: dict | None = None) ->
 # A Next.js page (the App Router) carries its data in scripts of the form
 # `self.__next_f.push([1,"<a JS string>"])`: React Server Component rows, one
 # `id:json` per line once the strings are joined. That is where the listings of
-# a server-rendered Next.js list are, and `_json_of` sees "not JSON" in it.
-_RSC_PUSH = re.compile(
-    r'^\s*self\.__next_f\.push\(\s*\[\s*\d+\s*,\s*(".*")\s*\]\s*\)\s*;?\s*$', re.S)
-_RSC_ROW = re.compile(r"^[0-9A-Za-z]+:([\[{].*)$")
-
-
-def rsc_rows(script_texts: list[str]) -> tuple[list, int, int]:
-    """(parsed JSON rows, scripts that were pushes, characters in them)."""
-    chunks, n, size = [], 0, 0
-    for t in script_texts:
-        m = _RSC_PUSH.match(t)
-        if not m:
-            continue
-        n += 1
-        size += len(t)
-        try:
-            chunks.append(json.loads(m.group(1)))
-        except ValueError:
-            continue
-    rows = []
-    for line in "".join(c for c in chunks if isinstance(c, str)).split("\n"):
-        m = _RSC_ROW.match(line)
-        if m:
-            try:
-                rows.append(json.loads(m.group(1)))
-            except ValueError:
-                pass
-    return rows, n, size
+# a server-rendered Next.js list are, and `_json_of` sees "not JSON" in it. The
+# reader (`rsc_rows`, `RSC_PUSH`) lives in caro/ingest/nextjs.py, where the
+# Khodro45 adapter reads the same rows with it.
 
 
 def _inline_scripts(page: str) -> list:
