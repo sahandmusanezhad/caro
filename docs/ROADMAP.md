@@ -394,8 +394,14 @@ the owner chooses.
      source of a seller's type (D26). The owner probes first
      (`scripts/page_probe.py --source sheypoor --origin … --url …`); the probe's
      pages stay on his machine, and the adapter is built and tested offline
-     against them. Closes when the adapter's suite runs offline and a first
-     small live run has been read.
+     against them. Two commands a source: the probe on the site's own home
+     page and on the car list page he copies out of his browser's address bar
+     (the session cannot know either address, and does not ask a site for it),
+     then `page_probe.py --survey <the saved list page>`, whose whole output is
+     counts, shapes and short categories and can be sent as it is. If the list
+     is drawn in the browser and the page comes back empty, the same probe with
+     `--render browser`. Closes when the adapter's suite runs offline and a
+     first small live run has been read.
    - `province` where the market is. run16, the corpus served, carries it
      on all 73 rows: 42 stated, 31 by a city that shares its province's
      name, where run14 had 76 of 77 and run13 34 of 74. Every line of run16

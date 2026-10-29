@@ -7,6 +7,12 @@ A few public pages of one source, fetched politely and kept on this machine.
     python3 scripts/page_probe.py --skeleton ~/caro-probes/<run>/01-3f9a1c2e.html
     python3 scripts/page_probe.py --rows     ~/caro-probes/<run>/01-3f9a1c2e.html
     python3 scripts/page_probe.py --scripts  ~/caro-probes/<run>/01-3f9a1c2e.html
+    python3 scripts/page_probe.py --survey   ~/caro-probes/<run>/01-3f9a1c2e.html
+
+`--survey` is the one to send: the links, how the page paginates, the repeated
+groups, the shape of the JSON and the categories in it (a currency, a unit, a
+brand, a city, with counts), in one answer. The other three were what Divar
+took, one round trip each, and a fourth to learn what the short strings said.
 
 WHY THIS EXISTS
 
@@ -670,6 +676,145 @@ def scripts_report(page: str, *, name: str = "") -> str:
 
 
 # ---------------------------------------------------------------------------
+# Survey: the three views and the two that were missing, in one answer
+# ---------------------------------------------------------------------------
+#
+# Divar took three round trips -- the skeleton, the rows, the scripts -- and a
+# fourth to learn what the short strings in the JSON said (`IRR`, `KMT`, the
+# damage slugs, the brands). A survey is one command that prints all of it, so
+# a page of a source nobody has read yet (Sheypoor, Khodro45, Divar's page 2)
+# costs one probe and one survey.
+
+_VALUE_DISTINCT = 12
+_VALUE_MIN = 3
+_VALUE_PATHS = 60
+_VALUE_MAX_LEN = 40
+_VALUE_MAX_DIGITS = 4
+# A path with one of these in it never has a value printed: a person's field.
+_PRIVATE = re.compile(r"phone|tel\b|mobile|mail|address|seller|owner|user|"
+                      r"contact|person|author|(?<![a-z])name$", re.I)
+# Persian text is printed only under a key that names a kind of thing.
+_KIND = re.compile(r"city|district|neighbo|province|state|category|brand|model|"
+                   r"color|colour|gear|fuel|body|type|condition|status|unit|"
+                   r"currency|availability|damage|transmission", re.I)
+
+
+def _short_value(v) -> str | None:
+    """A string that may be printed as a category, or None. At most 40
+    characters, no «@», and at most four digits in all."""
+    if not isinstance(v, str):
+        return None
+    v = v.strip()
+    if (not v or len(v) > _VALUE_MAX_LEN or "@" in v
+            or sum(c.isdigit() for c in v) > _VALUE_MAX_DIGITS):
+        return None
+    return v
+
+
+def _collect(v, path: str, out: dict, budget: list) -> None:
+    if budget[0] <= 0:
+        return
+    budget[0] -= 1
+    if isinstance(v, dict):
+        for k, x in v.items():
+            _collect(x, f"{path}.{_mask_key(str(k))}" if path else _mask_key(str(k)),
+                     out, budget)
+    elif isinstance(v, list):
+        for x in v:
+            _collect(x, f"{path}[]", out, budget)
+    else:
+        sv = _short_value(v)
+        if sv is not None:
+            out.setdefault(path, Counter())[sv] += 1
+        else:
+            out.setdefault(path, Counter())      # seen, not a short string
+
+
+def values_report(page: str, *, name: str = "") -> str:
+    """The values of the JSON strings that can be categories, with counts.
+
+    A path is printed only if it has at most 12 distinct values, each short,
+    and at least 3 occurrences in all: a currency, a unit, a brand, a city.
+    Ids, titles, prices and addresses have many values and print none. A path
+    named for a person (phone, mail, seller, owner, user, contact, name) never
+    prints one, and a Persian text only under a key that names a kind of thing.
+    """
+    tree = _parse(page)
+    scripts: list[_Node] = []
+
+    def find(n):
+        for k in n.kids:
+            if isinstance(k, str):
+                continue
+            if k.tag == "script":
+                scripts.append(k)
+            find(k)
+
+    find(tree.root)
+    paths: dict = {}
+    budget = [200_000]
+    for sc in scripts:
+        if sc.attrs.get("src") or len(sc.text) < _SCRIPT_MIN:
+            continue
+        data = _json_of(sc.text)
+        if data is not None:
+            _collect(data, "", paths, budget)
+    shown = []
+    for path, c in paths.items():
+        total = sum(c.values())
+        if (not c or len(c) > _VALUE_DISTINCT or total < _VALUE_MIN
+                or (_PRIVATE.search(path) and not path.endswith("brand.name"))):
+            continue
+        vals = [(v, n) for v, n in c.most_common()
+                if re.search(r"[\u0600-\u06ff]", v) is None
+                or _KIND.search(path.rsplit(".", 1)[-1])]
+        if vals:
+            shown.append((total, path, vals))
+    shown.sort(key=lambda t: (-t[0], t[1]))
+    out = [f"# values of {name or 'a page'}: JSON strings that are categories "
+           f"(at most {_VALUE_DISTINCT} distinct, {_VALUE_MIN} or more uses; "
+           "short, at most 4 digits, no person's field), with counts"]
+    for total, path, vals in shown[:_VALUE_PATHS]:
+        out.append(f"  {path}: " + "  ".join(f"{v}:{n}" for v, n in vals))
+    if len(shown) > _VALUE_PATHS:
+        out.append(f"… {len(shown) - _VALUE_PATHS} more paths")
+    if not shown:
+        out.append("  (none)")
+    return "\n".join(out) + "\n"
+
+
+def pagination_hints(page: str) -> str:
+    """How a list says there is more of it: the names of the query parameters
+    on its links (names only), and any rel=next or rel=prev."""
+    names: Counter = Counter()
+    rels: Counter = Counter()
+    for href in re.findall(r"""href\s*=\s*["']([^"']*\?[^"']*)["']""", page):
+        q = href.split("?", 1)[1].split("#", 1)[0]
+        for pair in q.split("&"):
+            k = pair.split("=", 1)[0]
+            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_\[\]-]{0,24}", k):
+                names[k] += 1
+    for m in re.finditer(r"""rel\s*=\s*["']?(next|prev|previous)\b""", page, re.I):
+        rels[m.group(1).lower()] += 1
+    out = ["# pagination hints: query parameter names on links (count), and rel=next/prev"]
+    out.append("  params: " + ("  ".join(f"{k}:{n}" for k, n in names.most_common(12))
+                              if names else "(none)"))
+    out.append("  rel: " + ("  ".join(f"{k}:{n}" for k, n in rels.most_common())
+                            if rels else "(none)"))
+    return "\n".join(out) + "\n"
+
+
+def survey(page: str, *, name: str = "") -> str:
+    """Everything a parser needs to be written, with no value in it that is
+    text and no digit that is not masked: the page's size and links, how it
+    paginates, its repeated groups, the shape of its JSON and the categories
+    in that JSON."""
+    sk = skeleton(page, name=name, with_text=False).split("# tree:")[0].rstrip("\n")
+    return "\n".join([sk, pagination_hints(page).rstrip("\n"),
+                       rows(page, name=name, with_text=False).rstrip("\n"),
+                       scripts_report(page, name=name).rstrip("\n"),
+                       values_report(page, name=name).rstrip("\n")]) + "\n"
+
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__,
@@ -682,6 +827,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--scripts", nargs="+", type=Path, metavar="FILE",
                     help="print the shape of the JSON in the scripts of saved "
                          "pages, no value, and exit; no network")
+    ap.add_argument("--survey", nargs="+", type=Path, metavar="FILE",
+                    help="print the links, the pagination hints, the rows, the "
+                         "shape of the JSON and the categories in it, in one "
+                         "answer, and exit; no network, no text")
     ap.add_argument("--source", help="a short name, e.g. divar, sheypoor")
     ap.add_argument("--origin", help="e.g. https://divar.ir")
     ap.add_argument("--url", action="append", default=[],
@@ -703,14 +852,15 @@ def main(argv: list[str] | None = None) -> int:
     for flag, view in ((args.rows, lambda t, f: rows(
             t, name=f.name, with_text=not args.no_text)),
                        (args.scripts, lambda t, f: scripts_report(
-                           t, name=f.name))):
+                           t, name=f.name)),
+                       (args.survey, lambda t, f: survey(t, name=f.name))):
         if flag:
             for f in flag:
                 print(view(f.read_text(encoding="utf-8", errors="replace"), f))
             return 0
     if not (args.source and args.origin and args.url):
         ap.error("--source, --origin and at least one --url are needed "
-                 "(or --skeleton, --rows or --scripts FILE)")
+                 "(or --skeleton, --rows, --scripts or --survey FILE)")
 
     policy = PolitenessPolicy()
     if args.render == "browser":
@@ -751,7 +901,7 @@ def main(argv: list[str] | None = None) -> int:
         first = next(p["saved_as"] for p in m["pages"] if p.get("saved_as"))
         print("what can be sent to have a parser written (read it first; "
               "add --no-text to leave the text out):")
-        for view in ("rows", "scripts", "skeleton"):
+        for view in ("survey",):
             print(f"  python3 scripts/page_probe.py --{view} "
                   f"{res.out_dir / first}")
     return res.exit_code

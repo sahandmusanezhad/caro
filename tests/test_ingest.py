@@ -3532,6 +3532,65 @@ check("  and the listing is eligible for a model it only has from the page",
       "no model" not in " ".join(_eligibility(_sm("Gac", "Gac Emkoo Hybrid"))[1]))
 
 
+print("\npage_probe --survey: one answer for a page nobody has read")
+_SV_VEHICLES = [{
+    "@type": "Car", "title": "پراید ۱۳۱ تیپ " + str(i), "offers": {"price": "4500000000", "priceCurrency": "IRR"},
+    "mileageFromOdometer": {"value": "120000", "unitCode": "KMT"},
+    "damage": ["intact", "some-paint", "half-paint"][i % 3],
+    "web_info": {"city_persian": "تهران", "title": f"عنوان آگهی شماره {i}"},
+    "contactPoint": {"email": f"seller{i}@example.test"} if i < 5 else {"email": ""},
+    "seller": {"name": "Rezaei" if i < 5 else "", "phone": "0912 345 6789" if i < 5 else ""},
+    "token": f"Tk{i:06d}x", "rare": "once" if i == 0 else "a" + str(i)[:1] * (i % 4 + 1)} for i in range(24)]
+_SV_PAGE = ("<html><head><link rel='next' href='/s/tehran/car?page=2'>"
+            "<script type='application/ld+json'>" + json.dumps(_SV_VEHICLES, ensure_ascii=False)
+            + "</script></head><body><a href='/s/tehran/car?page=2'>2</a><a href='/s/tehran/car?p=3&q9=1'>3</a>"
+            + _PP_CARDS + "</body></html>")
+_SV = _pp.survey(_SV_PAGE, name="p.html")
+_order = [_SV.find(x) for x in ("# skeleton of", "# pagination hints", "# rows of", "# scripts of", "# values of")]
+check("S1: the survey holds the links, the pagination hints, the rows, the scripts and the values, in that order",
+      all(i >= 0 for i in _order) and _order == sorted(_order), str(_order))
+check("S2: the categories are printed under their paths: the currency, the unit, the three slugs, the city",
+      all(x in _SV for x in ("priceCurrency: IRR:24", "unitCode: KMT:24", "intact:8",
+                             "some-paint:8", "half-paint:8", "city_persian: تهران:24")), _SV[-900:])
+check("S3: no title, price, email, phone or seller name is printed; nor a Persian text under a key that "
+      "names no kind of thing; nor a path of many values",
+      not any(x in _SV for x in ("عنوان آگهی", "4500000000", "seller0@", "0912", "Rezaei", "پراید ۱۳۱ تیپ",
+                                 "Tk000001x", "once")), _SV)
+_vals = _SV[_SV.index("# values of"):]
+check("  a value used fewer than three times, or a path of more than twelve, is not printed",
+      "once" not in _vals and "token" not in _vals)
+_pg = _pp.pagination_hints(_SV_PAGE)
+check("S4: the pagination hints name the parameters, with counts, and rel=next, and no value",
+      "page:" in _pg and "p:" in _pg and "q9:" in _pg and "next:" in _pg and "=2" not in _pg, _pg)
+check("S5: the survey is deterministic and holds no raw price, id or phone",
+      _pp.survey(_SV_PAGE, name="p.html") == _SV and "4500000000" not in _SV and "Tk0000" not in _SV)
+with _tempfile.TemporaryDirectory() as _tmp:
+    _f = _Path(_tmp) / "p.html"
+    _f.write_text(_SV_PAGE, encoding="utf-8")
+    _out = _io.StringIO()
+    with _contextlib.redirect_stdout(_out):
+        _rc = _pp.main(["--survey", str(_f)])
+check("S6: --survey FILE prints it on the command line with no network and exits 0",
+      _rc == 0 and "# values of" in _out.getvalue() and "# pagination hints" in _out.getvalue())
+
+_real_probe, _real_http = _pp.probe, _pp.http_fetcher
+_pp.probe = lambda *a, **k: _real_probe(*a, **k, sleeper=lambda s: None)
+_pp.http_fetcher = lambda policy=None: (lambda u: (200, "User-agent: *\nDisallow: /private\n")
+                                         if u.endswith("/robots.txt") else (200, _SV_PAGE))
+try:
+    with _tempfile.TemporaryDirectory() as _tmp:
+        _out = _io.StringIO()
+        with _contextlib.redirect_stdout(_out):
+            _rc = _pp.main(["--source", "shop", "--origin", "https://shop.example",
+                            "--url", "https://shop.example/cars", "--out", _tmp])
+finally:
+    _pp.probe, _pp.http_fetcher = _real_probe, _real_http
+check("S6: the end of a probe tells the owner to run --survey, and not three views",
+      _rc == 0 and "page_probe.py --survey " in _out.getvalue()
+      and "--rows " not in _out.getvalue() and "--scripts " not in _out.getvalue(),
+      _out.getvalue()[-400:])
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
