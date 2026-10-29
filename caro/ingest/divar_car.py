@@ -465,6 +465,10 @@ class DivarCarAdapter:
     sleeper: Callable[[float], None] = time.sleep
     robots_fetcher: Callable[[str], tuple[int, str]] | None = None
     robots: RobotsGate = field(init=False, repr=False, compare=False)
+    # Why the run ended before `max_pages`, when it did not run out of pages
+    # or get blocked: a page that answered and added no listing. None
+    # otherwise. A block is not this; it raises SourceBlocked.
+    stopped: str | None = field(default=None, init=False, compare=False)
 
     def __post_init__(self):
         self.robots = RobotsGate(
@@ -500,8 +504,17 @@ class DivarCarAdapter:
             fs = classify_http(status)
             if fs is FetchStatus.OK and html:
                 consecutive = 0
-                for listing in self.parse_page(html):
+                got = self.parse_page(html)
+                for listing in got:
                     yield listing.to_fetch_outcome(self.name, self.salt)
+                if not got:
+                    # The page answered and holds nothing new: the end of the
+                    # results, a `?page=` the site ignores (page 1 again), or
+                    # a layout the parser no longer reads. All three mean the
+                    # next page will add nothing either, and asking for it
+                    # would be requests for no data.
+                    self.stopped = f"page {page} added no new listing"
+                    return
             else:
                 consecutive += 1
                 # An unresolved page is ignorance about that page, not

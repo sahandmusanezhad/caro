@@ -696,6 +696,8 @@ def collect(args, traces: list | None = None,
                              **({"sleeper": sleeper} if sleeper else {}))
         records = list(ad.fetch_all(date.today()))
         print("\n".join(divar_report(parser.traces)))
+        if ad.stopped:
+            print(f"  stopped early: {ad.stopped}")
         print()
         SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
         snap = assess_integrity(Snapshot(

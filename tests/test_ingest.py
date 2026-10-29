@@ -3235,6 +3235,83 @@ check("A5: an explicit price_text and mileage_text are read as before, and win",
           mileage_text="۱۲۰٬۰۰۰ کیلومتر") == (280_000_000, 120_000))
 
 
+print("\nthe Divar adapter stops when a page adds nothing, and says why")
+
+
+def _run_pages(pages, max_pages=5, parse=None):
+    asked, slept_ = [], []
+
+    def fetch(u):
+        asked.append(u)
+        return 200, pages(len(asked))
+    ad_ = DivarCarAdapter(max_pages=max_pages, page_fetcher=fetch, parse_page=parse,
+                          salt="test-salt", sleeper=slept_.append,
+                          robots_fetcher=divar_robots)
+    outs_ = list(ad_.fetch_all(date(2026, 10, 29)))
+    return ad_, outs_, [u for u in asked if "/s/" in u], slept_
+
+
+_three = _page([_node(t) for t in _T], [_card(t) for t in _T])
+_n = {"i": 0}
+
+
+def _then_empty(html):
+    _n["i"] += 1
+    return parse_divar_page(html) if _n["i"] == 1 else []
+
+
+_n["i"] = 0
+_ad, _outs, _reqs, _sl = _run_pages(lambda i: _three, parse=_then_empty)
+check("B1: page 2 parses to nothing: three outcomes, two requests (not five), the "
+      "reason named, and no wait after the stop",
+      len(_outs) == 3 and len(_reqs) == 2 and _ad.stopped == "page 2 added no new listing"
+      and len(_sl) == 2, str((len(_outs), _reqs, _ad.stopped, _sl)))   # robots' pause + 1->2
+_ad, _outs, _reqs, _sl = _run_pages(lambda i: _three, parse=DivarPageParser())
+check("B2: page 2 served as page 1 again, through the parser that remembers: the same",
+      len(_outs) == 3 and len(_reqs) == 2 and _ad.stopped is not None, str(_reqs))
+_k = {"i": 0}
+
+
+def _fresh_each_page(html):
+    _k["i"] += 1
+    return [parse_listing(f"p{_k['i']}{j}", f"https://divar.ir/v/x/p{_k['i']}{j}x", "پراید", "",
+                          price_text="۳۰۰ میلیون") for j in range(2)]
+
+
+_ad, _outs, _reqs, _sl = _run_pages(lambda i: "<html>x</html>", parse=_fresh_each_page)
+check("B3: pages that all yield are all requested, nothing is `stopped`, and the waits "
+      "between them are as before",
+      len(_reqs) == 5 and len(_outs) == 10 and _ad.stopped is None and len(_sl) == 5,
+      str((len(_reqs), len(_outs), _ad.stopped, len(_sl))))
+_ad4 = DivarCarAdapter(max_pages=10, page_fetcher=lambda u: (403, ""),
+                       parse_page=parse_divar_page, sleeper=lambda s: None,
+                       robots_fetcher=divar_robots)
+_got4, _raised4 = [], False
+try:
+    for _o in _ad4.fetch_all(date(2026, 10, 29)):
+        _got4.append(_o)
+except SourceBlocked:
+    _raised4 = True
+check("B4: a 403 is still UNKNOWN three times and a SourceBlocked, and is not "
+      "«added nothing»",
+      _raised4 and len(_got4) == 3 and _ad4.stopped is None
+      and all(o.status is FetchStatus.UNKNOWN for o in _got4))
+_fr_args2 = _argparse.Namespace(source="divar", limit=10, categories=None, makes="",
+                                seed=0, city="tehran", pages=5)
+_fetch2, _asked2 = _divar_world(lambda u: _three)
+with _tempfile.TemporaryDirectory() as _tmp:
+    _old, _first_run.SNAPSHOT_DIR = _first_run.SNAPSHOT_DIR, _Path(_tmp)
+    _out2 = _io.StringIO()
+    try:
+        with _contextlib.redirect_stdout(_out2):
+            _first_run.collect(_fr_args2, [], fetcher=_fetch2, sleeper=lambda s: None)
+    finally:
+        _first_run.SNAPSHOT_DIR = _old
+check("B5: first_run prints why it stopped early, and not when it did not",
+      "stopped early: page 2 added no new listing" in _out2.getvalue()
+      and len([u for u in _asked2 if "/s/" in u]) == 2)
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
