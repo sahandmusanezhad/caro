@@ -3591,6 +3591,39 @@ check("S6: the end of a probe tells the owner to run --survey, and not three vie
       _out.getvalue()[-400:])
 
 
+print("\nfirst_run --page reads several pages with one memory of the tokens")
+
+
+def _pages_run(*pages):
+    with _tempfile.TemporaryDirectory() as tmp:
+        files = []
+        for i, html_ in enumerate(pages):
+            f = _Path(tmp) / f"0{i}.html"
+            f.write_text(html_, encoding="utf-8")
+            files.append(str(f))
+        argv, _first_run.sys.argv = _first_run.sys.argv, ["first_run.py", "--page", *files]
+        out = _io.StringIO()
+        try:
+            with _contextlib.redirect_stdout(out):
+                rc = _first_run.main()
+        finally:
+            _first_run.sys.argv = argv
+    return rc, out.getvalue()
+
+
+_p2 = _page([_node(t) for t in ("Zz000001", "Zz000002")], [_card(t) for t in ("Zz000001", "Zz000002")])
+_rc, _txt = _pages_run(_three, _three)
+check("M1: a page given twice adds nothing: 3 listings in all, and the repeats are counted",
+      _rc == 0 and "read 3 listing(s) from 2 pages" in _txt and "page 2 of 2: 0 new, 3 repeated" in _txt
+      and "pages 2" in _txt and "duplicates" in _txt, _txt[:300])
+_rc, _txt = _pages_run(_three, _p2)
+check("M2: two different pages of 3 and 2: 5 in all, none repeated",
+      "read 5 listing(s) from 2 pages" in _txt and "page 2 of 2: 2 new, 0 repeated" in _txt, _txt[:200])
+_rc, _txt = _pages_run(_three)
+check("M3: one page prints what it did: the line naming the file, and no per-page line",
+      "read 3 listing(s) from /" in _txt and "page 1 of" not in _txt, _txt[:120])
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

@@ -4,7 +4,7 @@ First live collection, and the inventory report that decides what comes next.
 
     python3 scripts/first_run.py --source bama --limit 50
     python3 scripts/first_run.py --source divar --city tehran --pages 2
-    python3 scripts/first_run.py --page ~/caro-probes/<run>/01-<hash>.html
+    python3 scripts/first_run.py --page ~/caro-probes/<run>/01-<hash>.html [<page 2>]
     python3 scripts/first_run.py --replay <file with a top-level "listings">
 
 This is deliberately small. The point of a first run is not volume — it is
@@ -556,17 +556,28 @@ def main() -> int:
                          "reproducible rather than incidental")
     ap.add_argument("--replay", type=Path,
                     help="parse a saved snapshot instead of fetching")
-    ap.add_argument("--page", type=Path,
-                    help="read ONE saved Divar category page (the file "
-                         "scripts/page_probe.py kept) and print what it holds. "
-                         "No network, no salt, nothing written")
+    ap.add_argument("--page", type=Path, nargs="+", metavar="FILE",
+                    help="read saved Divar category pages (the files "
+                         "scripts/page_probe.py kept) and print what they hold, "
+                         "a token once; with two, whether the second holds "
+                         "other listings than the first. No network, no salt, "
+                         "nothing written")
     args = ap.parse_args()
 
     if args.page:
+        # One parser for all the files, so that it remembers the tokens it has
+        # returned: the second of two saved pages answers, offline, whether
+        # `?page=2` holds other listings than the first.
         parser = DivarPageParser()
-        listings = parser(args.page.read_text(encoding="utf-8",
-                                              errors="replace"))
-        print(f"read {len(listings)} listing(s) from {args.page}\n")
+        listings = []
+        for i, f in enumerate(args.page, 1):
+            got = parser(f.read_text(encoding="utf-8", errors="replace"))
+            listings += got
+            if len(args.page) > 1:
+                print(f"page {i} of {len(args.page)}: {len(got)} new, "
+                      f"{parser.traces[-1].duplicates} repeated  ({f})")
+        print(f"read {len(listings)} listing(s) from "
+              f"{args.page[0] if len(args.page) == 1 else str(len(args.page)) + ' pages'}\n")
         print(inventory(listings, fetched=len(listings)))
         print("\n".join(divar_report(parser.traces)))
         return 0
