@@ -575,7 +575,10 @@ def build_from_page(entity: dict, lid: str, base: CarListing | None,
         price_status=status.value, price_provenance=prov,
         mileage_status=m_status.value, mileage_note=m_reason,
         product_class=pclass, product_class_source=psource,
-        price_kind=kind, price_kind_source=kind_src, seller_type="unknown",
+        # the card's seller type, which is unknown on every card here and is
+        # what the optional branch's rule may have said from the card's image
+        price_kind=kind, price_kind_source=kind_src,
+        seller_type=base.seller_type if base else "unknown",
         province_source=base.province_source if base else "none",
         location_raw=base.location_raw if base else None, source_url=url or None,
     )
