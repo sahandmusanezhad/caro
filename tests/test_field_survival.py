@@ -651,6 +651,54 @@ check("nothing is reconstructed: a row with a price but no provenance is refused
       "inferring display_confirmed from the presence of a number would "
       "manufacture the provenance the gate exists to check")
 
+# ---------------------------------------------------------------------------
+print("\na listing read from a Divar category page crosses the same boundaries")
+# ---------------------------------------------------------------------------
+#
+# divar_page.py builds its listings from a page's JSON-LD list and its cards,
+# not from parse_listing alone, and sets fields that path never did: the
+# condition from the page's own damage field, a price status from the
+# agreement with the card, a province read from the city. Each must arrive in
+# the published row as it was set, or be named lost; the page below is made to
+# the shape of the real one (the owner's probe, 2026-10-26).
+from caro.ingest.divar_page import parse_divar_page                # noqa: E402
+
+_ld = [{"@type": "Car", "name": "پراید ۱۳۱ SE", "productionDate": "1395",
+        "vehicleModelDate": "1395", "vehicleTransmission": "manual",
+        "knownVehicleDamages": "half-paint", "color": "سفید",
+        "mileageFromOdometer": {"value": "120000", "unitCode": "KMT"},
+        "url": "https://divar.ir/v/pride/AbCd1234",
+        "offers": {"price": "4500000000", "priceCurrency": "IRR"},
+        "web_info": {"title": "پراید ۱۳۱ SE", "city_persian": "تهران",
+                     "district_persian": "پونک"}}]
+_card = ('<article class="kt-post-card"><a class="kt-post-card__action" '
+         'href="/v/pride/AbCd1234"><h2 class="kt-post-card__title">پراید ۱۳۱ SE</h2>'
+         '<div class="kt-post-card__description">۱۲۰٬۰۰۰ کیلومتر</div>'
+         '<div class="kt-post-card__description">۴۵۰٬۰۰۰٬۰۰۰ تومان</div></a></article>')
+_pg = ('<script type="application/ld+json">' + json.dumps(_ld, ensure_ascii=False)
+       + "</script>" + _card)
+_dl = parse_divar_page(_pg)[0]
+_rec, _row, _back, _why = through_the_chain(_dl)
+check("a divar page listing is promoted, not refused",
+      _row is not None, str(_why))
+check("  its condition, from the field, and where it came from, reach the row",
+      _row and _row.get("condition") == "multi_paint"
+      and _row.get("condition_source") == "field", str(_row))
+check("  its price and how it was confirmed reach the row",
+      _row and _row.get("price_status") == "display_confirmed"
+      and _row.get("asking_price_toman") == 450_000_000
+      and _row.get("price_currency_raw") == "IRR", str(_row))
+check("  its odometer and its judgement, and its province and how it was known",
+      _row and _row.get("mileage_km") == 120_000
+      and _row.get("mileage_status") == "plausible"
+      and _row.get("province") == "تهران" and _row.get("province_source") == "city",
+      str(_row))
+check("  the district line stops at the snapshot and is not in the published row",
+      _rec.get("location_raw") == "تهران، پونک"
+      and "location_raw" not in (_row or {}) and "پونک" not in json.dumps(_row, ensure_ascii=False))
+check("  and what the row says is eligible, as the listing was",
+      eligibility(_back)[0] is True and eligibility(_dl)[0] is True, str(eligibility(_back)))
+
 print()
 if FAILS:
     print(f"{len(FAILS)} FAILED:")
