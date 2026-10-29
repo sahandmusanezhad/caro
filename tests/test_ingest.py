@@ -4253,6 +4253,14 @@ _spp(_SP)
 check("V6: the next page is the page's own rel=next, kept as its shape",
       _spp.next_url == "https://www.sheypoor.com/s/iran/car?page_num=2"
       and _spp.traces[0].next_shape == "/s/iran/car?page_num", str(_spp.next_url))
+_spa = SheypoorParser()
+_spa(_sp_page(_spc[:2], nxt=None).replace("</section>", '</section><a rel="next" href="/s/iran/car?page_num=2&amp;c=1">بعدی</a>'))
+_spa2 = SheypoorParser()
+_spa2(_sp_page([_spc[0].replace('<a class=', '<a rel="next" class=', 1)], nxt=None))
+check("V10: a rel=next on a pagination link is the next page as well; a page with none has none, and a card "
+      "is never it",
+      _spa.next_url == "https://www.sheypoor.com/s/iran/car?page_num=2&c=1" and _spa2.next_url is None
+      and len(_spa.listings) == 2 and len(_spa2.listings) == 1, str((_spa.next_url, _spa2.next_url)))
 
 
 def _sp_world(pages, robots="User-agent: *\nDisallow: /session/\n"):

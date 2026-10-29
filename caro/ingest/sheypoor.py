@@ -110,10 +110,13 @@ class _CardReader(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
-        if tag == "link" and self.next_href is None:
+        if (tag in ("link", "a") and self._card is None
+                and self.next_href is None):
             rel = (a.get("rel") or "").lower().split()
-            if "next" in rel and a.get("href"):
-                self.next_href = a["href"]
+            href = a.get("href") or ""
+            if "next" in rel and href and "/v/" not in href:
+                self.next_href = href
+                return
         if self._card is None:
             if tag == "a":
                 path = re.sub(r"^https?://[^/]+", "",
