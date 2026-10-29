@@ -3432,6 +3432,24 @@ check("R5: a file with neither key replays as nothing, and does not raise",
       _rc == 0 and "replayed 0 listings" in _txt and "nothing to report" in _txt, _txt[:120])
 
 
+print("\nan odometer the node gives in thousands and the card in km")
+_th = _one(_node("AbCd1234", km="280"), _card("AbCd1234", lines=("۲۸۰٬۰۰۰ کیلومتر", "۴۵۰٬۰۰۰٬۰۰۰ تومان")))
+_t = PageTrace()
+parse_divar_page(_page([_node("AbCd1234", km="280")], [_card("AbCd1234", lines=("۲۸۰٬۰۰۰ کیلومتر", "۴۵۰٬۰۰۰٬۰۰۰ تومان"))]), _t)
+check("J1: the node says 280 and the card 280,000: the card's km is used, and the code says so",
+      _th.mileage_km == 280_000 and _t.mileage["ld_in_thousands"] == 1 and not _t.odd["odometer differs"],
+      str((_th.mileage_km, dict(_t.mileage))))
+check("  the card's rounding to thousands is allowed here too (119 against «۱۲۰ هزار»)",
+      _one(_node("AbCd1234", km="119"), _card("AbCd1234", lines=("۱۲۰ هزار کیلومتر", "۴۵۰٬۰۰۰٬۰۰۰ تومان"))).mileage_km == 120_000)
+_t = PageTrace()
+_zero = parse_divar_page(_page([_node("AbCd1234", km="0")], [_card("AbCd1234")]), _t)[0]
+check("  but 0 against 120,000 and 5 against 120,000 are still no odometer",
+      _zero.mileage_km is None and _t.mileage["disagree"] == 1
+      and _one(_node("AbCd1234", km="5"), _card("AbCd1234")).mileage_km is None)
+check("  and a node that already agrees in km is not read as thousands",
+      _one(_node("AbCd1234", km="120000"), _card("AbCd1234")).mileage_km == 120_000)
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

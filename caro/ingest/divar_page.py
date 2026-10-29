@@ -425,8 +425,16 @@ def _mileage(ld_km, shown_km):
         return ld_km, "ld_only", None
     if ld_km is None:
         return shown_km, "text_only", None
-    if abs(ld_km - shown_km) <= max(_KM_ROUNDING, shown_km * _KM_REL):
+    tol = max(_KM_ROUNDING, shown_km * _KM_REL)
+    if abs(ld_km - shown_km) <= tol:
         return ld_km, "agree", None
+    if ld_km > 0 and abs(ld_km * 1000 - shown_km) <= tol:
+        # The node says 280 and the card 280,000: the node's number is in
+        # thousands. Seen once in 22 that have a card (the owner's second
+        # read, 2026-10-29); the other 21 agree in km. What a buyer is shown
+        # is the ground truth for the unit, as it is for the price, so the
+        # card's number is used and the code says so.
+        return shown_km, "ld_in_thousands", None
     return (None, "disagree",
             f"structured and displayed odometer disagree "
             f"({ld_km} vs {shown_km})")
