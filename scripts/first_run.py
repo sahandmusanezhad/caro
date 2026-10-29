@@ -4,7 +4,9 @@ First live collection, and the inventory report that decides what comes next.
 
     python3 scripts/first_run.py --source bama --limit 50
     python3 scripts/first_run.py --source divar --city tehran --pages 2
+    python3 scripts/first_run.py --source khodro45 --pages 2
     python3 scripts/first_run.py --page ~/caro-probes/<run>/01-<hash>.html [<page 2>]
+    python3 scripts/first_run.py --source khodro45 --page ~/caro-probes/<run>/01-<hash>.html
     python3 scripts/first_run.py --replay <file with a top-level "listings">
 
 This is deliberately small. The point of a first run is not volume — it is
@@ -69,6 +71,9 @@ from caro.ingest.divar_car import (                                     # noqa: 
 )
 from caro.ingest.divar_page import (                                    # noqa: E402
     DivarPageParser, report as divar_report,
+)
+from caro.ingest.khodro45 import (                                      # noqa: E402
+    Khodro45Adapter, Khodro45Parser, report as khodro45_report,
 )
 from caro.ingest import coverage as cov_mod                           # noqa: E402
 from caro.ingest.robots import RobotsViolation, describe              # noqa: E402
@@ -530,7 +535,8 @@ def outcomes_from_snapshot(raw: dict) -> list[FetchOutcome]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--source", choices=["bama", "divar"], default="bama")
+    ap.add_argument("--source", choices=["bama", "divar", "khodro45"],
+                    default="bama")
     ap.add_argument("--city", default="tehran")
     ap.add_argument("--limit", type=int, default=50)
     ap.add_argument("--pages", type=int, default=2)
@@ -557,18 +563,24 @@ def main() -> int:
     ap.add_argument("--replay", type=Path,
                     help="parse a saved snapshot instead of fetching")
     ap.add_argument("--page", type=Path, nargs="+", metavar="FILE",
-                    help="read saved Divar category pages (the files "
+                    help="read saved category pages (the files "
                          "scripts/page_probe.py kept) and print what they hold, "
-                         "a token once; with two, whether the second holds "
-                         "other listings than the first. No network, no salt, "
-                         "nothing written")
+                         "a listing once; with two, whether the second holds "
+                         "other listings than the first. Divar's, or with "
+                         "--source khodro45 Khodro45's (its list page or a page "
+                         "of its API). No network, no salt, nothing written")
     args = ap.parse_args()
 
     if args.page:
         # One parser for all the files, so that it remembers the tokens it has
         # returned: the second of two saved pages answers, offline, whether
-        # `?page=2` holds other listings than the first.
-        parser = DivarPageParser()
+        # `?page=2` holds other listings than the first. Khodro45's parser
+        # remembers more: which price the cards showed, which a saved page of
+        # its API (no cards) is then read by.
+        if args.source == "khodro45":
+            parser, page_report = Khodro45Parser(), khodro45_report
+        else:
+            parser, page_report = DivarPageParser(), divar_report
         listings = []
         for i, f in enumerate(args.page, 1):
             got = parser(f.read_text(encoding="utf-8", errors="replace"))
@@ -579,7 +591,7 @@ def main() -> int:
         print(f"read {len(listings)} listing(s) from "
               f"{args.page[0] if len(args.page) == 1 else str(len(args.page)) + ' pages'}\n")
         print(inventory(listings, fetched=len(listings)))
-        print("\n".join(divar_report(parser.traces)))
+        print("\n".join(page_report(parser.traces)))
         return 0
 
     if not args.replay and not os.environ.get("CARO_SELLER_SALT"):
@@ -734,6 +746,32 @@ def collect(args, traces: list | None = None,
                              **({"sleeper": sleeper} if sleeper else {}))
         records = list(ad.fetch_all(date.today()))
         print("\n".join(divar_report(parser.traces)))
+        if ad.stopped:
+            print(f"  stopped early: {ad.stopped}")
+        print()
+        SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+        snap = assess_integrity(Snapshot(
+            snapshot_id(args), date.today(), records,
+            notes=[f"robots.txt {describe(ad.robots.record)}"]))
+        path = write_snapshot(SNAPSHOT_DIR, snap)
+        shown = path.relative_to(ROOT) if path.is_relative_to(ROOT) else path
+        print(f"{len(out)} listings parsed · snapshot "
+              f"{shown} (integrity: {snap.integrity.value})\n")
+        return out, path
+
+    if args.source == "khodro45":
+        # `/buy-car/` is server-rendered with its data in the page, and the
+        # pages after it are JSON from the site's API: plain HTTP for both
+        # (caro/ingest/khodro45.py, the owner's probe of 2026-10-29).
+        parser = Khodro45Parser()
+        http = fetcher or http_fetcher()
+        ad = Khodro45Adapter(max_pages=args.pages, page_fetcher=http,
+                             parser=parser, robots_fetcher=http,
+                             salt=os.environ["CARO_SELLER_SALT"],
+                             **({"sleeper": sleeper} if sleeper else {}))
+        records = list(ad.fetch_all(date.today()))
+        out.extend(parser.listings)
+        print("\n".join(khodro45_report(parser.traces)))
         if ad.stopped:
             print(f"  stopped early: {ad.stopped}")
         print()

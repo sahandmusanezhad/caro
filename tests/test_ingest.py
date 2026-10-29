@@ -4109,6 +4109,49 @@ except RuntimeError:
 check("  and with no fetcher it refuses", _refused)
 
 
+print("\nfirst_run reads Khodro45, saved and live (faked)")
+with _tempfile.TemporaryDirectory() as _tmp:
+    _f1, _f2 = _Path(_tmp) / "01-k.html", _Path(_tmp) / "02-api.json"
+    _f1.write_text(_K45_PAGE, encoding="utf-8")
+    _f2.write_text(_api, encoding="utf-8")
+    _out = _io.StringIO()
+    _argv, _first_run.sys.argv = _first_run.sys.argv, ["first_run.py", "--source", "khodro45",
+                                                       "--page", str(_f1), str(_f2)]
+    _salt = os.environ.pop("CARO_SELLER_SALT", None)
+    try:
+        with _contextlib.redirect_stdout(_out):
+            _rc = _first_run.main()
+    finally:
+        _first_run.sys.argv = _argv
+        if _salt is not None:
+            os.environ["CARO_SELLER_SALT"] = _salt
+    _left = sorted(x.name for x in _Path(_tmp).rglob("*"))
+check("K13: --source khodro45 --page reads the list page and a saved page of the API offline, with no salt, "
+      "writes nothing, and prints the inventory and the report",
+      _rc == 0 and "page 2 of 2: 2 new, 0 repeated" in _out.getvalue()
+      and "read 5 listing(s) from 2 pages" in _out.getvalue() and "CORPUS INVENTORY  (5 listings)" in _out.getvalue()
+      and "KHODRO45 PAGE READ" in _out.getvalue() and "DIVAR PAGE READ" not in _out.getvalue()
+      and _left == ["01-k.html", "02-api.json"], _out.getvalue()[:400])
+_kfr_args = _argparse.Namespace(source="khodro45", limit=10, categories=None, makes="", seed=0,
+                                city="tehran", pages=2)
+_kw, _kasked = _k45_world({"https://khodro45.com/buy-car/": (200, _K45_PAGE), _K45_API2: (200, _api)})
+with _tempfile.TemporaryDirectory() as _tmp:
+    _old, _first_run.SNAPSHOT_DIR = _first_run.SNAPSHOT_DIR, _Path(_tmp)
+    _out = _io.StringIO()
+    try:
+        with _contextlib.redirect_stdout(_out):
+            _kgot, _kspath = _first_run.collect(_kfr_args, [], fetcher=_kw, sleeper=lambda s: None)
+        _ksnap = json.loads(_kspath.read_text(encoding="utf-8"))
+    finally:
+        _first_run.SNAPSHOT_DIR = _old
+check("  --source khodro45 live: robots.txt, the list, the API page, over plain HTTP; five listings in the "
+      "snapshot with the robots.txt it obeyed, and the report",
+      _kasked == ["https://khodro45.com/robots.txt", "https://khodro45.com/buy-car/", _K45_API2]
+      and len(_kgot) == 5 and len([o for o in _ksnap["outcomes"] if o["listing_id"].startswith("khodro45:")]) == 5
+      and any(n.startswith("robots.txt ") for n in _ksnap["notes"]) and "KHODRO45 PAGE READ" in _out.getvalue(),
+      str(_kasked) + _out.getvalue()[-300:])
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
