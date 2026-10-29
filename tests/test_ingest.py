@@ -4413,6 +4413,14 @@ check("K2-4: each list's size and its next page with the small numbers kept, and
 check("K2-5: the gearbox from the trim when the option says none; the option's and the trim's values are counted",
       _jl[1].gearbox == "automatic" and _jl[0].gearbox is None
       and "option         XU7:2  تیپ ۲:1" in _jrep and "MC اتوماتیک:1" in _jrep, _jrep)
+print("\noptional: «paintless-dent-removal» is minor_paint (the owner's to take or leave)")
+check("O1: the fifth value is minor_paint from the field, a worse title still wins, and the report "
+      "no longer names it as unmapped",
+      _cond("paintless-dent-removal") == ("minor_paint", "field")
+      and _cond("paintless-dent-removal", "پراید ۱۳۱ تصادفی") == ("accident", "description")
+      and not any("⚠ damage" in ln for ln in (lambda t: (
+          parse_divar_page(_page([_node("AbCd1234", extra={"knownVehicleDamages": "paintless-dent-removal"})],
+                                 [_card("AbCd1234")]), t), _dp.report([t]))[1])(PageTrace())))
 
 
 print("\nkhodro45: the slug in another case, the address rule, and the next page given as http://")

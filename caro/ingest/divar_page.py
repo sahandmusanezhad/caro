@@ -112,8 +112,15 @@ _KM_REL = 0.02
 # change: «some-paint» is read as light paint (minor_paint), and «half-paint»
 # as the worse of the two classes it could be (multi_paint), because a
 # condition that is read down is a car sold as better than it is.
+#
+# A fifth, on the optional branch and the owner's to take or leave:
+# «paintless-dent-removal», seen on page 2 (2026-10-29), is read as
+# minor_paint. The prose table already reads «صافکاری» (dent work) as
+# minor_paint, and paintless dent removal is صافکاری بدون رنگ: the body was
+# worked on, so it is not intact, and nothing was repainted.
 DAMAGE_FIELD = {"intact": "intact", "some-scratches": "minor_paint",
-                "some-paint": "minor_paint", "half-paint": "multi_paint"}
+                "some-paint": "minor_paint", "half-paint": "multi_paint",
+                "paintless-dent-removal": "minor_paint"}
 
 # Worst first, from the table the prose reading already orders.
 _SEVERITY = tuple(label for label, _ in BODY_CONDITION)
