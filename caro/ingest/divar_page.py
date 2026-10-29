@@ -336,12 +336,19 @@ def vehicle_nodes(html: str) -> list[dict]:
 
 
 # A value is counted only if it can be a category: at most 40 characters, no
-# "@", and no run of five digits («206» and «207i» are models; a telephone
-# number is eleven digits). A field that turns out to hold the seller's own
-# words would otherwise put a phone number into a report that is pasted into a
-# chat.
-_CATEGORICAL = re.compile(r"^(?!.*\d{5})[^@]{1,40}$", re.S)
+# "@", and at most four digits IN ALL («206», «207i», «x70» are models; a
+# telephone number is eleven digits, and written «0912 345 6789» it is no run
+# of five, which an earlier version of this guard let through). A field that
+# turns out to hold the seller's own words would otherwise put a phone number
+# into a report that is pasted into a chat.
 _MAX_DISTINCT = 20
+_MAX_LEN = 40
+_MAX_DIGITS = 4
+
+
+def _categorical(v: str) -> bool:
+    return (0 < len(v) <= _MAX_LEN and "@" not in v
+            and sum(c.isdigit() for c in v) <= _MAX_DIGITS)
 
 
 def _offers(node: dict) -> dict:
@@ -363,7 +370,7 @@ def _count_enums(node: dict, trace: PageTrace) -> None:
             "unitCode": mil.get("unitCode") if isinstance(mil, dict) else None}
     for key, raw in seen.items():
         for v in raw if isinstance(raw, list) else [raw]:
-            if not isinstance(v, str) or not _CATEGORICAL.match(v.strip()):
+            if not isinstance(v, str) or not _categorical(v.strip()):
                 continue
             c = trace.enums[key]
             v = v.strip()

@@ -3313,6 +3313,19 @@ check("B5: first_run prints why it stopped early, and not when it did not",
       and len([u for u in _asked2 if "/s/" in u]) == 2)
 
 
+print("\na counted value holds at most four digits in all")
+_t = PageTrace()
+_models = ["0912 345 6789", "0912-345-6789", "۰۹۱۲ ۳۴۵ ۶۷۸۹", "09 12 34 56 78", "12345",
+           "206", "207i", "x70", "Pars", "Peugeot 206", "1234"]
+parse_divar_page(_page([_node(f"Tk{i:06d}", extra={"model": m}) for i, m in enumerate(_models)], []), _t)
+check("H1: a telephone number with separators, in any script, and five digits are not "
+      "counted; «206», «207i», «x70», «Pars», «Peugeot 206» and four digits are",
+      set(_t.enums["model"]) == {"206", "207i", "x70", "Pars", "Peugeot 206", "1234"},
+      str(set(_t.enums["model"])))
+check("  and none of them is in the report",
+      not any(x in "\n".join(_dp.report([_t])) for x in ("0912", "۰۹۱۲", "12345", "09 12")))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
