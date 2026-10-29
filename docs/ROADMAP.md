@@ -56,7 +56,8 @@ section that holds its detail.
    owner, on his machine, after the review it names. The probe is done, the
    extraction is written and has read one saved page; what is left is the
    odd cases and the brands it lists (`first_run.py --page <the saved file>`),
-   a probe of `?page=2`, and then the run.
+   a probe of `?page=2`, and then the run. The run's plan and its predictions
+   are written: [RUN_PLAN_DIVAR_FIRST](RUN_PLAN_DIVAR_FIRST.md).
 5. **A larger real corpus, and collection over time** (the product gaps, item
    1). The owner runs it; a session writes the run's plan and predictions and
    reads what comes back.
