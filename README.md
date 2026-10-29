@@ -21,7 +21,7 @@ intent → explain the best choice**.
 
 | Requirement | State, 2026-10-25 |
 |---|---|
-| crawl offers | ⚠️ **one source.** Four runs of `BamaAdapter` are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15): 76, 74, 77 and 73 listings, of which 71, 64, 64 and 63 can be appraised. The site serves run16. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and since 2026-10-26 the extraction of a category page (`caro/ingest/divar_page.py`), written offline against the shape the owner's probe found; it has read the owner's saved copy of one real page once (2026-10-26: 24 of 24 listings, 22 prices confirmed by the card, the page's own body-condition field), and its live path has never run. Sheypoor and Khodro45 have no adapter. |
+| crawl offers | ⚠️ **one source.** Four runs of `BamaAdapter` are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15): 76, 74, 77 and 73 listings, of which 71, 64, 64 and 63 can be appraised. The site serves run16. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and since 2026-10-26 the extraction of a category page (`caro/ingest/divar_page.py`), written offline against the shape the owner's probe found; it has read the owner's saved copy of one real page once (2026-10-26: 24 of 24 listings, 22 prices confirmed by the card, the page's own body-condition field), and its live path has never run. Sheypoor and Khodro45 have adapters since 2026-10-29, written offline against one saved list page each (`caro/ingest/sheypoor.py`, `caro/ingest/khodro45.py`); neither has run live, and Sheypoor's list gives no year and no odometer. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province, with how each was read. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
 | explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
@@ -304,6 +304,8 @@ python3 scripts/page_probe.py --rows     ~/caro-probes/<run>/01-….html --no-te
 python3 scripts/page_probe.py --scripts  ~/caro-probes/<run>/01-….html
 python3 scripts/page_probe.py --skeleton ~/caro-probes/<run>/01-….html --no-text
 python3 scripts/first_run.py --page      ~/caro-probes/<run>/01-….html   # Divar: what the parser reads
+python3 scripts/first_run.py --source khodro45 --page ~/caro-probes/<run>/01-….html
+python3 scripts/first_run.py --source sheypoor --page ~/caro-probes/<run>/01-….html
 ```
 
 It reads robots.txt through the same gate, asks for at most five urls under
@@ -524,14 +526,18 @@ Each source has a role — not ten sites for volume.
 |---|---|---|
 | **Bama** | `primary_offers` — richest structured fields, sets the canonical schema | Built and run. Publishes a car sitemap; nothing relevant disallowed (verified 2026-09-07, and read again by the adapter before every run). Discovery is sitemap-first, so coverage is knowable rather than estimated. |
 | **Divar** | `breadth` — largest volume, private sellers the specialist sites never see | The robots gate, the pause, the stop and the extraction of a category page are built and tested offline; the extraction reads a JSON-LD list of vehicles and the cards beside it, and has read one saved real page (24 of 24 listings); the make and model table is domestic only, so 10 of the 24 have no model; nothing has run live. Category browsing and listing pages allowed; **search urls (`?q=`) disallowed**, and a url robots.txt refuses is not requested. |
-| **Sheypoor** | `corroboration` — its value is the cross-source clusters it creates, not the listings it adds | No adapter. |
-| **Khodro45** | not yet given one | No adapter. |
+| **Sheypoor** | `corroboration` — its value is the cross-source clusters it creates, not the listings it adds | The list page is read from its cards, offline, built against one saved page (2026-10-29); the cards give no year and no odometer, so no listing read from the list alone can be priced, and the listing page has not been probed. The robots gate and the paging by the page's own `rel=next` are built and tested offline; nothing has run live. |
+| **Khodro45** | not yet given one | The list page is read from its Next.js data stream and its cards, offline, built against one saved page (2026-10-29); the asking price is the figure the card shows, whichever of `price` and `final_price` it is. The pages after it are the site's API, followed only on the same origin and where robots.txt allows it. Built and tested offline; nothing has run live. |
 
-Both adapters read robots.txt before their first request and ask it before
+Every adapter reads robots.txt before its first request and asks it before
 every request after (`caro/ingest/robots.py`, RFC 9309, a matcher of our
 own): a url it disallows is not requested, and a robots.txt that gives no
 policy stops the run. Divar keeps its 2026-09-07 transcription beside the
-live file, and a url either one refuses is refused.
+live file, and a url either one refuses is refused. The two that follow a
+list's own next page (Khodro45, Sheypoor; `caro/ingest/paging.py`) stop where
+robots.txt or the origin does not allow the next one, and say so. Their first
+reads, offline and then live, are planned with their predictions in
+[RUN_PLAN_KHODRO45_SHEYPOOR](docs/RUN_PLAN_KHODRO45_SHEYPOOR.md).
 
 Specs and price-guide sites are `taxonomy_only`: useful for normalising model
 names, never ingested as offers. A price-guide page is not a price anyone is

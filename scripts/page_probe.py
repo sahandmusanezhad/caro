@@ -43,7 +43,8 @@ markup a source really serves, and a selector written without reading that
 markup is a guess wearing a regex (`location_probe.py` says the same of
 bama). The roadmap names the method (the product gaps, item 1): the owner
 probes first, the probe's pages stay on his machine, and the adapter is
-built and tested offline against what the probe kept.
+built and tested offline against what the probe kept. (That was 2026-10-26.
+Divar's, Khodro45's and Sheypoor's lists are read now, each built that way.)
 
 WHAT IT DOES
 

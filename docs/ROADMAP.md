@@ -28,7 +28,7 @@ intent → explain the best choice**.
 
 | Requirement | State |
 |---|---|
-| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and its category-page extraction (`caro/ingest/divar_page.py`), written offline on 2026-10-26 from what the probe printed (a JSON-LD list of 24 vehicles, and the 24 cards beside it); it has read the owner's saved copy of that page once (24 of 24 listings; see the product gaps, item 1), and its live path has never run. Sheypoor and Khodro45 have no adapter. `scripts/page_probe.py` is the first step for all three. |
+| crawl offers | ⚠️ **one source.** Four `BamaAdapter` runs are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and the API serves run16 by default. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and its category-page extraction (`caro/ingest/divar_page.py`), written offline on 2026-10-26 from what the probe printed (a JSON-LD list of 24 vehicles, and the 24 cards beside it); it has read the owner's saved copy of that page once (24 of 24 listings; see the product gaps, item 1), and its live path has never run. Sheypoor and Khodro45 have adapters since 2026-10-29, written offline against one saved list page each; neither has run live. `scripts/page_probe.py` was the first step for all three. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
@@ -62,7 +62,11 @@ section that holds its detail.
    1). The owner runs it; a session writes the run's plan and predictions and
    reads what comes back.
 6. **Sheypoor and Khodro45** (the product gaps, item 1). The owner probes;
-   a session builds the adapter offline from what the probe kept.
+   a session builds the adapter offline from what the probe kept. Both are
+   built (2026-10-29), against one saved list page each; what is left is the
+   offline read of those pages, the first live runs, and for Sheypoor a probe
+   of a listing page, whose year and odometer the list does not give. The plan
+   and its predictions: [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
 7. **An estimator that clears the gate on real data** (the product gaps, item
    2). A session, on the corpus of step 5. It is what reopens the ranked
    path's two items (the parser, items 1 and 2), compare's gated branch, and
@@ -404,7 +408,9 @@ the owner chooses.
      does (Khodro45's auction table is skeletons in the HTML). Sheypoor and
      Khodro45 are both Next.js; the survey reads their data stream. Closes
      when the adapter's suite runs offline and a first small live run has
-     been read.
+     been read. The suites run offline (2026-10-29: `caro/ingest/khodro45.py`
+     and `caro/ingest/sheypoor.py`, built against the owner's saved pages);
+     the live runs are next.
    - `province` where the market is. run16, the corpus served, carries it
      on all 73 rows: 42 stated, 31 by a city that shares its province's
      name, where run14 had 76 of 77 and run13 34 of 74. Every line of run16
