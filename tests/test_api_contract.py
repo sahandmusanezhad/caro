@@ -2025,6 +2025,256 @@ finally:
     contact_mod.ADMIN_CODES.forget()
     contact_mod.ADMIN_FAILURES.clear()
 
+# ---------------------------------------------------------------------------
+print("\n22 — a seller logs in with a code by SMS, and the session is a cookie (A1, step 2)")
+# ---------------------------------------------------------------------------
+# Predictions L1..L12 (2026-10-30, locked before the code). The store is a
+# temporary SQLite file, the provider the fake, the clock the test's; each
+# row starts two days on, so no limit carries over from the row before.
+import hashlib as _hashlib                                         # noqa: E402
+
+from webapp.api import accounts as accounts_mod                    # noqa: E402
+from webapp.api import sms as sms_mod                              # noqa: E402
+from webapp.api.store import TABLES as _TABLES                     # noqa: E402
+from webapp.api.store import open_store as _open_store             # noqa: E402
+
+_ENV22 = ("DATABASE_URL", "CARO_STORE_SECRET", "CARO_SMS_PROVIDER", "CARO_SITE_ORIGINS")
+_kept22 = ({k: os.environ.get(k) for k in _ENV22}, accounts_mod.CLOCK)
+_now22 = [1_700_000_000]
+_O = {"origin": "https://testserver"}
+try:
+    with tempfile.TemporaryDirectory() as _tmp22:
+        for _k in _ENV22:
+            os.environ.pop(_k, None)
+        accounts_mod.CLOCK = lambda: _now22[0]
+        with contextlib.redirect_stdout(io.StringIO()):
+            _c22 = TestClient(api.app, base_url="https://testserver", raise_server_exceptions=False)
+        _URL22 = f"sqlite:///{_tmp22}/store.sqlite3"
+
+        def _on22(sms_on=True):
+            os.environ["DATABASE_URL"] = _URL22
+            os.environ["CARO_STORE_SECRET"] = "made-up-for-the-suites-fedcba9876543210"
+            if sms_on:
+                os.environ["CARO_SMS_PROVIDER"] = "fake"
+            else:
+                os.environ.pop("CARO_SMS_PROVIDER", None)
+
+        def _fresh22():
+            _now22[0] += 2 * 86400
+            _c22.cookies.clear()
+
+        def _ask(phone, headers=_O):
+            return _c22.post("/api/account/code", json={"phone": phone}, headers=headers)
+
+        def _sent():
+            return re.search(r"\d{6}", sms_mod.FAKE.outbox[-1][1]).group()
+
+        def _in(phone, code):
+            return _c22.post("/api/account/login", json={"phone": phone, "code": code}, headers=_O)
+
+        def _token(r):
+            m = re.search(r"caro_session=([^;]+)", r.headers.get("set-cookie", ""))
+            return m.group(1) if m else None
+
+        def _me(token):
+            return _c22.get("/api/account/me", headers={"cookie": f"caro_session={token}"}).status_code
+
+        def _log_in(phone):
+            _ask(phone)
+            return _token(_in(phone, _sent()))
+
+        def _db():
+            return _open_store(_URL22, os.environ["CARO_STORE_SECRET"], migrate=False)
+
+        _st0 = _c22.get("/api/account/status").json()
+        _r1a = _ask("09120000101")
+        _on22(sms_on=False)
+        _st1 = _c22.get("/api/account/status").json()
+        _r1b = _ask("09120000101")
+        os.environ["DATABASE_URL"] = "postgresql://u:pw@db.example/x"
+        os.environ["CARO_SMS_PROVIDER"] = "fake"
+        _pg_fake = (sms_mod.provider(), sms_mod.state())
+        _on22()
+        _st2 = _c22.get("/api/account/status").json()
+        check("L1: no store, 503 STORE_OFF; a store and no provider, 503 SMS_OFF; the fake is refused in front of a "
+              "Postgres store; /status says which",
+              (_r1a.status_code, _r1a.json()["detail"]["code"]) == (503, "STORE_OFF")
+              and (_r1b.status_code, _r1b.json()["detail"]["code"]) == (503, "SMS_OFF")
+              and _pg_fake == (None, "refused")
+              and (_st0, _st1, _st2) == ({"store": "off", "sms": "off"}, {"store": "on", "sms": "off"},
+                                         {"store": "on", "sms": "fake"}),
+              str((_r1a.json(), _r1b.json(), _pg_fake, _st0, _st1, _st2)))
+
+        _fresh22()
+        _n2 = len(sms_mod.FAKE.outbox)
+        _r2 = [_ask(p).status_code for p in ("02112345678", "0912345678", "شماره‌ام")]
+        check("L2: a phone that is not a mobile number is 422, and no SMS is sent",
+              _r2 == [422, 422, 422] and len(sms_mod.FAKE.outbox) == _n2, str(_r2))
+
+        _fresh22()
+        _MEMBER, _STRANGER = "09120000103", "09120000104"
+        _log_in(_MEMBER)
+        _fresh22()
+        _r3m, _r3s = _ask(_MEMBER), _ask(_STRANGER)
+        _last2 = sms_mod.FAKE.outbox[-2:]
+        check("L3: a code request answers a member and a stranger alike, status and body, and each gets one SMS "
+              "«کد ورود کارو: NNNNNN»",
+              (_r3m.status_code, _r3m.content) == (_r3s.status_code, _r3s.content) == (200, _r3s.content)
+              and _r3s.json() == {"sent": True, "seconds": 120}
+              and [ph for ph, _ in _last2] == [_MEMBER, _STRANGER]
+              and all(re.fullmatch(r"کد ورود کارو: \d{6}", t) for _, t in _last2), str((_r3m.content, _last2)))
+
+        _fresh22()
+        _ask("09120000105")
+        _r4 = _in("09120000105", _sent())
+        _sc = _r4.headers.get("set-cookie", "")
+        _t4 = _token(_r4)
+        _db4 = _db()
+        _held = _db4.rows("SELECT token_sha256 FROM sessions")
+        _db4.close()
+        check("L4: the right code is 200, and the cookie is HttpOnly, Secure, SameSite=Lax, Path=/ and 30 days; "
+              "/me with it gives the phone; the store holds the token's SHA-256, not the token",
+              _r4.status_code == 200 and _r4.json() == {"phone": "09120000105", "created": True}
+              and all(a in _sc for a in ("HttpOnly", "Secure", "SameSite=lax", "Path=/", "Max-Age=2592000"))
+              and _me(_t4) == 200
+              and _c22.get("/api/account/me", headers={"cookie": f"caro_session={_t4}"}).json() == {"phone": "09120000105"}
+              and {"token_sha256": _hashlib.sha256(_t4.encode()).hexdigest()} in _held
+              and all(_t4 not in str(r) for r in _held), _sc)
+
+        _fresh22()
+        _ask("09120000106")
+        _c5 = _sent()
+        _r5 = [_in("09120000106", _c5).status_code, _in("09120000106", _c5).status_code]
+        _ask("09120000106")
+        _now22[0] += 121
+        _r5.append(_in("09120000106", _sent()).status_code)
+        _fresh22()
+        _ask("09120000106")
+        _old5 = _sent()
+        _ask("09120000106")
+        _new5 = _sent()
+        if _new5 == _old5:
+            _ask("09120000106")
+            _new5 = _sent()
+        _r5 += [_in("09120000106", _old5).status_code, _in("09120000106", _new5).status_code]
+        check("L5: a code is taken once; one 121 seconds old is not; a new code replaces the one before",
+              _r5 == [200, 401, 401, 401, 200], str(_r5))
+
+        _fresh22()
+        _ask("09120000107")
+        _c6 = _sent()
+        _w6 = next(c for c in ("000000", "111111", "222222") if c != _c6)
+        _r6 = [_in("09120000107", _w6) for _ in range(5)] + [_in("09120000107", _c6)]
+        _never = _in("09120000999", "123456")
+        check("L6: five wrong codes kill the code, the right one after them included; a wrong, a dead and a "
+              "never-sent code get the same 401",
+              [r.status_code for r in _r6] == [401] * 6
+              and _r6[0].content == _r6[5].content == _never.content and _never.status_code == 401,
+              str([r.status_code for r in _r6]))
+
+        _fresh22()
+        _r7m = [_ask(_MEMBER) for _ in range(4)]
+        _r7s = [_ask(_STRANGER) for _ in range(4)]
+        _r7p = _ask("09120000108")
+        _db7 = _db()
+        _att = _db7.rows("SELECT kind, who_key FROM attempts")
+        _db7.close()
+        check("L7: a fourth code for one phone in 15 minutes is 429 with Retry-After, member or stranger; a "
+              "seventh from one address in an hour is 429 for a third phone; the limits are rows of attempts, "
+              "keyed, no phone or address in clear",
+              [r.status_code for r in _r7m] == [200, 200, 200, 429] == [r.status_code for r in _r7s]
+              and _r7m[3].headers.get("retry-after") and _r7m[3].content == _r7s[3].content
+              and _r7p.status_code == 429
+              and {a["kind"] for a in _att} >= {"code_phone", "code_address", "code_all"}
+              and all(re.fullmatch(r"[0-9a-f]{64}|all", a["who_key"]) for a in _att),
+              str(([r.status_code for r in _r7m], [r.status_code for r in _r7s], _r7p.status_code)))
+
+        _fresh22()
+        _r8 = [_ask("09120000109", headers={}).status_code,
+               _ask("09120000109", headers={"origin": "https://evil.example"}).status_code,
+               _ask("09120000109").status_code]
+        os.environ["CARO_SITE_ORIGINS"] = "https://caro.example"
+        _r8 += [_ask("09120000109").status_code,
+                _ask("09120000109", headers={"origin": "https://caro.example"}).status_code]
+        os.environ.pop("CARO_SITE_ORIGINS", None)
+        check("L8: a POST with no Origin, or another site's, is 403; the site's own is served; with "
+              "CARO_SITE_ORIGINS set, only those are the site's",
+              _r8 == [403, 403, 200, 403, 200], str(_r8))
+
+        _fresh22()
+        _t9 = _log_in("09120000110")
+        _r9 = _c22.post("/api/account/logout", headers={**_O, "cookie": f"caro_session={_t9}"})
+        _db9 = _db()
+        _left9 = _db9.row("SELECT COUNT(*) AS n FROM sessions WHERE token_sha256 = ?",
+                          (_hashlib.sha256(_t9.encode()).hexdigest(),))["n"]
+        _db9.close()
+        check("L9: logout deletes the session, so the cookie opens nothing, and the answer clears the cookie",
+              _r9.status_code == 200 and _me(_t9) == 401 and _left9 == 0
+              and "Max-Age=0" in _r9.headers.get("set-cookie", ""), _r9.headers.get("set-cookie", ""))
+
+        _fresh22()
+        _t10a = _log_in("09120000111")
+        _now22[0] += 30 * 86400 + 1
+        _r10 = [_me(_t10a)]
+        _fresh22()
+        _t10b = _log_in("09120000112")
+        _now22[0] += 29 * 86400
+        _r10.append(_me(_t10b))
+        _now22[0] += 29 * 86400
+        _r10.append(_me(_t10b))
+        _db10 = _db()
+        _rows10 = [_db10.row("SELECT COUNT(*) AS n FROM sessions WHERE token_sha256 = ?",
+                             (_hashlib.sha256(t.encode()).hexdigest(),))["n"] for t in (_t10a, _t10b)]
+        _db10.close()
+        check("L10: a session unused for 30 days is refused and deleted; one used within them is kept, and its "
+              "last use moves with it",
+              _r10 == [401, 200, 200] and _rows10 == [0, 1], str((_r10, _rows10)))
+
+        _fresh22()
+        _r11 = [_c22.post("/api/account/delete", headers=_O).status_code]
+        _t11 = _log_in("09120000113")
+        _db11 = _db()
+        _id11 = _db11.row("SELECT id FROM accounts WHERE phone = ?", ("09120000113",))["id"]
+        _db11.close()
+        _r11.append(_c22.post("/api/account/delete", headers={**_O, "cookie": f"caro_session={_t11}"}).status_code)
+        _db11 = _db()
+        _gone11 = (_db11.row("SELECT COUNT(*) AS n FROM accounts WHERE phone = ?", ("09120000113",))["n"],
+                   _db11.row("SELECT COUNT(*) AS n FROM sessions WHERE account_id = ?", (_id11,))["n"])
+        _db11.close()
+        _fresh22()
+        _ask("09120000113")
+        _again11 = _in("09120000113", _sent()).json()
+        check("L11: «حذف حساب» needs a session; it deletes the account and its sessions; the number can make "
+              "a new account after",
+              _r11 == [401, 200] and _gone11 == (0, 0) and _me(_t11) == 401
+              and _again11 == {"phone": "09120000113", "created": True}, str((_r11, _gone11, _again11)))
+
+        # A keyed hash is 64 hex characters, and one in a few hundred holds «09»
+        # and nine decimal digits by chance; so a number in clear is one the
+        # section used, or one no hex character stands beside.
+        _used = set(re.findall(r"09120000\d{3}", open(__file__, encoding="utf-8").read()))
+        _db12 = _db()
+        _clear = []
+        for _t in _TABLES:
+            for _row in _db12.rows(f"SELECT * FROM {_t}"):
+                for _col, _v in _row.items():
+                    if (_t, _col) != ("accounts", "phone") and (
+                            any(u in str(_v) for u in _used)
+                            or re.search(r"(?<![0-9a-fA-F])09\d{9}(?![0-9a-fA-F])", str(_v))):
+                        _clear.append((_t, _col))
+        _nowhere = _db12.row("SELECT COUNT(*) AS n FROM accounts WHERE phone = ?", (_STRANGER,))["n"]
+        _db12.close()
+        check("L12: after every flow above, no table but accounts holds a phone number in clear, and the "
+              "number that never logged in is nowhere",
+              not _clear and _nowhere == 0, str((_clear, _nowhere)))
+finally:
+    for _k, _v in _kept22[0].items():
+        if _v is None:
+            os.environ.pop(_k, None)
+        else:
+            os.environ[_k] = _v
+    accounts_mod.CLOCK = _kept22[1]
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

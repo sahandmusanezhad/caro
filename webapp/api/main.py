@@ -46,6 +46,7 @@ from caro.ranking import Weights as RankWeights                    # noqa: E402
 from caro.ranking import diversify, retrieve                       # noqa: E402
 from webapp.api import constraints                                 # noqa: E402
 from webapp.api import corpus as corpus_mod                        # noqa: E402
+from webapp.api.accounts import router as accounts_router          # noqa: E402
 from webapp.api.contact import router as contact_router            # noqa: E402
 from webapp.api.market import router as market_router              # noqa: E402
 from webapp.api.security import SecurityHeaders, cors_origins      # noqa: E402
@@ -66,6 +67,10 @@ app.include_router(contact_router)
 # A model's page (webapp/api/market.py): its listings, cheapest first, and
 # the asking prices of every published run.
 app.include_router(market_router)
+# The seller's login (webapp/api/accounts.py), the first of the listings
+# sellers post on CARO itself. Its store is not the corpus, and nothing in
+# the decision path reads it.
+app.include_router(accounts_router)
 
 # CORS is for development (webapp/api/security.py): production serves the
 # site and the API from one origin. No cookie is used, so no credentials.
