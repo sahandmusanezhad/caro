@@ -456,9 +456,11 @@ the owner chooses.
      again (TEMPORAL_CONTRACT.md §10). Khodro45 is different, and the owner
      runs it daily from 2026-10-30: its list is newest first and forty pages
      read the newest quarter of it in order, so a first sighting can stand
-     for an arrival; §11 of the same document says what that supports, what
-     is measured first, and the three decisions it needs (its open questions
-     5 to 7). Who: the owner, on a schedule he sets. Closes when a series is
+     for an arrival; §11 of the same document says what that supports and
+     what is measured first. The owner decided its three questions on
+     2026-10-30: the axis is our first sighting, `created_time` is read as an
+     audit only, and the series goes in `caro.corpus/1` as optional fields.
+     Who: the owner, on a schedule he sets. Closes when a series is
      collected on one pin and its watch rounds are recorded.
 
 2. **An estimator that clears the gate on real data** (D43). Run the ladder

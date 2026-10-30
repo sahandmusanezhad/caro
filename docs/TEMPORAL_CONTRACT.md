@@ -478,9 +478,11 @@ about to happen.
 
 ## 11. A second source, run daily: Khodro45 (2026-10-30)
 
-> **PROPOSAL, written for the owner's decision.** Nothing in this section is
-> built, and nothing in it may be built before the decisions at the end of
-> this document (5 to 7) are taken.
+> **PROPOSAL; its three decisions were taken by the owner on 2026-10-30**
+> (open questions 5 to 7, each as proposed). Nothing in this section is built
+> yet. What comes first is still the measurement below; then the read of
+> `created_time` as an audit, against the field as a saved page shows it; then
+> the series artifact.
 
 The owner chose on 2026-10-30 to run Khodro45 every day. Its collector is not
 §10's, and the difference decides whether a daily clock can open the
@@ -581,11 +583,15 @@ adds a field to the snapshot, so it is the owner's decision (6 below).
 5. **The axis for a Khodro45 series** (§11). Proposed: our first sighting,
    `first_seen_on`, as §7 defines it. The alternative, the platform's
    `created_time`, would be a protocol of its own, under its own name.
+   *Decided by the owner on 2026-10-30: our first sighting.*
 6. **Read `created_time` as an audit of left truncation only** (§11).
    Proposed: yes, diagnostic-only. The alternative is to leave it unread, as
    the adapter does today, and accept that a listing our window missed is
-   taken for a new one.
+   taken for a new one. *Decided by the owner on 2026-10-30: read, as an
+   audit only -- never a feature, never the split key.*
 7. **The series artifact** (§7, §11): §7's optional fields in
    `caro.corpus/1`, so every existing artifact stays valid (proposed), or a
    new schema version. Either changes DATA_CONTRACT, which does not move
-   until the owner says.
+   until the owner says. *Decided by the owner on 2026-10-30: §7's optional
+   fields in `caro.corpus/1`. DATA_CONTRACT changes in the commit that
+   builds them, not before.*
