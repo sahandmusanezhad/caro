@@ -199,7 +199,7 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all sixteen suites
 
-python3 tests/run_all.py            # 3283 assertions, no API key, no network
+python3 tests/run_all.py            # 3295 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -220,7 +220,7 @@ suites need more, and the runner says so rather than failing:
 python3 tests/run_all.py            # 2677 assertions across 13 of 16 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3283 across all sixteen
+python3 tests/run_all.py            # 3295 across all sixteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -631,7 +631,7 @@ trade for a system whose pitch is that it does not overclaim.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3283 assertions across sixteen suites
+tests/           3295 assertions across sixteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, replays, the benchmark, the probes
 data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed

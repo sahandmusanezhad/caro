@@ -49,12 +49,20 @@ HEADERS = {
 TOO_MANY_FA = "درخواست‌های این نشانی زیاد بوده است. کمی بعد دوباره امتحان کن."
 
 
+def private(path: str) -> bool:
+    """An answer that is one person's, or holds a seller's number: the
+    operator's view, a seller's account and listings, and a reveal. No cache
+    keeps it, shared or the browser's own."""
+    return (path.startswith(("/api/admin", "/api/account", "/api/listings/mine"))
+            or (path.startswith("/api/listings/") and path.endswith("/reveal")))
+
+
 class SecurityHeaders(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         for k, v in HEADERS.items():
             response.headers.setdefault(k, v)
-        if request.url.path.startswith("/api/admin"):
+        if private(request.url.path):
             response.headers["Cache-Control"] = "no-store"
         return response
 

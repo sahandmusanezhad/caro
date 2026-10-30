@@ -48,6 +48,7 @@ from webapp.api import constraints                                 # noqa: E402
 from webapp.api import corpus as corpus_mod                        # noqa: E402
 from webapp.api.accounts import router as accounts_router          # noqa: E402
 from webapp.api.contact import router as contact_router            # noqa: E402
+from webapp.api.listings import router as listings_router          # noqa: E402
 from webapp.api.market import router as market_router              # noqa: E402
 from webapp.api.security import SecurityHeaders, cors_origins      # noqa: E402
 from webapp.api.schemas import (                                   # noqa: E402
@@ -71,6 +72,9 @@ app.include_router(market_router)
 # sellers post on CARO itself. Its store is not the corpus, and nothing in
 # the decision path reads it.
 app.include_router(accounts_router)
+# The listings sellers post (webapp/api/listings.py), read by no part of the
+# decision path either.
+app.include_router(listings_router)
 
 # CORS is for development (webapp/api/security.py): production serves the
 # site and the API from one origin. No cookie is used, so no credentials.

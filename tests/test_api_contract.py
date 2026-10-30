@@ -2275,6 +2275,224 @@ finally:
             os.environ[_k] = _v
     accounts_mod.CLOCK = _kept22[1]
 
+# ---------------------------------------------------------------------------
+print("\n23 — a seller's listing: the server's rules, the operator's turn, and the number only on a press")
+# ---------------------------------------------------------------------------
+# Predictions P1..P12 (2026-10-30, locked before the code). The operator's
+# view is step 4; until it exists, a row that needs a listing approved does
+# the operator's two writes in the store itself (_approve).
+from webapp.api import listings as listings_mod                    # noqa: E402
+
+_models_before = TestClient(api.app).get("/api/models").json()
+_model_before = TestClient(api.app).get("/api/model", params={"make": "Saipa", "model": "Pride"}).json()
+_kept23 = ({k: os.environ.get(k) for k in _ENV22}, accounts_mod.CLOCK)
+_now23 = [1_800_000_000]
+try:
+    with tempfile.TemporaryDirectory() as _tmp23:
+        for _k in _ENV22:
+            os.environ.pop(_k, None)
+        _URL23 = f"sqlite:///{_tmp23}/store.sqlite3"
+        os.environ.update(DATABASE_URL=_URL23, CARO_STORE_SECRET="made-up-for-the-suites-0a1b2c3d4e5f6789",
+                          CARO_SMS_PROVIDER="fake")
+        accounts_mod.CLOCK = lambda: _now23[0]
+        with contextlib.redirect_stdout(io.StringIO()):
+            _c23 = TestClient(api.app, base_url="https://testserver", raise_server_exceptions=False)
+
+        def _st23():
+            return _open_store(_URL23, os.environ["CARO_STORE_SECRET"], migrate=False)
+
+        def _seller23(phone):
+            """A logged-in seller: the cookie header to send."""
+            _now23[0] += 2 * 86400
+            _c23.post("/api/account/code", json={"phone": phone}, headers=_O)
+            r = _c23.post("/api/account/login", json={"phone": phone, "code": _sent()}, headers=_O)
+            # the client keeps no session of its own: each request says whose it is
+            _c23.cookies.clear()
+            return {**_O, "cookie": f"caro_session={_token(r)}"}
+
+        _GOOD = dict(make="Saipa", model="Pride", trim="131 SE", year_jalali=1395, mileage_km=120000,
+                     price_toman=350000000, province="قم", city="قم", gearbox="manual", fuel="petrol",
+                     color="سفید", body="intact", description="ماشین تمیز، بیمه دارد", show_phone=True)
+
+        def _post(path, h, body=None):
+            return _c23.post(path, json=body, headers=h) if body is not None else _c23.post(path, headers=h)
+
+        def _approve(lid):
+            st = _st23()
+            v = st.row("SELECT MAX(id) AS v FROM listing_versions WHERE listing_id = ?", (lid,))["v"]
+            st.execute("UPDATE listing_versions SET review = 'approved', reviewed_at = ? WHERE id = ?",
+                       (_now23[0], v))
+            st.execute("UPDATE listings SET live_version = ? WHERE id = ?", (v, lid))
+            st.close()
+
+        def _public_ids(q=""):
+            return [x["id"] for x in _c23.get(f"/api/listings{q}").json()["listings"]]
+
+        _h1 = _seller23("09120000201")
+        _broken = {"year_jalali": {"year_jalali": 1299}, "year_jalali+": {"year_jalali": 1407},
+                   "mileage_km": {"mileage_km": -1}, "mileage_km+": {"mileage_km": 2_000_001},
+                   "mileage_km0": {"mileage_km": 0}, "price_toman": {"price_toman": 9_999_999},
+                   "price_toman2": {"negotiable": True}, "price_toman0": {"price_toman": None},
+                   "province": {"province": "کرج"}, "gearbox": {"gearbox": "cvt"}, "body": {"body": "unknown"},
+                   "description": {"description": "زنگ بزن ۰۹۱۲۳۴۵۶۷۸۹"},
+                   "description+": {"description": "عکس‌ها در instagram"},
+                   "description1001": {"description": "ب" * 1001},
+                   "make": {"make": "پژو 0912 345 6789"}}
+        _named = {k: _post("/api/listings", _h1, {**_GOOD, **v}) for k, v in _broken.items()}
+        _wrong = {k: r.json() for k, r in _named.items()
+                  if r.status_code != 422 or re.sub(r"[+\d]+$", "", k) not in r.json()["detail"]["faults"]}
+        _r1 = _post("/api/listings", _h1, _GOOD)
+        check("P1: a listing that keeps every rule is 200 and pending; fifteen that break one are 422, each naming "
+              "its field",
+              _r1.status_code == 200 and _r1.json()["review"] == "pending" and not _wrong, str((_r1.json(), _wrong)))
+        _L1 = _r1.json().get("id")
+
+        _p2 = (_post("/api/listings", _O, _GOOD).status_code,
+               _post("/api/listings", {"cookie": _h1["cookie"]}, _GOOD).status_code,
+               _c23.get("/api/listings/mine").status_code)
+        check("P2: without a session a listing is 401, without the site's Origin 403", _p2 == (401, 403, 401), str(_p2))
+
+        _p3 = [_post("/api/listings", _h1, _GOOD).status_code, _post(f"/api/listings/{_L1}/delete", _h1).status_code]
+        _r3 = _post("/api/listings", _h1, _GOOD)
+        _p3.append(_r3.status_code)
+        _L1 = _r3.json().get("id")
+        check("P3: a second active listing for one number is 409; once the first is deleted, a new one is taken",
+              _p3 == [409, 200, 200], str(_p3))
+
+        _mine4 = _c23.get("/api/listings/mine", headers=_h1).json()["listings"]
+        check("P4: a new listing is the seller's, pending, and nobody else's to see",
+              [(x["id"], x["live"], x["pending"]["price_toman"]) for x in _mine4] == [(_L1, None, 350000000)]
+              and _L1 not in _public_ids() and _c23.get(f"/api/listings/{_L1}").status_code == 404, str(_mine4))
+
+        _approve(_L1)
+        _h5 = _seller23("09120000205")
+        _L5 = _post("/api/listings", _h5, {**_GOOD, "show_phone": False, "model": "Tiba"}).json().get("id")
+        _approve(_L5)
+        _pub = _c23.get("/api/listings")
+        _one = _c23.get(f"/api/listings/{_L1}")
+        _no5 = _post(f"/api/listings/{_L5}/reveal", _O)
+        check("P5: approved, it is public with has_phone; neither the list nor the listing holds the number; one "
+              "whose seller did not tick «نمایش شماره» says has_phone false and reveals nothing",
+              _L1 in _public_ids() and _one.json()["has_phone"] is True
+              and "09120000201" not in _pub.text and "09120000201" not in _one.text
+              and "show_phone" not in _one.json() and _c23.get(f"/api/listings/{_L5}").json()["has_phone"] is False
+              and _no5.status_code == 404, str((_one.json(), _no5.status_code)))
+
+        _e1 = _post(f"/api/listings/{_L1}/edit", _h1, {**_GOOD, "price_toman": 340000000})
+        _e2 = _post(f"/api/listings/{_L1}/edit", _h1, {**_GOOD, "price_toman": 330000000})
+        _st6 = _st23()
+        _pend6 = _st6.rows("SELECT price_toman FROM listing_versions WHERE listing_id = ? AND review = 'pending'", (_L1,))
+        _st6.close()
+        _m6 = next((x for x in _c23.get("/api/listings/mine", headers=_h1).json()["listings"] if x["id"] == _L1),
+                   {"live": {}, "pending": {}})
+        check("P6: an edit waits as a new version while the approved one stays public; a second edit replaces "
+              "the first",
+              _e1.status_code == _e2.status_code == 200 and _c23.get(f"/api/listings/{_L1}").json()["price_toman"] == 350000000
+              and ((_m6["live"] or {}).get("price_toman"), (_m6["pending"] or {}).get("price_toman")) == (350000000, 330000000)
+              and _pend6 == [{"price_toman": 330000000}], str((_m6, _pend6)))
+
+        _now23[0] += 2 * 86400
+        _r7 = _post(f"/api/listings/{_L1}/reveal", _O)
+        _st7 = _st23()
+        _counted = _st7.row("SELECT COUNT(*) AS n FROM reveals WHERE listing_id = ?", (_L1,))["n"]
+        _st7.close()
+        _more = [_post(f"/api/listings/{_L1}/reveal", _O).status_code for _ in range(10)]
+        _now23[0] += 2 * 86400
+        _st7 = _st23()
+        _st7.execute("UPDATE listings SET held = 1 WHERE id = ?", (_L1,))
+        _st7.close()
+        _held7 = _post(f"/api/listings/{_L1}/reveal", _O).status_code
+        _st7 = _st23()
+        _st7.execute("UPDATE listings SET held = 0 WHERE id = ?", (_L1,))
+        _st7.close()
+        _h7 = _seller23("09120000207")
+        _L7 = _post("/api/listings", _h7, {**_GOOD, "model": "Quik"}).json().get("id")
+        _unseen7 = _post(f"/api/listings/{_L7}/reveal", _O).status_code
+        check("P7: the reveal gives the number, uncached and counted; the eleventh from one address in an hour is "
+              "429; a listing taken down by reports, and one not yet approved, reveal nothing",
+              _r7.status_code == 200 and _r7.json() == {"phone": "09120000201"}
+              and _r7.headers.get("cache-control") == "no-store" and _counted == 1
+              and _more == [200] * 9 + [429] and _held7 == 404 and _unseen7 == 404,
+              str((_r7.status_code, _counted, _more, _held7, _unseen7)))
+
+        _h8 = _seller23("09120000208")
+        _L8 = _post("/api/listings", _h8, {**_GOOD, "model": "Saina"}).json().get("id")
+        _approve(_L8)
+        _t8 = _now23[0]
+        _now23[0] += 10 * 86400
+        _r8 = _post(f"/api/listings/{_L8}/renew", _h8).json().get("ends_at", 0)
+        # the seller looks in midway: a session unused for 30 days would be gone (L10)
+        _now23[0] += 20 * 86400
+        _c23.get("/api/listings/mine", headers=_h8)
+        _now23[0] += 11 * 86400
+        _gone8 = _L8 not in _public_ids()
+        _back8 = (_post(f"/api/listings/{_L8}/renew", _h8).status_code, _L8 in _public_ids())
+        _now23[0] += 20 * 86400
+        _c23.get("/api/listings/mine", headers=_h8)
+        _now23[0] += 11 * 86400
+        _L8b = _post("/api/listings", _h8, {**_GOOD, "model": "Shahin"}).json().get("id")
+        _no8 = _post(f"/api/listings/{_L8}/renew", _h8).status_code
+        check("P8: a renewal gives 30 days from now; an ended listing leaves the public list and its renewal within "
+              "90 days brings it back; an ended one is not renewed while another of the account's is active",
+              _r8 == _t8 + 10 * 86400 + 30 * 86400 and _gone8 and _back8 == (200, True) and _no8 == 409
+              and _L8b is not None, str((_r8 - _t8, _gone8, _back8, _no8)))
+
+        _h1 = _seller23("09120000201")              # weeks have passed: a new session
+        _st9 = _st23()
+        _v9 = _st9.row("SELECT COUNT(*) AS n FROM listing_versions WHERE listing_id = ?", (_L1,))["n"]
+        _st9.close()
+        _d9 = _post(f"/api/listings/{_L1}/delete", _h1).status_code
+        _st9 = _st23()
+        _left9 = [_st9.row(f"SELECT COUNT(*) AS n FROM {t} WHERE {c} = ?", (_L1,))["n"]
+                  for t, c in (("listings", "id"), ("listing_versions", "listing_id"), ("reveals", "listing_id"))]
+        _st9.close()
+        check("P9: a seller deletes a listing and it is gone -- its versions and its reveals too -- and public 404",
+              _v9 >= 2 and _d9 == 200 and _left9 == [0, 0, 0] and _c23.get(f"/api/listings/{_L1}").status_code == 404,
+              str((_v9, _d9, _left9)))
+
+        _st10 = _st23()
+        _ended10 = _st10.row("SELECT COUNT(*) AS n FROM listings WHERE id = ?", (_L8,))["n"]
+        _st10.close()
+        _now23[0] += 91 * 86400
+        _public_ids()
+        _st10 = _st23()
+        _after10 = _st10.row("SELECT COUNT(*) AS n FROM listings WHERE id = ?", (_L8,))["n"]
+        _st10.close()
+        check("P10: a listing more than 90 days past its end is deleted at the next public list",
+              (_ended10, _after10) == (1, 0), str((_ended10, _after10)))
+
+        _st11 = _st23()
+        _t11 = _now23[0]
+        for _i in range(52):
+            _a = _st11.create_account(f"0913{_i:07d}")
+            _lid = _st11.insert("INSERT INTO listings (account_id, created_at, ends_at) VALUES (?, ?, ?)",
+                                (_a, _t11, _t11 + 86400))
+            _vid = _st11.insert("INSERT INTO listing_versions (listing_id, created_at, make, model, year_jalali, "
+                                "mileage_km, price_toman, province, review, reviewed_at) "
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?)",
+                                (_lid, _t11, "IKCO", "Dena" if _i < 3 else "Samand", 1400, 50000, 900000000, "قم", _t11))
+            _st11.execute("UPDATE listings SET live_version = ? WHERE id = ?", (_vid, _lid))
+        _st11.close()
+        _r11 = _c23.get("/api/listings?limit=500").json()
+        _dena = _public_ids("?make=IKCO&model=Dena")
+        check("P11: the public list gives at most 50 however many are asked for, and filters by make and model",
+              len(_r11["listings"]) == 50 and _r11["limit"] == 50 and len(_dena) == 3
+              and len(_public_ids("?make=IKCO&model=Samand&limit=50")) == 49, str((len(_r11["listings"]), len(_dena))))
+
+        _models_after = _c23.get("/api/models").json()
+        _model_after = _c23.get("/api/model", params={"make": "Saipa", "model": "Pride"}).json()
+        check("P12: listings sellers post reach no answer of the decision API: /api/models and /api/model are what "
+              "they are with the store empty",
+              _models_after == _models_before and _model_after == _model_before,
+              str((len(json.dumps(_models_after)), len(json.dumps(_models_before)))))
+finally:
+    for _k, _v in _kept23[0].items():
+        if _v is None:
+            os.environ.pop(_k, None)
+        else:
+            os.environ[_k] = _v
+    accounts_mod.CLOCK = _kept23[1]
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
