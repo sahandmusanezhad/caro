@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import CorpusBadge from '@/components/CorpusBadge';
+import { navItems } from '@/lib/nav';
 
 export const metadata: Metadata = {
   title: 'CARO — تصمیم‌یار خرید خودروی کارکرده',
@@ -10,18 +11,8 @@ export const metadata: Metadata = {
     + 'شواهدش نشان می‌دهد و وقتی شواهد کافی نیست، توصیه نمی‌دهد.',
 };
 
-const NAV = [
-  { href: '/', fa: 'خانه' },
-  { href: '/search', fa: 'جست‌وجو' },
-  { href: '/models', fa: 'خودروها' },
-  { href: '/compare', fa: 'مقایسه' },
-  { href: '/saved', fa: 'نشان‌شده‌ها' },
-  { href: '/listings', fa: 'آگهی فروشنده‌ها' },
-  { href: '/sell', fa: 'ثبت آگهی' },
-  { href: '/how-it-works', fa: 'چطور کار می‌کند' },
-  { href: '/about', fa: 'درباره‌ی ما' },
-  { href: '/contact', fa: 'تماس با ما' },
-];
+// The seller links only where the deploy holder has turned them on (lib/nav.ts).
+const NAV = navItems(process.env.NEXT_PUBLIC_SELLER_LISTINGS);
 
 export default function RootLayout({
   children,

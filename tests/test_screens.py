@@ -1443,6 +1443,15 @@ check("SL6: «آگهی‌های من» draws each listing with where it stands, 
       and all(w in _mt for w in ("ویرایش", "تمدید ۳۰ روزه", "حذف آگهی")) and "/sell?edit=3" in _mc["markup"][0],
       why_mc or _mt[:200])
 
+_navs, why_n = call("lib/nav.ts", "navItems", [["on"], [None], ["off"]])
+_hrefs = [[x["href"] for x in n] for n in (_navs or [[], [], []])]
+_rest = ["/", "/search", "/models", "/compare", "/saved", "/how-it-works", "/about", "/contact"]
+check("N1: the seller links are in the nav only where NEXT_PUBLIC_SELLER_LISTINGS is «on»; without it, or "
+      "«off», the other eight stand in their order (the owner's choice, 2026-10-30)",
+      _navs is not None and "/listings" in _hrefs[0] and "/sell" in _hrefs[0]
+      and [h for h in _hrefs[0] if h not in ("/listings", "/sell")] == _rest
+      and _hrefs[1] == _rest and _hrefs[2] == _rest, why_n or str(_hrefs))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

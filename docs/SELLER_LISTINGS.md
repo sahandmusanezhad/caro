@@ -134,6 +134,7 @@ that module, and nothing else in the code knows which one it has.
 | the template | the text the provider approves | «کد ورود کارو: {code}» |
 | the store's secret | the key of the keyed hashes above | `CARO_STORE_SECRET`, made locally, set by the deploy holder |
 | the site's address | the Origin every change must come from | `CARO_SITE_ORIGINS`, set by the deploy holder; unset, the host a request came to |
+| the links in the nav | «آگهی فروشنده‌ها» and «ثبت آگهی» | `NEXT_PUBLIC_SELLER_LISTINGS=on` for the site's build, set by the deploy holder once the store is; the owner chose on 2026-10-30 to keep them out of the nav until then |
 | a privacy page | what is kept, for how long, how it is deleted | drafted by a session, approved by the owner |
 
 No key is written into the repository or a chat; the code reads each from the
