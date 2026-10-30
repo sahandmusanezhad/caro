@@ -85,7 +85,8 @@ export default function RootLayout({
             <p className="m-0 max-w-[62ch]">
               هیچ عددی در این سامانه بدون درجه‌ی شواهدش نمایش داده نمی‌شود.
               وقتی برآوردگر از دروازه‌ی پذیرش عبور نکرده باشد، CARO رتبه‌بندی
-              را سرو نمی‌کند — شواهد را نشان می‌دهد و توصیه نمی‌دهد.
+              را سرو نمی‌کند — شواهد را نشان می‌دهد و توصیه نمی‌دهد.{' '}
+              <Link href="/before-buying" className="text-ink-2">پیش از خرید ←</Link>
             </p>
             <p className="m-0 font-mono text-[11px] tracking-wider">
               CARO · W0 tracking · W1 appraisal · W2 agents · W3 ranking · W4 ingest

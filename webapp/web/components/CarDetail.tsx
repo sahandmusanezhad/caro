@@ -372,6 +372,8 @@ export function ListingFile({
               دیدن آگهی در منبع ↗
             </a>
           )}
+          {/* before the buyer goes to the seller: what to check first (B1) */}
+          <Link className="text-[13px] px-2" href="/before-buying">پیش از خرید ←</Link>
         </div>
       </div>
 

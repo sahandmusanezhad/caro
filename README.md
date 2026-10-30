@@ -199,7 +199,7 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all fifteen suites
 
-python3 tests/run_all.py            # 3224 assertions, no API key, no network
+python3 tests/run_all.py            # 3241 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -217,10 +217,10 @@ output in `docs/` instead: `RUN3_2026-09-07.txt`, `RUN5_2026-09-07.txt`,
 suites need more, and the runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2635 assertions across 12 of 15 suites
+python3 tests/run_all.py            # 2649 assertions across 12 of 15 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3224 across all fifteen
+python3 tests/run_all.py            # 3241 across all fifteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -268,7 +268,10 @@ instead (`CARO_INBOX=off`, D68), and `/admin` opens only where
 `CARO_ADMIN_TOKEN` is set. The site is Next.js, TypeScript and Tailwind, in
 right-to-left Persian, its panes glass over the palette: `/`, `/search`,
 `/models`, `/model/[make]/[model]`, `/car/[id]`, `/compare`, `/saved`,
-`/how-it-works`, `/about`, `/contact` and `/admin`.
+`/before-buying`, `/how-it-works`, `/about`, `/contact` and `/admin`.
+`/before-buying` is seven steps to check before paying, in the words the owner
+approved (docs/ACCOUNTS_AND_PAYMENT.md, B1); the car's file and the footer
+link to it.
 
 A model's page is what a price-comparison site gives a product: the model's
 listings in the served corpus, the priced cheapest first, each with its file
@@ -624,7 +627,7 @@ trade for a system whose pitch is that it does not overclaim.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3224 assertions across fifteen suites
+tests/           3241 assertions across fifteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, replays, the benchmark, the probes
 data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed

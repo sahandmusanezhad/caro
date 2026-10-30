@@ -1302,6 +1302,38 @@ _ad, why = call("lib/format.ts", "asciiDigits", [["۲۸۷۰۸۲"], ["٠٧٠٨١�
 check("asciiDigits: Persian and Arabic-Indic digits become ASCII ones; anything else is left as it is",
       _ad == ["287082", "070818", "123456", "123abc"], str(_ad) or why)
 
+# ---------------------------------------------------------------------------
+print("\n«پیش از خرید»: the seven steps the owner approved, word for word")
+# ---------------------------------------------------------------------------
+# B1, the owner's choice of 2026-10-30, with the draft text of
+# docs/ACCOUNTS_AND_PAYMENT.md. The page and the document are one text: a step
+# changed in one and not the other fails here.
+_doc = (ROOT / "docs" / "ACCOUNTS_AND_PAYMENT.md").read_text(encoding="utf-8")
+_draft = _doc[_doc.index("## A draft for B1"):]
+_quoted = " ".join(ln[1:].strip() for ln in _draft.splitlines() if ln.startswith(">"))
+_approved = [re.sub(r"\s+", " ", t).strip()
+             for t in re.split(r"\s*[۰-۹]+\.\s+", _quoted) if t.strip()]
+_bb, why = node({"component": "components/BeforeBuying.tsx", "export": "default", "props": [{}],
+                 "consts": {"module": "components/BeforeBuying.tsx", "names": ["STEPS_FA"]}})
+if _bb is None:
+    check("the «پیش از خرید» page could be drawn", False, why)
+else:
+    _steps = [re.sub(r"\s+", " ", t).strip() for t in _bb["consts"]["STEPS_FA"]]
+    check("its seven steps are the approved text, space for space",
+          len(_approved) == 7 and _steps == _approved,
+          f"{len(_approved)} approved, {len(_steps)} on the page; first differing: "
+          + str(next(((a, b) for a, b in zip(_approved, _steps) if a != b), None)))
+    _bh = _bb["markup"][0]
+    _ol = re.search(r'<ol[^>]*data-steps="before-buying"[^>]*>(.*?)</ol>', _bh, re.S)
+    _lis = re.findall(r"<li[^>]*>(.*?)</li>", _ol.group(1), re.S) if _ol else []
+    check("drawn as seven list items in that order, the first with a link to /models, and no Latin "
+          "word but CARO",
+          [re.sub(r"\s+", " ", _text(x)).strip() for x in _lis] == _steps
+          and 'href="/models"' in (_lis[0] if _lis else "") and not _latin(_bh, {"CARO"}),
+          f"{len(_lis)} items; latin {_latin(_bh, {'CARO'})}")
+if dout is not None:
+    check("the car's file links to «پیش از خرید»", 'href="/before-buying"' in page["refused"])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

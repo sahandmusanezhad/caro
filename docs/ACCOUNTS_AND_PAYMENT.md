@@ -6,7 +6,11 @@ something a buyer keeps, an account, a payment. This document says what of
 that exists, what each remaining part would be, what it needs that only the
 owner can give, and which option a session recommends. Nothing below is built
 until the owner has chosen (ROADMAP, the product gaps, item 4), and every
-choice he makes becomes a D-entry once it is.
+choice the owner makes becomes a D-entry once it is pushed.
+
+**Chosen on 2026-10-30:** B1 and O1, both built the same day -- the page
+`/before-buying`, with the draft's text, and the operator's second step in
+`webapp/api/totp.py`. A0 and P0 stand: no account and no payment.
 
 ## What exists now
 
@@ -39,7 +43,7 @@ choice he makes becomes a D-entry once it is.
 | | What it is | Needs | Recommended |
 |---|---|---|---|
 | **B0** | As now: the source's own page, by link. | nothing | ✅ keep |
-| **B1** | B0, and a page «پیش از خرید» — what to check before paying, in plain steps (a draft is at the end of this document). | the owner's wording; it is a statement about buying a car in Iran, so it is his | ✅ if he approves the text |
+| **B1** | B0, and a page «پیش از خرید» — what to check before paying, in plain steps (the text is at the end of this document). | the owner's wording; it is a statement about buying a car in Iran, so it is the owner's | ✅ chosen and built, 2026-10-30 |
 | **B2** | Booking an inspection through a partner. | a partner, a contract, and a way to pay them | ❌ not now |
 
 CARO does not take a buyer's money for a car, and none of the options below
@@ -99,7 +103,7 @@ design to the owner.
 | | What it is | Needs | Recommended |
 |---|---|---|---|
 | **O0** | As now: one token in the environment. | nothing | — |
-| **O1** | The token **and** a six-digit code from an authenticator app (TOTP, RFC 6238), the shared secret in the environment beside it. | one more secret for the deploy holder to set; an app on the owner's phone | ✅ |
+| **O1** | The token **and** a six-digit code from an authenticator app (TOTP, RFC 6238), the shared secret in the environment beside it. | one more secret for the deploy holder to set; an app on the owner's phone | ✅ chosen and built, 2026-10-30 |
 | **O2** | O1 for several operators, each with their own secret. | the store | when there is a second operator |
 
 O1 needs no store, no third party and no cost: the code is computed from the
@@ -137,7 +141,7 @@ If P1 is chosen, it is built under these rules:
 - Every step is logged with the order, and the day's orders are reconciled
   against the gateway's own report. Refunds are by hand, by the operator.
 - The suites test it against a fake gateway, offline; the gateway's sandbox
-  is the owner's to run, on his machine, like every other live request.
+  is the owner's to run, on the owner's machine, like every other live request.
 
 ## What the owner gives, for each choice
 
@@ -169,22 +173,24 @@ its D-entry after the push.
 
 ## A draft for B1 — «پیش از خرید»
 
-For the owner to change or refuse; it is not on the site.
+The owner approved it on 2026-10-30, and `/before-buying` draws it word for
+word (`components/BeforeBuying.tsx`; the screens suite holds the two to one
+text). It is written in the site's spelling, «ه‌ی» for the ezafe.
 
-> ۱. قیمت را با آگهی‌های همان مدل و همان سال مقایسه کن؛ صفحهٔ هر مدل در کارو
+> ۱. قیمت را با آگهی‌های همان مدل و همان سال مقایسه کن؛ صفحه‌ی هر مدل در کارو
 > آگهی‌ها را از ارزان به گران نشان می‌دهد.
 >
 > ۲. پیش از دیدن خودرو بیعانه نده.
 >
 > ۳. خودرو را پیش کارشناسی ببر که فروشنده معرفی نکرده است، برای فنی و بدنه.
 >
-> ۴. سند و کارت خودرو را ببین و شمارهٔ شاسی و موتور را با خود خودرو تطبیق
+> ۴. سند و کارت خودرو را ببین و شماره‌ی شاسی و موتور را با خود خودرو تطبیق
 > بده.
 >
-> ۵. خلافی، بیمه‌نامه و معاینهٔ فنی را استعلام کن.
+> ۵. خلافی، بیمه‌نامه و معاینه‌ی فنی را استعلام کن.
 >
 > ۶. قرارداد را بنویس، سند را در دفترخانه منتقل کن و پول را از راه بانکی
 > بپرداز تا ردش بماند.
 >
-> ۷. کارو شمارهٔ فروشنده را نگه نمی‌دارد و نشان نمی‌دهد؛ با فروشنده در خود
+> ۷. کارو شماره‌ی فروشنده را نگه نمی‌دارد و نشان نمی‌دهد؛ با فروشنده در خود
 > سایتی که آگهی را منتشر کرده تماس بگیر.
