@@ -108,7 +108,7 @@ export default function Home() {
       {/* ---------------------------------------------------------------- */}
       <section>
         <p className="eyebrow">چه چیزی این را از یک فیلتر جدا می‌کند</p>
-        <div className="grid gap-px bg-line border border-line
+        <div className="grid tiles
                         sm:grid-cols-2">
           {PILLARS.map((p) => (
             <article key={p.n} className="bg-surface p-6">
@@ -125,7 +125,7 @@ export default function Home() {
       {/* ---------------------------------------------------------------- */}
       <section>
         <p className="eyebrow">منابع داده — وضعیت واقعی، نه فهرست آرزوها</p>
-        <div className="border border-line bg-surface rounded-[3px]
+        <div className="border border-line bg-surface rounded-2xl
                         overflow-x-auto">
           <table className="w-full border-collapse text-[13.5px] min-w-[560px]">
             <thead>

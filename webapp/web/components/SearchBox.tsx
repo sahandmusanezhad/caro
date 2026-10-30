@@ -70,7 +70,7 @@ export default function SearchBox({
           placeholder="چه ماشینی می‌خواهی؟ به فارسی و با جمله‌ی خودت بنویس"
           aria-label="پرسش"
           className="flex-1 min-w-[260px] bg-surface border border-line
-                     rounded-[3px] px-4 py-3 text-[15px] text-ink
+                     rounded-2xl px-4 py-3 text-[15px] text-ink
                      placeholder:text-ink-3 focus:border-accent
                      transition-colors"
         />
@@ -88,7 +88,7 @@ export default function SearchBox({
               type="button"
               onClick={() => { setQ(ex); go(ex); }}
               className="text-[12.5px] bg-surface border border-line
-                         rounded-[2px] px-2.5 py-1 text-ink-2
+                         rounded-lg px-2.5 py-1 text-ink-2
                          hover:border-line-2 hover:text-ink transition-colors"
             >
               {ex}

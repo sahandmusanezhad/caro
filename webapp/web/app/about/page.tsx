@@ -37,7 +37,7 @@ export default function About() {
       </section>
 
       <section>
-        <div className="grid gap-px bg-line border border-line sm:grid-cols-4">
+        <div className="grid tiles sm:grid-cols-4">
           {FACTS.map(([n, k, src]) => (
             <div key={k} className="bg-surface p-5">
               <div className="fig text-[26px] font-medium text-accent">{n}</div>
@@ -61,7 +61,7 @@ export default function About() {
           بیشتر آن ۸۴ تصمیم به این دلیل نوشته شده‌اند که چیزی به‌شکلی نامرئی
           خراب شده بود. دو تا از آن‌ها بیش از بقیه اینجا حضور دارند:
         </p>
-        <div className="mt-4 grid gap-px bg-line border border-line
+        <div className="mt-4 grid tiles
                         sm:grid-cols-2">
           <div className="bg-surface p-5">
             <div className="num text-[13px] text-accent mb-1">D35</div>

@@ -65,7 +65,7 @@ const METRICS: Metric[] = [
  * the detail page says it, with how it was known (D81). */
 export function EvidenceRows({ evidence }: { evidence: EvidenceItem[] }) {
   return (
-    <div className="border border-line bg-surface rounded-[3px]
+    <div className="border border-line bg-surface rounded-2xl
                     overflow-x-auto">
       <table className="w-full border-collapse text-[13px] min-w-[520px]">
         <thead>
@@ -264,7 +264,7 @@ export default function CompareTable() {
         </p>
       </div>
 
-      <div className="border border-line bg-surface rounded-[3px]
+      <div className="border border-line bg-surface rounded-2xl
                       overflow-x-auto">
         <table className="w-full border-collapse text-[13px]
                           min-w-[620px]">

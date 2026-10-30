@@ -32,7 +32,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <header className="border-b border-line bg-surface">
+        <header className="glass-bar sm:sticky top-0 z-40 border-b">
           <div className="mx-auto max-w-[1100px] px-5 py-4 flex items-center
                           gap-5 flex-wrap">
             <Link href="/" className="flex items-baseline gap-3 no-underline">
@@ -48,7 +48,7 @@ export default function RootLayout({
                 <Link
                   key={n.href}
                   href={n.href}
-                  className="px-2.5 py-1.5 rounded-[2px] text-ink-2
+                  className="px-3 py-1.5 rounded-full text-ink-2
                              hover:text-ink hover:bg-sunk transition-colors"
                 >
                   {n.fa}
@@ -66,7 +66,7 @@ export default function RootLayout({
           {children}
         </main>
 
-        <footer className="border-t border-line mt-10">
+        <footer className="glass-bar border-t mt-10">
           <div className="mx-auto max-w-[1100px] px-5 py-7 text-[12.5px]
                           text-ink-3 flex flex-wrap gap-x-8 gap-y-2
                           justify-between">

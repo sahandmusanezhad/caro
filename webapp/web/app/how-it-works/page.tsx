@@ -77,7 +77,7 @@ export default function HowItWorks() {
       </section>
 
       <section>
-        <div className="flex flex-col gap-px bg-line border border-line">
+        <div className="flex flex-col tiles">
           {LAYERS.map((l) => (
             <article key={l.id} className="bg-surface p-6 grid gap-4
                                            sm:grid-cols-[5rem_1fr]">

@@ -42,7 +42,7 @@ export default function TermBars({
             <li key={k} className="grid grid-cols-[7.5rem_1fr_4.5rem]
                                    items-center gap-2">
               <span className="text-[12.5px] text-ink-2">{termLabel(k)}</span>
-              <span className="relative h-[7px] bg-sunk rounded-[1px]
+              <span className="relative h-[7px] bg-sunk rounded-full
                                overflow-hidden">
                 {/* The page is right-to-left, so a positive contribution
                     grows toward the start of the line — the right — and a

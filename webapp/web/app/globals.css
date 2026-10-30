@@ -79,6 +79,32 @@ body {
   font-size: 15px;
   line-height: 1.75;
   -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* GLASS. The owner asked for a glassy site (2026-10-30). Nothing below adds a
+   colour: every tint is the palette above mixed with transparency, so the
+   sixteen values `tests/test_palette.py` holds the demo to stay the only
+   colours there are, and the dark scheme follows them by itself. A browser
+   without `color-mix()` drops those declarations and keeps the opaque
+   palette value written before each one.
+
+   The ground carries three soft lights -- the accent at the top corner the
+   eye starts from in a right-to-left page, the warn tone low on the other
+   side, the accent again at the foot -- so that a surface that lets the page
+   through has something to let through. They are faint on purpose: the
+   accent is still spent on what you can act on. */
+body {
+  background-image:
+    radial-gradient(60rem 38rem at 100% -10%,
+      color-mix(in srgb, var(--accent) 24%, transparent), transparent 68%),
+    radial-gradient(48rem 34rem at -10% 30%,
+      color-mix(in srgb, var(--warn) 20%, transparent), transparent 68%),
+    radial-gradient(56rem 34rem at 30% 112%,
+      color-mix(in srgb, var(--bad) 12%, transparent), transparent 70%),
+    radial-gradient(40rem 26rem at 70% 55%,
+      color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+  background-attachment: fixed;
 }
 
 /* Two classes, and using the wrong one is a visible bug rather than a matter
@@ -139,8 +165,39 @@ body {
 /* A few compound patterns that would otherwise be a dozen repeated utility
    strings. Kept small on purpose — Tailwind is the styling system here. */
 @layer components {
+  /* A pane of glass: the surface at two thirds, what is behind it blurred,
+     a hairline that catches light at the top edge, and a shadow that is the
+     ink at a sixth. `bg-surface` is translucent too (tailwind.config.ts), so
+     a table or a card inside a panel is a second, lighter pane, not a hole. */
+  .glass {
+    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 66%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    backdrop-filter: blur(18px) saturate(150%);
+    border: 1px solid var(--line);
+    border: 1px solid color-mix(in srgb, var(--line-2) 70%, transparent);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--surface) 70%, transparent),
+      0 14px 34px -18px color-mix(in srgb, var(--ink) 30%, transparent);
+  }
   .panel {
-    @apply bg-surface border border-line rounded-[3px] p-6;
+    @apply glass rounded-2xl p-6;
+  }
+  /* Was a grid of 1px gaps over the line colour, which drew the rules
+     between tiles. Glass tiles stand apart instead, each its own pane. */
+  .tiles {
+    gap: 0.75rem;
+  }
+  .tiles > * {
+    @apply glass rounded-2xl;
+  }
+  /* The header and the footer: a bar of glass the page scrolls under. */
+  .glass-bar {
+    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 58%, transparent);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border-color: color-mix(in srgb, var(--line-2) 65%, transparent);
   }
   /* The demo's eyebrows are English, so they are monospaced, letter-spaced
      and laid out left-to-right. These are Persian. Arabic script is
@@ -153,18 +210,35 @@ body {
   }
   .chip {
     @apply font-mono text-[11px] tracking-[0.1em] uppercase px-2.5 py-1
-           rounded-[2px] border inline-block;
+           rounded-full border inline-block;
     direction: ltr;
   }
   .btn {
     @apply font-fa text-sm font-medium border border-accent text-accent
-           rounded-[2px] px-4 py-2 transition-colors;
+           rounded-xl px-4 py-2 transition-colors;
+    background: color-mix(in srgb, var(--surface) 55%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
   .btn:hover:not(:disabled) { background: var(--accent); color: var(--surface); }
   .btn:disabled { opacity: 0.45; cursor: default; }
   .btn-solid {
-    @apply font-fa text-sm font-medium border border-accent rounded-[2px] px-4 py-2;
+    @apply font-fa text-sm font-medium border border-accent rounded-xl px-4 py-2;
     background: var(--accent);
+    background: linear-gradient(180deg,
+      color-mix(in srgb, var(--accent) 88%, #fff), var(--accent));
     color: #fff;
+    box-shadow: 0 10px 24px -12px color-mix(in srgb, var(--accent) 70%, transparent);
   }
+}
+
+/* Someone who has asked the system for less transparency gets the opaque
+   palette back, with the same shapes. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .panel, .tiles > *, .glass-bar, .btn {
+    background: var(--surface) !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  body { background-image: none; }
 }

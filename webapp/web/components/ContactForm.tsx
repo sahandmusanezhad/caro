@@ -115,7 +115,7 @@ export default function ContactForm() {
             rows={7}
             value={f.body}
             onChange={(e) => setF({ ...f, body: e.target.value })}
-            className="w-full bg-ground border border-line rounded-[3px]
+            className="w-full bg-ground border border-line rounded-2xl
                        px-3.5 py-2.5 text-[14px] leading-[1.9] text-ink
                        focus:border-accent transition-colors resize-y"
           />
@@ -126,7 +126,7 @@ export default function ContactForm() {
 
         {state.k === 'failed' && (
           <p className="m-0 text-[13px] text-bad bg-bad-soft border border-bad/40
-                        rounded-[2px] px-3 py-2">{state.msg}</p>
+                        rounded-lg px-3 py-2">{state.msg}</p>
         )}
 
         <div className="flex items-center gap-3 flex-wrap">
@@ -219,7 +219,7 @@ function Field({
         value={value}
         dir={dir}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-ground border border-line rounded-[3px]
+        className="w-full bg-ground border border-line rounded-2xl
                    px-3.5 py-2.5 text-[14px] text-ink focus:border-accent
                    transition-colors"
       />

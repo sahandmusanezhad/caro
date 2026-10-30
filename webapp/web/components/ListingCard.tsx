@@ -73,7 +73,7 @@ export default function ListingCard({
       </div>
 
       {/* the arithmetic ------------------------------------------------- */}
-      <div className="mt-5 grid gap-px bg-line border border-line
+      <div className="mt-5 grid tiles
                       sm:grid-cols-4">
         {/* A scored row carries no price provenance and needs none: both
             gates were applied at eligibility before it could be ranked.

@@ -360,7 +360,7 @@ export function ListingFile({
       {/* --- what was parsed --------------------------------------------- */}
       <section className="panel">
         <p className="eyebrow">آنچه از آگهی استخراج شد</p>
-        <dl className="m-0 grid gap-px bg-line border border-line
+        <dl className="m-0 grid tiles
                        sm:grid-cols-3">
           {/* Through modelLabel, like the heading above — a taxonomy key is
               an internal name and «pride» has no business on the page. */}
@@ -405,7 +405,7 @@ export function ListingFile({
             )}
           </div>
 
-          <div className="mt-4 grid gap-px bg-line border border-line
+          <div className="mt-4 grid tiles
                           sm:grid-cols-4">
             <Cell k="برآورد محافظه‌کارانه" v={toman(scored.estimate_toman)}
                   hint={compact(scored.estimate_toman)} />
@@ -536,7 +536,7 @@ function NotACarFile({
 
       <section className="panel">
         <p className="eyebrow">آنچه خود آگهی می‌گوید</p>
-        <dl className="m-0 grid gap-px bg-line border border-line
+        <dl className="m-0 grid tiles
                        sm:grid-cols-3">
           <F k="سازنده" v={listing.make ? modelLabel(listing.make) : '—'} />
           <F k="مدل" v={listing.model ? modelLabel(listing.model) : '—'} />

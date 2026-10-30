@@ -85,7 +85,7 @@ function OfAll({ shown, total, noun }:
 function Table({ head, children }:
   { head: string[]; children: ReactNode }) {
   return (
-    <div className="border border-line bg-surface rounded-[3px] overflow-x-auto">
+    <div className="border border-line bg-surface rounded-2xl overflow-x-auto">
       <table className="w-full border-collapse text-[13px] min-w-[520px]">
         <thead>
           <tr className="text-ink-3 text-[11.5px]">

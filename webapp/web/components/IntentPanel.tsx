@@ -88,7 +88,7 @@ export default function IntentPanel({ intent }: { intent: Intent }) {
           هیچ قید مشخصی در جمله پیدا نشد — پس هیچ فیلتری هم اعمال نشده است.
         </p>
       ) : (
-        <dl className="m-0 grid gap-px bg-line border border-line
+        <dl className="m-0 grid tiles
                        sm:grid-cols-3">
           {known.map(([k, v]) => (
             <div key={k} className="bg-surface px-3.5 py-2.5">
@@ -114,7 +114,7 @@ export default function IntentPanel({ intent }: { intent: Intent }) {
           <ul className="m-0 ps-0 list-none flex flex-col gap-1">
             {intent.assumptions.map((a) => (
               <li key={a} className="text-[13px] text-warn bg-warn-soft
-                                     border border-warn/40 rounded-[2px]
+                                     border border-warn/40 rounded-lg
                                      px-3 py-1.5">
                 {a}
               </li>
@@ -132,7 +132,7 @@ export default function IntentPanel({ intent }: { intent: Intent }) {
             {intent.unparsed.map((u, i) => (
               <span key={`${u}-${i}`}
                     className="text-[12.5px] text-ink-3 bg-sunk border
-                               border-line rounded-[2px] px-2.5 py-1">
+                               border-line rounded-lg px-2.5 py-1">
                 {u}
               </span>
             ))}

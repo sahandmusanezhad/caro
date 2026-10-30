@@ -32,7 +32,7 @@ export default function TechDetail({ message }: { message: string }) {
       <p
         className="m-0 mt-2 num text-[11.5px] text-ink-3 leading-6
                    whitespace-pre-wrap break-all bg-bad-soft/40 border
-                   border-line rounded-[2px] px-2.5 py-2"
+                   border-line rounded-lg px-2.5 py-2"
         dir="ltr"
       >
         {message}

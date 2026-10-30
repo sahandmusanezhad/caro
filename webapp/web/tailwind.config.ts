@@ -5,7 +5,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        ground: 'var(--ground)', surface: 'var(--surface)', sunk: 'var(--sunk)',
+        // `surface` is the palette's surface at seven tenths: a pane, not a
+        // wall (globals.css, GLASS). The opaque value is `--surface` itself.
+        ground: 'var(--ground)',
+        surface: 'color-mix(in srgb, var(--surface) 70%, transparent)',
+        sunk: 'color-mix(in srgb, var(--sunk) 75%, transparent)',
         ink: 'var(--ink)', 'ink-2': 'var(--ink-2)', 'ink-3': 'var(--ink-3)',
         line: 'var(--line)', 'line-2': 'var(--line-2)',
         accent: 'var(--accent)', 'accent-soft': 'var(--accent-soft)',

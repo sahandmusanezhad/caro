@@ -98,7 +98,7 @@ export default function AdminInbox() {
             value={token}
             dir="ltr"
             onChange={(e) => setToken(e.target.value)}
-            className="w-full bg-ground border border-line rounded-[3px]
+            className="w-full bg-ground border border-line rounded-2xl
                        px-3.5 py-2.5 text-[14px] num focus:border-accent
                        transition-colors"
           />
@@ -111,7 +111,7 @@ export default function AdminInbox() {
 
       {err && (
         <p className="m-0 text-[13px] text-bad bg-bad-soft border border-bad/40
-                      rounded-[2px] px-3 py-2">{err}</p>
+                      rounded-lg px-3 py-2">{err}</p>
       )}
 
       {msgs && (
@@ -125,8 +125,7 @@ export default function AdminInbox() {
               صندوق خالی است.
             </div>
           ) : (
-            <ul className="m-0 p-0 list-none flex flex-col gap-px bg-line
-                           border border-line">
+            <ul className="m-0 p-0 list-none flex flex-col tiles">
               {msgs.map((m) => (
                 <li key={m.ref} className="bg-surface">
                   <button
