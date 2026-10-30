@@ -294,7 +294,7 @@ def province_of_place(place: str | None) -> tuple[str | None, str]:
 # The trace
 # ---------------------------------------------------------------------------
 
-ODD_KINDS = ("price below the floor",)
+ODD_KINDS = ("price below the floor", "odometer not plausible")
 _ODD_CAP = 12
 
 
@@ -549,6 +549,10 @@ def build_from_page(entity: dict, lid: str, base: CarListing | None,
     else:
         j = classify_mileage(km, year)
         m_status, m_reason = j.status, j.reason
+        if m_status is not Validity.PLAUSIBLE:
+            # the owner's choice (2026-10-30): refused, as the rule says, and
+            # shown as numbers -- no reading of «125» as thousands
+            trace.odd["odometer not plausible"].append((km, year))
     transmission = _text(entity.get("vehicleTransmission"))
     eng = entity.get("vehicleEngine")
     fuel = _text(eng.get("fuelType")) if isinstance(eng, dict) else ""
@@ -786,6 +790,14 @@ def report(traces: list[SheypoorTrace]) -> list[str]:
             L.append(f"    {'price below the floor':<24}{row[0]:,}")
         if len(odd) > _ODD_CAP:
             L.append(f"    {'price below the floor':<24}… and {len(odd) - _ODD_CAP} more")
+    odo = [x for t in traces for x in t.odd["odometer not plausible"]]
+    if odo:
+        if not odd:
+            L += ["", "  odd cases (numbers only):"]
+        for km_, year_ in odo[:_ODD_CAP]:
+            L.append(f"    {'odometer not plausible':<24}{km_:,} km, {year_ or '?'}")
+        if len(odo) > _ODD_CAP:
+            L.append(f"    {'odometer not plausible':<24}… and {len(odo) - _ODD_CAP} more")
     pages = [t for t in traces if t.kind == "listing"]
     if pages:
         L.append(f"  listing pages  {len(pages)}")

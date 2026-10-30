@@ -4594,6 +4594,19 @@ check("SP2-6: the report counts the listing pages: the merge, the id and price c
       and "vehicleTransmission دنده‌ای:1" in _sp6 and "itemCondition       UsedCondition:1" in _sp6
       and "462345678" not in _sp6 and "پراید صبا" not in _sp6, _sp6)
 
+_odo = SheypoorParser()
+_o1 = _odo(_sp_listing("462345691", km="125", year="1400"))[0]
+_o2 = _odo(_sp_listing("462345692", km="999999", year="1386"))[0]
+_o3 = _odo(_sp_listing("462345693", km="125000", year="1400"))[0]
+_orows = [ln.strip() for ln in _sh.report(_odo.traces) if "odometer not plausible" in ln]
+check("OD1: an odometer the quality rule refuses is printed in the report as numbers -- 125 km on a 1400 car, "
+      "999,999 on a 1386 -- and stays refused; a plausible one prints nothing (the owner's choice, 2026-10-30)",
+      [" ".join(r.split()) for r in _orows] == ["odometer not plausible 125 km, 1400",
+                                                "odometer not plausible 999,999 km, 1386"]
+      and (_o1.mileage_km, _o1.mileage_status) == (125, "suspicious")
+      and (_o2.mileage_km, _o2.mileage_status) == (999999, "suspicious")
+      and _o3.mileage_status == "plausible", str((_orows, _o1.mileage_status, _o2.mileage_status)))
+
 _SPL = {x.url: (200, _sp_listing(x.listing_id, price=(x.asking_price_toman or 1) * 10, cur="IRR"))
         for x in parse_sheypoor(_SP)}
 _sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), **_SPL})
