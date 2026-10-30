@@ -2267,6 +2267,17 @@ try:
         check("L12: after every flow above, no table but accounts holds a phone number in clear, and the "
               "number that never logged in is nowhere",
               not _clear and _nowhere == 0, str((_clear, _nowhere)))
+
+        # The site reaches the API through its own rewrite (next.config.mjs):
+        # the API sees its own host in Host and the site's in X-Forwarded-Host.
+        _fresh22()
+        _via = {"host": "127.0.0.1:8000", "x-forwarded-host": "caro.example"}
+        _r13 = [_ask("09120000114", headers={**_via, "origin": "https://caro.example"}).status_code,
+                _ask("09120000114", headers={**_via, "origin": "https://evil.example"}).status_code,
+                _ask("09120000114", headers={**_via, "origin": "http://127.0.0.1:8000"}).status_code]
+        check("L13: through the site's rewrite, Host the API's and X-Forwarded-Host the site's, a POST with the "
+              "site's Origin is served, and one with another's, or the API's own, is 403",
+              _r13 == [200, 403, 403], str(_r13))
 finally:
     for _k, _v in _kept22[0].items():
         if _v is None:

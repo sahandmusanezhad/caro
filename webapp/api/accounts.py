@@ -23,8 +23,9 @@ login, deleted at logout, and refused and deleted after thirty idle days.
 
 **Every change is a POST whose Origin is the site's own**: one of
 CARO_SITE_ORIGINS, or, where the deploy holder has set none, the host the
-request came to. A browser always sends Origin with a POST, and another site
-cannot write ours into it.
+browser asked -- X-Forwarded-Host where the site's rewrite has passed the
+request on, Host where nothing has. A browser always sends Origin with a
+POST, and another site cannot write ours into it.
 
 An account keeps its number and nothing else; «حذف حساب» deletes it and,
 by the store's cascade, every session and listing under it.
@@ -109,7 +110,13 @@ def same_origin(request: Request) -> None:
     if allowed:
         ok = origin in allowed
     else:
-        ok = bool(origin) and urlsplit(origin).netloc == request.headers.get("host", "")
+        # The site reaches the API through its own rewrite (next.config.mjs),
+        # so Host is the API's and the host the browser asked is in
+        # X-Forwarded-Host. A page on another site sends its own Origin, and
+        # cannot add a header without a preflight it is not granted.
+        asked = (request.headers.get("x-forwarded-host", "").split(",")[0].strip()
+                 or request.headers.get("host", ""))
+        ok = bool(origin) and urlsplit(origin).netloc == asked
     if not ok:
         raise HTTPException(403, ORIGIN_FA)
 
