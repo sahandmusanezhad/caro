@@ -133,6 +133,7 @@ that module, and nothing else in the code knows which one it has.
 | the SMS provider | who sends the codes | later; meanwhile a fake one. Any with an HTTP API and a template (Kavenegar, SMS.ir, Ghasedak); the code talks to one interface |
 | the template | the text the provider approves | «کد ورود کارو: {code}» |
 | the store's secret | the key of the keyed hashes above | `CARO_STORE_SECRET`, made locally, set by the deploy holder |
+| the site's address | the Origin every change must come from | `CARO_SITE_ORIGINS`, set by the deploy holder; unset, the host a request came to |
 | a privacy page | what is kept, for how long, how it is deleted | drafted by a session, approved by the owner |
 
 No key is written into the repository or a chat; the code reads each from the
@@ -145,8 +146,14 @@ commits, a delivery.
 
 1. **The store** -- tables for accounts, sessions, codes, listings, reports and
    reveals; migrations that only add; SQLite and Postgres behind one module.
+   *Built 2026-10-30:* `webapp/api/store.py`, held by `tests/test_store.py`,
+   whose rows were also run by hand against PostgreSQL 16.
 2. **The login** -- send a code, check it, the session, logout, «حذف حساب»,
-   with the fake provider; the limits in the store.
+   with the fake provider; the limits in the store. *Built 2026-10-30:*
+   `webapp/api/accounts.py` and `webapp/api/sms.py`, held by section 22 of
+   `tests/test_api_contract.py`. The limits are proposals the owner can move:
+   per phone 3 codes in 15 minutes and 6 a day; per address 6 an hour, 20 a
+   day and 20 wrong codes an hour; 500 codes a day in all.
 3. **The listing** -- the form's rules on the server, the seller's list,
    edit, renew, delete; the reveal and its limit.
 4. **The operator** -- pending, approve, reject with a reason, the reports.

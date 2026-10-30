@@ -265,7 +265,11 @@ The API is FastAPI and imports `caro` directly: `/api/search`,
 `/api/model`, `/api/corpus`, `/api/health`, and the contact and admin
 endpoints. The deployed site keeps its inbox off and points to GitHub Issues
 instead (`CARO_INBOX=off`, D68), and `/admin` opens only where
-`CARO_ADMIN_TOKEN` is set. The site is Next.js, TypeScript and Tailwind, in
+`CARO_ADMIN_TOKEN` is set. A seller's login, `/api/account/…`, is the first
+part of the listings sellers will post on CARO themselves
+(docs/SELLER_LISTINGS.md): it is off unless `DATABASE_URL`,
+`CARO_STORE_SECRET` and an SMS provider are set, and the only provider so far
+is a fake one, which a Postgres store refuses. The site is Next.js, TypeScript and Tailwind, in
 right-to-left Persian, its panes glass over the palette: `/`, `/search`,
 `/models`, `/model/[make]/[model]`, `/car/[id]`, `/compare`, `/saved`,
 `/before-buying`, `/how-it-works`, `/about`, `/contact` and `/admin`.
@@ -640,7 +644,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) ·
 
 - [ROADMAP](docs/ROADMAP.md) — everything left until the end of the project, in order, with what closes each item
 - [ACCOUNTS_AND_PAYMENT](docs/ACCOUNTS_AND_PAYMENT.md) — the options for accounts, payment and the operator's login, what each needs from the owner, before any is built
-- [SELLER_LISTINGS](docs/SELLER_LISTINGS.md) — listings sellers post on CARO themselves, with a number shown only by their choice: the design, before the code
+- [SELLER_LISTINGS](docs/SELLER_LISTINGS.md) — listings sellers post on CARO themselves, with a number shown only by their choice: the design, the owner's choices, and the store and the login built so far
 - [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md) — how the work is done: measured rounds, separate commits, and the rules no session breaks
 - [DECISIONS](docs/DECISIONS.md) — the design record, including bugs found and what they cost
 - [ARCHITECTURE](docs/ARCHITECTURE.md) — the layers, and which components are deliberately *not* agents
