@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from fastapi import FastAPI, Query, Response                       # noqa: E402
+from fastapi import FastAPI, Path, Query, Response                 # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware                 # noqa: E402
 
 from caro.appraisal import NotBenchmarked                          # noqa: E402
@@ -47,6 +47,7 @@ from caro.ranking import diversify, retrieve                       # noqa: E402
 from webapp.api import constraints                                 # noqa: E402
 from webapp.api import corpus as corpus_mod                        # noqa: E402
 from webapp.api.contact import router as contact_router            # noqa: E402
+from webapp.api.security import SecurityHeaders, cors_origins      # noqa: E402
 from webapp.api.schemas import (                                   # noqa: E402
     CompareRequest, CompareResponse, CorpusMeta, CorpusResponse, Envelope,
     EvidenceItem, Fault, HealthResponse, Intent, ListingResponse,
@@ -62,9 +63,17 @@ app = FastAPI(title="CARO", version="0.2.0",
 # are stored can never reach the ranking path.
 app.include_router(contact_router)
 
+# CORS is for development (webapp/api/security.py): production serves the
+# site and the API from one origin. No cookie is used, so no credentials.
 app.add_middleware(
-    CORSMiddleware, allow_origins=["http://localhost:3000"],
-    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+    CORSMiddleware, allow_origins=cors_origins(), allow_credentials=False,
+    allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token"])
+app.add_middleware(SecurityHeaders)
+
+# The longest question the search reads, and the longest id a listing has.
+# An unbounded string is work an attacker chooses the size of.
+MAX_Q = 500
+MAX_ID = 120
 
 
 # ---------------------------------------------------------------------------
@@ -285,7 +294,7 @@ def which_corpus() -> CorpusResponse:
 
 
 @app.get("/api/search", response_model=SearchResponse)
-def search(q: str = Query(..., min_length=2, description="پرسش فارسی"),
+def search(q: str = Query(..., min_length=2, max_length=MAX_Q, description="پرسش فارسی"),
            k: int = Query(6, ge=1, le=24)) -> SearchResponse:
     """A Persian sentence in, a defensible ranked decision out — or a refusal.
 
@@ -347,7 +356,7 @@ def search(q: str = Query(..., min_length=2, description="پرسش فارسی"),
 
 
 @app.post("/api/search/reweight", response_model=SearchResponse)
-def search_reweight(q: str, weights: ReweightRequest,
+def search_reweight(weights: ReweightRequest, q: str = Query(..., max_length=MAX_Q),
                     k: int = Query(6, ge=1, le=24)) -> SearchResponse:
     """The same query with the user's own weights. «بهترین» is a function.
 
@@ -399,7 +408,8 @@ def search_reweight(q: str, weights: ReweightRequest,
 
 
 @app.get("/api/listing/{listing_id}", response_model=ListingResponse)
-def listing(listing_id: str, response: Response = None) -> ListingResponse:
+def listing(listing_id: str = Path(..., max_length=MAX_ID),
+            response: Response = None) -> ListingResponse:
     """One listing, or the envelope saying why there is none.
 
     `response` is FastAPI's, injected, and is how the 404 below is set without

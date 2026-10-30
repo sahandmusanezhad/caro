@@ -1727,6 +1727,125 @@ check(f"no published corpus is ranked ({', '.join(_read18)}), so none of "
       "which reads no province, while the panel lists «استان» as understood. "
       "Decide that first — docs/ROADMAP.md, «The ranked path's province»")
 
+# ---------------------------------------------------------------------------
+print("\n19 — the API's headers, its input bounds, its rate limits and its CORS")
+# ---------------------------------------------------------------------------
+# Predictions SEC-1..SEC-6 (2026-10-30, locked before the code). Over HTTP, on
+# a temporary inbox, with each limiter cleared before and after.
+from webapp.api import security as sec_mod                         # noqa: E402
+
+with contextlib.redirect_stdout(io.StringIO()):
+    _c19 = TestClient(api.app, raise_server_exceptions=False)
+_h = _c19.get("/api/health").headers
+check("SEC-1: every response says nosniff, no framing, no referrer, and a policy that allows nothing",
+      _h.get("x-content-type-options") == "nosniff" and _h.get("x-frame-options") == "DENY"
+      and _h.get("referrer-policy") == "no-referrer"
+      and _h.get("content-security-policy") == "default-src 'none'; frame-ancestors 'none'", str(dict(_h)))
+check("  and the admin endpoints are not to be stored",
+      _c19.get("/api/admin/status").headers.get("cache-control") == "no-store"
+      and "cache-control" not in _c19.get("/api/health").headers)
+_long = "پ" * 501
+_r1 = _c19.get("/api/search", params={"q": _long})
+_r1b = _c19.get("/api/search", params={"q": "پ" * 500})
+_r2 = _c19.get("/api/listing/" + "a" * 121)
+_r3 = _c19.post("/api/compare", json={"ids": [f"bama:x{i}" for i in range(13)]})
+_r4 = _c19.post("/api/compare", json={"ids": ["a" * 121]})
+_r5 = _c19.post("/api/search/reweight", params={"q": _long}, json={})
+check("SEC-2: a question over 500 characters, an id over 120, thirteen ids to compare, an id of 121 "
+      "in a compare and a reweight's question over 500 are refused (422); 500 characters are read",
+      [r.status_code for r in (_r1, _r2, _r3, _r4, _r5)] == [422] * 5 and _r1b.status_code == 200,
+      str([r.status_code for r in (_r1, _r1b, _r2, _r3, _r4, _r5)]))
+
+_kept19 = (contact_mod.INBOX, contact_mod.MESSAGES, os.environ.get("CARO_INBOX"),
+           os.environ.get("CARO_ADMIN_TOKEN"), os.environ.get("CARO_TRUST_PROXY"))
+contact_mod.CONTACT_LIMIT.clear()
+contact_mod.ADMIN_FAILURES.clear()
+with tempfile.TemporaryDirectory() as _d:
+    contact_mod.INBOX = Path(_d) / "inbox"
+    contact_mod.MESSAGES = contact_mod.INBOX / "messages.jsonl"
+    try:
+        os.environ.pop("CARO_INBOX", None)
+        os.environ.pop("CARO_TRUST_PROXY", None)
+        _codes = [_c19.post("/api/contact", json=_MSG).status_code for _ in range(6)]
+        _sixth = _c19.post("/api/contact", json=_MSG)
+        check("SEC-3: one address posts five messages in ten minutes; the sixth is 429 with Retry-After, "
+              "and nothing more is written",
+              _codes == [200] * 5 + [429] and _sixth.status_code == 429
+              and int(_sixth.headers.get("retry-after", "0")) > 0
+              and len(_lines(contact_mod.MESSAGES)) == 5, str((_codes, len(_lines(contact_mod.MESSAGES)))))
+        os.environ["CARO_TRUST_PROXY"] = "1"
+        _other = _c19.post("/api/contact", json=_MSG, headers={"X-Forwarded-For": "203.0.113.9, 10.0.0.1"})
+        os.environ.pop("CARO_TRUST_PROXY", None)
+        _spoof = _c19.post("/api/contact", json=_MSG, headers={"X-Forwarded-For": "203.0.113.10"})
+        check("  X-Forwarded-For is another address only where CARO_TRUST_PROXY=1 says so",
+              _other.status_code == 200 and _spoof.status_code == 429,
+              str((_other.status_code, _spoof.status_code)))
+
+        os.environ["CARO_ADMIN_TOKEN"] = "the-right-token-0123456789"
+        _fails = [_c19.get("/api/admin/messages", headers={"x-admin-token": f"wrong{i}"}).status_code
+                  for i in range(10)]
+        _right = _c19.get("/api/admin/messages", headers={"x-admin-token": "the-right-token-0123456789"})
+        contact_mod.ADMIN_FAILURES.clear()
+        _right2 = _c19.get("/api/admin/messages", headers={"x-admin-token": "the-right-token-0123456789"})
+        check("  ten wrong admin tokens are ten 401s; the eleventh try is 429 even with the right token; "
+              "once the count is gone the right token opens",
+              _fails == [401] * 10 and _right.status_code == 429 and _right2.status_code == 200,
+              str((_fails, _right.status_code, _right2.status_code)))
+
+        contact_mod.CONTACT_LIMIT.clear()
+        contact_mod.MESSAGES.write_bytes(b"x" * contact_mod.INBOX_MAX_BYTES)
+        _full = _c19.post("/api/contact", json=_MSG)
+        check("SEC-4: an inbox file of 5 MB takes no more: 503, the «not kept» message, and no growth",
+              _full.status_code == 503 and contact_mod.ELSEWHERE in str(_full.json().get("detail", ""))
+              and contact_mod.MESSAGES.stat().st_size == contact_mod.INBOX_MAX_BYTES,
+              f"HTTP {_full.status_code}")
+    finally:
+        contact_mod.INBOX, contact_mod.MESSAGES = _kept19[0], _kept19[1]
+        for _k, _v in zip(("CARO_INBOX", "CARO_ADMIN_TOKEN", "CARO_TRUST_PROXY"), _kept19[2:]):
+            if _v is None:
+                os.environ.pop(_k, None)
+            else:
+                os.environ[_k] = _v
+        contact_mod.CONTACT_LIMIT.clear()
+        contact_mod.ADMIN_FAILURES.clear()
+
+_pre = _c19.options("/api/search", headers={"Origin": "http://localhost:3000",
+                                             "Access-Control-Request-Method": "GET"})
+_evil = _c19.options("/api/search", headers={"Origin": "https://evil.example",
+                                              "Access-Control-Request-Method": "GET"})
+_put = _c19.options("/api/search", headers={"Origin": "http://localhost:3000",
+                                            "Access-Control-Request-Method": "PUT"})
+check("SEC-5: CORS lets the development origin GET, with no credentials; another origin, or a PUT, is not let",
+      _pre.headers.get("access-control-allow-origin") == "http://localhost:3000"
+      and "access-control-allow-credentials" not in _pre.headers
+      and "access-control-allow-origin" not in _evil.headers and _put.status_code == 400,
+      str((dict(_pre.headers), _evil.status_code, _put.status_code)))
+_old_cors = os.environ.get("CARO_CORS_ORIGINS")
+os.environ["CARO_CORS_ORIGINS"] = "https://a.example, https://b.example"
+check("  CARO_CORS_ORIGINS names the origins", sec_mod.cors_origins() == ["https://a.example", "https://b.example"])
+if _old_cors is None:
+    os.environ.pop("CARO_CORS_ORIGINS", None)
+else:
+    os.environ["CARO_CORS_ORIGINS"] = _old_cors
+_t = [0.0]
+_rl = sec_mod.RateLimiter(2, 10, clock=lambda: _t[0], max_keys=3)
+_seq = [_rl.hit("a"), _rl.hit("a"), _rl.hit("a")]
+_t[0] = 10.0
+_after = _rl.hit("a")
+for _k in ("b", "c", "d"):
+    _rl.hit(_k)
+check("  the limiter: two in ten seconds, the third waits 10, the window slides, and a fourth key "
+      "pushes the oldest out",
+      _seq[:2] == [None, None] and _seq[2] == 10.0 and _after is None and "a" not in _rl._events
+      and len(_rl._events) == 3, str((_seq, _after, list(_rl._events))))
+_cfg = (ROOT / "webapp" / "web" / "next.config.mjs").read_text(encoding="utf-8")
+check("SEC-6: the site's config sends the policy in production, HSTS, no framing, nosniff, a referrer "
+      "policy, a permissions policy, and no X-Powered-By",
+      all(x in _cfg for x in ("Content-Security-Policy", "frame-ancestors 'none'", "object-src 'none'",
+                              "Strict-Transport-Security", "X-Frame-Options", "nosniff",
+                              "Referrer-Policy", "Permissions-Policy", "poweredByHeader: false",
+                              "process.env.NODE_ENV === 'production'")))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

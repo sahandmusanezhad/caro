@@ -41,7 +41,7 @@ answered.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
@@ -351,5 +351,7 @@ class ReweightRequest(BaseModel):
 
 
 class CompareRequest(BaseModel):
-    ids: list[str]
-    q: str = "خودرو"
+    # At most twelve ids of at most 120 characters, and a question of at most
+    # 500: the bounds of what a compare is (webapp/api/main.py, MAX_Q).
+    ids: list[Annotated[str, Field(max_length=120)]] = Field(max_length=12)
+    q: str = Field(default="خودرو", max_length=500)

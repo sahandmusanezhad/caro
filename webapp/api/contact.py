@@ -38,8 +38,10 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field
+
+from webapp.api.security import RateLimiter, client_address, too_many
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 INBOX = ROOT / "data" / "inbox"
@@ -59,6 +61,15 @@ CLOSED_FA = ("صندوق پیام در این استقرار خاموش است،
              f"ذخیره نمی‌شود. پیامت را در GitHub Issues بنویس: {ELSEWHERE}")
 UNWRITABLE_FA = ("این استقرار نتوانست پیام را ذخیره کند، پس ثبت نشد. "
                  f"پیامت را در GitHub Issues بنویس: {ELSEWHERE}")
+
+
+# One address may post 5 messages in 10 minutes, and fail the admin token 10
+# times in 10 minutes; per process, in memory (webapp/api/security.py says
+# what that is and is not). The inbox stops taking messages at 5 MB: a file
+# that only grows is a disk anyone can fill.
+CONTACT_LIMIT = RateLimiter(5, 600)
+ADMIN_FAILURES = RateLimiter(10, 600)
+INBOX_MAX_BYTES = 5 * 1024 * 1024
 
 
 def inbox_open() -> bool:
@@ -84,12 +95,21 @@ def contact_status() -> dict:
 
 
 @router.post("/api/contact")
-def submit(msg: Message) -> dict:
+def submit(msg: Message, request: Request) -> dict:
     """Accept one message. Returns the reference the sender can quote back."""
     if not inbox_open():
         raise HTTPException(503, CLOSED_FA)
     if not _EMAIL.match(msg.email.strip()):
         raise HTTPException(422, "نشانی ایمیل معتبر نیست")
+    wait = CONTACT_LIMIT.hit(client_address(request))
+    if wait is not None:
+        raise too_many(wait)
+    try:
+        full = MESSAGES.exists() and MESSAGES.stat().st_size >= INBOX_MAX_BYTES
+    except OSError:
+        full = False
+    if full:
+        raise HTTPException(503, UNWRITABLE_FA)
 
     ref = uuid.uuid4().hex[:10]
     record = {
@@ -123,9 +143,18 @@ def _authorised(token: str | None) -> bool:
 
 
 @router.get("/api/admin/messages")
-def inbox(x_admin_token: str | None = Header(default=None)) -> dict:
+def inbox(request: Request,
+          x_admin_token: str | None = Header(default=None)) -> dict:
     """Everything received, newest first. Refuses when no token is configured."""
+    # An address that has failed the token ten times in ten minutes is
+    # refused before the token is even compared, the right one included: a
+    # guess that lands is a guess, and guessing is what is being slowed.
+    addr = client_address(request)
+    wait = ADMIN_FAILURES.blocked(addr)
+    if wait is not None:
+        raise too_many(wait)
     if not _authorised(x_admin_token):
+        ADMIN_FAILURES.hit(addr)
         # The same 401 whether the token was wrong or was never configured.
         # Telling an unauthenticated caller which of the two it is hands them
         # the one fact they came for.
