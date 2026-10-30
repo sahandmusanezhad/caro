@@ -35,9 +35,14 @@ export default function RootLayout({
       </head>
       <body>
         <header className="glass-bar sm:sticky top-0 z-40 border-b">
+          {/* On a phone the logo and the badge share a row and the nav is the
+              next one, a single row that scrolls sideways: wrapped, it took
+              three rows and a third of the first screen. The same two rows
+              hold up to 1280 px, below which the three do not fit in one;
+              from there they stand in one row as before. */}
           <div className="mx-auto max-w-[1100px] px-5 py-4 flex items-center
-                          gap-5 flex-wrap">
-            <Link href="/" className="flex items-baseline gap-3 no-underline">
+                          gap-x-5 gap-y-3 flex-wrap">
+            <Link href="/" className="order-1 flex items-baseline gap-3 no-underline">
               <span className="font-mono text-[22px] font-medium tracking-[0.14em]
                                text-accent">CARO</span>
               <span className="text-[12px] text-ink-3 hidden sm:inline">
@@ -45,12 +50,15 @@ export default function RootLayout({
               </span>
             </Link>
 
-            <nav className="flex gap-1 flex-wrap text-[13px] mr-auto">
+            <nav className="order-3 xl:order-2 w-full xl:w-auto xl:mr-auto -mx-5 px-5
+                            xl:mx-0 xl:px-0 flex gap-1 flex-nowrap xl:flex-wrap
+                            overflow-x-auto xl:overflow-visible text-[13px]
+                            [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {NAV.map((n) => (
                 <Link
                   key={n.href}
                   href={n.href}
-                  className="px-3 py-1.5 rounded-full text-ink-2
+                  className="shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-ink-2
                              hover:text-ink hover:bg-sunk transition-colors"
                 >
                   {n.fa}
@@ -60,7 +68,9 @@ export default function RootLayout({
 
             {/* Persistent, on every screen. Not a title card — see
                 webapp/api/corpus.py and docs/DEMO_SCRIPT.md. */}
-            <CorpusBadge />
+            <div className="order-2 xl:order-3 mr-auto xl:mr-0">
+              <CorpusBadge />
+            </div>
           </div>
         </header>
 
