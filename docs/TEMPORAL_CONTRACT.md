@@ -476,6 +476,94 @@ about to happen.
 
 ---
 
+## 11. A second source, run daily: Khodro45 (2026-10-30)
+
+> **PROPOSAL, written for the owner's decision.** Nothing in this section is
+> built, and nothing in it may be built before the decisions at the end of
+> this document (5 to 7) are taken.
+
+The owner chose on 2026-10-30 to run Khodro45 every day. Its collector is not
+§10's, and the difference decides whether a daily clock can open the
+boundary at all.
+
+**What is different.** Khodro45's list is the site's own API, ordered by
+`-created_time` — newest first — and it states its own size: `count` was
+1812 on 2026-10-29. The owner's runs read forty pages — the first holds 24
+listings and each after it 12, so 492 at most — and got 443 (stopped at page
+37 by an HTTP 502) and 492 on 2026-10-30: about the newest quarter of the
+list, read in order, not drawn by a sampler. §10's churn came from a sampler drawing from the
+recency-ordered first pages of pinned categories. A newest-first list read
+to a fixed depth shows, at its top, every listing created since the last run
+— as long as one day brings fewer arrivals than the window holds. That is a
+condition, and it can be measured.
+
+**The axis it supports.** `first_seen_on` as §7 defines it, OUR first
+sighting: the first day a listing id is in our window. For a listing first
+seen after day 1 it is within a day of its arrival on the list, while the
+window holds a day's arrivals. Day 1's whole window is left-truncated (§3,
+§3a): train only. Because the window is the newest quarter of the list, day
+1's stock is itself recent, so §3b's correction applies here too: the bias is
+toward fresh listings, not long-lived ones. §3b's rule stands either way — a
+severe shift between train and test is UNJUDGEABLE, never REJECTED.
+
+**What it does not give.** Absence: what falls off the bottom of the window
+is out of view, not gone, and nothing re-fetches a known id — §10's warning
+holds unchanged, so no disappearance, time on market or sale is claimed
+(§8). Only arrivals are observed.
+
+**Measured before anything is built** — on the owner's machine, with the
+script that exists (`scripts/replicate_check.py`), no new code:
+
+1. The same-day floor: the two runs of 2026-10-30. Listings drawn by both,
+   and field changes on those (expected: none).
+2. Day to day: 2026-10-30 against 2026-10-31. «Only in the second» bounds the
+   day's arrivals (and any reordering of the list); «only in the first» is
+   what left the window.
+3. The window holds a day: arrivals per day well under the 492 the window
+   reads — under half, say. If not, more pages, decided before the series
+   starts and kept for its whole life (the pin, §9).
+
+**What a series needs**, as §9: the same pin every day (`--pages 40`, no
+other change), one run a day at about the same hour, each day's snapshot
+kept by the owner (snapshots are never committed), and each day's corpus
+promoted as its own run — the daily corpora are what the site serves and
+what `scripts/benchmark_within.py` reads. The series artifact, folded from
+the daily snapshots with §7's fields, is a later build of its own.
+
+**When a temporal benchmark becomes possible.** An estimate, not a promise.
+The test side is the latest quarter of cars by first sighting, and no day-1
+car may be in it. With W eligible cars on day 1 and A eligible arrivals a
+day, the test side holds arrivals only once 0.25·(W + A·d) ≤ A·d, that is
+after d ≥ W / (3A) days of arrivals; and the comparison needs 93 a side
+(MIN_COMPARABLE_N). For example — the numbers are invented until step 2
+above measures A — W = 400 and A = 50 give three days. The comparison may
+then say SHIFTED, train being day 1's stock and test the arrivals: that is an
+answer about the series, not a fault of the estimator.
+
+**Two axes that are not proposed, and why.**
+
+- *Khodro45's `created_time` as the axis.* The API carries it and the
+  adapter never reads it. It would give one snapshot a time axis at once —
+  and every price in that snapshot would still be observed on one day, while
+  the listings posted long ago and still listed are the ones that did not
+  sell: the overpriced and the hard to shift (`cluster_temporal_split`'s
+  docstring). Train would be those survivors and test the fresh arrivals, a
+  split shifted by construction. §7 also says `first_seen_on` is "OUR first
+  sighting, never the ad's date". If the owner wants this question asked, it
+  is its own protocol under its own name (D55), not the temporal one.
+- *Nothing.* Waiting for a cohort collector (§10) before any daily run would
+  leave the arrivals uncounted, and they are what a newest-first window
+  observes well.
+
+**One use of `created_time` that is worth having:** as an audit of §3a only.
+Read, kept diagnostic-only — never a feature, never the split key — and used
+to check a first sighting: a listing first seen on day 5 that was created on
+day 1 was missed by our window, so its `first_seen_on` is an upper bound and
+it is marked left-truncated. That changes the adapter's «never read» list and
+adds a field to the snapshot, so it is the owner's decision (6 below).
+
+---
+
 ## Open questions for approval
 
 1. **First ask or last ask** (§1). Proposed: first. The alternative is a
@@ -490,3 +578,14 @@ about to happen.
    which is what `duration_stats` already does for W0 statistics. Proposed:
    keep in train, mechanically barred from test, composition reported.
 4. **Severe shift ⟹ UNJUDGEABLE** (§3b), not REJECTED.
+5. **The axis for a Khodro45 series** (§11). Proposed: our first sighting,
+   `first_seen_on`, as §7 defines it. The alternative, the platform's
+   `created_time`, would be a protocol of its own, under its own name.
+6. **Read `created_time` as an audit of left truncation only** (§11).
+   Proposed: yes, diagnostic-only. The alternative is to leave it unread, as
+   the adapter does today, and accept that a listing our window missed is
+   taken for a new one.
+7. **The series artifact** (§7, §11): §7's optional fields in
+   `caro.corpus/1`, so every existing artifact stays valid (proposed), or a
+   new schema version. Either changes DATA_CONTRACT, which does not move
+   until the owner says.

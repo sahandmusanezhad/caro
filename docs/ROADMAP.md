@@ -453,9 +453,13 @@ the owner chooses.
    - Longitudinal collection. Time-dependent and unrecoverable: a day not
      collected is gone. A second discovery run is a new sample, not a
      series: on run11's pin, 26 days later, 3 of its 76 listings were drawn
-     again (TEMPORAL_CONTRACT.md §10). Who: the owner, on a schedule he
-     sets. Closes when a series is collected on one pin and its watch rounds
-     are recorded.
+     again (TEMPORAL_CONTRACT.md §10). Khodro45 is different, and the owner
+     runs it daily from 2026-10-30: its list is newest first and forty pages
+     read the newest quarter of it in order, so a first sighting can stand
+     for an arrival; §11 of the same document says what that supports, what
+     is measured first, and the three decisions it needs (its open questions
+     5 to 7). Who: the owner, on a schedule he sets. Closes when a series is
+     collected on one pin and its watch rounds are recorded.
 
 2. **An estimator that clears the gate on real data** (D43). Run the ladder
    in `caro/appraisal.py` — `GlobalQuantiles`, `ComparableQuantiles`,
