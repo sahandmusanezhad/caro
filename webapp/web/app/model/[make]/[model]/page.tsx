@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import ModelDetail from '@/components/ModelDetail';
+import SellerListings from '@/components/SellerListings';
 import { modelTitle } from '@/lib/format';
 
 type Params = Promise<{ make: string; model: string }>;
@@ -13,5 +14,14 @@ export default async function ModelPage({ params }: { params: Params }) {
   const { make, model } = await params;
   const mk = decodeURIComponent(make);
   // `_` is the placeholder for a model whose make the corpus does not give.
-  return <ModelDetail make={mk === '_' ? '' : mk} model={decodeURIComponent(model)} />;
+  // Listings sellers posted on CARO follow the corpus's, under their own
+  // heading, and only where there are some (components/SellerListings.tsx).
+  return (
+    <>
+      <ModelDetail make={mk === '_' ? '' : mk} model={decodeURIComponent(model)} />
+      {mk !== '_' ? (
+        <div className="mt-10"><SellerListings make={mk} model={decodeURIComponent(model)} quietWhenEmpty /></div>
+      ) : null}
+    </>
+  );
 }

@@ -1358,6 +1358,91 @@ if dout is not None and _nf2 is not None:
           and _nf2["consts"]["NUMBER_ON_SOURCE_FA"] in _text(_car),
           _text(_link.group(2)).strip() if _link else "no link to bama.ir")
 
+print("\nlistings sellers post on CARO: their pages draw the API's lists and never a number")
+# Predictions SL1..SL6 (2026-10-30). The site keeps copies of lists the API
+# owns -- the provinces, the colours, the classes, a report's reasons -- and
+# these rows hold the copies to the originals.
+from caro.ingest.divar_car import COLORS as _COLORS, FUEL as _FUEL, GEARBOX as _GEARBOX  # noqa: E402
+from caro.ingest.persian import PROVINCES as _PROVINCES                          # noqa: E402
+
+_sl, why_sl = node({"consts": {"module": "lib/seller.ts",
+                               "names": ["PROVINCES_FA", "COLORS_FA", "BODY_KEYS", "GEARBOX_FA", "FUEL_FA",
+                                         "REPORT_FA"]}})
+_c = (_sl or {}).get("consts", {})
+_api_bodies = re.search(r"BODIES = tuple\(label for label, _ in BODY_CONDITION\)",
+                        (ROOT / "webapp" / "api" / "listings.py").read_text(encoding="utf-8"))
+from caro.ingest.divar_car import BODY_CONDITION as _BODY_CONDITION             # noqa: E402
+_reasons = re.search(r'REPORT_REASONS = \(([^)]*)\)', (ROOT / "webapp" / "api" / "review.py").read_text(encoding="utf-8"))
+check("SL1: the site's provinces and colours are the API's, in its order; its body classes, gearboxes, fuels "
+      "and report reasons are the API's own keys (the form lists body classes mildest first, the API most "
+      "severe first)",
+      _sl is not None and _c.get("PROVINCES_FA") == list(_PROVINCES) and _c.get("COLORS_FA") == list(_COLORS)
+      and _api_bodies is not None and sorted(_c.get("BODY_KEYS", [])) == sorted(b for b, _ in _BODY_CONDITION)
+      and sorted(_c.get("GEARBOX_FA", {})) == sorted(_GEARBOX) and sorted(_c.get("FUEL_FA", {})) == sorted(_FUEL)
+      and _reasons is not None and list(_c.get("REPORT_FA", {})) == re.findall(r'"(\w+)"', _reasons.group(1)),
+      why_sl or str({k: len(v) for k, v in _c.items()}))
+
+_L = {"id": 7, "ends_at": 1_900_000_000, "make": "Saipa", "model": "Pride", "trim": None, "year_jalali": 1395,
+      "mileage_km": 120000, "price_toman": 350000000, "negotiable": False, "province": "قم", "city": "قم",
+      "gearbox": "manual", "fuel": None, "color": "سفید", "body": "intact", "description": "ماشین تمیز",
+      "has_phone": True}
+_cards, why_c = node({"component": "components/SellerListings.tsx", "export": "SellerListingCard",
+                      "props": [{"listing": _L}, {"listing": {**_L, "has_phone": False}},
+                                {"listing": {**_L, "price_toman": None, "negotiable": True}}]})
+_m = (_cards or {}).get("markup", ["", "", ""])
+check("SL2: a seller's listing is drawn with its model's Persian name, its price or «توافقی», its year and its "
+      "place; «نمایش شماره» only where the seller chose it; and no phone number in the markup",
+      _cards is not None and "سایپا · پراید" in _text(_m[0]) and "۳۵۰٬۰۰۰٬۰۰۰ تومان" in _text(_m[0])
+      and "مدل ۱۳۹۵" in _text(_m[0]) and "قم، قم" in _text(_m[0])
+      and "نمایش شماره" in _text(_m[0]) and "نمایش شماره" not in _text(_m[1])
+      and "فروشنده شماره‌اش را نشان نمی‌دهد" in _text(_m[1]) and "توافقی" in _text(_m[2])
+      and not any(re.search(r"0?9\d{9}|۰?۹[۰-۹]{9}|tel:", x) for x in _m), why_c or _text(_m[0])[:200])
+
+_states, why_s = call("lib/seller.ts", "listingState", [
+    [{"ended": True, "held": False, "live": {}, "pending": None, "last_review": None}],
+    [{"ended": False, "held": True, "live": {}, "pending": None, "last_review": None}],
+    [{"ended": False, "held": False, "live": {}, "pending": {}, "last_review": None}],
+    [{"ended": False, "held": False, "live": {}, "pending": None, "last_review": None}],
+    [{"ended": False, "held": False, "live": None, "pending": {}, "last_review": None}],
+    [{"ended": False, "held": False, "live": None, "pending": None,
+      "last_review": {"review": "rejected", "reason": "قیمت با خودرو نمی‌خواند"}}]])
+check("SL3: a seller reads where each listing stands -- ended, taken down by reports, public with an edit "
+      "waiting, public, waiting, rejected with the operator's reason",
+      _states is not None and [s.split("؛")[0].split(":")[0] for s in _states] == [
+          "تمام شده", "با گزارش‌ها پایین آمده تا مدیر نگاهش کند.", "منتشر شده", "منتشر شده.",
+          "در انتظار تأیید.", "رد شد"] and _states[5].endswith("قیمت با خودرو نمی‌خواند"), why_s or str(_states))
+
+_ex, why_e = call("lib/seller.ts", "explain", [
+    [422, {"detail": {"faults": {"description": "بدون عدد"}}}],
+    [503, {"detail": {"code": "SMS_OFF", "fa": "سرویس پیامک هنوز تعیین نشده است."}}],
+    [401, {"detail": "کد درست نیست یا دیگر اعتبار ندارد. کد تازه بگیر."}],
+    [429, None]])
+check("SL4: a refusal reads as the server said it: each refused field by name, the server's Persian sentence, "
+      "and a sentence of its own for a bare 429",
+      _ex is not None and _ex[0]["faults"] == {"description": "بدون عدد"}
+      and _ex[1]["message"] == "سرویس پیامک هنوز تعیین نشده است." and _ex[2]["message"].startswith("کد درست نیست")
+      and "زیاد" in (_ex[3]["message"] or ""), why_e or str(_ex))
+
+_ints, why_i = call("components/SellForm.tsx", "toInt", [["۱۲۰٬۰۰۰"], ["350,000,000"], ["٣٥٠ ٠٠٠"], [""]])
+_empty, why_m = node({"consts": {"module": "components/SellForm.tsx", "names": ["EMPTY"]}})
+check("SL5: a number typed in Persian or Arabic-Indic digits, with separators, is read as its value; a new "
+      "form does not show the seller's number unless the seller ticks it",
+      _ints == [120000, 350000000, 350000, None]
+      and (_empty or {}).get("consts", {}).get("EMPTY", {}).get("show_phone") is False,
+      why_i or why_m or str(_ints))
+
+_mine = {"id": 3, "ends_at": 4_000_000_000, "ended": False, "held": False, "live": None,
+         "pending": {k: v for k, v in _L.items() if k not in ("id", "ends_at", "has_phone")} | {"show_phone": True},
+         "last_review": None, "reveals": 4}
+_mc, why_mc = node({"component": "components/MyListings.tsx", "export": "MineCard",
+                    "props": [{"item": _mine, "onChange": None}]})
+_mt = _text((_mc or {}).get("markup", [""])[0])
+check("SL6: «آگهی‌های من» draws each listing with where it stands, how many times its number was revealed, "
+      "and the seller's edit, renewal and two-step delete",
+      _mc is not None and "در انتظار تأیید." in _mt and "شماره ۴ بار دیده شده" in _mt
+      and all(w in _mt for w in ("ویرایش", "تمدید ۳۰ روزه", "حذف آگهی")) and "/sell?edit=3" in _mc["markup"][0],
+      why_mc or _mt[:200])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

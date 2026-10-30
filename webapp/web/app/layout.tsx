@@ -16,6 +16,8 @@ const NAV = [
   { href: '/models', fa: 'خودروها' },
   { href: '/compare', fa: 'مقایسه' },
   { href: '/saved', fa: 'نشان‌شده‌ها' },
+  { href: '/listings', fa: 'آگهی فروشنده‌ها' },
+  { href: '/sell', fa: 'ثبت آگهی' },
   { href: '/how-it-works', fa: 'چطور کار می‌کند' },
   { href: '/about', fa: 'درباره‌ی ما' },
   { href: '/contact', fa: 'تماس با ما' },
