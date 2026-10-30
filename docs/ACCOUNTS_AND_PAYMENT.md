@@ -149,7 +149,7 @@ If P1 is chosen, it is built under these rules:
 |---|---|---|
 | B1 | approves the checklist's text | — |
 | O1 | chooses O1; installs an authenticator app | sets `CARO_ADMIN_TOTP_SECRET` |
-| A1 | chooses a provider and opens its account; gets the template approved | creates the store; sets `DATABASE_URL`, `CARO_SMS_API_KEY`, `CARO_SESSION_SECRET` |
+| A1 | chooses a provider and opens its account; gets the template approved | creates the store; sets `DATABASE_URL`, `CARO_SMS_API_KEY`, `CARO_STORE_SECRET` |
 | P1 | chooses the product and the gateway; the merchant account, eNamad and domain | sets `CARO_PAYMENT_MERCHANT_ID`; adds the callback domain |
 | the store (A1, A2, A3, O2, and the inbox) | chooses where it lives | creates it and sets its address |
 

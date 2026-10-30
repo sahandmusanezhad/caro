@@ -12,6 +12,12 @@ in [ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md)).
 Every default below is a session's proposal; the ones marked **decide** are
 the owner's, and the code waits for nothing but them.
 
+**Chosen on 2026-10-30:** no photos in the first version; the operator
+approves every listing and every edit; Postgres in production and SQLite on
+a laptop and in the suites; the SMS provider later, so the login is built
+against a fake one. Still the owner's: dealers, and the Postgres driver
+(below, «The store»).
+
 ## What it is, and what it is not
 
 - **A second kind of listing, kept apart.** A listing a seller posts is
@@ -51,17 +57,19 @@ the seller's listings, nothing else. «حذف حساب» deletes both.
 | description | the seller's text, up to 1,000 characters, no link and no number in it (a number in prose is how a phone escapes the reveal) |
 | show the number | yes or no, no by default |
 
-**Photos — decide.** A photo needs a file store (Vercel Blob, S3 or the
-like) and a check that it is a car and not a face or a number written on
-card. Proposed: none in the first version.
+**Photos — chosen: none in the first version.** A photo needs a file store
+(Vercel Blob, S3 or the like) and a check that it is a car and not a face or
+a number written on card.
 
 ## Before a listing is seen
 
-- **Every listing waits for the operator.** New and edited listings are
-  «در انتظار تأیید» until approved in the admin view (which opens with the
-  token and the code, O1); a rejection carries its reason, which the seller
-  sees. **Decide:** approval for every listing (proposed), or only for the
-  first of each account.
+- **Every listing and every edit waits for the operator** (chosen). New
+  and edited listings are «در انتظار تأیید» until approved in the admin view
+  (which opens with the token and the code, O1); a rejection carries its
+  reason, which the seller sees. An edit is a new version of the listing:
+  the approved version stays public while the edit waits, is replaced when
+  the edit is approved, and stays when it is rejected. So an edit cannot
+  put unreviewed words on a page.
 - **One active listing per number** for a private seller. **Decide:** whether
   dealers get more, and how a dealer is told apart (proposed: the operator
   marks the account; no badge from anything the seller writes, as D26 has it).
@@ -70,14 +78,61 @@ card. Proposed: none in the first version.
 - **«گزارش آگهی»** on every listing: a reason from a short list; three
   reports take it down until the operator looks.
 
+## The store
+
+Production keeps it in Postgres and a laptop and the suites in SQLite, from
+Python's own library; one module, `webapp/api/store.py`, speaks to both, and
+the SQL is the part of it the two share. Where they differ -- the id column,
+how a parameter is written, how a write transaction begins -- is one table in
+that module, and nothing else in the code knows which one it has.
+
+- **No store is assumed.** It is `DATABASE_URL`: `postgresql://…` or
+  `sqlite:///<path>`. Without it the seller pages are off and say so, the
+  way the inbox is off where a disk keeps nothing (D68): a deployment that
+  took a listing into a file a serverless function forgets would be handing
+  out a receipt for nothing.
+- **Migrations only add.** Each is a numbered list of `CREATE TABLE`,
+  `CREATE INDEX` and `ALTER TABLE … ADD COLUMN`, recorded in
+  `schema_migrations` when applied; nothing renames, drops or changes a
+  column, so the code before a migration works on the database after it. The
+  suites hold every statement to that.
+- **What is kept, and how.**
+
+  | Table | Holds |
+  |---|---|
+  | `accounts` | the phone number, written as `09…`, and when the account was made; nothing else |
+  | `sessions` | the SHA-256 of the session's token, never the token; its account; when it was made and last used |
+  | `login_codes` | a keyed hash of the phone and one of the code, never either in clear; when it dies; the wrong tries |
+  | `attempts` | for the limits: what was tried, by whom as a keyed hash of a phone or an address, and when |
+  | `listings` | its seller; when it ends; which version is public; whether reports have taken it down |
+  | `listing_versions` | each version's fields, in the units their names say (`price_toman`, `mileage_km`, `year_jalali`), and the operator's verdict on it with its reason |
+  | `reports` | a listing, a reason from the short list, and the keyed hash of the address that sent it |
+  | `reveals` | a listing, the keyed hash of the address that pressed «نمایش شماره», and when |
+
+  A phone number in clear is in `accounts` alone, and only after its owner
+  answered the code. Deleting an account deletes its sessions, its listings
+  and everything under them, by the database's own cascade.
+- **The keyed hashes** are HMAC-SHA256 under `CARO_STORE_SECRET`, so a copy
+  of the database gives no code, no phone number that asked for one, and no
+  address. The session's token needs no key: it is 256 random bits.
+- **The Postgres driver -- decide.** Python reaches Postgres through a
+  driver, which is a new dependency and so the owner's. Proposed:
+  `psycopg[binary]` 3, the maintained one, added to `webapp/requirements.txt`
+  only when chosen. Until then the module imports it only when
+  `DATABASE_URL` is a Postgres address. The suites run on SQLite. Postgres
+  is tried by hand, against a server on the session's own machine, before a
+  change to the store is handed over, and the change's commit says what that
+  showed.
+
 ## What the owner gives
 
-| Choice | What it is | Proposed |
+| Choice | What it is | Chosen or proposed |
 |---|---|---|
-| **decide** the store | where accounts and listings live in production | Postgres (Neon or Vercel Postgres), `DATABASE_URL`; SQLite, from Python's own library, on a laptop and in the suites |
-| **decide** the SMS provider | who sends the codes | any with an HTTP API and a template (Kavenegar, SMS.ir, Ghasedak); the code talks to one interface and a fake one in the suites |
+| the store | where accounts and listings live in production | chosen: Postgres (Neon or Vercel Postgres), `DATABASE_URL`; SQLite on a laptop and in the suites |
+| **decide** the driver | how the API reaches Postgres | proposed: `psycopg[binary]` 3 |
+| the SMS provider | who sends the codes | later; meanwhile a fake one. Any with an HTTP API and a template (Kavenegar, SMS.ir, Ghasedak); the code talks to one interface |
 | the template | the text the provider approves | «کد ورود کارو: {code}» |
-| the session secret | signs nothing but the cookie's hash | `CARO_SESSION_SECRET`, made locally, set by the deploy holder |
+| the store's secret | the key of the keyed hashes above | `CARO_STORE_SECRET`, made locally, set by the deploy holder |
 | a privacy page | what is kept, for how long, how it is deleted | drafted by a session, approved by the owner |
 
 No key is written into the repository or a chat; the code reads each from the
