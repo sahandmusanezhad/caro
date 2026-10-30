@@ -81,7 +81,10 @@ section that holds its detail.
    with what it needs from the owner and the one a session recommends:
    [ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md). On 2026-10-30 the owner
    chose the login by authenticator (O1) and «پیش از خرید» (B1); both are
-   built and wait for the push. No account and no payment (A0, P0).
+   built and wait for the push. No payment (P0). Later the same day the owner
+   chose listings that sellers post on CARO themselves, with a number shown
+   only by their choice, built alongside the first live runs: the design and
+   the choices it waits on are [SELLER_LISTINGS](SELLER_LISTINGS.md).
 9. **The demo** (the end). The last: the demo script brought up to date with
    the site as it is, recorded, and sent where the owner decides.
 

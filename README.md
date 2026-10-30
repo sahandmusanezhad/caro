@@ -640,6 +640,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) ·
 
 - [ROADMAP](docs/ROADMAP.md) — everything left until the end of the project, in order, with what closes each item
 - [ACCOUNTS_AND_PAYMENT](docs/ACCOUNTS_AND_PAYMENT.md) — the options for accounts, payment and the operator's login, what each needs from the owner, before any is built
+- [SELLER_LISTINGS](docs/SELLER_LISTINGS.md) — listings sellers post on CARO themselves, with a number shown only by their choice: the design, before the code
 - [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md) — how the work is done: measured rounds, separate commits, and the rules no session breaks
 - [DECISIONS](docs/DECISIONS.md) — the design record, including bugs found and what they cost
 - [ARCHITECTURE](docs/ARCHITECTURE.md) — the layers, and which components are deliberately *not* agents
