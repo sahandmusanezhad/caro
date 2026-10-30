@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from webapp.api.store import (  # noqa: E402
-    DIALECTS, MIGRATIONS, TABLES, StoreError, open_store, sqlite_path, to_driver)
+    DIALECTS, MIGRATIONS, TABLES, Store, StoreError, open_store, phone_09, sqlite_path, to_driver)
 
 FAILS = []
 
@@ -262,6 +262,57 @@ _i2 = ST.create_account("09100000019")
 check("S18: an insert gives the new row's id, and the next one is larger",
       isinstance(_i1, int) and _i2 > _i1 > 0
       and ST.row("SELECT phone FROM accounts WHERE id = ?", (_i2,)) == {"phone": "09100000019"}, str((_i1, _i2)))
+
+# ---------------------------------------------------------------------------
+# A phone's form, and the limits, which are rows here and not a process's memory
+# ---------------------------------------------------------------------------
+_same = ("۰۹۱۲ ۳۴۵ ۶۷۸۹", "+98 912 345 6789", "0098-912-345-6789", "9123456789", "٠٩١٢٣٤٥٦٧٨٩",
+         "989123456789", "(0912) 345.67.89")
+_not = ("02112345678", "+98 21 1234 5678", "0912345678", "09123456789012", "", None, "abc")
+check("S19: seven ways of writing one mobile number are 09123456789; a landline, ten or fourteen digits, "
+      "empty, None and letters are not a number",
+      [phone_09(x) for x in _same] == ["09123456789"] * len(_same) and [phone_09(x) for x in _not] == [None] * len(_not),
+      str(([phone_09(x) for x in _same], [phone_09(x) for x in _not])))
+
+_now = [1_700_000_000]
+LS = Store(ST.conn, ST.dialect, SECRET, clock=lambda: _now[0])
+_who = LS.key("phone", "09100000020")
+
+
+def _try(kind, who, limits):
+    with LS.transaction():
+        LS.lock(f"{kind}:{who}")
+        w = LS.blocked(kind, who, limits)
+        if w is None:
+            LS.record(kind, who)
+    return w
+
+
+_w20 = []
+for _ in range(4):
+    _w20.append(_try("s20", _who, ((3, 900),)))
+    _now[0] += 60
+_others = (LS.blocked("s20-other", _who, ((3, 900),)), LS.blocked("s20", LS.key("phone", "09100000021"), ((3, 900),)))
+_now[0] += 900 - 4 * 60 + 1
+_open = LS.blocked("s20", _who, ((3, 900),))
+check("S20: under a limit nothing waits; at it the wait is what is left of the window; another kind or "
+      "another key is not counted; when the oldest attempt leaves the window it opens",
+      _w20 == [None, None, None, 720] and _others == (None, None) and _open is None, str((_w20, _others, _open)))
+
+_now[0] = 1_800_000_000
+_who = LS.key("address", "203.0.113.21")
+_L = ((3, 900), (6, 86400))
+_short = [_try("s21", _who, _L) for _ in range(4)]
+_now[0] += 901
+_day = [_try("s21", _who, _L) for _ in range(4)]
+_n_before = count("attempts", "WHERE kind = ?", ("s21",))
+_now[0] += 2 * 86400 + 1
+LS.record("s21-later", _who)
+check("S21: with 3 in 15 minutes and 6 in a day, the short window blocks first and the day's after it; "
+      "an attempt older than two days is deleted when the next is written",
+      _short[:3] == [None] * 3 and 0 < _short[3] <= 900 and _day[:3] == [None] * 3 and _day[3] > 900
+      and _n_before == 6 and count("attempts", "WHERE kind = ?", ("s21",)) == 0,
+      str((_short, _day, _n_before, count("attempts", "WHERE kind = ?", ("s21",)))))
 
 ST.close()
 print()
