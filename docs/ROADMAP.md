@@ -7,7 +7,7 @@ the predictions are written first, the measurement is run, the owner decides
 on it, and the change goes in, in its own commit
 ([WORKING_AGREEMENT](WORKING_AGREEMENT.md)).
 
-Last revised 2026-10-29.
+Last revised 2026-10-30.
 
 Who does what:
 
@@ -74,7 +74,10 @@ section that holds its detail.
    the calibration of the confidence policy (the product gaps, item 6).
 8. **The product additions** — accident damage from listing photos, a login
    by authenticator, and the contact inbox on the deployed site (the product
-   gaps, items 3, 4 and 5). The owner decides each design first.
+   gaps, items 3, 4 and 5). The owner decides each design first. The
+   options for accounts, payment and the operator's login are written, each
+   with what it needs from him and the one a session recommends:
+   [ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md).
 9. **The demo** (the end). The last: the demo script brought up to date with
    the site as it is, recorded, and sent where the owner decides.
 
@@ -452,8 +455,10 @@ the owner chooses.
 
 4. **Authenticator-based login.** Not built. The admin view opens today with
    `CARO_ADMIN_TOKEN`, and with the token unset it does not open at all. Who:
-   the owner designs it; nothing is built before he has. Closes when the
-   design is recorded and built, with its tests.
+   the owner designs it; nothing is built before he has. The options are
+   written (2026-10-30, [ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md),
+   «The operator's login»). Closes when the design is recorded and built,
+   with its tests.
 
 5. **Deploying.** The Vercel project is in another account than the
    owner's, and its holder deployed `main` from `Tecso-Dev/caro` on
