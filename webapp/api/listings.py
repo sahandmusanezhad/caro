@@ -192,8 +192,8 @@ def purge(st: Store, now: int) -> None:
 # Public: the approved version of a live listing that reports have not taken
 # down. The only place that says which listings anyone may see; the list, a
 # listing and the reveal are all built from it.
-_FROM = "FROM listings l JOIN listing_versions v ON v.id = l.live_version"
-_VISIBLE = "l.held = 0 AND l.ends_at > ?"
+LIVE_FROM = "FROM listings l JOIN listing_versions v ON v.id = l.live_version"
+LIVE_WHERE = "l.held = 0 AND l.ends_at > ?"
 _PUBLIC_COLS = "l.id AS listing_id, l.ends_at, " + ", ".join(f"v.{c}" for c in FIELDS)
 
 
@@ -229,7 +229,9 @@ def mine(request: Request, st: Store = Depends(the_store)) -> dict:
         versions = st.rows("SELECT * FROM listing_versions WHERE listing_id = ? ORDER BY id", (lst["id"],))
         live = next((v for v in versions if v["id"] == lst["live_version"]), None)
         pending = next((v for v in reversed(versions) if v["review"] == "pending"), None)
-        last = versions[-1] if versions else None
+        # the operator's last word: the version reviewed last, whichever it is
+        last = max((v for v in versions if v["reviewed_at"] is not None),
+                   key=lambda v: (v["reviewed_at"], v["id"]), default=None)
         out.append({
             "id": lst["id"], "ends_at": lst["ends_at"], "ended": lst["ends_at"] <= now,
             "held": bool(lst["held"]), "live": _fields(live), "pending": _fields(pending),
@@ -282,7 +284,7 @@ def public_list(make: str | None = Query(None, max_length=NAME_MAX),
     now = st.now()
     purge(st, now)
     limit = min(limit, PAGE_MAX)
-    sql, params = f"SELECT {_PUBLIC_COLS} {_FROM} WHERE {_VISIBLE}", [now]
+    sql, params = f"SELECT {_PUBLIC_COLS} {LIVE_FROM} WHERE {LIVE_WHERE}", [now]
     for col, v in (("make", make), ("model", model)):
         if v and v.strip():
             sql += f" AND v.{col} = ?"
@@ -294,7 +296,7 @@ def public_list(make: str | None = Query(None, max_length=NAME_MAX),
 
 @router.get("/api/listings/{lid}")
 def public_one(lid: int, st: Store = Depends(the_store)) -> dict:
-    r = st.row(f"SELECT {_PUBLIC_COLS} {_FROM} WHERE {_VISIBLE} AND l.id = ?", (st.now(), lid))
+    r = st.row(f"SELECT {_PUBLIC_COLS} {LIVE_FROM} WHERE {LIVE_WHERE} AND l.id = ?", (st.now(), lid))
     if r is None:
         raise HTTPException(404, NOT_FOUND_FA)
     return _public(r)
@@ -312,8 +314,8 @@ def reveal(lid: int, request: Request, st: Store = Depends(the_store)) -> dict:
         wait = st.blocked("reveal_address", ak, REVEAL_LIMITS)
         if wait is None:
             st.record("reveal_address", ak)
-            r = st.row(f"SELECT v.show_phone, a.phone {_FROM} JOIN accounts a ON a.id = l.account_id "
-                       f"WHERE {_VISIBLE} AND l.id = ?", (now, lid))
+            r = st.row(f"SELECT v.show_phone, a.phone {LIVE_FROM} JOIN accounts a ON a.id = l.account_id "
+                       f"WHERE {LIVE_WHERE} AND l.id = ?", (now, lid))
             if r is not None and r["show_phone"]:
                 phone = r["phone"]
                 st.insert("INSERT INTO reveals (listing_id, who_key, at) VALUES (?, ?, ?)", (lid, ak, now))

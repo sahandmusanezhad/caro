@@ -50,6 +50,7 @@ from webapp.api.accounts import router as accounts_router          # noqa: E402
 from webapp.api.contact import router as contact_router            # noqa: E402
 from webapp.api.listings import router as listings_router          # noqa: E402
 from webapp.api.market import router as market_router              # noqa: E402
+from webapp.api.review import router as review_router              # noqa: E402
 from webapp.api.security import SecurityHeaders, cors_origins      # noqa: E402
 from webapp.api.schemas import (                                   # noqa: E402
     CompareRequest, CompareResponse, CorpusMeta, CorpusResponse, Envelope,
@@ -75,6 +76,9 @@ app.include_router(accounts_router)
 # The listings sellers post (webapp/api/listings.py), read by no part of the
 # decision path either.
 app.include_router(listings_router)
+# What the operator decides about them, and what the public reports
+# (webapp/api/review.py).
+app.include_router(review_router)
 
 # CORS is for development (webapp/api/security.py): production serves the
 # site and the API from one origin. No cookie is used, so no credentials.

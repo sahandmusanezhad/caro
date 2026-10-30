@@ -2493,6 +2493,150 @@ finally:
             os.environ[_k] = _v
     accounts_mod.CLOCK = _kept23[1]
 
+# ---------------------------------------------------------------------------
+print("\n24 — the operator approves, rejects and removes; three reports take a listing down")
+# ---------------------------------------------------------------------------
+# Predictions R1..R10 (2026-10-30, locked before the code). The operator
+# opens with the token alone here (no TOTP secret set: A6); the addresses a
+# report comes from are told apart by X-Forwarded-For, which the API reads
+# only where CARO_TRUST_PROXY=1 says a proxy sets it.
+_ENV24 = _ENV22 + ("CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET", "CARO_TRUST_PROXY")
+_kept24 = ({k: os.environ.get(k) for k in _ENV24}, accounts_mod.CLOCK)
+_now24 = [1_900_000_000]
+try:
+    with tempfile.TemporaryDirectory() as _tmp24:
+        for _k in _ENV24:
+            os.environ.pop(_k, None)
+        _URL24 = f"sqlite:///{_tmp24}/store.sqlite3"
+        os.environ.update(DATABASE_URL=_URL24, CARO_STORE_SECRET="made-up-for-the-suites-99aa88bb77cc66dd",
+                          CARO_SMS_PROVIDER="fake", CARO_ADMIN_TOKEN="the-operators-token-24-0123456789",
+                          CARO_TRUST_PROXY="1")
+        accounts_mod.CLOCK = lambda: _now24[0]
+        contact_mod.ADMIN_FAILURES.clear()
+        with contextlib.redirect_stdout(io.StringIO()):
+            _c24 = TestClient(api.app, base_url="https://testserver", raise_server_exceptions=False)
+        _A = {"x-admin-token": "the-operators-token-24-0123456789"}
+
+        def _seller24(phone):
+            _now24[0] += 2 * 86400
+            _c24.post("/api/account/code", json={"phone": phone}, headers=_O)
+            r = _c24.post("/api/account/login", json={"phone": phone, "code": _sent()}, headers=_O)
+            _c24.cookies.clear()
+            return {**_O, "cookie": f"caro_session={_token(r)}"}
+
+        def _pending():
+            return _c24.get("/api/admin/listings/pending", headers=_A).json()["pending"]
+
+        def _ids24(q=""):
+            return [x["id"] for x in _c24.get(f"/api/listings{q}").json()["listings"]]
+
+        def _report(lid, n, reason="spam"):
+            return _c24.post(f"/api/listings/{lid}/report", json={"reason": reason},
+                             headers={**_O, "x-forwarded-for": f"198.51.100.{n}"})
+
+        def _last(h, lid):
+            m = _c24.get("/api/listings/mine", headers=h).json()["listings"]
+            return next((x for x in m if x["id"] == lid), {})
+
+        _r1 = (_c24.get("/api/admin/listings/pending").status_code,
+               _c24.get("/api/admin/listings/pending", headers={"x-admin-token": "wrong"}).status_code,
+               _c24.get("/api/admin/listings/pending", headers=_A).status_code,
+               _c24.post("/api/admin/listings/versions/1/approve").status_code)
+        check("R1: the operator's listings need the operator's token: none or a wrong one 401, the right one 200",
+              _r1 == (401, 401, 200, 401), str(_r1))
+
+        _hA, _hB = _seller24("09120000301"), _seller24("09120000302")
+        _LA = _c24.post("/api/listings", json={**_GOOD, "model": "Pride"}, headers=_hA).json().get("id")
+        _now24[0] += 60
+        _LB = _c24.post("/api/listings", json={**_GOOD, "model": "Tiba"}, headers=_hB).json().get("id")
+        _p2 = _pending()
+        _vA = next((x["version"] for x in _p2 if x["listing"] == _LA), None)
+        _c24.post(f"/api/admin/listings/versions/{_vA}/approve", headers=_A)
+        _now24[0] += 60
+        _c24.post(f"/api/listings/{_LA}/edit", json={**_GOOD, "model": "Pride", "price_toman": 320000000}, headers=_hA)
+        _p2 = _pending()
+        _raw2 = _c24.get("/api/admin/listings/pending", headers=_A).text
+        check("R2: pending holds every waiting version, oldest first, each marked a first version or an edit, "
+              "and no seller's number",
+              [(x["listing"], x["kind"]) for x in _p2] == [(_LB, "first"), (_LA, "edit")]
+              and "0912000030" not in _raw2, str([(x["listing"], x["kind"]) for x in _p2]))
+
+        _vB = _p2[0]["version"]
+        _a3 = _c24.post(f"/api/admin/listings/versions/{_vB}/approve", headers=_A).status_code
+        _again3 = _c24.post(f"/api/admin/listings/versions/{_vB}/approve", headers=_A).status_code
+        check("R3: approving a first version makes the listing public; approving it again is 409",
+              _a3 == 200 and _LB in _ids24() and _again3 == 409
+              and (_last(_hB, _LB).get("live") or {}).get("model") == "Tiba", str((_a3, _again3)))
+
+        _vA2 = _p2[1]["version"]
+        _c24.post(f"/api/admin/listings/versions/{_vA2}/approve", headers=_A)
+        _st4 = _open_store(_URL24, os.environ["CARO_STORE_SECRET"], migrate=False)
+        _rev4 = {r["id"]: r["review"] for r in _st4.rows("SELECT id, review FROM listing_versions WHERE listing_id = ?",
+                                                         (_LA,))}
+        _st4.close()
+        check("R4: approving an edit puts its fields on the public listing, and the version before is superseded",
+              _c24.get(f"/api/listings/{_LA}").json().get("price_toman") == 320000000
+              and _rev4 == {_vA: "superseded", _vA2: "approved"}, str(_rev4))
+
+        _c24.post(f"/api/listings/{_LA}/edit", json={**_GOOD, "model": "Pride", "price_toman": 99_000_000}, headers=_hA)
+        _vA3 = next(x["version"] for x in _pending() if x["listing"] == _LA)
+        _no5 = (_c24.post(f"/api/admin/listings/versions/{_vA3}/reject", json={"reason": "  "}, headers=_A).status_code,
+                _c24.post(f"/api/admin/listings/versions/{_vA3}/reject", json={}, headers=_A).status_code)
+        _r5 = _c24.post(f"/api/admin/listings/versions/{_vA3}/reject",
+                        json={"reason": "قیمت با خودرو نمی‌خواند"}, headers=_A).status_code
+        check("R5: a rejection needs a reason (422 without one); the seller reads it; a rejected edit leaves the "
+              "approved version public",
+              _no5 == (422, 422) and _r5 == 200
+              and _last(_hA, _LA).get("last_review") == {"review": "rejected", "reason": "قیمت با خودرو نمی‌خواند"}
+              and _c24.get(f"/api/listings/{_LA}").json().get("price_toman") == 320000000, str((_no5, _r5)))
+
+        _bad6 = _report(_LB, 1, reason="ugly").status_code
+        _six = [_report(_LB, 1).status_code, _report(_LB, 1).status_code, _report(_LB, 2, "fake").status_code]
+        _before6 = _LB in _ids24()
+        _third = _report(_LB, 3, "fake").status_code
+        _held6 = _c24.get("/api/admin/listings/held", headers=_A).json()["held"]
+        check("R6: a report is a reason from the list (422 otherwise); one address counts once; the third address "
+              "takes the listing down -- off the list, no reveal -- and the operator sees the reports by reason",
+              _bad6 == 422 and _six == [200, 200, 200] and _before6 and _third == 200 and _LB not in _ids24()
+              and _c24.post(f"/api/listings/{_LB}/reveal", headers=_O).status_code == 404
+              and [(h["listing"], h["reports"]) for h in _held6] == [(_LB, {"spam": 1, "fake": 2})],
+              str((_bad6, _six, _third, _held6)))
+
+        _rel = _c24.post(f"/api/admin/listings/{_LB}/release", headers=_A).status_code
+        _back7 = _LB in _ids24()
+        _report(_LB, 4)
+        check("R7: released, the listing is public again, its reports gone, and one new report does not take it "
+              "down", _rel == 200 and _back7 and _LB in _ids24()
+              and _c24.get("/api/admin/listings/held", headers=_A).json()["held"] == [], str((_rel, _back7)))
+
+        _rm = _c24.post(f"/api/admin/listings/{_LB}/remove", json={"reason": "خودرو فروخته شده است"},
+                        headers=_A).status_code
+        _seen8 = _LB in _ids24()
+        _c24.post(f"/api/listings/{_LB}/edit", json={**_GOOD, "model": "Tiba", "price_toman": 300000000}, headers=_hB)
+        check("R8: removed with a reason, the listing leaves the public list, its seller reads the reason, and an "
+              "edit goes back through the queue",
+              _rm == 200 and not _seen8
+              and _last(_hB, _LB).get("last_review") == {"review": "rejected", "reason": "خودرو فروخته شده است"}
+              and any(x["listing"] == _LB for x in _pending()), str((_rm, _seen8)))
+
+        _now24[0] += 2 * 86400
+        _c24.post(f"/api/admin/listings/{_LB}/release", headers=_A)
+        _r9 = [_report(_LA, 9).status_code for _ in range(21)]
+        check("R9: one address's 21st report in a day is 429", _r9[:20] == [200] * 20 and _r9[20] == 429, str(_r9))
+
+        _raw10 = (_c24.get("/api/admin/listings/pending", headers=_A).text
+                  + _c24.get("/api/admin/listings/held", headers=_A).text)
+        check("R10: no answer of the operator's holds a seller's number",
+              "0912000030" not in _raw10 and "phone" not in _raw10.replace("show_phone", ""), _raw10[:200])
+finally:
+    for _k, _v in _kept24[0].items():
+        if _v is None:
+            os.environ.pop(_k, None)
+        else:
+            os.environ[_k] = _v
+    accounts_mod.CLOCK = _kept24[1]
+    contact_mod.ADMIN_FAILURES.clear()
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

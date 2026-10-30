@@ -173,11 +173,9 @@ def _authorised(token: str | None, code: str | None = None) -> bool:
     return ADMIN_CODES.check(decode_secret(os.environ["CARO_ADMIN_TOTP_SECRET"]), code)
 
 
-@router.get("/api/admin/messages")
-def inbox(request: Request,
-          x_admin_token: str | None = Header(default=None),
-          x_admin_code: str | None = Header(default=None)) -> dict:
-    """Everything received, newest first. Refuses when no token is configured."""
+def require_operator(request: Request, token: str | None, code: str | None) -> None:
+    """The operator's check, in one place for every operator's endpoint: the
+    inbox here, and the listings sellers post (webapp/api/review.py)."""
     # An address that has failed the token ten times in ten minutes is
     # refused before the token is even compared, the right one included: a
     # guess that lands is a guess, and guessing is what is being slowed.
@@ -185,13 +183,21 @@ def inbox(request: Request,
     wait = ADMIN_FAILURES.blocked(addr)
     if wait is not None:
         raise too_many(wait)
-    if not _authorised(x_admin_token, x_admin_code):
+    if not _authorised(token, code):
         ADMIN_FAILURES.hit(addr)
         # The same 401 whether the token or the code was wrong, or neither was
         # ever configured.
         # Telling an unauthenticated caller which of the two it is hands them
         # the one fact they came for.
         raise HTTPException(401, "دسترسی مدیریت تأیید نشد")
+
+
+@router.get("/api/admin/messages")
+def inbox(request: Request,
+          x_admin_token: str | None = Header(default=None),
+          x_admin_code: str | None = Header(default=None)) -> dict:
+    """Everything received, newest first. Refuses when no token is configured."""
+    require_operator(request, x_admin_token, x_admin_code)
 
     if not MESSAGES.exists():
         return {"count": 0, "messages": []}
