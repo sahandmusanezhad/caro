@@ -728,6 +728,22 @@ def sampling_spec(args) -> str:
     before the requests go out is the cheap half of the discipline — it puts
     the choice in the transcript, where a reader can disagree with it.
     """
+    if args.source != "bama":
+        # The sources read page by page have no sitemap to draw from: a run is
+        # the site's own order, as far as the pages go (2026-10-30, after the
+        # first live runs of Khodro45 and Sheypoor printed Bama's statement).
+        L = ["  SAMPLE, stated before the first request:",
+             f"    source            {args.source}",
+             f"    list pages        up to {args.pages}, each only if the page "
+             "before names it and robots.txt allows it"]
+        if args.source == "sheypoor":
+            L.append(f"    listing pages     up to {args.limit}, one for each new listing")
+        place = args.city or {"divar": "tehran", "sheypoor": "iran"}.get(args.source)
+        if place:
+            L.append(f"    place             {place}")
+        L.append("                      (the order the site lists them in, not a "
+                 "sample of the market)")
+        return "\n".join(L)
     makes = make_list(args)
     budget = args.categories or args.limit
     L = ["  SAMPLE, stated before the first request:",

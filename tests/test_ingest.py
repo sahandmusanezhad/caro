@@ -4690,6 +4690,27 @@ check("O2: a listing page merged into a card with the corner image keeps the car
       and _o2p(_sp_listing("462345678", price=2500000000, cur="IRR"))[0].seller_type == "unknown")
 
 
+# ---------------------------------------------------------------------------
+print("\nthe sample a live run states is the run's own")
+# ---------------------------------------------------------------------------
+# The first live runs of Khodro45 and Sheypoor (2026-10-30) printed Bama's
+# statement -- a target, a category budget and a sitemap -- before their first
+# request. Neither has a sitemap here; each is the site's order, page by page.
+_spec = lambda **kw: _first_run.sampling_spec(_argparse.Namespace(**{          # noqa: E731
+    "source": "bama", "limit": 50, "pages": 2, "categories": None, "makes": "", "seed": 0,
+    "city": None, **kw}))
+_k45 = _spec(source="khodro45", pages=2)
+_shp = _spec(source="sheypoor", pages=1, limit=10)
+_bam = _spec()
+check("S1: khodro45 and sheypoor state their source and pages (sheypoor: 10 listing pages, iran), "
+      "and no sitemap, seed or category budget; bama's statement is as before",
+      all(w not in t for t in (_k45, _shp) for w in ("sitemap", "seed=", "category budget"))
+      and "khodro45" in _k45 and "up to 2" in _k45
+      and "sheypoor" in _shp and "up to 1" in _shp and "up to 10, one for each new listing" in _shp
+      and "iran" in _shp
+      and "drawn uniformly from the sitemap, seed=0" in _bam and "category budget   50 page(s)" in _bam,
+      _k45 + " | " + _shp)
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
