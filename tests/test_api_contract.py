@@ -1396,7 +1396,10 @@ _both13: list[str] = []         # a match AND a car apart, on «پراید در 
 _two13: list[str] = []          # a car apart on the price AND the province
 # «خلیج فارس» holds the name of a province and is not one. Asked of every
 # corpus beside «پراید» alone: the same cars, no province stated, the phrase
-# in view.
+# in view. A corpus of a source that lists no Pride gives two empty answers,
+# which show nothing about the Gulf, so the row asks for Prides on at least
+# the four Bama runs, not on every run -- a second source's corpus is not a
+# failure of this row.
 _GULFQ13 = "پراید خلیج فارس"
 _gulfn13: list[str] = []        # runs where «پراید» alone finds something
 _gulfoff13: list[str] = []      # runs where the Gulf changes the answer
@@ -1471,11 +1474,13 @@ check("  a car with neither a price nor a province is shown apart naming "
       f"both, the price first, on {', '.join(_two13) or 'no corpus'}",
       bool(_two13), "the order the constraints are judged in is not reached "
       "on a real car — said, not passed")
-check(f"  «{_GULFQ13}» is not the province فارس: on {', '.join(_gulfn13)} it "
-      "gives the answer «پراید» gives, and the intent states no province",
-      len(_gulfn13) == len(_shape13) and not _gulfoff13,
+check(f"  «{_GULFQ13}» is not the province فارس: on {', '.join(_gulfn13)}, where «پراید» "
+      "finds something, it gives the answer «پراید» gives, and on every run the intent states "
+      "no province",
+      len(_gulfn13) >= 4 and not _gulfoff13,
       f"differs on {_gulfoff13}; «پراید» finds something on {_gulfn13} of "
-      f"{list(_shape13)} — a corpus where it finds nothing cannot show it")
+      f"{list(_shape13)} — at least four are needed, and a corpus where it finds "
+      "nothing cannot show it")
 check("  and the phrase is left in view under «نفهمیدیم», on each",
       not _gulfhid13, f"not listed on {_gulfhid13}")
 
@@ -1922,8 +1927,9 @@ try:
 
     # SRC-1, SRC-2 (predictions of 2026-10-30, evening, locked before the
     # code): a second source's runs beside Bama's, in a directory of the
-    # test's own -- the four published runs, and two of Khodro45's made here.
-    # run17 is dated between run14 and run16, so the two sources interleave.
+    # test's own -- the four Bama runs, named, so a corpus published later
+    # does not change these rows, and two of Khodro45's made here. run17 is
+    # dated between run14 and run16, so the two sources interleave.
     def _k45(run_id, on, cars):
         return {"schema": SCHEMA, "run_id": run_id, "source": "khodro45", "collected_on": on,
                 "listings": [{"listing_id": f"k45-{run_id}-{i}", "make": mk, "model": md,
@@ -1932,8 +1938,9 @@ try:
                               "product_class": "vehicle"} for i, (mk, md, p) in enumerate(cars)]}
     with tempfile.TemporaryDirectory() as _tmp20:
         _src_dir = Path(_tmp20)
-        for _f in sorted((ROOT / "data" / "corpora").glob("*.json")):
-            (_src_dir / _f.name).write_bytes(_f.read_bytes())
+        for _rid in ("run11", "run13", "run14", "run16"):
+            (_src_dir / f"{_rid}.json").write_bytes(
+                (ROOT / "data" / "corpora" / f"{_rid}.json").read_bytes())
         _dena = lambda *ps: [("IKCO", "Dena", p) for p in ps]                      # noqa: E731
         for _rid, _on, _cars in (
                 ("run17", "2026-10-12", _dena(1_000_000_000, 1_100_000_000, 1_200_000_000)),
