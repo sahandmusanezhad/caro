@@ -107,17 +107,32 @@ def within_split(rows: list[Row], *, test_fraction: float, seed: int) -> Split:
     A published corpus names no car across listings: each row is its own
     cluster. Two listings alike in model key, year, odometer and asking price
     are taken here as one car -- a repost the corpus could not tell apart --
-    and kept on one side, so the model is never tested on a car it was
-    trained on. Each car carries its smallest listing id as its cluster, which
-    is what `Split.leakage()` reads.
+    and so are two readings of one listing id, whatever changed between them
+    (a list paged by offset can show a listing twice). Rows joined either way
+    are one car, kept on one side, so the model is never tested on a car it
+    was trained on. Each car carries its smallest listing id as its cluster,
+    which is what `Split.leakage()` reads, and no two cars share it.
 
     The cars are ordered by that id before the seeded permutation, so the
     split depends on the collection and the seed, never on the file's order.
     """
-    cars: dict[tuple, list[Row]] = {}
-    for r in rows:
-        cars.setdefault(_car(r), []).append(r)
-    named = sorted((min(r.listing_id for r in rs), rs) for rs in cars.values())
+    parent = list(range(len(rows)))
+
+    def root(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    first: dict[tuple, int] = {}
+    for i, r in enumerate(rows):
+        for key in (("car",) + _car(r), ("id", r.listing_id)):
+            parent[root(i)] = root(first.setdefault(key, i))
+    cars: dict[int, list[Row]] = {}
+    for i, r in enumerate(rows):
+        cars.setdefault(root(i), []).append(r)
+    named = sorted(((min(r.listing_id for r in rs), rs) for rs in cars.values()),
+                   key=lambda t: t[0])
     order = np.random.default_rng(seed).permutation(len(named))
     n_test = max(1, int(round(len(named) * test_fraction)))
     to_test = set(int(i) for i in order[:n_test])

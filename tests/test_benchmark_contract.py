@@ -414,6 +414,33 @@ else:
           f"twins on {_twin_sides}, leaked {_s.leakage()}, {_cars_tested} cars tested, order-free "
           f"{_tested(_s) == _tested(_s_rev)}, seed used {_tested(_s) != _tested(_s_other)}")
 
+# WC11 (predictions WITHIN2, locked before the code): one listing read twice,
+# its price changed between the two pages, and a third row the first
+# reading's twin. A listing is one car whatever changed between its readings.
+_WC11 = ("WC11: a listing read twice with two prices, and a twin of its first reading, are one car on "
+         "one side whatever the seed (0 to 19); no error, no row lost, and the same split with the rows "
+         "reversed")
+if BW is None:
+    check(_WC11, False, _bw_why)
+else:
+    _again = [_row("k1", 60_000.0, 800_000_000.0), _row("k1", 60_000.0, 790_000_000.0),
+              _row("k9", 60_000.0, 800_000_000.0)]
+    _many = [_row(f"m{i:02d}", 120_000.0 + i, 450_000_000.0 + i) for i in range(20)] + _again
+    _bad11 = []
+    try:
+        for _seed in range(20):
+            _sa = BW.within_split(_many, test_fraction=0.25, seed=_seed)
+            _sb = BW.within_split(list(reversed(_many)), test_fraction=0.25, seed=_seed)
+            _in = {(x.listing_id, x.asking_price_toman) for x in _sa.test}
+            if (len({(r.listing_id, r.asking_price_toman) in _in for r in _again}) != 1
+                    or _sa.leakage() or len(_sa.train) + len(_sa.test) != len(_many)
+                    or sorted(r.listing_id for r in _sa.test) != sorted(r.listing_id for r in _sb.test)):
+                _bad11.append(_seed)
+        _why11 = ""
+    except Exception as e:                                         # noqa: BLE001
+        _bad11, _why11 = ["raised"], f"{type(e).__name__}: {e}"
+    check(_WC11, not _bad11, _why11 or f"not one car, or not order-free, for seeds {_bad11}")
+
 WSRC = WITHIN.read_text(encoding="utf-8") if WITHIN.exists() else ""
 WTREE = ast.parse(WSRC)
 _wnames: set[str] = set()
