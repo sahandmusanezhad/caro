@@ -4811,6 +4811,25 @@ except DiagnosticLeakedIntoModel:
 check("CT3: listed_at is diagnostic-only: a model that took it as a feature is refused",
       _ct_refused)
 
+# ---------------------------------------------------------------------------
+print("\nkhodro45: a name that starts with an invisible mark")
+# ---------------------------------------------------------------------------
+# ZW1 (predictions R28, locked before the code). run17, read before it was
+# published, held the make «\u200cBeijing» on two rows: Khodro45 writes the
+# brand's title_en so, and a mark nobody sees made it another make.
+_zw_cases = [("ZWA001", "\u200cBeijing"), ("ZWA002", "Beijing\u200c"),
+             ("ZWA003", "\u200fBeijing"), ("ZWA004", "\ufeffBeijing")]
+_zwp = Khodro45Parser()
+_zwl = {x.listing_id: x for x in _zwp(json.dumps({"count": 1813, "next": None, "previous": None, "results": [
+    _k45_result(s, brand=("بیجینگ", en, "beijing"), model=("یو۵ پلاس", "U5 plus", "u5-plus"))
+    for s, en in _zw_cases]}))}
+_zw_got = {s: (getattr(_zwl.get(s), "make", None), getattr(_zwl.get(s), "model", None)) for s, _ in _zw_cases}
+check("ZW1: a brand outside the table written with a zero-width mark before or after it -- the non-joiner, "
+      "the right-to-left mark, the byte-order mark -- is read without it; a non-joiner inside a Persian "
+      "word is kept",
+      set(_zw_got.values()) == {("Beijing", "U5 plus")}
+      and _k45m._str("\u200cدنده\u200cای\u200f") == "دنده\u200cای", str(_zw_got))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

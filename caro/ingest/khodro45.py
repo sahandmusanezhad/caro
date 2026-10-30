@@ -250,8 +250,23 @@ def _num(v) -> int | None:
     return None
 
 
+# A mark nobody sees, at either end of a value: the zero-width non-joiner and
+# joiner, the direction marks, the byte-order mark (Unicode category Cf).
+# Khodro45 wrote one brand «\u200cBeijing», and the invisible first letter made
+# it another make. Inside a value they stay: «دنده‌ای» needs its non-joiner.
+_EDGE_MARKS = re.compile(r"^[\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]+|"
+                         r"[\u00ad\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]+$")
+
+
 def _str(v) -> str:
-    return re.sub(r"\s+", " ", v).strip() if isinstance(v, str) else ""
+    if not isinstance(v, str):
+        return ""
+    s = re.sub(r"\s+", " ", v).strip()
+    while True:
+        t = _EDGE_MARKS.sub("", s).strip()
+        if t == s:
+            return s
+        s = t
 
 
 def _category(v) -> str | None:
