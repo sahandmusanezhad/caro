@@ -108,6 +108,7 @@ def a_listing(**over) -> CarListing:
         mileage_status="plausible", seller_type="dealer",
         price_currency_raw="IRR", location_raw="رباط کریم، تهران",
         listed_at="2026-10-28T18:20:42.930075+03:30",
+        source_prices={"price": 1_308_050_000, "final_price": 1_334_800_000},
     )
     base.update(over)
     return CarListing(**base)
@@ -251,6 +252,7 @@ CROSSES = {
     "province_source": "province_source",  # and how it was known, beside it
     "location_raw": "location_raw",        # to the snapshot, and no further
     "listed_at": "listed_at",              # the same: an audit, never published
+    "source_prices": "source_prices",      # the same: the source's own fields
     "seller_raw": "seller_fingerprint",    # salted on the way out (D-privacy)
     "body_condition": "body_condition",
     "condition_source": "condition_source",
@@ -468,6 +470,9 @@ check("  and the time the source says a listing was created, to the snapshot and
       "audit, never published (the owner's decision, 2026-10-30)",
       _row(_report, "listed_at") == ["listed_at", "100%", "100%", "—", "0"],
       str(_row(_report, "listed_at")))
+check("  and the source's own price fields, to the snapshot and no further (the owner's choice, 2026-10-30)",
+      _row(_report, "source_prices") == ["source_prices", "100%", "100%", "—", "0"],
+      str(_row(_report, "source_prices")))
 
 # Divar's shape: a seller the parse holds raw, which only its salted hash
 # may leave. Bama's listings have none (`seller_raw=None`), so the fixture

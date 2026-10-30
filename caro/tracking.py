@@ -100,6 +100,9 @@ class FetchOutcome:
     # of our first sighting, kept in the snapshot and never published, never
     # a feature (`quality.DIAGNOSTIC_ONLY_FIELDS`).
     listed_at: str | None = None
+    # The source's own price fields, by name: what it sent, beside the one
+    # number taken. Kept in the snapshot, never published, never a feature.
+    source_prices: dict[str, int] | None = None
     seller_fingerprint: str | None = None
     mileage_km: int | None = None
     image_phashes: tuple[str, ...] = ()

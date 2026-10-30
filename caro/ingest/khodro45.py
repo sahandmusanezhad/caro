@@ -34,6 +34,11 @@ WHAT IS NEVER READ. The image, `views`, `identifier`, `branch` and any seller
 field: there is none on the list, so `seller_raw` stays None and no fingerprint
 is made, and `seller_type` is `unknown` (D26: no badge, no type).
 
+KEPT BESIDE THE PRICE. `price` and `final_price`, as numbers, in
+`source_prices` -- to the snapshot and no further, never a feature -- so a price
+that moved between two runs says whether the site's numbers moved (the owner's
+choice, 2026-10-30).
+
 READ AS AN AUDIT ONLY. `created_time`, when the site says the listing was
 created, written on the owner's saved page as «2026-10-28T18:20:42.930075+03:30».
 It is kept as written, in `listed_at`, where it reads as a time, and crosses to
@@ -702,6 +707,8 @@ def build(r: dict, card: Card | None, trace: Khodro45Trace,
         province_source="city" if province else "none",
         location_raw=loc, source_url=url or None,
         listed_at=_created(r.get("created_time"), trace),
+        source_prices={f: n for f in PRICE_FIELDS
+                       if (n := _num(r.get(f))) is not None} or None,
     )
 
 

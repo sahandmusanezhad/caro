@@ -307,6 +307,9 @@ SURVIVAL = [
     # our first sighting, kept to the snapshot (the owner's decision,
     # 2026-10-30).
     ("listed_at",      "listed_at",           "listed_at",      None),
+    # And the source's own price fields, beside the one taken (the owner's
+    # choice, 2026-10-30): to the snapshot, so two runs can be told apart.
+    ("source_prices",  "source_prices",       "source_prices",  None),
 ]
 
 

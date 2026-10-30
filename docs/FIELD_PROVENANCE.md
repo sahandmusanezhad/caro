@@ -341,6 +341,14 @@ converts the absence into a number. The panel is twenty of run11's listings —
 `date_watch` samples them with `seed 0` — and none of run16's 73 rows is among
 them, nor of run14's 77; one of run13's 74 was.
 
+**source prices — snapshot only.** Khodro45 sends two numbers for a car,
+`price` and `final_price`; the asking price is the one its cards show
+(`final_price` on every card read so far). Since 2026-10-30, by the owner's
+choice, both reach the snapshot as `source_prices` and stop there: never
+published, never a feature. They exist so that a price that moved between two
+runs says whether the site's numbers moved -- `scripts/replicate_check.py`
+prints both runs' fields under each changed price.
+
 **document_issue — `DERIVED`, and weaker than it reads.** run16 carries
 none, so the key is absent from it; run14 carried one value in
 seventy-seven, a `false`, on `bama:bwfgrup6`; run11 one in seventy-six, also

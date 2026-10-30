@@ -174,6 +174,8 @@ DIAGNOSTIC_ONLY_FIELDS = frozenset({
     # when the source says the listing was created: an audit of our first
     # sighting (TEMPORAL_CONTRACT §11), never a predictor and never the split key
     "listed_at",
+    # the source's own price fields, kept beside the price taken: an audit
+    "source_prices",
 })
 
 

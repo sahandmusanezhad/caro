@@ -306,6 +306,14 @@ class CarListing:
     # the snapshot and stops there.
     listed_at: str | None = None
 
+    # The source's own price fields, by name, where they are numbers --
+    # Khodro45's `price` and `final_price`. The asking price is one of them,
+    # chosen by what the cards show; these say which numbers the source sent,
+    # so a price that moved between two runs says whether the source's number
+    # moved (the owner's choice, 2026-10-30). Diagnostic-only, to the snapshot
+    # and no further.
+    source_prices: dict[str, int] | None = None
+
     def to_fetch_outcome(self, source: str = "divar",
                          salt: str | None = None) -> FetchOutcome:
         return FetchOutcome(
@@ -323,6 +331,7 @@ class CarListing:
             # refuses it.
             location_raw=self.location_raw,
             listed_at=self.listed_at,
+            source_prices=self.source_prices,
             # Carried because `listing_from_record` reads all three off a
             # published row and nothing could ever supply them. See the block
             # on FetchOutcome for how that was found and what it cost.

@@ -472,6 +472,21 @@ with _rtmp.TemporaryDirectory() as _rd:
           "one, with exit 2 and no traceback",
           _code == 2 and "no such snapshot" in _out and "Traceback" not in _out, _out[-400:])
 
+    # SP2 (predictions R29, part B): a changed price says what the source sent
+    # in each run, where both snapshots hold the source's fields.
+    _sa, _sb = _rsnap({"k:moved": 1_334_800_000}), _rsnap({"k:moved": 1_308_050_000})
+    _sa["outcomes"][0]["source_prices"] = {"price": 1_308_050_000, "final_price": 1_334_800_000}
+    _sb["outcomes"][0]["source_prices"] = {"price": 1_308_050_000, "final_price": 1_308_050_000}
+    (_RPath(_rd) / "c.json").write_text(_rjson.dumps(_sa), encoding="utf-8")
+    (_RPath(_rd) / "d.json").write_text(_rjson.dumps(_sb), encoding="utf-8")
+    _code, _out = _replicate(_RPath(_rd) / "c.json", _RPath(_rd) / "d.json")
+    _flat = " ".join(_out.split())
+    check("SP2: under a changed price, both runs' source fields: price 1,308,050,000 in both, final_price "
+          "1,334,800,000 then 1,308,050,000 -- the source's own number moved",
+          _code == 0 and "price changed 1" in _flat
+          and "price 1,308,050,000 → 1,308,050,000" in _flat
+          and "final_price 1,334,800,000 → 1,308,050,000" in _flat, _out[-700:])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

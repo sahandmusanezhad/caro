@@ -188,6 +188,11 @@ def main() -> int:
     print(f"  price changed        {len(moved):>4}")
     for k, pa, pb in moved[:12]:
         print(f"      {k:<22}{pa:>13,} → {pb:>13,}   {(pb / pa - 1):+.1%}")
+        # What the source sent in each run, where both snapshots kept it: a
+        # moved price whose source numbers moved is the source's edit.
+        fa, fb = x[k].get("source_prices") or {}, y[k].get("source_prices") or {}
+        for name in [n for n in fa if n in fb]:
+            print(f"          {name:<18}{fa[name]:>13,} → {fb[name]:>13,}")
     print(f"  price absent in one  {len(once):>4}")
     for k, pa, pb in once[:12]:
         print(f"      {k:<22}{'none' if pa is None else f'{pa:,}':>13} → "

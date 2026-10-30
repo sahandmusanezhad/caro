@@ -4854,6 +4854,32 @@ check("ZW1: a brand outside the table written with a zero-width mark before or a
       set(_zw_got.values()) == {("Beijing", "U5 plus")}
       and _k45m._str("\u200cدنده\u200cای\u200f") == "دنده\u200cای", str(_zw_got))
 
+# ---------------------------------------------------------------------------
+print("\nkhodro45: the source's two price fields, kept in the snapshot (the owner's choice, 2026-10-30)")
+# ---------------------------------------------------------------------------
+# SP1 (predictions R29, part B, locked before the code).
+_spr = _k45_result("SPF001", price=1308050000, final=1334800000)
+_spr2 = _k45_result("SPF002", price=1500000000, final=1530300000)
+_spr2["final_price"] = "n/a"
+_spp = Khodro45Parser()
+_spp(_K45_PAGE)
+_spl = {x.listing_id: x for x in _spp(json.dumps({"count": 1813, "next": None, "previous": None,
+                                                   "results": [_spr, _spr2]}))}
+try:
+    assert_not_features(["source_prices"])
+    _sp_refused = False
+except DiagnosticLeakedIntoModel:
+    _sp_refused = True
+_sp_out = _spl["SPF001"].to_fetch_outcome("khodro45") if "SPF001" in _spl else None
+check("SP1: a Khodro45 result's price and final_price are kept, by name, on the listing and on its snapshot "
+      "record; a field that is not a number is left out; a model that took them as a feature is refused",
+      getattr(_spl.get("SPF001"), "source_prices", None) == {"price": 1308050000, "final_price": 1334800000}
+      and getattr(_sp_out, "source_prices", None) == {"price": 1308050000, "final_price": 1334800000}
+      and getattr(_spl.get("SPF002"), "source_prices", None) == {"price": 1500000000}
+      and _sp_refused,
+      str((getattr(_spl.get("SPF001"), "source_prices", "<missing>"),
+           getattr(_spl.get("SPF002"), "source_prices", "<missing>"), _sp_refused)))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
