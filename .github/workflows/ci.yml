@@ -2,7 +2,7 @@
 #
 # Two jobs, run side by side:
 #
-#   suites  all fifteen suites of tests/run_all.py. The runner exits 0 when a
+#   suites  all sixteen suites of tests/run_all.py. The runner exits 0 when a
 #           suite is skipped for a missing dependency, and "skipped is not
 #           passed" is this project's rule, so this job fails on any skip.
 #   web     the site's type check, lint and production build.

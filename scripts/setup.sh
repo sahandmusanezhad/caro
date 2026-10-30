@@ -3,8 +3,8 @@
 #
 #     ./scripts/setup.sh                 numpy — the only hard dependency
 #     ./scripts/setup.sh --extras        …and scipy + the API packages, so
-#                                        fourteen of the fifteen suites run
-#                                        instead of twelve; the fifteenth also
+#                                        fifteen of the sixteen suites run
+#                                        instead of thirteen; the sixteenth also
 #                                        needs node and `npm install` in
 #                                        webapp/web
 #
@@ -42,11 +42,11 @@ WANT_EXTRAS=0
 if [ "$WANT_EXTRAS" = "1" ]; then
   PKGS="numpy scipy fastapi pydantic uvicorn"
   WHAT="numpy and the test extras"
-  THEN="fourteen of fifteen suites — the fifteenth also needs node: (cd webapp/web && npm install)"
+  THEN="fifteen of sixteen suites — the sixteenth also needs node: (cd webapp/web && npm install)"
 else
   PKGS="numpy"
   WHAT="numpy"
-  THEN="twelve of fifteen suites — --extras adds two, and the fifteenth needs --extras plus (cd webapp/web && npm install)"
+  THEN="thirteen of sixteen suites — --extras adds two, and the sixteenth needs --extras plus (cd webapp/web && npm install)"
 fi
 
 echo "python: $($PY --version 2>&1)"
@@ -128,6 +128,6 @@ Could not install $WHAT without root. Pick whichever suits you:
   source .venv/bin/activate && python tests/run_all.py
 
 numpy is the only hard dependency of caro/ itself. Without the extras the
-suite still runs — it skips three of the fifteen by name and says so.
+suite still runs — it skips three of the sixteen by name and says so.
 MSG
 exit 1

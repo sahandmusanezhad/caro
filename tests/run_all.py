@@ -90,6 +90,9 @@ SUITES = [
     ("--  palette", "tests/test_palette.py",
      "the site and the demo carry one palette, or the build stops",
      (), "", ()),
+    ("--  store", "tests/test_store.py",
+     "the seller listings' store keeps, deletes and migrates as it says",
+     (), "", ()),
 ]
 
 

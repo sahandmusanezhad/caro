@@ -36,7 +36,7 @@ change looks small.
    the same size, written in the same second, share the bytecode of the first
    (found 2026-10-26: a restored `first_run.py` still ran its mutant, `return
    1`, and a run of the suites failed for it). The earlier rounds' mutations
-   were rerun that way and gave the same survivors. Every commit is green on its own: all fifteen suites, and the site's
+   were rerun that way and gave the same survivors. Every commit is green on its own: all sixteen suites, and the site's
    build when the site is touched. The published counts — the README's four
    numbers and `/about`'s — move in the commit that moves them, or
    `tests/run_all.py` fails.

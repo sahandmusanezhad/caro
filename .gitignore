@@ -28,6 +28,11 @@ data/observations/
 #                     identifiers out of a published artifact, which is a
 #                     different thing from correspondence addressed to us.
 data/inbox/
+#   data/store/       Where a laptop keeps the seller listings' store when
+#                     DATABASE_URL says sqlite:///data/store/<file>: accounts
+#                     with their phone numbers, and the listings sellers post.
+#                     Not a corpus, never published (docs/SELLER_LISTINGS.md).
+data/store/
 #   data/derived/     PUBLISHED, and NOT listed here. Written only by an
 #                     explicit --export, and only the fields a document's
 #                     numbers are computed from — never page text. It exists
