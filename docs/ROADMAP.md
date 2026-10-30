@@ -47,9 +47,10 @@ section that holds its detail.
    before it.
 2. **The floor topics** — the other words for a floor, the bare «X به بالا»,
    ranges, and the negated floor (the parser, item 5). A session measures and
-   builds; the owner decides each. The first is built and waits for its push;
-   three are left. Closes each when its round is recorded in a D-entry after
-   the push.
+   builds; the owner decides each. Two are built and wait for their push --
+   the other words for a floor, and the negated floor, which the owner took on
+   2026-10-30 -- and two are left. Closes each when its round is recorded in a
+   D-entry after the push.
 3. **CI's warnings** (operations, item 1). The owner decides; a session builds
    and measures on CI.
 4. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
@@ -351,8 +352,8 @@ the owner chooses.
    - A negated floor, «پراید از ۴۰۰ میلیون به بالا نباشه», was read as a
      floor of 400 million with no ceiling: the meaning reversed, on 312 of 312
      made phrasings (thirteen negations, six amounts, four contexts) and 96
-     of 96 with «بالای». Built, on the optional branch only (it is a rule
-     about Persian, and the owner's): the negations `_floor_by_word` already
+     of 96 with «بالای». Built (a rule about Persian; the owner took it on
+     2026-10-30): the negations `_floor_by_word` already
      refuses after its phrase are refused after the «به بالا» of «از X» and
      «بالای X» too, and the query reads as a ceiling with the assumption
      printed, on 312 of 312 and 96 of 96; 0 of the 1,609 other made
@@ -362,7 +363,7 @@ the owner chooses.
      باشه»), a word between the phrase and the negation, and a negation after
      a year clause («از X مدل ۹۸ به بالا نباشه»), where it may be the year's.
 
-   Next: the three topics above, one round each, in the order the owner
+   Next: the two topics left above, one round each, in the order the owner
    picks. Each round writes its predictions first, measures on phrasings
    written for it and on the sets the last rounds used, puts the choice to
    the owner, and builds only what he chooses, with tests that pin what is

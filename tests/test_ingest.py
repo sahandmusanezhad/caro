@@ -4245,7 +4245,7 @@ check("V4: the place: Qom from the city; «سراسر استان گلستان» 
       == [(None, "none", "دیواندره"), ("قم", "city", "قم"), (None, "none", "بابل، بندارکلاآغوزین"),
           ("گلستان", "stated", "سراسر استان گلستان")], str([(x.city, x.location_raw) for x in _sp1]))
 check("V5: the corner image and «تابلو شده» are counted; the card with the image is a dealer's (O2, the "
-      "optional rule), every other seller unknown",
+      "owner's rule), every other seller unknown",
       _sptr[0].marks == Counter({"corner image": 1, "تابلو شده": 1})
       and [x.seller_type for x in _sp1] == ["unknown", "dealer", "unknown", "unknown"]
       and {x.seller_raw for x in _sp1} == {None}
@@ -4415,7 +4415,7 @@ check("K2-4: each list's size and its next page with the small numbers kept, and
 check("K2-5: the gearbox from the trim when the option says none; the option's and the trim's values are counted",
       _jl[1].gearbox == "automatic" and _jl[0].gearbox is None
       and "option         XU7:2  تیپ ۲:1" in _jrep and "MC اتوماتیک:1" in _jrep, _jrep)
-print("\noptional: «paintless-dent-removal» is minor_paint (the owner's to take or leave)")
+print("\n«paintless-dent-removal» is minor_paint (the owner's call, taken 2026-10-30)")
 check("O1: the fifth value is minor_paint from the field, a worse title still wins, and the report "
       "no longer names it as unmapped",
       _cond("paintless-dent-removal") == ("minor_paint", "field")
@@ -4682,7 +4682,7 @@ _k4s(_sp_listing("462345681", price=4500000000, cur="IRR"))
 _k4srep = "\n".join(_sh.report(_k4s.traces))
 check("K4-3: Sheypoor's report counts a listing page merged into its card once, and its price once",
       "pages 2   listings 4   cards 4" in _k4srep and "min 0.25B   median 0.25B   max 0.45B" in _k4srep, _k4srep)
-print("\noptional: the corner image's seller type survives the listing page (O2)")
+print("\nthe corner image's seller type survives the listing page (O2, the owner's rule)")
 _o2p = SheypoorParser()
 _o2p(_SP)
 check("O2: a listing page merged into a card with the corner image keeps the card's dealer; one without stays unknown",

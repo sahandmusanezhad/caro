@@ -113,7 +113,7 @@ _KM_REL = 0.02
 # as the worse of the two classes it could be (multi_paint), because a
 # condition that is read down is a car sold as better than it is.
 #
-# A fifth, on the optional branch and the owner's to take or leave:
+# A fifth, the owner's call (taken 2026-10-30):
 # «paintless-dent-removal», seen on page 2 (2026-10-29), is read as
 # minor_paint. The prose table already reads «صافکاری» (dent work) as
 # minor_paint, and paintless dent removal is صافکاری بدون رنگ: the body was

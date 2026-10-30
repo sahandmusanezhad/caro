@@ -115,12 +115,11 @@ python3 scripts/page_probe.py --survey ~/caro-probes/<the new run>/01-….html
   `--pages 1` nothing past `/buy-car/` is requested.
 - **Sheypoor's corner image.** An image at the top right of some cards' photo,
   all of them titled «فروش سازمانی» or «فروش دولتی» on the saved page: a shop's
-  logo, perhaps. Counted, and `seller_type` stays unknown (D26). The optional
-  branch carries the rule that reads it as a dealer, for the owner to take or
-  leave.
+  logo, perhaps. Counted, and read as a dealer: the owner took that rule on
+  2026-10-30 (D26 allows a type from a badge known to be one).
 - **Divar.** What a NewCondition car is in a used-car corpus (counted since
-  this round), and what «paintless-dent-removal» is (the optional branch maps
-  it to `minor_paint`, as the prose table reads «صافکاری»).
+  this round), and what «paintless-dent-removal» is (read as `minor_paint`
+  since 2026-10-30, the owner's call, as the prose table reads «صافکاری»).
 
 ## Addendum — 2026-10-29, after the offline reads
 

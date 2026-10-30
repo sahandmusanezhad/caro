@@ -21,10 +21,10 @@ WHAT THE PAGE IS, as the owner's probe found it on 2026-10-29 (`/s/iran/car`,
 WHAT WAS NOT KNOWN, and is counted rather than assumed. Some cards carry a
 40-px bordered image at the top right of the photo: on the owner's page every
 one of them was titled «فروش سازمانی» or «فروش دولتی», so it may be a shop's
-logo. It is counted, and `seller_type` stays `unknown`: D26 allows a type only
-from a badge known to be one, and what this image is has not been read. (On
-this branch, the optional one, the image IS read as a shop's badge: the
-owner's rule to take or leave, in `build`.)
+logo. It is counted, and read as a shop's badge: D26 allows a type only from
+a badge known to be one, and the owner ruled on 2026-10-30 that this is one,
+so a card that carries it is a dealer's (`build`). Every other card's seller
+stays `unknown`.
 
 The title is the seller's own words, and everything read from it is recorded
 as such: make and model by the table of thirteen, the condition by the prose
@@ -388,7 +388,7 @@ def build(card: Card, listing_id: str, trace: SheypoorTrace) -> CarListing:
         price_provenance=prov, mileage_status=m_status.value,
         mileage_note=m_reason, product_class=pclass,
         product_class_source=psource, price_kind=kind,
-        # The optional branch's rule, the owner's to take or leave: the image
+        # The owner's rule (2026-10-30): the image
         # at the top right of the photo is a shop's badge (on the owner's
         # page every card with one was titled «فروش سازمانی» or «فروش دولتی»).
         price_kind_source=kind_src,
@@ -583,8 +583,8 @@ def build_from_page(entity: dict, lid: str, base: CarListing | None,
         price_status=status.value, price_provenance=prov,
         mileage_status=m_status.value, mileage_note=m_reason,
         product_class=pclass, product_class_source=psource,
-        # the card's seller type, which is unknown on every card here and is
-        # what the optional branch's rule may have said from the card's image
+        # the card's seller type: a dealer's where the card carried the corner
+        # image (the owner's rule), else unknown
         price_kind=kind, price_kind_source=kind_src,
         seller_type=base.seller_type if base else "unknown",
         province_source=base.province_source if base else "none",
@@ -815,6 +815,6 @@ def report(traces: list[SheypoorTrace]) -> list[str]:
     corner = sum(t.marks["corner image"] for t in traces)
     if corner:
         L.append(f"  ⚠ {corner} card(s) carry an image at the top right of the photo, "
-                 "read as a shop's badge (seller_type dealer) by the optional "
-                 "branch's rule; see one on the site before trusting it.")
+                 "read as a shop's badge (seller_type dealer), the owner's "
+                 "rule; see one on the site before trusting it.")
     return L
