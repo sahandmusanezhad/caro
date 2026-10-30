@@ -1295,6 +1295,13 @@ else:
           and {"hidden", "sm:block"} <= set(_cls(_svg_tag)),
           f"ol {_cls(_ol_tag)} svg {_cls(_svg_tag)}")
 
+# ---------------------------------------------------------------------------
+print("\nthe admin page sends a code typed in Persian digits as the digits a header carries")
+# ---------------------------------------------------------------------------
+_ad, why = call("lib/format.ts", "asciiDigits", [["۲۸۷۰۸۲"], ["٠٧٠٨١٨"], ["123456"], ["۱۲۳abc"]])
+check("asciiDigits: Persian and Arabic-Indic digits become ASCII ones; anything else is left as it is",
+      _ad == ["287082", "070818", "123456", "123abc"], str(_ad) or why)
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

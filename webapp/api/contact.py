@@ -42,6 +42,7 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from webapp.api.security import RateLimiter, client_address, too_many
+from webapp.api.totp import SecretError, Verifier, decode_secret
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 INBOX = ROOT / "data" / "inbox"
@@ -134,17 +135,48 @@ def submit(msg: Message, request: Request) -> dict:
             "fa": "پیام ثبت شد. شماره‌ی پیگیری را نگه دار."}
 
 
-def _authorised(token: str | None) -> bool:
-    """Constant-time compare against a token that must actually be set."""
+# The second step of the operator's login (O1, webapp/api/totp.py): with
+# CARO_ADMIN_TOTP_SECRET set, the token opens nothing without a code from the
+# owner's authenticator app. Unset, the token alone opens, as it did before the
+# owner chose O1, so a deployment is not locked out before its secret is set;
+# set but unreadable, nothing opens -- a lock that cannot be read is not taken
+# off.
+ADMIN_CODES = Verifier()
+
+
+def second_factor() -> str:
+    """"off" (no secret), "on", or "unreadable" (a secret that is not a key)."""
+    raw = os.environ.get("CARO_ADMIN_TOTP_SECRET", "")
+    if not raw.strip():
+        return "off"
+    try:
+        decode_secret(raw)
+    except SecretError:
+        return "unreadable"
+    return "on"
+
+
+def _authorised(token: str | None, code: str | None = None) -> bool:
+    """Constant-time compare against a token that must actually be set, then,
+    where a second factor is configured, the code. The token comes first, so a
+    wrong token never spends a code."""
     expected = os.environ.get("CARO_ADMIN_TOKEN", "")
     if not expected or not token:
         return False
-    return secrets.compare_digest(token, expected)
+    if not secrets.compare_digest(token, expected):
+        return False
+    state = second_factor()
+    if state == "off":
+        return True
+    if state == "unreadable":
+        return False
+    return ADMIN_CODES.check(decode_secret(os.environ["CARO_ADMIN_TOTP_SECRET"]), code)
 
 
 @router.get("/api/admin/messages")
 def inbox(request: Request,
-          x_admin_token: str | None = Header(default=None)) -> dict:
+          x_admin_token: str | None = Header(default=None),
+          x_admin_code: str | None = Header(default=None)) -> dict:
     """Everything received, newest first. Refuses when no token is configured."""
     # An address that has failed the token ten times in ten minutes is
     # refused before the token is even compared, the right one included: a
@@ -153,9 +185,10 @@ def inbox(request: Request,
     wait = ADMIN_FAILURES.blocked(addr)
     if wait is not None:
         raise too_many(wait)
-    if not _authorised(x_admin_token):
+    if not _authorised(x_admin_token, x_admin_code):
         ADMIN_FAILURES.hit(addr)
-        # The same 401 whether the token was wrong or was never configured.
+        # The same 401 whether the token or the code was wrong, or neither was
+        # ever configured.
         # Telling an unauthenticated caller which of the two it is hands them
         # the one fact they came for.
         raise HTTPException(401, "دسترسی مدیریت تأیید نشد")
@@ -186,6 +219,9 @@ def status() -> dict:
     The admin page needs to distinguish "your token is wrong" from "this
     deployment has no admin token", and it cannot learn that from a 401 —
     deliberately, since the 401 refuses to say. So it is published here as the
-    single boolean it is, with nothing derived from the token itself.
+    single boolean it is, with nothing derived from the token itself; and
+    beside it whether the page must ask for a code, which says nothing of the
+    secret either.
     """
-    return {"configured": bool(os.environ.get("CARO_ADMIN_TOKEN", ""))}
+    return {"configured": bool(os.environ.get("CARO_ADMIN_TOKEN", "")),
+            "second_factor": second_factor()}

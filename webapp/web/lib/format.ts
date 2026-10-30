@@ -320,6 +320,15 @@ export function modelLabel(key: string): string {
     .join(' · ');
 }
 
+/** A code typed on a Persian keyboard, in the ASCII digits an HTTP header can
+ *  carry: a header holds no Persian digit, and a browser refuses to send one.
+ *  Persian (U+06F0..) and Arabic-Indic (U+0660..) digits both. */
+export function asciiDigits(s: string): string {
+  return s
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+}
+
 /** A model page's title: the model as the page draws it, then the site, so
  *  two tabs or two search results of two models do not read the same. `_`
  *  is the page's placeholder for a make the corpus does not give. */

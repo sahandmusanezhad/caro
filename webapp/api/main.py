@@ -71,7 +71,7 @@ app.include_router(market_router)
 # site and the API from one origin. No cookie is used, so no credentials.
 app.add_middleware(
     CORSMiddleware, allow_origins=cors_origins(), allow_credentials=False,
-    allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token"])
+    allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token", "X-Admin-Code"])
 app.add_middleware(SecurityHeaders)
 
 # The longest question the search reads, and the longest id a listing has.

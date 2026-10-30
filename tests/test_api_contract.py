@@ -1923,6 +1923,108 @@ finally:
     corpus_mod.active.cache_clear()
     market_mod.published_runs.cache_clear()
 
+# ---------------------------------------------------------------------------
+print("\n21 — the operator's login takes a code from an authenticator app (O1)")
+# ---------------------------------------------------------------------------
+# Predictions A1..A7 (2026-10-30, locked before the code). The owner chose O1;
+# the clock is the test's, the inbox a temporary one, and every limit and every
+# spent code is cleared before and after.
+from webapp.api import totp as totp_mod                            # noqa: E402
+
+_RFC_KEY = b"12345678901234567890"
+_RFC_B32 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+check("A1: RFC 6238 appendix B, SHA-1, eight digits, at its six times",
+      [totp_mod.code_at(_RFC_KEY, t // 30, 8) for t in (59, 1111111109, 1111111111, 1234567890,
+                                                        2000000000, 20000000000)]
+      == ["94287082", "07081804", "14050471", "89005924", "69279037", "65353130"]
+      and totp_mod.decode_secret(_RFC_B32.lower()) == _RFC_KEY)
+
+_kept21 = (contact_mod.INBOX, contact_mod.MESSAGES, contact_mod.ADMIN_CODES.clock,
+           os.environ.get("CARO_ADMIN_TOKEN"), os.environ.get("CARO_ADMIN_TOTP_SECRET"))
+_T0 = 1_700_000_000
+_now21 = [_T0]
+_TOKEN21 = "the-right-token-0123456789"
+try:
+    with tempfile.TemporaryDirectory() as _tmp21:
+        contact_mod.INBOX = Path(_tmp21)
+        contact_mod.MESSAGES = Path(_tmp21) / "messages.jsonl"
+        contact_mod.ADMIN_CODES.clock = lambda: _now21[0]
+        with contextlib.redirect_stdout(io.StringIO()):
+            _c21 = TestClient(api.app, raise_server_exceptions=False)
+
+        def _open21(token=_TOKEN21, code=None):
+            h = {"x-admin-token": token}
+            if code is not None:
+                h["x-admin-code"] = code
+            return _c21.get("/api/admin/messages", headers=h).status_code
+
+        def _fresh21(at=_T0):
+            _now21[0] = at
+            contact_mod.ADMIN_CODES.forget()
+            contact_mod.ADMIN_FAILURES.clear()
+
+        _code = lambda step: totp_mod.code_at(_RFC_KEY, step)          # noqa: E731
+        _s0 = _T0 // 30
+        _wrong = next(c for c in ("000000", "111111", "222222") if c != _code(_s0))
+        os.environ["CARO_ADMIN_TOKEN"] = _TOKEN21
+        os.environ["CARO_ADMIN_TOTP_SECRET"] = _RFC_B32
+
+        _fresh21()
+        _a2 = (_open21(), _open21(code=_code(_s0)), _open21(code=_wrong))
+        check("A2: with a secret, the token alone is refused, the token and the step's code open, a wrong "
+              "code is refused", _a2 == (401, 200, 401), str(_a2))
+        _fresh21()
+        _a3 = (_open21(token="wrong-token", code=_code(_s0)), _open21(code=_code(_s0)))
+        check("A3: a wrong token with the right code is refused, and does not spend the code",
+              _a3 == (401, 200), str(_a3))
+        _fresh21()
+        _a4 = [_open21(code=_code(_s0)), _open21(code=_code(_s0))]
+        _fresh21(_T0 + 30)
+        _a4.append(_open21(code=_code(_s0)))
+        _fresh21(_T0 + 60)
+        _a4.append(_open21(code=_code(_s0)))
+        check("A4: a code once; the step before's code is taken, a code two steps old is not",
+              _a4 == [200, 401, 200, 401], str(_a4))
+        # A header carries no Persian digit -- httpx will not encode one and a
+        # browser's fetch refuses to send one -- so the page sends the code's
+        # digits in ASCII (lib/format.ts asciiDigits, held by the screens
+        # suite), and the verifier reads Persian and Arabic-Indic digits for
+        # whatever reaches it another way.
+        _fresh21()
+        _fa = _code(_s0).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+        _ar = _code(_s0 + 1).translate(str.maketrans("0123456789", "٠١٢٣٤٥٦٧٨٩"))
+        _now21[0] = _T0 + 30
+        check("A5: a code in Persian digits, and the next in Arabic-Indic ones, are read as their digits",
+              contact_mod.ADMIN_CODES.check(_RFC_KEY, _fa) is True
+              and contact_mod.ADMIN_CODES.check(_RFC_KEY, _ar) is True, f"{_fa} {_ar}")
+
+        _fresh21()
+        os.environ.pop("CARO_ADMIN_TOTP_SECRET", None)
+        _off = (_open21(), _c21.get("/api/admin/status").json().get("second_factor"))
+        _bad = []
+        for _secret in ("not base32 !", "GEZDGNBV"):
+            os.environ["CARO_ADMIN_TOTP_SECRET"] = _secret
+            _fresh21()
+            _bad.append((_open21(code=_code(_s0)), _c21.get("/api/admin/status").json().get("second_factor")))
+        check("A6: no secret, the token alone opens and the status says «off»; a secret that is not base32, "
+              "or is under 128 bits, opens nothing and the status says «unreadable»",
+              _off == (200, "off") and _bad == [(401, "unreadable")] * 2, str((_off, _bad)))
+
+        os.environ["CARO_ADMIN_TOTP_SECRET"] = _RFC_B32
+        _fresh21()
+        _a7 = [_open21(code=_wrong) for _ in range(10)] + [_open21(code=_code(_s0))]
+        check("A7: ten wrong codes with the right token are ten failures; the next try is 429 even with the "
+              "right code", _a7 == [401] * 10 + [429], str(_a7))
+finally:
+    contact_mod.INBOX, contact_mod.MESSAGES, contact_mod.ADMIN_CODES.clock = _kept21[:3]
+    for _k, _v in zip(("CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET"), _kept21[3:]):
+        if _v is None:
+            os.environ.pop(_k, None)
+        else:
+            os.environ[_k] = _v
+    contact_mod.ADMIN_CODES.forget()
+    contact_mod.ADMIN_FAILURES.clear()
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

@@ -199,7 +199,7 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all fifteen suites
 
-python3 tests/run_all.py            # 3216 assertions, no API key, no network
+python3 tests/run_all.py            # 3224 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -220,7 +220,7 @@ suites need more, and the runner says so rather than failing:
 python3 tests/run_all.py            # 2635 assertions across 12 of 15 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3216 across all fifteen
+python3 tests/run_all.py            # 3224 across all fifteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -283,7 +283,21 @@ account.
 Security, as built (`webapp/api/security.py`, `next.config.mjs`): a
 Content-Security-Policy and HSTS on the site, `nosniff` and no framing on
 both; bounded inputs on the API; a per-process rate limit on the contact form
-and on failed admin tokens; CORS only for the development origin.
+and on failed admin logins; CORS only for the development origin.
+
+The admin login has a second step where `CARO_ADMIN_TOTP_SECRET` is set
+(`webapp/api/totp.py`, the owner's choice O1): the token and the six digits
+of an authenticator app, each code accepted once. The owner makes the secret
+locally and types it into the app as a setup key, time-based; the deploy
+holder sets the same value in the deployment. It is never written into the
+repository or a chat:
+
+```
+python3 -c "import base64, os; print(base64.b32encode(os.urandom(20)).decode())"
+```
+
+Unset, the token alone opens `/admin`, as before; set to something that is
+not a base32 key of 128 bits or more, nothing opens it until it is fixed.
 `.github/workflows/ci.yml` runs every suite and the site's type check, lint and
 build on each push to `main` and each pull request, and fails when a suite is
 skipped.
@@ -610,7 +624,7 @@ trade for a system whose pitch is that it does not overclaim.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3216 assertions across fifteen suites
+tests/           3224 assertions across fifteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, replays, the benchmark, the probes
 data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed
