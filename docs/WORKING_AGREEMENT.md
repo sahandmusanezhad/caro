@@ -78,10 +78,18 @@ change looks small.
 - **No live request to any source without the owner's explicit permission.**
   Each live run is his decision and runs on his machine; a session writes its
   plan and its predictions, and reads what comes back.
-- **A seller's phone number is never stored or shown.** No evasion of a
-  block, no CAPTCHA solving, no rotation of accounts, no OTP handling;
-  robots.txt is read in code and obeyed (D73); a seller is a dealer only
-  where the source shows a business badge (D26).
+- **The phone number of a seller on a source is never stored or shown.**
+  No evasion of a block, no CAPTCHA solving, no rotation of accounts, no OTP
+  handling on a source's account; robots.txt is read in code and obeyed
+  (D73); a seller is a dealer only where the source shows a business badge
+  (D26).
+- **A number a seller gives CARO is shown only as that seller chose.** The
+  owner chose on 2026-10-30 to build listings that sellers post on CARO
+  itself ([SELLER_LISTINGS](SELLER_LISTINGS.md)). Their number is the one
+  they logged in with: kept apart from the corpus, never in a page's HTML,
+  JSON or structured data, shown only where its seller ticked «نمایش شماره»
+  and only when a visitor presses it, and deleted with the account. The
+  code CARO sends its own users to log in is not a source's OTP.
 - **Snapshots and observations stay on the owner's machine.** What is
   published is a promoted corpus under `data/corpora/`, under
   [DATA_CONTRACT](DATA_CONTRACT.md).
