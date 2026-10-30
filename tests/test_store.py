@@ -25,10 +25,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import webapp.api.store as store_mod  # noqa: E402
 from webapp.api.store import (  # noqa: E402
     DIALECTS, MIGRATIONS, TABLES, Store, StoreError, open_store, phone_09, sqlite_path, to_driver)
 
 FAILS = []
+HEAD = MIGRATIONS[-1][0]
 
 
 def check(name, cond, detail=""):
@@ -101,7 +103,7 @@ check("S5: sqlite:///<path> is under the repository, sqlite:////<path> is absolu
       "is in memory, and the last opens migrated",
       sqlite_path("data/store/caro.sqlite3") == str(ROOT / "data" / "store" / "caro.sqlite3")
       and sqlite_path("/var/x.sqlite3") == "/var/x.sqlite3" and sqlite_path(":memory:") == ":memory:"
-      and _mem.version() == 1, str(_mem.version()))
+      and _mem.version() == HEAD, str(_mem.version()))
 _mem.close()
 
 # ---------------------------------------------------------------------------
@@ -110,13 +112,15 @@ _mem.close()
 _v0 = ST.version()
 _applied = ST.migrate()
 _tables_ok = all(raises(lambda t=t: count(t)) is None for t in TABLES + ("schema_migrations",))
-check("S6: migrating an empty database makes the eight tables and schema_migrations, at version 1",
-      _v0 == 0 and _applied == [1] and _tables_ok and ST.version() == 1, str((_v0, _applied, _tables_ok)))
+check("S6: migrating an empty database applies every migration in order and makes the eight tables and "
+      "schema_migrations, at the last version",
+      _v0 == 0 and _applied == [n for n, _ in MIGRATIONS] and _tables_ok and ST.version() == HEAD,
+      str((_v0, _applied, _tables_ok)))
 
 _a7 = ST.create_account("09100000007")
 _again = ST.migrate()
 check("S7: a second migration applies nothing, and what was written in between stays",
-      _again == [] and ST.version() == 1 and count("accounts", "WHERE id = ?", (_a7,)) == 1, str(_again))
+      _again == [] and ST.version() == HEAD and count("accounts", "WHERE id = ?", (_a7,)) == 1, str(_again))
 
 _ADDS = re.compile(r"\s*(CREATE TABLE IF NOT EXISTS|CREATE (UNIQUE )?INDEX IF NOT EXISTS"
                    r"|ALTER TABLE \w+ ADD COLUMN)\s", re.I)
@@ -313,6 +317,32 @@ check("S21: with 3 in 15 minutes and 6 in a day, the short window blocks first a
       _short[:3] == [None] * 3 and 0 < _short[3] <= 900 and _day[:3] == [None] * 3 and _day[3] > 900
       and _n_before == 6 and count("attempts", "WHERE kind = ?", ("s21",)) == 0,
       str((_short, _day, _n_before, count("attempts", "WHERE kind = ?", ("s21",)))))
+
+# ---------------------------------------------------------------------------
+# A database the code before migration 2 made, under the code after it
+# ---------------------------------------------------------------------------
+_old = open_store(f"sqlite:///{_tmp.name}/older.sqlite3", SECRET, migrate=False)
+_all = store_mod.MIGRATIONS
+try:
+    store_mod.MIGRATIONS = _all[:1]
+    _old.migrate()
+    _o_acc = _old.create_account("09100000022")
+    _o_l = _old.insert("INSERT INTO listings (account_id, created_at, ends_at) VALUES (?, ?, ?)", (_o_acc, 1, 2))
+    _V1 = "INSERT INTO listing_versions (listing_id, created_at, make, price_toman) VALUES (?, ?, ?, ?)"
+    _old.insert(_V1, (_o_l, 1, "Saipa", 400000000))
+    _v_before = _old.version()
+finally:
+    store_mod.MIGRATIONS = _all
+_up = _old.migrate()
+_e22 = raises(lambda: _old.insert(_V1, (_o_l, 2, "Saipa", 410000000)))
+_p22 = raises(lambda: _old.execute("UPDATE listing_versions SET province = ? WHERE listing_id = ?", ("قم", _o_l)))
+check("S22: on SQLite, a database at version 1 holding a listing gets version 2: the province column is there, "
+      "every row is there, and an INSERT written for version 1 still works",
+      _v_before == 1 and _up == [2] and _old.version() == 2 and _e22 is None and _p22 is None
+      and _old.row("SELECT COUNT(*) AS n FROM listing_versions WHERE listing_id = ? AND province = ?",
+                   (_o_l, "قم"))["n"] == 2
+      and _old.row("SELECT COUNT(*) AS n FROM accounts")["n"] == 1, str((_v_before, _up, _e22, _p22)))
+_old.close()
 
 ST.close()
 print()

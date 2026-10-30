@@ -163,6 +163,11 @@ MIGRATIONS: tuple[tuple[int, tuple[str, ...]], ...] = (
             at BIGINT NOT NULL)""",
         "CREATE INDEX IF NOT EXISTS reveals_listing ON reveals(listing_id)",
     )),
+    # The province, chosen from the 31 (caro/ingest/persian.py); the city
+    # stays as the seller wrote it, and is never read for the province.
+    (2, (
+        "ALTER TABLE listing_versions ADD COLUMN province TEXT",
+    )),
 )
 
 TABLES = ("accounts", "sessions", "login_codes", "attempts", "listings",
