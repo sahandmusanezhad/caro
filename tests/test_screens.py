@@ -1258,6 +1258,43 @@ else:
           and [o["id"] for o in _oy[1]] == [o["id"] for o in _OFFERS],
           str([[o["id"] for o in g] for g in _oy]))
 
+# ---------------------------------------------------------------------------
+print("\non a phone, a model's runs are a list; from 640 px, the chart")
+# ---------------------------------------------------------------------------
+_RUNS = [{"run_id": "run11", "collected_on": "2026-09-10", "priced": 54, "price_median": 613_000_000},
+         {"run_id": "run13", "collected_on": "2026-10-06", "priced": 2, "price_median": None},
+         {"run_id": "run14", "collected_on": "2026-10-11", "priced": 53, "price_median": 635_000_000},
+         {"run_id": "run16", "collected_on": "2026-10-15", "priced": 50, "price_median": 650_000_000}]
+_hv, why = node({"component": "components/ModelDetail.tsx", "export": "History",
+                 "props": [{"points": _RUNS}]})
+_hc, why2 = call("lib/format.ts", "compact", [[r["price_median"]] for r in _RUNS if r["price_median"]])
+_hn, why3 = call("lib/format.ts", "faNum", [[r["priced"]] for r in _RUNS])
+if _hv is None or _hc is None or _hn is None:
+    check("History could be drawn", False, why or why2 or why3)
+else:
+    _hh = _hv["markup"][0]
+    _ol = re.search(r'<ol[^>]*data-runs="list"[^>]*>(.*?)</ol>', _hh, re.S)
+    _items = re.findall(r"<li[^>]*>(.*?)</li>", _ol.group(1), re.S) if _ol else []
+    _mids = iter(_hc)
+    _want = [(r["run_id"], _hn[i], next(_mids) if r["price_median"] else None)
+             for i, r in enumerate(_RUNS)]
+    _ok = len(_items) == len(_RUNS) and all(
+        rid in _text(it) and f"{n} آگهی با قیمت" in _text(it)
+        and ((mid is not None and f"میانه {mid}" in _text(it) and "کمتر از سه" not in _text(it))
+             or (mid is None and "کمتر از سه آگهی با قیمت" in _text(it) and "میانه" not in _text(it)))
+        for it, (rid, n, mid) in zip(_items, _want))
+    check("the list: one item per run, in order, each with its id and its count; a middle where "
+          "there is one, and «کمتر از سه آگهی با قیمت» and no middle where there is not",
+          _ok, " | ".join(_text(it)[:60] for it in _items))
+    _ol_tag = re.search(r'<ol[^>]*data-runs="list"[^>]*>', _hh)
+    _svg_tag = re.search(r"<svg[^>]*>", _hh)
+    _cls = lambda tag: (re.search(r'class="([^"]*)"', tag.group(0)).group(1).split()
+                        if tag and re.search(r'class="([^"]*)"', tag.group(0)) else [])
+    check("the chart is hidden on a phone and the list from 640 px up: one of them, never both",
+          "sm:hidden" in _cls(_ol_tag) and "hidden" not in _cls(_ol_tag)
+          and {"hidden", "sm:block"} <= set(_cls(_svg_tag)),
+          f"ol {_cls(_ol_tag)} svg {_cls(_svg_tag)}")
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

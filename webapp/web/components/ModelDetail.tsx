@@ -31,7 +31,11 @@ const SORTS: { by: OfferSort; fa: string; heading: string; note: string }[] = [
     note: 'کارکردی که مشکوک یا ناممکن خوانده شده، یا معلوم نیست، بعد از بقیه آمده است.' },
 ];
 
-function History({ points }: { points: HistoryPoint[] }) {
+/* Exported for the screens suite. Two drawings of the same runs: the chart,
+   from 640 px up, and below that a list -- at a phone's width the chart's
+   640 units shrink its labels to six pixels, and four runs read better as
+   four lines than as a picture nobody can read. */
+export function History({ points }: { points: HistoryPoint[] }) {
   const drawn = points.filter((p) => p.price_median != null);
   if (drawn.length === 0) {
     return <p className="m-0 text-[13px] text-ink-3">در هیچ اجرای منتشرشده‌ای سه آگهی با قیمت از این مدل نبود.</p>;
@@ -51,7 +55,22 @@ function History({ points }: { points: HistoryPoint[] }) {
   });
   return (
     <figure className="m-0">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-w-[760px] mx-auto block" role="img"
+      <ol className="sm:hidden m-0 p-0 list-none flex flex-col gap-2" data-runs="list">
+        {points.map((p) => (
+          <li key={p.run_id} className="flex flex-wrap items-baseline justify-between gap-x-4
+                                        text-[14px] border-b border-line pb-2">
+            <span>
+              <span className="num text-[13px]">{p.run_id}</span>
+              {p.collected_on && <span className="text-ink-3 text-[13px]"> · <span className="num">{p.collected_on}</span></span>}
+              <span className="text-ink-3 text-[13px]"> · <span className="fig">{faNum(p.priced)}</span> آگهی با قیمت</span>
+            </span>
+            {p.price_median != null
+              ? <span className="fig font-bold">میانه {compact(p.price_median)} تومان</span>
+              : <span className="text-ink-3 text-[13px]">کمتر از سه آگهی با قیمت</span>}
+          </li>
+        ))}
+      </ol>
+      <svg viewBox={`0 0 ${W} ${H}`} className="hidden sm:block w-full h-auto max-w-[760px] mx-auto" role="img"
            aria-label="میانه‌ی قیمت پیشنهادی در هر اجرای منتشرشده">
         {segs.map((d) => <path key={d} d={d} fill="none" stroke="var(--accent)" strokeWidth="2.5" />)}
         {points.map((p, i) => p.price_median != null ? (
@@ -67,9 +86,9 @@ function History({ points }: { points: HistoryPoint[] }) {
         ))}
       </svg>
       <figcaption className="text-[12.5px] text-ink-3 mt-2">
-        هر نقطه میانه‌ی قیمت پیشنهادیِ آگهی‌های با قیمتِ این مدل در یک اجرای منتشرشده
-        است، و فقط جایی کشیده می‌شود که دست‌کم سه آگهی پشتش باشد. این چند اجرا
-        نمونه‌اند، نه بازار: نمودار درباره‌ی گران یا ارزان شدن چیزی نمی‌گوید.
+        هر میانه، میانه‌ی قیمت پیشنهادیِ آگهی‌های با قیمتِ این مدل در یک اجرای
+        منتشرشده است، و فقط جایی آمده که دست‌کم سه آگهی پشتش باشد. این چند اجرا
+        نمونه‌اند، نه بازار: این عددها درباره‌ی گران یا ارزان شدن چیزی نمی‌گویند.
       </figcaption>
     </figure>
   );
