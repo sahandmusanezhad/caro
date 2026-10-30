@@ -85,9 +85,9 @@ section that holds its detail.
    chose listings that sellers post on CARO themselves, with a number shown
    only by their choice, built alongside the first live runs: the design and
    the choices it waits on are [SELLER_LISTINGS](SELLER_LISTINGS.md). Its
-   first two steps, the store and the login against a fake SMS provider, are
-   built; the listing, the operator's view, the site and the provider are
-   left.
+   first three steps, the store, the login against a fake SMS provider and
+   the listing with its reveal, are built; the operator's view, the site and
+   the provider are left.
 9. **The demo** (the end). The last: the demo script brought up to date with
    the site as it is, recorded, and sent where the owner decides.
 

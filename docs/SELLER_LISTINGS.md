@@ -52,7 +52,7 @@ the seller's listings, nothing else. «حذف حساب» deletes both.
 | year | Jalali, 1300 to next year |
 | mileage | km, 0 to 2,000,000; «کارکرد صفر» only with a year this year or next |
 | price | toman, cash, or «توافقی»; the same floor the corpus gate has |
-| city | one of the cities the site knows; the province from it, said to be from the city |
+| province and city | the province one of the 31 (`caro/ingest/persian.py`); the city as the seller writes it, kept verbatim and never read for the province -- the code holds no city list, on purpose |
 | gearbox, fuel, colour, body | the site's own classes |
 | description | the seller's text, up to 1,000 characters, no link and no number in it (a number in prose is how a phone escapes the reveal) |
 | show the number | yes or no, no by default |
@@ -155,7 +155,13 @@ commits, a delivery.
    per phone 3 codes in 15 minutes and 6 a day; per address 6 an hour, 20 a
    day and 20 wrong codes an hour; 500 codes a day in all.
 3. **The listing** -- the form's rules on the server, the seller's list,
-   edit, renew, delete; the reveal and its limit.
+   edit, renew, delete; the reveal and its limit. *Built 2026-10-30:*
+   `webapp/api/listings.py`, held by section 23 of `tests/test_api_contract.py`,
+   with migration 2 adding the province. The reveal's limit is a proposal: 10
+   an hour and 30 a day per address, every press counted, a number found or
+   not. A listing renewed and then left alone ends the day its seller's
+   session does (both are 30 days), so renewing it after that takes a new
+   login.
 4. **The operator** -- pending, approve, reject with a reason, the reports.
 5. **The site** -- «ورود», «آگهی‌های من», «ثبت آگهی», the public list, the
    section on a model's page, «نمایش شماره», «گزارش آگهی».
