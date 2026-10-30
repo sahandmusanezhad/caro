@@ -276,8 +276,9 @@ def place_of(card: Card) -> str | None:
 
 
 def province_of_place(place: str | None) -> tuple[str | None, str]:
-    """(province, source): one of the thirteen capitals named as their
-    province is (`city`), or «سراسر استان X» / «استان X» naming one of the 31
+    """(province, source): a province's capital, any of the 31 (`city`; the
+    eighteen not named as their province since the owner's choice of
+    2026-10-30), or «سراسر استان X» / «استان X» naming one of the 31
     (`stated`); else (None, `none`)."""
     if not place:
         return None, "none"

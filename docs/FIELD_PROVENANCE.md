@@ -197,6 +197,9 @@ A province the line states is read in any part after the city; a line whose
 city is one of the thirteen capitals that share their province's name, with
 its district — «تهران، آذری», «اصفهان، کهندژ» — or alone — «کرمان» — gives
 that province, recorded as `province_source` `city`, never as stated (D74).
+Since 2026-10-30, by the owner's choice, so does a line whose city is one of
+the eighteen other capitals — «کرج» gives البرز, «شیراز» فارس — and no other
+city gives one (`persian.OTHER_CAPITALS`).
 The city stands alone because Bama leaves out a province named as its city;
 the rule read such a line as stated until the lines a collection kept on
 2026-10-14 showed the shape, and run14 was read by that rule — how many of

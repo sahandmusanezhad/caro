@@ -42,8 +42,8 @@ any seller field. No seller identifier is on the page, so `seller_raw` stays
 None and no fingerprint is made; nothing here reveals a contact, because there
 is nothing to reveal on a list page.
 
-Not done here, and said so: the province of a city that is not one of the
-thirteen that share their province's name, make and model beyond the table of
+Not done here, and said so: the province of a city that is no province's
+capital (the 31 give theirs since 2026-10-30), make and model beyond the table of
 thirteen (the nodes carry a brand and a model; their values are counted in the
 report and not used), and the list pagination (`has_next_page` is in the page
 state, but whether `?page=2` is served has not been probed).

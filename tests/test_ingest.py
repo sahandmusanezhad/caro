@@ -2004,8 +2004,10 @@ for _name, _lines, _want_prov, _want_src in [
     ("a province alone, no capital's name, is stated",
      _swap(OBSERVED_LOCATION_BLOCK, "رباط کریم، تهران", "فارس"),
      "فارس", "after_odometer"),
+    # «کاشان», no capital: «کرج» stood here until the owner chose, on
+    # 2026-10-30, that the capitals give their province (Karaj gives البرز).
     ("a city with no province is refused, not inferred",
-     _swap(OBSERVED_LOCATION_BLOCK, "رباط کریم، تهران", "کرج"),
+     _swap(OBSERVED_LOCATION_BLOCK, "رباط کریم، تهران", "کاشان"),
      None, "window_had_no_province"),
     ("no location: the PRICE is not taken instead",
      _without(OBSERVED_LOCATION_BLOCK, "رباط کریم، تهران"),
@@ -2088,7 +2090,7 @@ for _txt, _want in [
     ("تهران، گرگان", "تهران"),        # a district of Tehran, not the city
     ("اصفهان، کهندژ", "اصفهان"),
     ("اصفهان، برازنده", "اصفهان"),
-    ("کرج، گلشهر", None),             # البرز's capital, not named البرز
+    ("کرج، گلشهر", "البرز"),          # البرز's capital (the owner's choice, 2026-10-30)
     ("گلستان، مرکز", None),           # a province's name in the city's place
     ("البرز، مرکز", None),
     ("تهران، آذری، شرقی", None),      # three parts: not this rule's shape
@@ -2099,6 +2101,27 @@ for _txt, _want in [
     check(f"province_from_city({_txt!r:30}) = {_want!r}",
           province_from_city(_txt) == _want,
           f"got {province_from_city(_txt)!r}")
+
+# PC1, PC2 (predictions R29, part A, locked before the code). The owner chose
+# on 2026-10-30 that the eighteen capitals not named as their province give
+# it too, from the city; any other city still gives none.
+_CAPITALS18 = {"تبریز": "آذربایجان شرقی", "ارومیه": "آذربایجان غربی", "کرج": "البرز",
+               "شهرکرد": "چهارمحال و بختیاری", "بیرجند": "خراسان جنوبی", "مشهد": "خراسان رضوی",
+               "بجنورد": "خراسان شمالی", "اهواز": "خوزستان", "زاهدان": "سیستان و بلوچستان",
+               "شیراز": "فارس", "سنندج": "کردستان", "یاسوج": "کهگیلویه و بویراحمد",
+               "گرگان": "گلستان", "رشت": "گیلان", "خرم\u200cآباد": "لرستان", "ساری": "مازندران",
+               "اراک": "مرکزی", "بندرعباس": "هرمزگان", "بندر عباس": "هرمزگان", "خرم آباد": "لرستان"}
+_pc1 = {c: (province_from_city(c), province_from_city(f"{c}، مرکز")) for c in _CAPITALS18}
+check("PC1: each of the eighteen capitals not named as its province gives that province, alone and with a "
+      "district -- «بندر عباس» and «خرم آباد» spaced as well -- and each is one of the thirty-one",
+      all(got == (want, want) for (c, want), got in zip(_CAPITALS18.items(), _pc1.values()))
+      and set(_CAPITALS18.values()) <= set(PROVINCES) and len(set(_CAPITALS18.values())) == 18,
+      str({c: g for c, g in _pc1.items() if g != (_CAPITALS18[c],) * 2}))
+check("PC2: a city that is no capital, a province's name in the city's place and a line of three parts "
+      "still give none",
+      [province_from_city(x) for x in ("کاشان", "بابل، بندارکلاآغوزین", "رباط کریم، تهران",
+                                       "گلستان، مرکز", "البرز، مرکز", "شیراز، فارس، فرهنگیان")]
+      == [None] * 6)
 
 # A lone name: three real lines of run15 (2026-10-14), read out of its
 # snapshot — «کرمان» on three listings, «زنجان» and «یزد» on one each. Every
@@ -2120,14 +2143,14 @@ _both = _swap(_both, "رباط کریم، تهران", "شیراز، فارس، 
 check("  a stated province wins, though the city line comes first",
       extract_location(_both)[1:] == ("فارس", "after_odometer"),
       str(extract_location(_both)))
-check("  and «کرج» alone is still refused, as before",
+check("  and «کرج» alone gives البرز, its capital's province, by the city (the owner's choice, 2026-10-30)",
       extract_location(_swap(OBSERVED_LOCATION_BLOCK, "رباط کریم، تهران",
-                             "کرج"))[1:] == (None, "window_had_no_province"))
+                             "کرج"))[1:] == ("البرز", "city_names_province"))
 
 for _line, _want in [("تهران، آذری", ("تهران", "city")),
                      ("رباط کریم، تهران", ("تهران", "stated")),
                      ("کرمان", ("کرمان", "city")),
-                     ("کرج", (None, "none"))]:
+                     ("کرج", ("البرز", "city"))]:
     _car = parse_detail_page(
         LU, ld_page(body=f"<p>{_line}</p><p>500,000,000</p><p>تومان</p>"))
     check(f"parse_detail_page on «{_line}»: province and source {_want}",
@@ -2928,8 +2951,8 @@ check("X18: Tehran is its own province, known from the city; the district stays 
       (_n.city, _n.province_source, _n.location_raw) == ("تهران", "city", "تهران، پونک"),
       str((_n.city, _n.province_source, _n.location_raw)))
 _o = _one(_node("AbCd1234", city="کرج", district="گلشهر"))
-check("X19: Karaj names no province here, and says so",
-      (_o.city, _o.province_source, _o.location_raw) == (None, "none", "کرج، گلشهر"),
+check("X19: Karaj, البرز's capital, gives البرز from the city (the owner's choice, 2026-10-30)",
+      (_o.city, _o.province_source, _o.location_raw) == ("البرز", "city", "کرج، گلشهر"),
       str((_o.city, _o.province_source, _o.location_raw)))
 _tr = PageTrace()
 _bc = json.dumps({"@type": "BreadcrumbList", "itemListElement": []})
@@ -4014,8 +4037,9 @@ check("K7: the table on the site's Persian names first (Peugeot Pars, IKCO Saman
       [(x.make, x.model) for x in _k1] == [("Peugeot", "Pars"), ("Fownix", "Tiggo 7 Pro"), ("Haima", "S7")]
       and (_k7s.make, _k7s.model) == ("IKCO", "Samand") and (_k7x.make, _k7x.model) == (None, None),
       str([(x.make, x.model) for x in _k1]))
-check("K8: Zahedan gives no province, Isfahan gives Isfahan from the city; the city's title is kept as the line",
-      (_k1[0].city, _k1[0].province_source, _k1[0].location_raw) == (None, "none", "زاهدان")
+check("K8: Zahedan, a capital, gives سیستان و بلوچستان and Isfahan gives Isfahan, both from the city; the city's "
+      "title is kept as the line",
+      (_k1[0].city, _k1[0].province_source, _k1[0].location_raw) == ("سیستان و بلوچستان", "city", "زاهدان")
       and (_k1[2].city, _k1[2].province_source, _k1[2].location_raw) == ("اصفهان", "city", "اصفهان"),
       str((_k1[0].city, _k1[2].city)))
 check("K9: a tag «بدون رنگ» is intact, from a field; «شاسی پلمپ» leaves it unknown; the tags are counted",

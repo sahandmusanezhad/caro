@@ -42,9 +42,9 @@ checks our own first sighting (TEMPORAL_CONTRACT §11; the owner's decision of
 2026-10-30), and the report counts the listings by its date, newest first.
 
 NOT DONE HERE, and said so: the colour (the list does not give it), the
-province of a city that is not one of the thirteen that share their
-province's name, and the meaning of a tag the condition table does not know
-(the tags are counted in the report).
+province of a city that is no province's capital (the 31 give theirs, by the
+owner's choice of 2026-10-30), and the meaning of a tag the condition table
+does not know (the tags are counted in the report).
 """
 
 from __future__ import annotations

@@ -209,6 +209,22 @@ SAME_NAME_CAPITALS: frozenset[str] = frozenset({
 
 _CAPITAL_BY_NORM = {normalize(c): c for c in SAME_NAME_CAPITALS}
 
+# The eighteen other capitals, each with the province it is the capital of,
+# from the same table. The owner chose on 2026-10-30 that a capital gives its
+# province whatever its name (run17 held 236 of 492 rows with none, Karaj,
+# Shiraz, Mashhad, Ahvaz, Bandar Abbas, Tabriz and Sari among them); any other
+# city still gives none. Two are written with a space as well as without.
+OTHER_CAPITALS: dict[str, str] = {
+    "تبریز": "آذربایجان شرقی", "ارومیه": "آذربایجان غربی", "کرج": "البرز",
+    "شهرکرد": "چهارمحال و بختیاری", "بیرجند": "خراسان جنوبی",
+    "مشهد": "خراسان رضوی", "بجنورد": "خراسان شمالی", "اهواز": "خوزستان",
+    "زاهدان": "سیستان و بلوچستان", "شیراز": "فارس", "سنندج": "کردستان",
+    "یاسوج": "کهگیلویه و بویراحمد", "گرگان": "گلستان", "رشت": "گیلان",
+    "خرم\u200cآباد": "لرستان", "خرم آباد": "لرستان", "ساری": "مازندران",
+    "اراک": "مرکزی", "بندرعباس": "هرمزگان", "بندر عباس": "هرمزگان",
+}
+_CAPITAL_BY_NORM.update({normalize(c): p for c, p in OTHER_CAPITALS.items()})
+
 
 def province_of(text: str | None) -> str | None:
     """The province named by `text`, or None — never a guess.
@@ -249,7 +265,10 @@ def province_of(text: str | None) -> str | None:
 
 def province_from_city(text: str | None) -> str | None:
     """The province a line's city gives, when that city is one of the
-    thirteen capitals named as their province is; otherwise None.
+    thirty-one capitals -- the thirteen named as their province is, and since
+    the owner's choice of 2026-10-30 the eighteen of OTHER_CAPITALS; otherwise
+    None. (What follows was written for the thirteen; for Karaj it now reads
+    البرز.)
 
     «تهران، آذری» is the city of Tehran and a district of it, and «کرمان» the
     city of Kerman with no district: Bama leaves the province out where it is
