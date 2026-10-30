@@ -12,6 +12,7 @@ import {
   isAppraisalRow, isVehicleClass, modelLabel, odometer, provinceLabel, toman,
   trimLabel,
 } from '@/lib/format';
+import SaveButton from '@/components/SaveButton';
 import TechDetail from '@/components/TechDetail';
 import TermBars from '@/components/TermBars';
 
@@ -355,6 +356,23 @@ export function ListingFile({
                       isAppraisalRow(listing))}
           </span>
         </p>
+        {/* Keep it, see its model's every listing, or open it where it was
+            published: what a price-comparison page offers beside an item. */}
+        <div className="mt-4 flex flex-wrap gap-2 items-center">
+          <SaveButton id={id} />
+          {listing.model && (
+            <Link className="btn no-underline"
+                  href={`/model/${encodeURIComponent(listing.make ?? '_')}/${encodeURIComponent(listing.model)}`}>
+              همه‌ی آگهی‌های {modelLabel(listing.model)}
+            </Link>
+          )}
+          {listing.url && /^https:\/\//.test(listing.url) && (
+            <a className="btn no-underline" href={listing.url} target="_blank"
+               rel="noopener noreferrer nofollow">
+              دیدن آگهی در منبع ↗
+            </a>
+          )}
+        </div>
       </div>
 
       {/* --- what was parsed --------------------------------------------- */}

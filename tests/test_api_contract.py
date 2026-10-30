@@ -516,6 +516,11 @@ PAIRS = [
     ("SearchResponse", schemas.SearchResponse),
     ("ListingResponse", schemas.ListingResponse),
     ("CompareResponse", schemas.CompareResponse),
+    ("ModelSummary", schemas.ModelSummary),
+    ("YearPoint", schemas.YearPoint),
+    ("HistoryPoint", schemas.HistoryPoint),
+    ("ModelsResponse", schemas.ModelsResponse),
+    ("ModelResponse", schemas.ModelResponse),
 ]
 
 for ts_name, model in PAIRS:
@@ -1845,6 +1850,78 @@ check("SEC-6: the site's config sends the policy in production, HSTS, no framing
                               "Strict-Transport-Security", "X-Frame-Options", "nosniff",
                               "Referrer-Policy", "Permissions-Policy", "poweredByHeader: false",
                               "process.env.NODE_ENV === 'production'")))
+
+# ---------------------------------------------------------------------------
+print("\n20 — a model's page, as Torob gives a product one: its listings, its range, its runs")
+# ---------------------------------------------------------------------------
+# Predictions MKT-1..MKT-7 (2026-10-30, locked before the code), on the corpus
+# the site serves (run16) and the four published runs.
+from webapp.api import market as market_mod                        # noqa: E402
+
+_run_was = os.environ.pop("CARO_RUN", None)
+corpus_mod.active.cache_clear()
+market_mod.published_runs.cache_clear()
+try:
+    with contextlib.redirect_stdout(io.StringIO()):
+        _c20 = TestClient(api.app, raise_server_exceptions=False)
+    _ms = _c20.get("/api/models").json()
+    _by = {m["model"]: m for m in _ms["models"]}
+    check("MKT-1: one summary per model on run16, most listings first: Pride 53 (50 priced, 240 million "
+          "to 1.8 billion, the middle 650 million, 1380 to 1405), Quik 10, Tiba 10 (9 priced); the envelope",
+          [m["model"] for m in _ms["models"]] == ["Pride", "Quik", "Tiba"]
+          and {k: _by["Pride"][k] for k in ("listings", "priced", "price_min", "price_median", "price_max",
+                                            "year_min", "year_max")}
+          == {"listings": 53, "priced": 50, "price_min": 240000000, "price_median": 650000000,
+              "price_max": 1800000000, "year_min": 1380, "year_max": 1405}
+          and (_by["Tiba"]["listings"], _by["Tiba"]["priced"]) == (10, 9)
+          and _ms["corpus"]["identity"]["run_id"] == "run16", str(_ms["models"])[:400])
+    _md = _c20.get("/api/model", params={"make": "Saipa", "model": "Pride"})
+    _mj = _md.json()
+    _prices = [o["asking_price_toman"] for o in _mj["offers"]]
+    _priced_part = [p for p in _prices if p is not None]
+    check("MKT-2: Pride's 53 listings, the 50 priced cheapest first and the 3 without a usable price after "
+          "them; its summary as on /api/models",
+          _md.status_code == 200 and len(_prices) == 53 and _priced_part == sorted(_priced_part)
+          and _prices.index(None) == 50 and _mj["summary"] == _by["Pride"]
+          and _mj["offers"][0]["url"].startswith("https://bama.ir/"), str(_prices[:5] + _prices[-4:]))
+    _years = {y["year_jalali"]: y for y in _mj["by_year"]}
+    check("  by year: a year of three priced listings or more has its middle, one of fewer only its count",
+          _years[1389] == {"year_jalali": 1389, "priced": 6, "price_median": 582500000}
+          and _years[1380] == {"year_jalali": 1380, "priced": 1, "price_median": None}, str(_mj["by_year"][:6]))
+    _nf = _c20.get("/api/model", params={"make": "Saipa", "model": "Nope"})
+    _long = _c20.get("/api/model", params={"make": "S" * 61, "model": "Pride"})
+    check("  a model the corpus does not hold is 404 with the envelope and MODEL_NOT_FOUND; a name over 60 "
+          "characters is 422",
+          _nf.status_code == 404 and _nf.json()["fault"]["code"] == "MODEL_NOT_FOUND"
+          and "corpus" in _nf.json() and _long.status_code == 422, f"{_nf.status_code} {_long.status_code}")
+    check("MKT-3: one point per published run, by date, with its priced count and middle: Pride 54, 52, 53 "
+          "and 50 priced, 612.5, 600, 635 and 650 million",
+          [(h["run_id"], h["collected_on"], h["priced"], h["price_median"]) for h in _mj["history"]]
+          == [("run11", "2026-09-10", 54, 612500000), ("run13", "2026-10-06", 52, 600000000),
+              ("run14", "2026-10-11", 53, 635000000), ("run16", "2026-10-15", 50, 650000000)],
+          str(_mj["history"]))
+    _run11 = json.loads((ROOT / "data" / "corpora" / "run11.json").read_text(encoding="utf-8"))
+    _quik11 = [x for x in _run11["listings"] if x.get("model") == "Quik"]
+    _quik_h = _c20.get("/api/model", params={"make": "Saipa", "model": "Quik"}).json()["history"][0]
+    check("  an assignment (run11's one حواله, a Quik) is no listing of the model, in a run as in the corpus",
+          any(x.get("product_class") == "assignment" for x in _quik11)
+          and _quik_h["priced"] == sum(1 for x in _quik11 if x.get("product_class") == "vehicle"
+                                       and x.get("asking_price_toman")
+                                       and x.get("price_status") not in ("ambiguous", "negotiable", "absent")
+                                       and x.get("price_kind") in (None, "cash")), str(_quik_h))
+    _fake = [type("L", (), {"asking_price_toman": p, "price_status": st, "price_kind": k, "year_jalali": 1400})()
+             for p, st, k in ((100_000_000, "display_confirmed", "cash"), (90_000_000, "negotiable", "cash"),
+                              (80_000_000, "display_confirmed", "financing_total"), (None, "absent", "absent"))]
+    _sm = market_mod.summarise("M", "X", _fake)
+    check("  «priced» is the gate's reading: a negotiable status, a financing total or no number is not; one "
+          "priced listing has a range and no middle",
+          (_sm.listings, _sm.priced, _sm.price_min, _sm.price_max, _sm.price_median)
+          == (4, 1, 100_000_000, 100_000_000, None), str(_sm))
+finally:
+    if _run_was is not None:
+        os.environ["CARO_RUN"] = _run_was
+    corpus_mod.active.cache_clear()
+    market_mod.published_runs.cache_clear()
 
 print()
 if FAILS:

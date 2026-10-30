@@ -93,7 +93,8 @@ export type FaultCode =
   | 'RUN_NOT_FOUND'
   | 'ESTIMATOR_NOT_GATED'
   | 'LISTING_NOT_FOUND'
-  | 'COMPARE_IDS_NOT_FOUND';
+  | 'COMPARE_IDS_NOT_FOUND'
+  | 'MODEL_NOT_FOUND';
 
 export interface Fault {
   code: FaultCode;
@@ -255,6 +256,45 @@ export interface CompareResponse extends Envelope {
 
 export type CorpusResponse = Envelope;
 
+/* A model, as Torob shows a product (webapp/api/market.py). Every price is an
+   ASKING price a listing stated, counted; a middle is given only where three
+   priced listings or more stand behind it, and is null where fewer do. */
+export interface ModelSummary {
+  make: string | null;
+  model: string;
+  listings: number;
+  priced: number;
+  price_min: number | null;
+  price_median: number | null;
+  price_max: number | null;
+  year_min: number | null;
+  year_max: number | null;
+}
+
+export interface YearPoint {
+  year_jalali: number;
+  priced: number;
+  price_median: number | null;
+}
+
+export interface HistoryPoint {
+  run_id: string;
+  collected_on: string;
+  priced: number;
+  price_median: number | null;
+}
+
+export interface ModelsResponse extends Envelope {
+  models: ModelSummary[];
+}
+
+export interface ModelResponse extends Envelope {
+  summary: ModelSummary | null;
+  offers: EvidenceItem[];
+  by_year: YearPoint[];
+  history: HistoryPoint[];
+}
+
 /* ------------------------------------------------------------------ */
 
 /** The price statuses `caro/ingest/quality.py` calls unusable, which is the
@@ -352,6 +392,12 @@ export const api = {
 
   listing: (id: string) =>
     json<ListingResponse>(`/api/listing/${encodeURIComponent(id)}`),
+
+  models: () => json<ModelsResponse>('/api/models'),
+
+  model: (make: string, model: string) =>
+    json<ModelResponse>(
+      `/api/model?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`),
 
   compare: (ids: string[], q = 'خودرو') =>
     json<CompareResponse>('/api/compare', {

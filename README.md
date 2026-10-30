@@ -199,7 +199,7 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all fifteen suites
 
-python3 tests/run_all.py            # 3008 assertions, no API key, no network
+python3 tests/run_all.py            # 3097 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -217,10 +217,10 @@ output in `docs/` instead: `RUN3_2026-09-07.txt`, `RUN5_2026-09-07.txt`,
 suites need more, and the runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2451 assertions across 12 of 15 suites
+python3 tests/run_all.py            # 2528 assertions across 12 of 15 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3008 across all fifteen
+python3 tests/run_all.py            # 3097 across all fifteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -261,12 +261,29 @@ uvicorn webapp.api.main:app --reload            # the API, 127.0.0.1:8000
 ```
 
 The API is FastAPI and imports `caro` directly: `/api/search`,
-`/api/search/reweight`, `/api/listing/{id}`, `/api/compare`, `/api/corpus`,
-`/api/health`, and the contact and admin endpoints. The deployed site keeps
-its inbox off and points to GitHub Issues instead (`CARO_INBOX=off`, D68), and
-`/admin` opens only where `CARO_ADMIN_TOKEN` is set. The site
-is Next.js, TypeScript and Tailwind, in right-to-left Persian: `/`, `/search`,
-`/car/[id]`, `/compare`, `/how-it-works`, `/about`, `/contact` and `/admin`.
+`/api/search/reweight`, `/api/listing/{id}`, `/api/compare`, `/api/models`,
+`/api/model`, `/api/corpus`, `/api/health`, and the contact and admin
+endpoints. The deployed site keeps its inbox off and points to GitHub Issues
+instead (`CARO_INBOX=off`, D68), and `/admin` opens only where
+`CARO_ADMIN_TOKEN` is set. The site is Next.js, TypeScript and Tailwind, in
+right-to-left Persian, its panes glass over the palette: `/`, `/search`,
+`/models`, `/model/[make]/[model]`, `/car/[id]`, `/compare`, `/saved`,
+`/how-it-works`, `/about`, `/contact` and `/admin`.
+
+A model's page is what a price-comparison site gives a product: the model's
+listings in the served corpus, the priced cheapest first, each with its file
+here and a link to it on its source; the smallest, middle and largest asking
+price; and the middle asking price of every published run, drawn only where
+three priced listings or more stand behind it (`webapp/api/market.py`).
+Every figure is an asking price a listing stated, counted, and nothing on it
+is an estimate or a claim about the market (D36). `/saved` lists what a
+visitor kept with «نشان کن», which stays in their browser: there is no
+account.
+
+Security, as built (`webapp/api/security.py`, `next.config.mjs`): a
+Content-Security-Policy and HSTS on the site, `nosniff` and no framing on
+both; bounded inputs on the API; a per-process rate limit on the contact form
+and on failed admin tokens; CORS only for the development origin.
 `.github/workflows/ci.yml` runs every suite and the site's type check, lint and
 build on each push to `main` and each pull request, and fails when a suite is
 skipped.
@@ -593,7 +610,7 @@ trade for a system whose pitch is that it does not overclaim.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3008 assertions across fifteen suites
+tests/           3097 assertions across fifteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, replays, the benchmark, the probes
 data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed

@@ -13,7 +13,9 @@ export const metadata: Metadata = {
 const NAV = [
   { href: '/', fa: 'خانه' },
   { href: '/search', fa: 'جست‌وجو' },
+  { href: '/models', fa: 'خودروها' },
   { href: '/compare', fa: 'مقایسه' },
+  { href: '/saved', fa: 'نشان‌شده‌ها' },
   { href: '/how-it-works', fa: 'چطور کار می‌کند' },
   { href: '/about', fa: 'درباره‌ی ما' },
   { href: '/contact', fa: 'تماس با ما' },

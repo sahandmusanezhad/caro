@@ -47,6 +47,7 @@ from caro.ranking import diversify, retrieve                       # noqa: E402
 from webapp.api import constraints                                 # noqa: E402
 from webapp.api import corpus as corpus_mod                        # noqa: E402
 from webapp.api.contact import router as contact_router            # noqa: E402
+from webapp.api.market import router as market_router              # noqa: E402
 from webapp.api.security import SecurityHeaders, cors_origins      # noqa: E402
 from webapp.api.schemas import (                                   # noqa: E402
     CompareRequest, CompareResponse, CorpusMeta, CorpusResponse, Envelope,
@@ -62,6 +63,9 @@ app = FastAPI(title="CARO", version="0.2.0",
 # decision endpoints do not. Keeping them apart means a change to how messages
 # are stored can never reach the ranking path.
 app.include_router(contact_router)
+# A model's page (webapp/api/market.py): its listings, cheapest first, and
+# the asking prices of every published run.
+app.include_router(market_router)
 
 # CORS is for development (webapp/api/security.py): production serves the
 # site and the API from one origin. No cookie is used, so no credentials.

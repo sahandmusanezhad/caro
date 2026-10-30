@@ -849,12 +849,17 @@ if _doc_rows:
           bool(_ts_evidence) and _used <= _ts_evidence,
           f"not in the interface: {sorted(_used - _ts_evidence)}")
 
+    # `url` is the payload's name for what the table calls `source_url` (the
+    # API fills it from that field), so it is judged by that row: the car page
+    # links to the listing on its source, and the table says detail=yes.
+    _ALIAS = {"url": "source_url"}
     for _f in sorted(_used):
-        if _f not in _doc:
+        _row = _ALIAS.get(_f, _f)
+        if _row not in _doc:
             check(f"  detail may draw {_f}", False,
                   "not in FIELD_PROVENANCE.md at all — nobody has judged it")
             continue
-        _st, _c, _d, *_ = _doc[_f]
+        _st, _c, _d, *_ = _doc[_row]
         check(f"  detail may draw {_f} ({_st})", _d,
               "FIELD_PROVENANCE.md says detail=no")
 
@@ -885,7 +890,12 @@ if _doc_rows:
     _CARDS = (("SearchEvidence.tsx", "r"),
               ("SearchResults.tsx", "it"),
               ("ListingCard.tsx", "item"),
-              ("CompareTable.tsx", "r"))
+              ("CompareTable.tsx", "r"),
+              # A model's listings, cheapest first, and the listings kept in
+              # the browser (2026-10-30): lists of rows, held to the card's
+              # rules like the others.
+              ("ModelDetail.tsx", "o"),
+              ("SavedList.tsx", "listing"))
     _IDENTIFIERS = {"id", "url"}
 
     _sc = _re.search(r"export interface ScoredItem[^{]*\{(.*?)\n\}",
@@ -902,7 +912,7 @@ if _doc_rows:
     # would miss is the one added tomorrow. So every .tsx that imports a type
     # carrying listings has to be a surface one of these guards reads.
     _ROW_TYPES = ("EvidenceItem", "ScoredItem", "SearchResponse",
-                  "CompareResponse", "ListingResponse")
+                  "CompareResponse", "ListingResponse", "ModelResponse")
     _IMPORTS = _re.compile(r"import\s+(?:type\s+)?\{([^}]*)\}\s*from '@/lib/api'",
                            _re.S)
     _drawing = {p.name for p in (ROOT / "webapp" / "web").rglob("*.tsx")

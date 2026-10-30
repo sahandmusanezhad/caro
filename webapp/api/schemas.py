@@ -88,6 +88,7 @@ FaultCode = Literal[
     "ESTIMATOR_NOT_GATED",
     "LISTING_NOT_FOUND",
     "COMPARE_IDS_NOT_FOUND",
+    "MODEL_NOT_FOUND",
 ]
 
 
@@ -335,6 +336,51 @@ class HealthResponse(BaseModel):
     """No envelope. Health is about the process, not about the evidence."""
 
     ok: bool
+
+
+# ---------------------------------------------------------------------------
+# A model, as Torob shows a product: every listing, the range, the runs
+# ---------------------------------------------------------------------------
+#
+# Every figure below is an ASKING price a listing stated, counted (D36): there
+# is no estimate here and no statement about the market. «Priced» is a price
+# whose status is not unusable and whose kind is cash; a middle is given only
+# where three priced listings or more stand behind it.
+
+class ModelSummary(BaseModel):
+    make: str | None = None
+    model: str
+    listings: int
+    priced: int
+    price_min: int | None = None
+    price_median: int | None = None
+    price_max: int | None = None
+    year_min: int | None = None
+    year_max: int | None = None
+
+
+class YearPoint(BaseModel):
+    year_jalali: int
+    priced: int
+    price_median: int | None = None
+
+
+class HistoryPoint(BaseModel):
+    run_id: str
+    collected_on: str
+    priced: int
+    price_median: int | None = None
+
+
+class ModelsResponse(Envelope):
+    models: list[ModelSummary] = Field(default_factory=list)
+
+
+class ModelResponse(Envelope):
+    summary: ModelSummary | None = None
+    offers: list[EvidenceItem] = Field(default_factory=list)
+    by_year: list[YearPoint] = Field(default_factory=list)
+    history: list[HistoryPoint] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
