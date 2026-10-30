@@ -142,6 +142,15 @@ The runs published since, run11 to run16, hold 73 to 77 listings each, and
 no estimator has cleared the gate on any of them. Clearing it on real data is
 step 7 of the roadmap's order of work.
 
+One snapshot cannot be benchmarked in time: it has no first-seen history, and
+`scripts/benchmark_corpus.py` refuses it as `missing_temporal_axis` (D55).
+`scripts/benchmark_within.py` asks the question one snapshot can answer --
+does the frozen estimator hold up on other listings of the same collection --
+under its own protocol name, `within_collection`, with the same estimator,
+gate, baseline, hold-out and seed. Its verdict is about that one collection of
+one source: not about time, not about another source, not about the market,
+and nothing is served on it.
+
 ## What the live runs found
 
 The first collection runs against bama.ir, in September, broke things that
@@ -199,7 +208,7 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all sixteen suites
 
-python3 tests/run_all.py            # 3382 assertions, no API key, no network
+python3 tests/run_all.py            # 3392 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -217,10 +226,10 @@ output in `docs/` instead: `RUN3_2026-09-07.txt`, `RUN5_2026-09-07.txt`,
 suites need more, and the runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2741 assertions across 13 of 16 suites
+python3 tests/run_all.py            # 2751 assertions across 13 of 16 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3382 across all sixteen
+python3 tests/run_all.py            # 3392 across all sixteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -637,9 +646,9 @@ trade for a system whose pitch is that it does not overclaim.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3382 assertions across sixteen suites
+tests/           3392 assertions across sixteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
-scripts/         setup, live runs, promotion, replays, the benchmark, the probes
+scripts/         setup, live runs, promotion, replays, the benchmarks, the probes
 data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json

@@ -467,7 +467,11 @@ the owner chooses.
    assignment, `unknown`) and measure detail, compare alone, compare beside a
    vehicle, and search. Who: a session, on a corpus the owner collected. The
    gate is not edited after its output is seen (D35). Closes when the gate's
-   verdict on a real corpus is recorded, whatever it is.
+   verdict on a real corpus is recorded, whatever it is. One collection can
+   also be asked the other question D55 names, with
+   `scripts/benchmark_within.py` (protocol `within_collection`, built
+   2026-10-30): its verdict is about that collection of one source alone, and
+   does not close this item.
 
 3. **Accident damage from listing photos.** Not built. When it is, its output
    is recorded as inferred, not observed, and says «قابل تشخیص نیست» when it

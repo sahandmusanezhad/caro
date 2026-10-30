@@ -26,6 +26,7 @@ evidence are three different answers, and none of them is a number.
 import ast
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -286,6 +287,185 @@ check("main() has as many report() calls as it has exits",
       len(_exits) == len(_reports) and _exits,
       f"{len(_exits)} returns, {len(_reports)} reports — an exit without one "
       f"is a number with no question attached")
+
+# ---------------------------------------------------------------------------
+print("\nthe second protocol: within one collection, under its own name")
+# ---------------------------------------------------------------------------
+#
+# Predictions WITHIN, WC1-WC10 (2026-10-30, evening, locked before the code).
+# D55 kept the temporal runner to its one question and said how the other may
+# be asked: as its own runner, with its own name. These rows hold that runner
+# to the same refusals, to the one thing it adds -- a split by car inside one
+# collection -- and every exit of it to its own protocol and scope.
+
+WITHIN = ROOT / "scripts" / "benchmark_within.py"
+
+
+def run_within(run_id: str, corpora: Path) -> tuple[int, str]:
+    env = {**os.environ, "PYTHONPATH": str(ROOT), "NO_COLOR": "1",
+           "CARO_CORPORA": str(corpora)}
+    p = subprocess.run([sys.executable, str(WITHIN), "--run-id", run_id],
+                       cwd=ROOT, env=env, capture_output=True, text=True,
+                       timeout=180)
+    return p.returncode, p.stdout + p.stderr
+
+
+with tempfile.TemporaryDirectory() as d3:
+    c3 = Path(d3)
+    code, out = run_within("nothing-here", c3)
+    flat = " ".join(out.split())
+    check("WC1: a missing artifact refuses as PREREQUISITE_MISSING, under protocol within_collection "
+          "and reason prerequisite_missing, with no MAE",
+          code != 0 and "PREREQUISITE_MISSING" in out and "protocol within_collection" in flat
+          and "reason prerequisite_missing" in flat and "model MAE" not in out, out[-400:])
+
+    (c3 / "broken.json").write_text('{"schema": "wrong", "listings": []}', encoding="utf-8")
+    code, out = run_within("broken", c3)
+    flat = " ".join(out.split())
+    check("WC2: an unusable artifact refuses as CORPUS_UNUSABLE, reason corpus_unusable",
+          code != 0 and "CORPUS_UNUSABLE" in out and "protocol within_collection" in flat
+          and "reason corpus_unusable" in flat, out[-400:])
+
+    (c3 / "empty.json").write_text(json.dumps(empty), encoding="utf-8")
+    code, out = run_within("empty", c3)
+    flat = " ".join(out.split())
+    check("WC3: a valid artifact with no eligible row is UNJUDGEABLE, reason no_eligible_rows, no MAE",
+          code != 0 and "UNJUDGEABLE" in out and "protocol within_collection" in flat
+          and "reason no_eligible_rows" in flat and "model MAE" not in out, out[-400:])
+
+    (c3 / "flat.json").write_text(json.dumps(flat_time), encoding="utf-8")
+    code, out = run_within("flat", c3)
+    flat = " ".join(out.split())
+    check("WC4: the 40 rows the temporal runner refuses for their time axis are split 30 / 10 with "
+          "none leaked, then UNJUDGEABLE shift_unknown -- below 93 a side -- with no MAE, and the "
+          "collection's source, date and scope in the report",
+          code != 0 and "train / test 30 / 10" in flat and "leakage 0" in flat
+          and "reason shift_unknown" in flat and "model MAE" not in out
+          and "source bama collected 2026-09-10" in flat.rsplit("EVALUATION", 1)[-1]
+          and "scope one collection of one source" in flat.rsplit("EVALUATION", 1)[-1], out[-600:])
+
+    # One stationary collection: three trims, the asking price falling with
+    # age and odometer, and a spread of ten per cent either way.
+    _trims = {"111": 450_000_000, "131": 520_000_000, "132": 560_000_000}
+    _big = []
+    for i in range(480):
+        _t = ("111", "131", "132")[i % 3]
+        _year = 1388 + (i * 7) % 15
+        _km = 20_000 + (i * 7919) % 260_000
+        _noise = 1 + (((i * 2654435761) % 1000) / 1000 - 0.5) * 0.2
+        _price = int(_trims[_t] * (1 - 0.025 * (1402 - _year)) * (1 - _km / 1_500_000)
+                     * _noise) // 100_000 * 100_000
+        _big.append(dict(rows[0], listing_id=f"w{i}", trim=_t, year_jalali=_year,
+                         mileage_km=_km, asking_price_toman=_price))
+    big = dict(empty, run_id="big", listings=_big,
+               provenance=dict(empty["provenance"], records_in=480, records_published=480))
+    (c3 / "big.json").write_text(json.dumps(big), encoding="utf-8")
+    code, out = run_within("big", c3)
+    flat = " ".join(out.split())
+    check("WC5: 480 listings of one stationary collection are split 360 / 120 and found comparable; "
+          "the estimator runs, both MAEs are printed, and the frozen gate does not accept -- its own "
+          "reason, with the scope and whose asking prices these are",
+          "train / test 360 / 120" in flat and "state comparable" in flat
+          and "model MAE" in out and "baseline MAE" in out
+          and ("reason insufficient_slices" in flat or "reason measured_failure" in flat)
+          and "status accepted" not in flat
+          and "scope one collection of one source" in flat.rsplit("EVALUATION", 1)[-1]
+          and "These are bama's asking prices, collected 2026-09-10" in flat, out[-900:])
+    code2, out2 = run_within("big", c3)
+    _keep = lambda o: [ln.strip() for ln in o.splitlines()                         # noqa: E731
+                       if ln.strip().startswith(("cars", "train / test", "model MAE", "baseline MAE"))]
+    check("WC6: the same artifact twice gives the same split and the same two MAEs: the seed is fixed",
+          _keep(out) == _keep(out2) and len(_keep(out)) == 4, f"{_keep(out)} | {_keep(out2)}")
+
+from caro.appraisal import Row                                    # noqa: E402
+import scripts.benchmark_corpus as BC                             # noqa: E402
+
+try:                       # a runner that does not import fails its rows by name
+    import scripts.benchmark_within as BW                         # noqa: E402
+    _bw_why = ""
+except Exception as e:     # noqa: BLE001
+    BW, _bw_why = None, f"{type(e).__name__}: {e}"
+
+
+def _row(lid: str, km: float, price: float) -> Row:
+    return Row(listing_id=lid, cluster_id=lid, first_seen_ordinal=0,
+               model_key="Saipa|Pride|131", year_jalali=1395, mileage_km=km,
+               asking_price_toman=price)
+
+
+_WC7 = ("WC7: five listings alike in model, year, odometer and price are one car, on one side; nothing "
+        "leaks; 9 of the 36 cars are the test side; the rows' order changes nothing; another seed gives "
+        "another split")
+if BW is None:
+    check(_WC7, False, _bw_why)
+else:
+    _twins = [_row(f"t{k}", 55_000.0, 777_000_000.0) for k in range(5)]
+    _pool = [_row(f"r{i:02d}", 100_000.0 + i, 500_000_000.0 + i) for i in range(35)] + _twins
+    _s = BW.within_split(_pool, test_fraction=0.25, seed=0)
+    _s_rev = BW.within_split(list(reversed(_pool)), test_fraction=0.25, seed=0)
+    _s_other = BW.within_split(_pool, test_fraction=0.25, seed=1)
+    _tested = lambda s: sorted(r.listing_id for r in s.test)                      # noqa: E731
+    _twin_sides = {"test" if t.listing_id in _tested(_s) else "train" for t in _twins}
+    _cars_tested = len({r.cluster_id for r in _s.test})
+    check(_WC7,
+          len(_twin_sides) == 1 and not _s.leakage() and _cars_tested == 9
+          and len(_s.train) + len(_s.test) == len(_pool)
+          and _tested(_s) == _tested(_s_rev) and _tested(_s) != _tested(_s_other),
+          f"twins on {_twin_sides}, leaked {_s.leakage()}, {_cars_tested} cars tested, order-free "
+          f"{_tested(_s) == _tested(_s_rev)}, seed used {_tested(_s) != _tested(_s_other)}")
+
+WSRC = WITHIN.read_text(encoding="utf-8") if WITHIN.exists() else ""
+WTREE = ast.parse(WSRC)
+_wnames: set[str] = set()
+for _node in ast.walk(WTREE):
+    if isinstance(_node, ast.Import):
+        _wnames.update(a.name for a in _node.names)
+    elif isinstance(_node, ast.ImportFrom):
+        _wnames.add(_node.module or "")
+        _wnames.update(a.name for a in _node.names)
+_wconsts = {n.targets[0].id: n.value for n in WTREE.body
+            if isinstance(n, ast.Assign) and isinstance(n.targets[0], ast.Name)}
+_wdefs = {n.name for n in WTREE.body if isinstance(n, ast.FunctionDef)}
+_wmain = next((n for n in WTREE.body if isinstance(n, ast.FunctionDef) and n.name == "main"), None)
+_wexits = [n for n in ast.walk(_wmain) if isinstance(n, ast.Return)] if _wmain else []
+_wreports = [n for n in ast.walk(_wmain) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+             and n.func.id == "report"] if _wmain else []
+_wc8 = {
+    "PROTOCOL is within_collection": getattr(_wconsts.get("PROTOCOL"), "value", None) == "within_collection",
+    "no flag switches it": "--protocol" not in WSRC and "--split" not in WSRC,
+    "reasons closed, no missing_temporal_axis": BW is not None and "REASONS" in _wconsts
+                                                and "missing_temporal_axis" not in BW.REASONS,
+    "one report per exit": bool(_wexits) and len(_wexits) == len(_wreports),
+    "hold-out, seed and baseline the temporal runner's": BW is not None
+        and BW.HOLDOUT_FRACTION == 0.25 and BW.SEED == 0
+        and BW._baseline_mae is BC._baseline_mae and not ({"HOLDOUT_FRACTION", "SEED"} & set(_wconsts))
+        and "_baseline_mae" not in _wdefs,
+    "gate and estimator caro.hierarchical's": {"caro.hierarchical", "HierarchicalGate",
+                                               "PartialPoolingQuantiles", "four_slices"} <= _wnames,
+    "nothing that fetches or parses": not (set(FORBIDDEN) & _wnames),
+}
+check("WC8: the file declares PROTOCOL «within_collection» and no flag to switch it; its reasons are "
+      "closed and never missing_temporal_axis; every exit of main() reports; the hold-out, the seed and "
+      "the baseline are the temporal runner's own objects, the gate and the estimator caro.hierarchical's; "
+      "nothing that fetches or parses is imported",
+      all(_wc8.values()), str([k for k, v in _wc8.items() if not v]))
+
+with tempfile.TemporaryDirectory() as d4:
+    (Path(d4) / "flat.json").write_text(json.dumps(flat_time), encoding="utf-8")
+    _, out = run("flat", Path(d4))
+    flat = " ".join(out.split())
+    check("WC9: the temporal runner's no-time-axis refusal names scripts/benchmark_within.py and "
+          "within_collection, and still reports missing_temporal_axis under protocol temporal",
+          "scripts/benchmark_within.py" in flat and "within_collection" in flat
+          and "protocol temporal" in flat and "reason missing_temporal_axis" in flat, out[-600:])
+
+_wsev = re.search(r'report\(\s*"(\w+)"\s*,\s*"severe_shift"', WSRC)
+check("WC10: REJECTED is spent only on the gate's measured failure, and a severe shift reports "
+      "unjudgeable -- as the shift suite holds the temporal runner",
+      'GateVerdict.REJECTED: "measured_failure"' in WSRC
+      and not re.search(r'report\(\s*"rejected"', WSRC)
+      and _wsev is not None and _wsev.group(1) == "unjudgeable",
+      f"severe shift reports {_wsev.group(1) if _wsev else '<no such call>'}")
 
 print()
 if FAILS:

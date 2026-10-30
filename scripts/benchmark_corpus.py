@@ -215,6 +215,10 @@ def main() -> int:
               "evaluation. It could\n  support a cluster-aware random split "
               "— which is a different claim, not a\n  repair, and this file "
               "does not make that choice on its own.")
+        print()
+        print("  That other question is asked by scripts/benchmark_within.py, "
+              "under its own\n  name (protocol within_collection). Its answer "
+              "is about one collection and\n  is not an answer to this one.")
         report("unjudgeable", "missing_temporal_axis", ident)
         return 1
 
