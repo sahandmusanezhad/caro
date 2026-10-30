@@ -4630,6 +4630,50 @@ check("  --page with the list and a listing page: four listings, the second page
       _out.getvalue()[:500])
 
 
+print("\nkhodro45: the address rule is learned segment by segment; sheypoor counts a merge once")
+# The owner's third read (2026-10-30): the code right on 24 (cla- and the slug), and the rule
+# differing on 24: «brand-model» or the city is not what the links hold.
+_k4r = [_k45_result("TSZNEL", model=("پارس", "Pars", "peugeot-pars"), city=("بندرعباس", "Bandar Abbas")),
+        _k45_result("5ME012", model=("۲۰۷", "207", "peugeot-207"), klm=10303, year="1404",
+                    city=("بندرعباس", "Bandar Abbas")),
+        _k45_result("NA1IK9", model=("۴۰۵", "405", "peugeot-405"), klm=234951, year="2017",
+                    city=("بندرعباس", "Bandar Abbas"))]
+
+
+def _k4card(r):
+    return _k45_card(r, code="cla-" + r["slug"].lower()).replace(
+        f'/buy-car/peugeot-{r["car_properties"]["model"]["seo_slug"]}/bandar abbas/',
+        f'/buy-car/{r["car_properties"]["model"]["seo_slug"]}/bandarabbas/')
+
+
+_k4p = Khodro45Parser()
+_k4l = _k4p(_k45_page(_k4r, [_k4card(r) for r in _k4r]))
+_k4a = _k4p(json.dumps({"count": 1812, "next": None, "previous": None, "results": [
+    _k45_result("APITWO", model=("پارس", "Pars", "peugeot-pars"), city=("بندرعباس", "Bandar Abbas"))]}))
+check("K4-1: the model's slug that holds the brand's, and the city without its space, are learned from the "
+      "cards: the rule agrees on three, the API page has its address by it, and the report says which forms",
+      _k4p.learned_forms() == ("model", "title_en without spaces")
+      and _k4p.traces[0].url == Counter({"rule agrees": 3})
+      and _k4l[0].url == "https://khodro45.com/buy-car/peugeot-pars/bandarabbas/cla-tsznel/"
+      and _k4a[0].url == "https://khodro45.com/buy-car/peugeot-pars/bandarabbas/cla-apitwo/"
+      and "first: model:3" in "\n".join(_k45.report(_k4p.traces[:1]))
+      and "city: title_en without spaces:3" in "\n".join(_k45.report(_k4p.traces[:1])),
+      str((_k4p.learned_forms(), _k4p.traces[0].url, _k4a[0].url)))
+_k4q = Khodro45Parser()
+_k4q(_k45_page(_k3r, [_k45_card(r, code="cla-" + r["slug"].lower()).replace("/buy-car/peugeot-pars/",
+                                                                              "/buy-car/pp-xx9/") for r in _k3r]))
+_k4qrep = "\n".join(_k45.report(_k4q.traces))
+check("  a first segment no form fits: no rule, no address for the API, and the shapes of the two sides",
+      _k4q.learned_forms() == (None, "title_en") and _k4q(_k3api)[0].url == ""
+      and "first: aa-aa# vs aaaaaaa-aaaa:3" in _k4qrep and "cla-" not in _k4qrep, _k4qrep)
+_k4s = SheypoorParser()
+_k4s(_SP)
+_k4s(_sp_listing("462345681", price=4500000000, cur="IRR"))
+_k4srep = "\n".join(_sh.report(_k4s.traces))
+check("K4-3: Sheypoor's report counts a listing page merged into its card once, and its price once",
+      "pages 2   listings 4   cards 4" in _k4srep and "min 0.25B   median 0.25B   max 0.45B" in _k4srep, _k4srep)
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

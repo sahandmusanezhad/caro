@@ -284,25 +284,47 @@ def _absolute(url: str) -> str:
     return url
 
 
-def rule_path(r: dict, prefix: str | None = "") -> str | None:
-    """`/buy-car/<brand>-<model>/<city>/<prefix><slug>/`, from the result's
-    own slugs, the slug lower-cased. The owner's page (2026-10-29) ended its
-    links in «cla-» and a code shaped as the slug; `prefix` is the part before
-    the slug that the run's cards showed (`Khodro45Parser.learned_prefix`), and
-    None when they showed none, which gives no address. A run checks the rule
-    on every card before using it for a result that has none."""
-    if prefix is None:
-        return None
+# The forms a link's first two segments may take, in the order they are
+# tried. The owner's third read (2026-10-30) had «brand-model» and the city's
+# English title lower-cased differ on all 24 cards, with the code right, so
+# the forms are learned from the cards rather than written down.
+FIRST_FORMS = ("brand-model", "model", "brand+model")
+CITY_FORMS = ("title_en", "title_en without spaces")
+_SEGMENT = re.compile(r"[a-z0-9_-]{1,60}")
+
+
+def segment_forms(r: dict) -> tuple[dict, dict]:
+    """({first form: value}, {city form: value}) for a result, each value
+    lower-cased and a path segment, or left out."""
     cp = r.get("car_properties") if isinstance(r.get("car_properties"), dict) else {}
     b = cp.get("brand") if isinstance(cp.get("brand"), dict) else {}
     m = cp.get("model") if isinstance(cp.get("model"), dict) else {}
     c = r.get("city") if isinstance(r.get("city"), dict) else {}
-    parts = [_str(b.get("seo_slug")), _str(m.get("seo_slug")),
-             _str(c.get("title_en")).lower(), _str(r.get("slug"))]
-    if not all(re.fullmatch(r"[a-z0-9_-]{1,40}", p or "") for p in parts[:3]) \
-            or not _SLUG.match(parts[3]):
+    bs, ms = _str(b.get("seo_slug")).lower(), _str(m.get("seo_slug")).lower()
+    first = {"brand-model": f"{bs}-{ms}" if bs and ms else "", "model": ms,
+             "brand+model": f"{bs}{ms}" if bs and ms else ""}
+    ce = _str(c.get("title_en")).lower()
+    city = {"title_en": ce, "title_en without spaces": ce.replace(" ", "")}
+    keep = lambda d: {k: v for k, v in d.items() if v and _SEGMENT.fullmatch(v)}   # noqa: E731
+    return keep(first), keep(city)
+
+
+def rule_path(r: dict, prefix: str | None = "", first: str | None = "brand-model",
+              city: str | None = "title_en") -> str | None:
+    """`/buy-car/<first>/<city>/<prefix><slug>/`, from the result's own
+    fields, the slug lower-cased. `prefix` is the part before the slug and
+    `first` and `city` the forms of the two segments that the run's cards
+    showed (`Khodro45Parser.learned_prefix`, `learned_forms`); None for any of
+    them gives no address. The owner's page (2026-10-29) ended its links in
+    «cla-» and the slug in lower case. A run checks the rule on every card
+    before using it for a result that has none."""
+    if prefix is None or first is None or city is None:
         return None
-    return f"/buy-car/{parts[0]}-{parts[1]}/{parts[2]}/{prefix}{parts[3].lower()}/"
+    fs, cs = segment_forms(r)
+    slug = _str(r.get("slug"))
+    if first not in fs or city not in cs or not _SLUG.match(slug):
+        return None
+    return f"/buy-car/{fs[first]}/{cs[city]}/{prefix}{slug.lower()}/"
 
 
 def next_view(url: str | None) -> str:
@@ -433,6 +455,10 @@ class Khodro45Trace:
     # small numbers kept) and where that page is.
     lists: list = field(default_factory=list)
     next_upgraded: int = 0
+    # Which form each segment of a joined card's link took, and, where none
+    # fits, the shape of the link's segment against the first form's.
+    rule_forms: Counter = field(default_factory=Counter)
+    rule_misses: Counter = field(default_factory=Counter)
     refused: Counter = field(default_factory=Counter)
     odd: dict = field(default_factory=lambda: {k: [] for k in ODD_KINDS})
     prices: list = field(default_factory=list)    # asking prices taken, toman
@@ -523,7 +549,7 @@ def _make_model(cp: dict) -> tuple[str | None, str | None]:
 
 def build(r: dict, card: Card | None, trace: Khodro45Trace,
           learned: str | None, url_rule_ok: bool,
-          prefix: str | None = "") -> CarListing:
+          prefix: str | None = "", forms: tuple = ("brand-model", "title_en")) -> CarListing:
     slug = _str(r.get("slug"))
     cp = r.get("car_properties") if isinstance(r.get("car_properties"), dict) else {}
     b = cp.get("brand") if isinstance(cp.get("brand"), dict) else {}
@@ -542,7 +568,7 @@ def build(r: dict, card: Card | None, trace: Khodro45Trace,
 
     # the address: the card's, else the rule the cards confirmed
     path = card.href if card else None
-    rp = rule_path(r, prefix)
+    rp = rule_path(r, prefix, *forms)
     if card is not None:
         trace.url["rule agrees" if rp and rp == card.href else "rule differs"] += 1
     elif rp and url_rule_ok:
@@ -648,6 +674,8 @@ class Khodro45Parser:
         self.rule: Counter = Counter()
         self.prefixes: Counter = Counter()
         self.prefix_misses = 0
+        self.forms: Counter = Counter()      # (segment, form) -> joined cards it fits
+        self.pairs = 0                       # joined cards whose links were read
         self.next_url: str | None = None
 
     def learned_field(self) -> str | None:
@@ -665,6 +693,15 @@ class Khodro45Parser:
                 and sum(self.prefixes.values()) >= LEARN_MIN_CARDS):
             return next(iter(self.prefixes))
         return None
+
+    def learned_forms(self) -> tuple[str | None, str | None]:
+        """(the first segment's form, the city's): the first of each that
+        every joined card's link took, three or more of them; else None."""
+        def one(segment, names):
+            if self.pairs < LEARN_MIN_CARDS:
+                return None
+            return next((n for n in names if self.forms[(segment, n)] == self.pairs), None)
+        return one("first", FIRST_FORMS), one("city", CITY_FORMS)
 
     def url_rule_ok(self) -> bool:
         return (self.rule["rule agrees"] >= LEARN_MIN_CARDS
@@ -775,6 +812,20 @@ class Khodro45Parser:
                 self.prefixes[code[:len(code) - len(slug)].lower()] += 1
             else:
                 self.prefix_misses += 1
+            segs = c.href.strip("/").split("/")
+            if len(segs) == 4:
+                self.pairs += 1
+                fs, cs = segment_forms(results[i])
+                for segment, forms, seg in (("first", fs, segs[1]), ("city", cs, segs[2])):
+                    hit = [n for n, v in forms.items() if v == seg]
+                    for n in hit:
+                        self.forms[(segment, n)] += 1
+                        tr.rule_forms[f"{segment}: {n}"] += 1
+                    if not hit:
+                        ref = forms.get("brand-model" if segment == "first" else "title_en", "")
+                        miss = f"{segment}: {_shape_of(seg)} vs {_shape_of(ref) or '(none)'}"
+                        if miss in tr.rule_misses or len(tr.rule_misses) < 6:
+                            tr.rule_misses[miss] += 1
         if len(join) < len(results):
             tr.joined["no card"] += len(results) - len(join)
         tr.cards_without_result = sum(1 for c in unique if id(c) not in used)
@@ -789,7 +840,7 @@ class Khodro45Parser:
             if shown:
                 tr.shown[shown] += 1
                 self.shown[shown] += 1
-            rp = rule_path(r, self.learned_prefix())
+            rp = rule_path(r, self.learned_prefix(), *self.learned_forms())
             self.rule["rule agrees" if rp and rp == card.href else "rule differs"] += 1
 
         fresh: list[CarListing] = []
@@ -801,7 +852,7 @@ class Khodro45Parser:
             if card is None:
                 tr.results_without_card += 1
             x = build(r, card, tr, self.learned_field(), self.url_rule_ok(),
-                      self.learned_prefix())
+                      self.learned_prefix(), self.learned_forms())
             if x.listing_id in self.seen:
                 tr.duplicates += 1
                 continue
@@ -882,6 +933,8 @@ def report(traces: list[Khodro45Trace]) -> list[str]:
     line("year", "year")
     line("calendar", "calendar")
     line("url", "url")
+    line("url forms", "rule_forms")
+    line("url misses", "rule_misses")
     line("brand", "brands", 12)
     line("city", "cities", 12)
     line("tags", "tags", 12)

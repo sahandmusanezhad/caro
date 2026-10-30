@@ -524,7 +524,9 @@ def build_from_page(entity: dict, lid: str, base: CarListing | None,
     trace.price_check[code] += 1
     prov = {"agree": "jsonld+text", "ld_only": "jsonld",
             "text_only": "text"}.get(code, "text" if price is not None else "none")
-    if price is not None:
+    # A page merged into its card adds no price to the report's: the card's
+    # figure is counted already, and the run's listings are counted once.
+    if price is not None and base is None:
         trace.prices.append(price)
         if not classify_price_value(price).usable:
             trace.odd["price below the floor"].append((price,))
@@ -741,9 +743,12 @@ def report(traces: list[SheypoorTrace]) -> list[str]:
     the smallest, the middle and the largest."""
     if not traces:
         return []
+    # a listing page merged into its card is not another listing
+    listings = sum(t.emitted for t in traces if t.kind == "list") + sum(
+        t.merged["alone"] for t in traces if t.kind == "listing")
     L = ["", "SHEYPOOR PAGE READ  (what each page was; counts and categories only)",
          "-" * 62,
-         f"  pages {len(traces)}   listings {sum(t.emitted for t in traces)}"
+         f"  pages {len(traces)}   listings {listings}"
          f"   cards {sum(t.cards for t in traces)}"]
     for label, attr in (("id from", "ids"), ("price", "price"), ("year", "year"),
                         ("mileage", "mileage"), ("province", "province"),
