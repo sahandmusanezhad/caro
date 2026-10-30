@@ -421,6 +421,57 @@ with tempfile.TemporaryDirectory() as _d:
           first_run.snapshot_id(_args(source="divar"))
           != first_run.snapshot_id(_args(source="bama")))
 
+# ---------------------------------------------------------------------------
+print("\nthe same-pin replicate says what it counts")
+# ---------------------------------------------------------------------------
+# RC1, RC2 (predictions R27, locked before the code). The owner's runs of
+# 2026-10-30 printed «price absent in one 8» for eight listings that had no
+# price in EITHER run, and an empty `$(ls …)` stopped the script with a
+# traceback. Run here on two snapshots the suite writes.
+import json as _rjson                                              # noqa: E402
+import subprocess as _rsub                                         # noqa: E402
+import sys as _rsys                                                # noqa: E402
+import tempfile as _rtmp                                           # noqa: E402
+from pathlib import Path as _RPath                                 # noqa: E402
+
+_RC = _RPath(__file__).resolve().parent.parent
+
+
+def _rsnap(prices: dict) -> dict:
+    return {"snapshot_id": "khodro45-2026-10-30-test", "taken_on": "2026-10-30",
+            "outcomes": [{"listing_id": k, "status": "ok", "asking_price_toman": v,
+                          "year_jalali": 1400, "mileage_km": 50_000, "model": "Dena",
+                          "price_status": "structured_only" if v else "ambiguous",
+                          "mileage_status": "plausible", "product_class": "vehicle",
+                          "price_kind": "cash" if v else "absent"}
+                         for k, v in prices.items()]}
+
+
+def _replicate(first, second) -> tuple[int, str]:
+    p = _rsub.run([_rsys.executable, str(_RC / "scripts" / "replicate_check.py"),
+                   str(first), str(second)], cwd=_RC, capture_output=True, text=True,
+                  timeout=120, env={**__import__("os").environ, "PYTHONPATH": str(_RC)})
+    return p.returncode, p.stdout + p.stderr
+
+
+with _rtmp.TemporaryDirectory() as _rd:
+    _a, _b = _RPath(_rd) / "a.json", _RPath(_rd) / "b.json"
+    _a.write_text(_rjson.dumps(_rsnap({"k:same": 900_000_000, "k:moved": 1_308_050_000,
+                                       "k:once": 700_000_000, "k:never": None})), encoding="utf-8")
+    _b.write_text(_rjson.dumps(_rsnap({"k:same": 900_000_000, "k:moved": 1_334_800_000,
+                                       "k:once": None, "k:never": None})), encoding="utf-8")
+    _code, _out = _replicate(_a, _b)
+    _flat = " ".join(_out.split())
+    check("RC1: four listings both runs drew -- one identical, one changed, one priced in the first "
+          "only, one in neither: the report counts them apart and names the one priced once",
+          _code == 0 and "price identical 1" in _flat and "price changed 1" in _flat
+          and "price absent in one 1" in _flat and "price absent in both 1" in _flat
+          and "k:once" in _out, _out[-900:])
+    _code, _out = _replicate(_a, _RPath(_rd))
+    check("RC2: a path that is not a file -- what an empty $(ls …) leaves -- is refused like a missing "
+          "one, with exit 2 and no traceback",
+          _code == 2 and "no such snapshot" in _out and "Traceback" not in _out, _out[-400:])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

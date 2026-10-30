@@ -89,8 +89,10 @@ def main() -> int:
     ap.add_argument("second", type=Path)
     a = ap.parse_args()
 
+    # `is_file`, not `exists`: an empty `$(ls …)` passes '', which is '.', a
+    # directory that exists, and the read below stopped on it with a traceback.
     for p in (a.first, a.second):
-        if not p.exists():
+        if not p.is_file():
             print(f"no such snapshot: {p}", file=sys.stderr)
             return 2
 
@@ -168,20 +170,29 @@ def main() -> int:
 
     print("FIELD STABILITY   (on the listings both runs drew)")
     print("-" * 66)
-    moved, identical, absent = [], 0, 0
+    # Four counts, not three. A listing with no price in either run is not a
+    # listing whose price came and went: on 2026-10-30 eight of the first
+    # kind were printed as «absent in one» and read as the second.
+    moved, identical, once, never = [], 0, [], 0
     for k in sorted(both):
         pa, pb = x[k].get("asking_price_toman"), y[k].get("asking_price_toman")
-        if pa is None or pb is None:
-            absent += 1
+        if pa is None and pb is None:
+            never += 1
+        elif pa is None or pb is None:
+            once.append((k, pa, pb))
         elif pa == pb:
             identical += 1
         else:
             moved.append((k, pa, pb))
     print(f"  price identical      {identical:>4}")
     print(f"  price changed        {len(moved):>4}")
-    print(f"  price absent in one  {absent:>4}")
     for k, pa, pb in moved[:12]:
         print(f"      {k:<22}{pa:>13,} → {pb:>13,}   {(pb / pa - 1):+.1%}")
+    print(f"  price absent in one  {len(once):>4}")
+    for k, pa, pb in once[:12]:
+        print(f"      {k:<22}{'none' if pa is None else f'{pa:,}':>13} → "
+              f"{'none' if pb is None else f'{pb:,}':>13}")
+    print(f"  price absent in both {never:>4}")
     print()
     dirty = 0
     for f in STABLE_FIELDS:
