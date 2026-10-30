@@ -510,6 +510,87 @@ check("a copy with the light accent glow back at 24% is reported by the same che
       _hot != _css and bool(_hot_fail["pane"]) and bool(_hot_fail["ground"]),
       f"changed {_hot != _css}, pane {len(_hot_fail['pane'])}, ground {len(_hot_fail['ground'])}")
 
+
+# ---------------------------------------------------------------------------
+print("\nthe fonts are the site's own")
+# ---------------------------------------------------------------------------
+
+# The owner chose it on 2026-10-30: the two families came from Google Fonts'
+# stylesheet, so every visitor's browser asked Google before it could draw a
+# word. They are files of the site now (webapp/web/public/fonts), declared in
+# globals.css under the names the palette's --fa and --mono already use. These
+# rows hold that: what is declared is there and is a font, nothing is asked of
+# another origin, and the licence travels with the files.
+
+WEB = ROOT / "webapp" / "web"
+FONTS = WEB / "public" / "fonts"
+_FACE = re.compile(r"@font-face\s*\{")
+_LICENCES = {"Vazirmatn": ("OFL-Vazirmatn.txt", "The Vazirmatn Project Authors"),
+             "IBM Plex Mono": ("OFL-IBM-Plex-Mono.txt", "IBM Corp.")}
+
+
+def faces(css: str) -> list[dict]:
+    out = []
+    for m in _FACE.finditer(css):
+        body = _body(css, m.end() - 1)
+        fam = re.search(r"font-family\s*:\s*[\"']([^\"']+)[\"']", body)
+        out.append({"family": fam.group(1) if fam else None,
+                    "urls": re.findall(r"url\(\s*[\"']?([^\"')]+)[\"']?\s*\)", body)})
+    return out
+
+
+def _stack(value: str) -> set[str]:
+    return {f.strip().strip("\"'") for f in value.split(",")}
+
+
+def _woff2(url: str) -> bool:
+    if not url.startswith("/fonts/"):
+        return False
+    path = FONTS / url[len("/fonts/"):]
+    return path.is_file() and path.read_bytes()[:4] == b"wOF2"
+
+
+def font_faults(css: str, layout: str, config: str, fonts_dir: Path) -> dict[str, list[str]]:
+    # the palette's values are compared case-folded (see _norm), so the names are too
+    named = _stack(site["light"].get("--fa", "")) | _stack(site["light"].get("--mono", ""))
+    fs = faces(css)
+    f1 = [f"{f['family']}: not a family the palette names" for f in fs
+          if (f["family"] or "").lower() not in named]
+    f1 += [f"{f['family']}: {u} is not a woff2 under /fonts/" for f in fs for u in f["urls"]
+           if not _woff2(u)]
+    if len(fs) != 5:
+        f1.append(f"{len(fs)} faces, not 5")
+    f2 = [u for f in fs for u in f["urls"] if re.match(r"(https?:)?//", u)]
+    f2 += ["@import in globals.css"] if re.search(r"@import\b", css) else []
+    f2 += [h for h in ("fonts.googleapis.com", "fonts.gstatic.com") if h in layout]
+    # next.config.mjs writes each directive as a double-quoted string and its
+    # keywords in single quotes ("font-src 'self' data:"), so the directive
+    # runs to the next double quote
+    for d in ("font-src", "style-src"):
+        m = re.search(r'"' + d + r'\s+([^"]*)"', config)
+        if not m:
+            f2.append(f"no {d} in the CSP")
+        else:
+            f2 += [f"{d}: {t}" for t in m.group(1).split() if re.match(r"(https?:)?//|https?:", t)]
+    f3 = []
+    for fam, (name, holder) in _LICENCES.items():
+        lic = fonts_dir / name
+        text = lic.read_text(encoding="utf-8") if lic.is_file() else ""
+        if "SIL Open Font License" not in text or holder not in text:
+            f3.append(f"{fam}: {name}")
+    return {"f1": f1, "f2": f2, "f3": f3}
+
+
+_layout = (WEB / "app" / "layout.tsx").read_text(encoding="utf-8")
+_config = (WEB / "next.config.mjs").read_text(encoding="utf-8")
+_ff = font_faults(stylesheet(SITE), _layout, _config, FONTS)
+check("every @font-face names a family the palette names, and a woff2 under /fonts/ "
+      "that the site holds; five faces", not _ff["f1"], " · ".join(_ff["f1"]))
+check("no font and no stylesheet from another origin: globals.css, layout.tsx and "
+      "the CSP's font-src and style-src", not _ff["f2"], " · ".join(_ff["f2"]))
+check("each family's licence is beside its files: the SIL OFL and its holder",
+      not _ff["f3"], " · ".join(_ff["f3"]))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

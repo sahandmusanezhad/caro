@@ -27,11 +27,11 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl">
       <head>
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-        />
+        {/* The fonts are the site's own (globals.css). Every page's text is
+            Persian, so the Arabic-script subset is asked for at once rather
+            than when the stylesheet is read. */}
+        <link rel="preload" href="/fonts/vazirmatn-arabic-wght-normal.woff2" as="font"
+              type="font/woff2" crossOrigin="" />
       </head>
       <body>
         <header className="glass-bar sm:sticky top-0 z-40 border-b">

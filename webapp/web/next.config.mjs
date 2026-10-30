@@ -2,16 +2,16 @@
 
 // Headers every page is served with (2026-10-30). The policy allows what the
 // site uses and nothing else: its own scripts and styles -- inline as well,
-// which the App Router's hydration needs -- Google Fonts' stylesheet and font
-// files, images from itself and data: URLs, connections to itself (the API is
-// behind the same origin), and no frame, plugin or base elsewhere. It is sent
-// in production only: the development server evaluates code it is sent,
-// which the policy forbids.
+// which the App Router's hydration needs -- its own fonts (public/fonts; no
+// longer Google's), images from itself and data: URLs, connections to itself
+// (the API is behind the same origin), and no frame, plugin or base
+// elsewhere. It is sent in production only: the development server evaluates
+// code it is sent, which the policy forbids.
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "font-src 'self' https://fonts.gstatic.com data:",
+  "style-src 'self' 'unsafe-inline'",
+  "font-src 'self' data:",
   "img-src 'self' data: blob:",
   "connect-src 'self'",
   "frame-ancestors 'none'",
