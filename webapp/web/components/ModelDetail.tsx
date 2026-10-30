@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ApiError, api, type HistoryPoint, type ModelResponse } from '@/lib/api';
 import {
-  askingPrice, compact, faNum, faPlain, modelLabel, odometer, provinceLabel,
+  askingPrice, compact, contactLabel, faNum, faPlain, modelLabel, odometer, provinceLabel,
 } from '@/lib/format';
 import SaveButton from '@/components/SaveButton';
 import { type OfferSort, offersOfYear, sortOffers } from '@/lib/offers';
@@ -214,7 +214,7 @@ export default function ModelDetail({ make, model }: { make: string; model: stri
                 <Link className="btn px-3 py-1 text-[12.5px] no-underline" href={`/car/${encodeURIComponent(o.id)}`}>پرونده</Link>
                 {o.url && /^https:\/\//.test(o.url) && (
                   <a className="btn-solid px-3 py-1 text-[12.5px] no-underline" href={o.url}
-                     target="_blank" rel="noopener noreferrer nofollow">دیدن در منبع ↗</a>
+                     target="_blank" rel="noopener noreferrer nofollow">{contactLabel(o.url)}</a>
                 )}
               </div>
             </li>

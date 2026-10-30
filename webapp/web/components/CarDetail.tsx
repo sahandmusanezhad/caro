@@ -7,8 +7,8 @@ import {
   type Fault, type ListingResponse, type ScoredItem,
 } from '@/lib/api';
 import {
-  NOT_A_CAR_FA, askingPrice, classLabel, compact, conditionLabel, faNum,
-  faPlain,
+  NOT_A_CAR_FA, NUMBER_ON_SOURCE_FA, askingPrice, classLabel, compact,
+  conditionLabel, contactLabel, faNum, faPlain,
   isAppraisalRow, isVehicleClass, modelLabel, odometer, provinceLabel, toman,
   trimLabel,
 } from '@/lib/format';
@@ -369,12 +369,15 @@ export function ListingFile({
           {listing.url && /^https:\/\//.test(listing.url) && (
             <a className="btn no-underline" href={listing.url} target="_blank"
                rel="noopener noreferrer nofollow">
-              دیدن آگهی در منبع ↗
+              {contactLabel(listing.url)}
             </a>
           )}
           {/* before the buyer goes to the seller: what to check first (B1) */}
           <Link className="text-[13px] px-2" href="/before-buying">پیش از خرید ←</Link>
         </div>
+        {listing.url && /^https:\/\//.test(listing.url) && (
+          <p className="mt-2 mb-0 text-[12.5px] text-ink-3">{NUMBER_ON_SOURCE_FA}</p>
+        )}
       </div>
 
       {/* --- what was parsed --------------------------------------------- */}

@@ -1334,6 +1334,30 @@ else:
 if dout is not None:
     check("the car's file links to «پیش از خرید»", 'href="/before-buying"' in page["refused"])
 
+# ---------------------------------------------------------------------------
+print("\nthe way to the seller says where it goes: «تماس با فروشنده در <منبع>»")
+# ---------------------------------------------------------------------------
+# The owner asked (2026-10-30) that a buyer can reach the seller. CARO keeps no
+# seller's number (DATA_CONTRACT); the listing's own page has it, behind the
+# source's login, and the link to that page now says so.
+_URLS = ["https://bama.ir/car/detail-d1hd97vo-pride-131-se-1397", "https://divar.ir/v/a/AaBbCc",
+         "https://www.sheypoor.com/v/pride-131-123456.html", "https://khodro45.com/buy-car/x/tehran/abc/",
+         "https://example.com/car/1", "not a url"]
+_sn, why = call("lib/format.ts", "sourceName", [[u] for u in _URLS])
+_cl, why2 = call("lib/format.ts", "contactLabel", [[_URLS[0]]])
+check("sourceName: باما, دیوار, شیپور (a www. host), خودرو۴۵; another host and no url are «منبع»; "
+      "the label on a bama url", _sn == ["باما", "دیوار", "شیپور", "خودرو۴۵", "منبع", "منبع"]
+      and _cl == ["تماس با فروشنده در باما ↗"], f"{_sn} {_cl} {why or why2}")
+_nf2, why3 = node({"consts": {"module": "lib/format.ts", "names": ["NUMBER_ON_SOURCE_FA"]}})
+if dout is not None and _nf2 is not None:
+    _car = page["refused"]
+    _link = re.search(r'<a[^>]*href="(https://bama\.ir/[^"]+)"[^>]*>(.*?)</a>', _car, re.S)
+    check("the car's file of a bama listing: «تماس با فروشنده در باما ↗» to its page, and the line "
+          "that the number is there and CARO keeps none",
+          bool(_link) and _text(_link.group(2)).strip() == "تماس با فروشنده در باما ↗"
+          and _nf2["consts"]["NUMBER_ON_SOURCE_FA"] in _text(_car),
+          _text(_link.group(2)).strip() if _link else "no link to bama.ir")
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

@@ -320,6 +320,33 @@ export function modelLabel(key: string): string {
     .join(' · ');
 }
 
+/* The way to a car's seller is its listing on its source: the seller's number
+   is there, behind the source's own login, and CARO keeps none (DATA_CONTRACT).
+   So the link says where it goes and what it is for. */
+const SOURCE_FA: Record<string, string> = {
+  'bama.ir': 'باما',
+  'divar.ir': 'دیوار',
+  'sheypoor.com': 'شیپور',
+  'khodro45.com': 'خودرو۴۵',
+};
+
+/** The source a listing's url is on, by its host; «منبع» for any other. */
+export function sourceName(url: string | null | undefined): string {
+  try {
+    const host = new URL(url ?? '').hostname.replace(/^www\./, '');
+    return SOURCE_FA[host] ?? 'منبع';
+  } catch {
+    return 'منبع';
+  }
+}
+
+export const NUMBER_ON_SOURCE_FA =
+  'شماره‌ی فروشنده در صفحه‌ی خود آگهی است؛ کارو آن را نگه نمی‌دارد و نشان نمی‌دهد.';
+
+export function contactLabel(url: string | null | undefined): string {
+  return `تماس با فروشنده در ${sourceName(url)} ↗`;
+}
+
 /** A code typed on a Persian keyboard, in the ASCII digits an HTTP header can
  *  carry: a header holds no Persian digit, and a browser refuses to send one.
  *  Persian (U+06F0..) and Arabic-Indic (U+0660..) digits both. */
