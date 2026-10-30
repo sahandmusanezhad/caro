@@ -5,12 +5,18 @@
  * The owner chose on 2026-10-30 to keep them out of the nav until then: they
  * appear where NEXT_PUBLIC_SELLER_LISTINGS is «on» when the site is built.
  * The pages stay at their addresses and say the deployment takes no listings
- * where the store is off. */
+ * where the store is off. A model page's section of them follows the same
+ * rule: where they are not turned on, it does not ask the API at all. */
 
 export interface NavItem { href: string; fa: string }
 
+/** The one rule: the build shows the listings sellers post only for «on». */
+export function sellerListingsOn(flag: string | undefined): boolean {
+  return flag === 'on';
+}
+
 export function navItems(sellerListings: string | undefined): NavItem[] {
-  const seller = sellerListings === 'on'
+  const seller = sellerListingsOn(sellerListings)
     ? [{ href: '/listings', fa: 'آگهی فروشنده‌ها' }, { href: '/sell', fa: 'ثبت آگهی' }]
     : [];
   return [

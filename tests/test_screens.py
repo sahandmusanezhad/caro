@@ -1496,6 +1496,10 @@ check("N1: the seller links are in the nav only where NEXT_PUBLIC_SELLER_LISTING
       _navs is not None and "/listings" in _hrefs[0] and "/sell" in _hrefs[0]
       and [h for h in _hrefs[0] if h not in ("/listings", "/sell")] == _rest
       and _hrefs[1] == _rest and _hrefs[2] == _rest, why_n or str(_hrefs))
+_on, why_on = call("lib/nav.ts", "sellerListingsOn", [["on"], [None], ["off"], [""], ["ON"]])
+check("F1: sellerListingsOn, the one rule for the nav's seller links and a model page's seller section, "
+      "holds for «on» and nothing else -- not for no value, «off», an empty one or «ON»",
+      _on == [True, False, False, False, False], why_on or str(_on))
 
 print()
 if FAILS:

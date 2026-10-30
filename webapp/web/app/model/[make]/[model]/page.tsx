@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import ModelDetail from '@/components/ModelDetail';
 import SellerListings from '@/components/SellerListings';
 import { modelTitle } from '@/lib/format';
+import { sellerListingsOn } from '@/lib/nav';
 
 type Params = Promise<{ make: string; model: string }>;
+
+const SELLERS = sellerListingsOn(process.env.NEXT_PUBLIC_SELLER_LISTINGS);
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { make, model } = await params;
@@ -15,11 +18,13 @@ export default async function ModelPage({ params }: { params: Params }) {
   const mk = decodeURIComponent(make);
   // `_` is the placeholder for a model whose make the corpus does not give.
   // Listings sellers posted on CARO follow the corpus's, under their own
-  // heading, and only where there are some (components/SellerListings.tsx).
+  // heading, and only where there are some (components/SellerListings.tsx)
+  // -- and only in a build that turned them on (lib/nav.ts), so a deployment
+  // without them asks the API for nothing.
   return (
     <>
       <ModelDetail make={mk === '_' ? '' : mk} model={decodeURIComponent(model)} />
-      {mk !== '_' ? (
+      {mk !== '_' && SELLERS ? (
         <div className="mt-10"><SellerListings make={mk} model={decodeURIComponent(model)} quietWhenEmpty /></div>
       ) : null}
     </>
