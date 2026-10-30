@@ -4649,6 +4649,20 @@ check("N1: the next list page is the one page 1 named, though its listing pages 
       and all("/v/" in u for u in _sasked[2:4]) and _sasked[4:] == [_SP2]
       and [o.listing_id for o in _sout][-1] == "sheypoor:462349998" and len(_sout) == 5
       and _sad.listing_pages == Counter({"read": 2}) and _sad.stopped is None, str((_sasked, _sad.stopped)))
+_sw1, _ = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), **_SPL})
+_sad1 = SheypoorAdapter(max_pages=1, page_fetcher=_sw1, robots_fetcher=_sw1, parser=SheypoorParser(),
+                        sleeper=lambda s: None, max_listings=1)
+list(_sad1.fetch_all(date(2026, 10, 30)))
+
+
+def _next_line(traces):
+    return [x.strip() for x in _sh.report(traces) if x.strip().startswith("next page")]
+
+
+check("N2: the report's next page is the one the last list page named, not a listing page's «(none)»",
+      _next_line(_sad.parser.traces) == ["next page      /s/iran/car?page_num&c"]
+      and _next_line(_sad1.parser.traces) == ["next page      /s/iran/car?page_num"],
+      str((_next_line(_sad.parser.traces), _next_line(_sad1.parser.traces))))
 
 
 print("\nkhodro45: the address rule is learned segment by segment; sheypoor counts a merge once")

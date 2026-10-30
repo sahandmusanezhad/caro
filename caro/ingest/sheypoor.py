@@ -768,7 +768,9 @@ def report(traces: list[SheypoorTrace]) -> list[str]:
     if prices:
         L.append(f"  price shown    min {_b(prices[0])}   median "
                  f"{_b(prices[len(prices) // 2])}   max {_b(prices[-1])}   (toman)")
-    L.append(f"  next page      {traces[-1].next_shape}")
+    # the last list page's: a listing page names no next page
+    lists = [t for t in traces if t.kind == "list"]
+    L.append(f"  next page      {lists[-1].next_shape if lists else '(none)'}")
     dup = sum(t.duplicates for t in traces)
     if dup:
         L.append(f"  duplicates     {dup}")
