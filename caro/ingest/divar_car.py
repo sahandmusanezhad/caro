@@ -298,6 +298,14 @@ class CarListing:
     # whose `city` is a field of its own.
     location_raw: str | None = None
 
+    # When the source says the listing was created, as it wrote it, where it
+    # reads as a time (Khodro45's `created_time`; no other source gives one).
+    # An audit of our own first sighting and nothing else: diagnostic-only, so
+    # never a feature and never a split key (the owner's decision of
+    # 2026-10-30, TEMPORAL_CONTRACT §11). Like `location_raw`, it crosses to
+    # the snapshot and stops there.
+    listed_at: str | None = None
+
     def to_fetch_outcome(self, source: str = "divar",
                          salt: str | None = None) -> FetchOutcome:
         return FetchOutcome(
@@ -314,6 +322,7 @@ class CarListing:
             # further: promotion does not copy it, and the corpus guard
             # refuses it.
             location_raw=self.location_raw,
+            listed_at=self.listed_at,
             # Carried because `listing_from_record` reads all three off a
             # published row and nothing could ever supply them. See the block
             # on FetchOutcome for how that was found and what it cost.

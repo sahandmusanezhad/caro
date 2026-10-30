@@ -30,9 +30,16 @@ used, and only if three or more showed it and none showed the other. What
 other type carries no price until someone reads such a card and says what it
 is.
 
-WHAT IS NEVER READ. The image, `views`, `identifier`, `branch`, `created_time`
-and any seller field: there is none on the list, so `seller_raw` stays None and
-no fingerprint is made, and `seller_type` is `unknown` (D26: no badge, no type).
+WHAT IS NEVER READ. The image, `views`, `identifier`, `branch` and any seller
+field: there is none on the list, so `seller_raw` stays None and no fingerprint
+is made, and `seller_type` is `unknown` (D26: no badge, no type).
+
+READ AS AN AUDIT ONLY. `created_time`, when the site says the listing was
+created, written on the owner's saved page as «2026-10-28T18:20:42.930075+03:30».
+It is kept as written, in `listed_at`, where it reads as a time, and crosses to
+the snapshot and no further; it is never a feature and never a split key. It
+checks our own first sighting (TEMPORAL_CONTRACT §11; the owner's decision of
+2026-10-30), and the report counts the listings by its date, newest first.
 
 NOT DONE HERE, and said so: the colour (the list does not give it), the
 province of a city that is not one of the thirteen that share their
@@ -46,6 +53,7 @@ import json
 import re
 from collections import Counter
 from dataclasses import dataclass, field
+from datetime import datetime
 from html.parser import HTMLParser
 
 from caro.ingest.bama import ld_year_jalali
@@ -460,6 +468,8 @@ class Khodro45Trace:
     rule_forms: Counter = field(default_factory=Counter)
     rule_misses: Counter = field(default_factory=Counter)
     refused: Counter = field(default_factory=Counter)
+    created: Counter = field(default_factory=Counter)          # date -> listings
+    created_missing: Counter = field(default_factory=Counter)  # unreadable, none
     odd: dict = field(default_factory=lambda: {k: [] for k in ODD_KINDS})
     prices: list = field(default_factory=list)    # asking prices taken, toman
 
@@ -488,6 +498,29 @@ def _shown_field(r: dict, displayed: int | None) -> str | None:
     if len(hits) == 2:
         return "both"
     return hits[0] if hits else "neither"
+
+
+# A time as the site writes it: a date, a time, a fraction and an offset
+# optional. Shape first, then datetime has the last word on the values.
+_TIME = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})?")
+
+
+def _created(v, trace: Khodro45Trace) -> str | None:
+    """`created_time` as the site wrote it, where it reads as a time; else
+    None, counted as unreadable or as none."""
+    if v is None:
+        trace.created_missing["none"] += 1
+        return None
+    if isinstance(v, str) and _TIME.fullmatch(v):
+        try:
+            datetime.fromisoformat(v.replace("Z", "+00:00"))
+        except ValueError:
+            pass
+        else:
+            trace.created[v[:10]] += 1
+            return v
+    trace.created_missing["unreadable"] += 1
+    return None
 
 
 def _price(r: dict, card: Card | None, learned: str | None):
@@ -653,6 +686,7 @@ def build(r: dict, card: Card | None, trace: Khodro45Trace,
         seller_type="unknown",
         province_source="city" if province else "none",
         location_raw=loc, source_url=url or None,
+        listed_at=_created(r.get("created_time"), trace),
     )
 
 
@@ -940,6 +974,15 @@ def report(traces: list[Khodro45Trace]) -> list[str]:
     line("tags", "tags", 12)
     line("option", "options", 12)
     line("trim", "trims", 12)
+    created, missing = Counter(), Counter()
+    for t in traces:
+        created.update(t.created)
+        missing.update(t.created_missing)
+    if created or missing:
+        days = sorted(created.items(), reverse=True)
+        L.append(f"  {'created':<15}" + "  ".join(f"{d}:{n}" for d, n in days[:12])
+                 + (f"  … {len(days) - 12} older dates" if len(days) > 12 else "")
+                 + f"   unreadable {missing['unreadable']}   none {missing['none']}")
     prices = sorted(p for t in traces for p in t.prices)
     if prices:
         L.append(f"  asking price   min {_b(prices[0])}   median "

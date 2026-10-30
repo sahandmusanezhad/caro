@@ -479,10 +479,12 @@ about to happen.
 ## 11. A second source, run daily: Khodro45 (2026-10-30)
 
 > **PROPOSAL; its three decisions were taken by the owner on 2026-10-30**
-> (open questions 5 to 7, each as proposed). Nothing in this section is built
-> yet. What comes first is still the measurement below; then the read of
-> `created_time` as an audit, against the field as a saved page shows it; then
-> the series artifact.
+> (open questions 5 to 7, each as proposed). Built since: the read of
+> `created_time` as an audit (2026-10-30), against the field as the owner's
+> saved page shows it — it reaches the snapshot as `listed_at`, never the
+> corpus, and the Khodro45 report counts the listings by its date, which is
+> the arrival rate below read from one run. Still to come: the day-to-day
+> measurement, then the series artifact.
 
 The owner chose on 2026-10-30 to run Khodro45 every day. Its collector is not
 §10's, and the difference decides whether a daily clock can open the

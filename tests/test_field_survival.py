@@ -107,6 +107,7 @@ def a_listing(**over) -> CarListing:
         price_status="usable", price_provenance="jsonld",
         mileage_status="plausible", seller_type="dealer",
         price_currency_raw="IRR", location_raw="رباط کریم، تهران",
+        listed_at="2026-10-28T18:20:42.930075+03:30",
     )
     base.update(over)
     return CarListing(**base)
@@ -249,6 +250,7 @@ CROSSES = {
     "city": "province",                    # renamed, not dropped
     "province_source": "province_source",  # and how it was known, beside it
     "location_raw": "location_raw",        # to the snapshot, and no further
+    "listed_at": "listed_at",              # the same: an audit, never published
     "seller_raw": "seller_fingerprint",    # salted on the way out (D-privacy)
     "body_condition": "body_condition",
     "condition_source": "condition_source",
@@ -462,6 +464,10 @@ check("  and the location line to the snapshot, where it stops by decision",
       _row(_report, "location_raw")
       == ["location_raw", "100%", "100%", "—", "0"],
       str(_row(_report, "location_raw")))
+check("  and the time the source says a listing was created, to the snapshot and no further: an "
+      "audit, never published (the owner's decision, 2026-10-30)",
+      _row(_report, "listed_at") == ["listed_at", "100%", "100%", "—", "0"],
+      str(_row(_report, "listed_at")))
 
 # Divar's shape: a seller the parse holds raw, which only its salted hash
 # may leave. Bama's listings have none (`seller_raw=None`), so the fixture

@@ -4762,6 +4762,55 @@ check("S1: khodro45 and sheypoor state their source and pages (sheypoor: 10 list
       and "drawn uniformly from the sitemap, seed=0" in _bam and "category budget   50 page(s)" in _bam,
       _k45 + " | " + _shp)
 
+# ---------------------------------------------------------------------------
+print("\nkhodro45's created_time, read as an audit only (the owner's decision, 2026-10-30)")
+# ---------------------------------------------------------------------------
+# CT1-CT3 (predictions R27, part B, locked before the code). The owner's saved
+# page writes it «2026-10-28T18:20:42.930075+03:30». It is kept as written
+# where it reads as a time, crosses to the snapshot, and is never a feature.
+from caro.ingest import khodro45 as _k45m                            # noqa: E402
+from caro.ingest.quality import DiagnosticLeakedIntoModel, assert_not_features   # noqa: E402
+
+
+def _k45_at(slug, created):
+    r = _k45_result(slug)
+    if created is _K45_NONE:
+        del r["created_time"]
+    else:
+        r["created_time"] = created
+    return r
+
+
+_K45_NONE = object()
+_ct_cases = [("CTA01", "2026-10-28T18:20:42.930075+03:30"), ("CTA02", "2026-10-28T10:00:00"),
+             ("CTA03", "yesterday"), ("CTA04", 1730000000), ("CTA05", ""),
+             ("CTA06", "2026-13-45T10:00:00"), ("CTA07", _K45_NONE),
+             ("CTA08", "2026-10-29T08:00:00+03:30")]
+_ctp = Khodro45Parser()
+_ctl = {x.listing_id: x for x in _ctp(json.dumps({"count": 1814, "next": None, "previous": None,
+                                                   "results": [_k45_at(s, c) for s, c in _ct_cases]}))}
+_ct_got = {s: getattr(_ctl.get(s), "listed_at", "<missing>") for s, _ in _ct_cases}
+_ct_out = _ctl["CTA01"].to_fetch_outcome("khodro45") if "CTA01" in _ctl else None
+check("CT1: created_time is kept as written where it reads as a time -- with a fraction and an offset, or "
+      "without either -- and reaches the snapshot's record; a word, a number, an empty string and a date "
+      "that is not one are None, and so is a result without it",
+      _ct_got == {"CTA01": "2026-10-28T18:20:42.930075+03:30", "CTA02": "2026-10-28T10:00:00",
+                  "CTA03": None, "CTA04": None, "CTA05": None, "CTA06": None, "CTA07": None,
+                  "CTA08": "2026-10-29T08:00:00+03:30"}
+      and getattr(_ct_out, "listed_at", None) == "2026-10-28T18:20:42.930075+03:30", str(_ct_got))
+_ct_line = next((ln for ln in _k45m.report(_ctp.traces) if ln.split()[:1] == ["created"]), "")
+check("CT2: the report counts the listings by the date the source says each was created, newest first, "
+      "then how many were unreadable and how many had none",
+      _ct_line.split()[1:3] == ["2026-10-29:1", "2026-10-28:2"]
+      and "unreadable 4" in _ct_line and "none 1" in _ct_line, repr(_ct_line))
+try:
+    assert_not_features(["listed_at"])
+    _ct_refused = False
+except DiagnosticLeakedIntoModel:
+    _ct_refused = True
+check("CT3: listed_at is diagnostic-only: a model that took it as a feature is refused",
+      _ct_refused)
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

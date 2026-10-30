@@ -303,6 +303,10 @@ SURVIVAL = [
     # and refused in a published row (`corpus.FORBIDDEN_KEYS`). `None` in the
     # last column is that decision, and the report audits it to the snapshot.
     ("location_raw",   "location_raw",        "location_raw",   None),
+    # The same, for when the source says a listing was created: an audit of
+    # our first sighting, kept to the snapshot (the owner's decision,
+    # 2026-10-30).
+    ("listed_at",      "listed_at",           "listed_at",      None),
 ]
 
 

@@ -323,9 +323,12 @@ screen that shows it is telling the reader how stale the page is rather than
 how old the car's advertisement is. The equivalent on Torob is the date in the
 page title, stated once for several thousand listings.
 
-**listing age — `EVIDENCE_ONLY`.** No corpus field carries a posting date. The
-only channel that reads one is `scripts/date_watch.py`, whose observations are
-operational and unpublished; `data/derived/date_watch_summary.json` carries the
+**listing age — `EVIDENCE_ONLY`.** No corpus field carries a posting date.
+Khodro45's list states one, `created_time`, and since 2026-10-30 it reaches the
+snapshot as `listed_at` and stops there: an audit of our own first sighting
+(TEMPORAL_CONTRACT §11, the owner's decision), never a feature, never shown.
+For a published listing, the only channel that reads one is
+`scripts/date_watch.py`, whose observations are operational and unpublished; `data/derived/date_watch_summary.json` carries the
 four fields that may leave it. D58 applies **at its own scope and no wider**:
 in that corpus, with extractor v4, `phrase_days` was never observed at 7 or
 above and was absent in all 34 observations of age 7 to 29. It is not a general

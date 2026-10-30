@@ -171,6 +171,9 @@ DIAGNOSTIC_ONLY_FIELDS = frozenset({
     "seller_type",
     "price_status", "price_provenance", "price_raw", "price_currency_raw",
     "mileage_status", "mileage_note",
+    # when the source says the listing was created: an audit of our first
+    # sighting (TEMPORAL_CONTRACT §11), never a predictor and never the split key
+    "listed_at",
 })
 
 

@@ -96,6 +96,10 @@ class FetchOutcome:
     # is never published (`corpus.FORBIDDEN_KEYS`). None where the adapter
     # recorded no line.
     location_raw: str | None = None
+    # When the source says the listing was created, as it wrote it. An audit
+    # of our first sighting, kept in the snapshot and never published, never
+    # a feature (`quality.DIAGNOSTIC_ONLY_FIELDS`).
+    listed_at: str | None = None
     seller_fingerprint: str | None = None
     mileage_km: int | None = None
     image_phashes: tuple[str, ...] = ()
