@@ -4638,6 +4638,17 @@ check("  --page with the list and a listing page: four listings, the second page
       _rc == 0 and "page 2 of 2: a listing page, merged into its card" in _out.getvalue()
       and "CORPUS INVENTORY  (4 listings)" in _out.getvalue() and "listing pages  1" in _out.getvalue(),
       _out.getvalue()[:500])
+_SPN2 = _sp_page([_sp_card("462349998", "تیبا هاچبک مدل ۱۳۹۸", place="کرج")], nxt="/s/iran/car?page_num=3&amp;c=1")
+_sw, _sasked = _sp_world({"https://www.sheypoor.com/s/iran/car": (200, _SP), _SP2: (200, _SPN2), **_SPL})
+_sad = SheypoorAdapter(max_pages=2, page_fetcher=_sw, robots_fetcher=_sw, parser=SheypoorParser(),
+                       sleeper=lambda s: None, max_listings=2)
+_sout = list(_sad.fetch_all(date(2026, 10, 30)))
+check("N1: the next list page is the one page 1 named, though its listing pages were read after it -- a listing "
+      "page names none; the owner's live run of 2026-10-30 stopped at page 1",
+      _sasked[:2] == ["https://www.sheypoor.com/robots.txt", "https://www.sheypoor.com/s/iran/car"]
+      and all("/v/" in u for u in _sasked[2:4]) and _sasked[4:] == [_SP2]
+      and [o.listing_id for o in _sout][-1] == "sheypoor:462349998" and len(_sout) == 5
+      and _sad.listing_pages == Counter({"read": 2}) and _sad.stopped is None, str((_sasked, _sad.stopped)))
 
 
 print("\nkhodro45: the address rule is learned segment by segment; sheypoor counts a merge once")

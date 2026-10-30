@@ -92,6 +92,9 @@ class NextLinkAdapter:
                 status, body = None, ""
             if classify_http(status) is FetchStatus.OK and body:
                 got = self.parser(body)
+                # read now: enrich may call the parser with other pages, and a
+                # listing page names no next page
+                nxt = self.parser.next_url
                 for x in self.enrich(got):
                     yield x.to_fetch_outcome(self.name, self.salt)
                 if not got:
@@ -99,10 +102,10 @@ class NextLinkAdapter:
                     return
                 if page == self.max_pages:
                     return
-                if not self.parser.next_url:
+                if not nxt:
                     self.stopped = f"page {page} names no next page"
                     return
-                url = self.parser.next_url
+                url = nxt
             else:
                 # The next page is known only from this one, so the run ends
                 # here. No retry and no other way of asking.
