@@ -1261,10 +1261,13 @@ else:
 # ---------------------------------------------------------------------------
 print("\non a phone, a model's runs are a list; from 640 px, the chart")
 # ---------------------------------------------------------------------------
-_RUNS = [{"run_id": "run11", "collected_on": "2026-09-10", "priced": 54, "price_median": 613_000_000},
-         {"run_id": "run13", "collected_on": "2026-10-06", "priced": 2, "price_median": None},
-         {"run_id": "run14", "collected_on": "2026-10-11", "priced": 53, "price_median": 635_000_000},
-         {"run_id": "run16", "collected_on": "2026-10-15", "priced": 50, "price_median": 650_000_000}]
+_RUNS = [{"run_id": "run11", "collected_on": "2026-09-10", "source": "bama", "priced": 54,
+          "price_median": 613_000_000},
+         {"run_id": "run13", "collected_on": "2026-10-06", "source": "bama", "priced": 2, "price_median": None},
+         {"run_id": "run14", "collected_on": "2026-10-11", "source": "bama", "priced": 53,
+          "price_median": 635_000_000},
+         {"run_id": "run16", "collected_on": "2026-10-15", "source": "bama", "priced": 50,
+          "price_median": 650_000_000}]
 _hv, why = node({"component": "components/ModelDetail.tsx", "export": "History",
                  "props": [{"points": _RUNS}]})
 _hc, why2 = call("lib/format.ts", "compact", [[r["price_median"]] for r in _RUNS if r["price_median"]])
@@ -1294,6 +1297,48 @@ else:
           "sm:hidden" in _cls(_ol_tag) and "hidden" not in _cls(_ol_tag)
           and {"hidden", "sm:block"} <= set(_cls(_svg_tag)),
           f"ol {_cls(_ol_tag)} svg {_cls(_svg_tag)}")
+
+# H3, H4 (predictions SOURCES, change 2, locked before the code): two sources'
+# runs, interleaved by date, each with a middle.
+_RUNS2 = [{"run_id": "run11", "collected_on": "2026-09-10", "source": "bama", "priced": 54,
+           "price_median": 613_000_000},
+          {"run_id": "run17", "collected_on": "2026-10-12", "source": "khodro45", "priced": 3,
+           "price_median": 1_100_000_000},
+          {"run_id": "run16", "collected_on": "2026-10-15", "source": "bama", "priced": 50,
+           "price_median": 650_000_000},
+          {"run_id": "run18", "collected_on": "2026-10-31", "source": "khodro45", "priced": 3,
+           "price_median": 1_150_000_000}]
+_NAME_FA = {"bama": "باما", "khodro45": "خودرو۴۵"}
+_hv2, why = node({"component": "components/ModelDetail.tsx", "export": "History",
+                  "props": [{"points": _RUNS2}]})
+if _hv is None or _hv2 is None:
+    check("History could be drawn for two sources", False, why)
+else:
+    _h2 = _hv2["markup"][0]
+    _attr = lambda tag, name: (re.search(rf'{name}="([^"]*)"', tag) or [None, None])[1]  # noqa: E731
+    _paths = [(_attr(m, "data-source"), [float(v) for v in re.findall(r"[ML]([\d.]+),", _attr(m, "d") or "")])
+              for m in re.findall(r"<path[^>]*>", _h2)]
+    _dots: dict = {}
+    for m in re.findall(r"<circle[^>]*>", _h2):
+        _dots.setdefault(_attr(m, "data-source"), set()).add(round(float(_attr(m, "cx")), 3))
+    check("two sources: one path each, each through its own source's points only -- bama's at the first "
+          "and third runs, khodro45's at the second and fourth -- so no segment joins two sources",
+          sorted(str(s) for s, _ in _paths) == ["bama", "khodro45"]
+          and all({round(v, 3) for v in xs} == _dots.get(s) for s, xs in _paths)
+          and len(_dots.get("bama", ())) == 2 and len(_dots.get("khodro45", ())) == 2,
+          f"paths {_paths} dots {_dots}")
+    _ol2 = re.search(r'<ol[^>]*data-runs="list"[^>]*>(.*?)</ol>', _h2, re.S)
+    _items2 = [_text(it) for it in re.findall(r"<li[^>]*>(.*?)</li>", _ol2.group(1), re.S)] if _ol2 else []
+    _legend = re.search(r"<ul[^>]*data-legend[^>]*>(.*?)</ul>", _h2, re.S)
+    check("the list names each run's source, «باما» or «خودرو۴۵»; with two sources a legend names "
+          "both, and with one (the four Bama runs above) there is none",
+          len(_items2) == len(_RUNS2)
+          and all(_NAME_FA[r["source"]] in it
+                  and all(fa not in it for s, fa in _NAME_FA.items() if s != r["source"])
+                  for it, r in zip(_items2, _RUNS2))
+          and _legend is not None and all(fa in _text(_legend.group(1)) for fa in _NAME_FA.values())
+          and "data-legend" not in _hv["markup"][0],
+          f"{_items2} | legend {_text(_legend.group(1)) if _legend else None}")
 
 # ---------------------------------------------------------------------------
 print("\nthe admin page sends a code typed in Persian digits as the digits a header carries")

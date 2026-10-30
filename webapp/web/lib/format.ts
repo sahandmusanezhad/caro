@@ -340,6 +340,13 @@ export function sourceName(url: string | null | undefined): string {
   }
 }
 
+/** A published run's source as its artifact names it ('bama', 'khodro45'),
+ *  by the same table; an id the table does not hold is shown as written. */
+export function runSourceName(id: string): string {
+  const host = Object.keys(SOURCE_FA).find((h) => h.split('.')[0] === id);
+  return host ? SOURCE_FA[host] : id;
+}
+
 export const NUMBER_ON_SOURCE_FA =
   'شماره‌ی فروشنده در صفحه‌ی خود آگهی است؛ کارو آن را نگه نمی‌دارد و نشان نمی‌دهد.';
 

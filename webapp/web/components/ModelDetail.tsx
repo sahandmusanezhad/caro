@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ApiError, api, type HistoryPoint, type ModelResponse } from '@/lib/api';
 import {
-  askingPrice, compact, contactLabel, faNum, faPlain, modelLabel, odometer, provinceLabel,
+  askingPrice, compact, contactLabel, faNum, faPlain, modelLabel, odometer, provinceLabel, runSourceName,
 } from '@/lib/format';
 import SaveButton from '@/components/SaveButton';
 import { type OfferSort, offersOfYear, sortOffers } from '@/lib/offers';
@@ -15,8 +15,10 @@ import { type OfferSort, offersOfYear, sortOffers } from '@/lib/offers';
 
    What the chart is NOT. Each point is the middle asking price of one run's
    priced listings of this model, drawn only where three or more stand behind
-   it; a run with fewer is named with its count and is no point. Four runs of
-   one source are four samples, not a market (D36), and the caption says so.
+   it; a run with fewer is named with its count and is no point. A few runs
+   are a few samples, not a market (D36), and the caption says so. Each
+   source's runs are its own line, never joined to another source's: two
+   sites' asking prices are two samples, not one series.
 
    The listings can be read three ways -- cheapest, newest, least driven
    (lib/offers.ts says what each does with a listing it cannot place) -- and
@@ -31,10 +33,20 @@ const SORTS: { by: OfferSort; fa: string; heading: string; note: string }[] = [
     note: 'کارکردی که مشکوک یا ناممکن خوانده شده، یا معلوم نیست، بعد از بقیه آمده است.' },
 ];
 
+/* Each source's line: the first keeps the accent, the next are dashed. */
+const LINES = [
+  { stroke: 'var(--accent)', dash: undefined, hollow: false },
+  { stroke: 'var(--ink-2)', dash: '7 5', hollow: true },
+  { stroke: 'var(--ink-2)', dash: '2 4', hollow: true },
+  { stroke: 'var(--ink-3)', dash: '10 4 2 4', hollow: true },
+];
+
 /* Exported for the screens suite. Two drawings of the same runs: the chart,
    from 640 px up, and below that a list -- at a phone's width the chart's
    640 units shrink its labels to six pixels, and four runs read better as
-   four lines than as a picture nobody can read. */
+   four lines than as a picture nobody can read. A segment joins two runs of
+   one source, next to each other among that source's runs, both with a
+   middle; none joins two sources. */
 export function History({ points }: { points: HistoryPoint[] }) {
   const drawn = points.filter((p) => p.price_median != null);
   if (drawn.length === 0) {
@@ -46,12 +58,16 @@ export function History({ points }: { points: HistoryPoint[] }) {
   const span = hi - lo || hi * 0.1 || 1;
   const x = (i: number) => PX + (points.length === 1 ? (W - 2 * PX) / 2 : (i * (W - 2 * PX)) / (points.length - 1));
   const y = (v: number) => H - PY - ((v - lo) / span) * (H - 2 * PY);
-  const segs: string[] = [];
-  points.forEach((p, i) => {
-    const prev = points[i - 1];
-    if (i > 0 && p.price_median != null && prev.price_median != null) {
-      segs.push(`M${x(i - 1)},${y(prev.price_median)} L${x(i)},${y(p.price_median)}`);
-    }
+  const sources = [...new Set(points.map((p) => p.source))];
+  const look = (s: string) => LINES[Math.min(sources.indexOf(s), LINES.length - 1)];
+  const lines = sources.map((s) => {
+    const own = points.flatMap((p, i) => (p.source === s ? [{ p, i }] : []));
+    const d = own.slice(1).flatMap(({ p, i }, k) => {
+      const prev = own[k];
+      return p.price_median != null && prev.p.price_median != null
+        ? [`M${x(prev.i)},${y(prev.p.price_median)} L${x(i)},${y(p.price_median)}`] : [];
+    }).join(' ');
+    return { source: s, d };
   });
   return (
     <figure className="m-0">
@@ -61,6 +77,7 @@ export function History({ points }: { points: HistoryPoint[] }) {
                                         text-[14px] border-b border-line pb-2">
             <span>
               <span className="num text-[13px]">{p.run_id}</span>
+              <span className="text-ink-3 text-[13px]"> · {runSourceName(p.source)}</span>
               {p.collected_on && <span className="text-ink-3 text-[13px]"> · <span className="num">{p.collected_on}</span></span>}
               <span className="text-ink-3 text-[13px]"> · <span className="fig">{faNum(p.priced)}</span> آگهی با قیمت</span>
             </span>
@@ -72,10 +89,15 @@ export function History({ points }: { points: HistoryPoint[] }) {
       </ol>
       <svg viewBox={`0 0 ${W} ${H}`} className="hidden sm:block w-full h-auto max-w-[760px] mx-auto" role="img"
            aria-label="میانه‌ی قیمت پیشنهادی در هر اجرای منتشرشده">
-        {segs.map((d) => <path key={d} d={d} fill="none" stroke="var(--accent)" strokeWidth="2.5" />)}
+        {lines.map((l) => l.d ? (
+          <path key={l.source} data-source={l.source} d={l.d} fill="none" stroke={look(l.source).stroke}
+                strokeWidth="2.5" strokeDasharray={look(l.source).dash} />
+        ) : null)}
         {points.map((p, i) => p.price_median != null ? (
           <g key={p.run_id}>
-            <circle cx={x(i)} cy={y(p.price_median)} r="5" fill="var(--accent)" />
+            <circle cx={x(i)} cy={y(p.price_median)} r="5" data-source={p.source}
+                    fill={look(p.source).hollow ? 'var(--surface)' : look(p.source).stroke}
+                    stroke={look(p.source).stroke} strokeWidth="2" />
             <text x={x(i)} y={y(p.price_median) - 12} textAnchor="middle" fontSize="13"
                   fill="var(--ink)">{compact(p.price_median)}</text>
           </g>
@@ -85,10 +107,27 @@ export function History({ points }: { points: HistoryPoint[] }) {
                 fill="var(--ink-3)">{p.run_id} · {faNum(p.priced)} آگهی</text>
         ))}
       </svg>
+      {sources.length > 1 ? (
+        <ul className="hidden sm:flex m-0 mt-2 p-0 list-none flex-wrap gap-x-5 gap-y-1 justify-center
+                       text-[12.5px] text-ink-2" data-legend>
+          {sources.map((s) => (
+            <li key={s} className="flex items-center gap-1.5" data-source={s}>
+              <svg width="28" height="10" aria-hidden="true">
+                <line x1="1" y1="5" x2="27" y2="5" stroke={look(s).stroke} strokeWidth="2.5"
+                      strokeDasharray={look(s).dash} />
+              </svg>
+              {runSourceName(s)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <figcaption className="text-[12.5px] text-ink-3 mt-2">
         هر میانه، میانه‌ی قیمت پیشنهادیِ آگهی‌های با قیمتِ این مدل در یک اجرای
         منتشرشده است، و فقط جایی آمده که دست‌کم سه آگهی پشتش باشد. این چند اجرا
         نمونه‌اند، نه بازار: این عددها درباره‌ی گران یا ارزان شدن چیزی نمی‌گویند.
+        {sources.length > 1
+          ? ' خط هر منبع جداست و هیچ خطی دو منبع را به هم وصل نمی‌کند: آگهی‌های دو سایت دو نمونه‌ی جدا هستند.'
+          : null}
       </figcaption>
     </figure>
   );
