@@ -10,6 +10,12 @@
 # Nothing here deploys. Deploys are the host's job: Vercel builds the site and
 # Railway builds the API image, each from the push to main.
 #
+# The actions are on their Node 24 releases, v7 of all three (2026-10-30, the
+# owner's choice): v4 and v5 ran on Node 20, which GitHub deprecates and every
+# run warned of. What their majors since then changed touches nothing here --
+# no fork checkout on pull_request_target, the npm and pip caches named
+# explicitly, no pip-install input, Python 3.12.
+#
 # Both jobs are pinned to Ubuntu 24.04, the image `ubuntu-latest` has been.
 # GitHub moves that label to Ubuntu 26.04 from 2026-10-19, to be done by
 # 2026-11-19, and warns that workflows tied to 24.04 may be affected. Moving
@@ -34,15 +40,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: webapp/requirements.txt
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -72,9 +78,9 @@ jobs:
       run:
         working-directory: webapp/web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm

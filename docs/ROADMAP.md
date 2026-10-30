@@ -51,8 +51,9 @@ section that holds its detail.
    the other words for a floor, and the negated floor, which the owner took on
    2026-10-30 -- and two are left. Closes each when its round is recorded in a
    D-entry after the push.
-3. **CI's warnings** (operations, item 1). The owner decides; a session builds
-   and measures on CI.
+3. **CI's warnings** (operations, item 1). The owner chose both changes on
+   2026-10-30 and both are built; what is left is the first CI run after the
+   push, which closes the item if it carries no warning.
 4. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
    owner, on his machine, after the review it names. The probe is done, the
    extraction is written and has read one saved page; what is left is the
@@ -490,14 +491,17 @@ the owner chooses.
 
 ## Operations
 
-1. **CI's warnings.** Every run carries three: Node 20 is deprecated for
+1. **CI's warnings.** Every run carried three: Node 20 is deprecated for
    `actions/checkout@v4` and `actions/setup-node@v4` in the web job and for
-   those and `actions/setup-python@v5` in the suites job, and the build warns
-   of a custom font at `webapp/web/app/layout.tsx` line 29. None fails a run.
-   Moving an action to a new major version is the owner's choice; once he
-   makes it, the change is a commit and a run of its own, like the pin to
-   ubuntu-24.04 (D84). The font warning is a change to the site, measured by
-   the build and the screens suite.
+   those and `actions/setup-python@v5` in the suites job, and the build warned
+   of a custom font at `webapp/web/app/layout.tsx` line 29. None failed a run.
+   The owner chose on 2026-10-30 to move the actions and to serve the fonts
+   from the site. Both are built, each in a commit of its own: the three
+   actions are on v7, their Node 24 releases (`ci.yml` says what their majors
+   changed and why none of it touches this workflow), and the fonts are files
+   of the site (`webapp/web/public/fonts`), so `next lint` reports nothing.
+   What is left is the first run after the push: both jobs green and no
+   warning on either.
 2. **After every push.** CI on both repositories, and the site read from the
    outside: `/about`'s counts, and the queries the push changed. What was
    read goes into the next D-entry.
