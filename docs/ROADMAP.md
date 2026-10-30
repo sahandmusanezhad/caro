@@ -78,8 +78,10 @@ section that holds its detail.
    by authenticator, and the contact inbox on the deployed site (the product
    gaps, items 3, 4 and 5). The owner decides each design first. The
    options for accounts, payment and the operator's login are written, each
-   with what it needs from him and the one a session recommends:
-   [ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md).
+   with what it needs from the owner and the one a session recommends:
+   [ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md). On 2026-10-30 the owner
+   chose the login by authenticator (O1) and «پیش از خرید» (B1); both are
+   built and wait for the push. No account and no payment (A0, P0).
 9. **The demo** (the end). The last: the demo script brought up to date with
    the site as it is, recorded, and sent where the owner decides.
 
@@ -464,12 +466,15 @@ the owner chooses.
    session measures it on photos he provides before anything is shown.
    Closes when its accuracy and its refusals are measured and recorded.
 
-4. **Authenticator-based login.** Not built. The admin view opens today with
-   `CARO_ADMIN_TOKEN`, and with the token unset it does not open at all. Who:
-   the owner designs it; nothing is built before he has. The options are
-   written (2026-10-30, [ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md),
-   «The operator's login»). Closes when the design is recorded and built,
-   with its tests.
+4. **Authenticator-based login.** Built, and waits for the push. The owner
+   chose O1 on 2026-10-30 ([ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md),
+   «The operator's login»): the admin view opens with `CARO_ADMIN_TOKEN` and,
+   where `CARO_ADMIN_TOTP_SECRET` is set, the six digits of an authenticator
+   app, each code accepted once (`webapp/api/totp.py`, RFC 6238; section 21
+   of the contract suite). With the token unset it does not open at all; with
+   the secret unset the token alone opens, as before; with a secret that is
+   not a key, nothing opens. Closes when the deploy holder has set the secret
+   and the D-entry after the push records it.
 
 5. **Deploying.** The Vercel project is in another account than the
    owner's, and its holder deployed `main` from `Tecso-Dev/caro` on
