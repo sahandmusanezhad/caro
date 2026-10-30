@@ -1211,6 +1211,53 @@ else:
           all(_tl[1] in t and "_" not in t and "|" not in t and _tl[0] not in t
               for t in _tt[1:]), " / ".join(_tt[1:]))
 
+# ---------------------------------------------------------------------------
+print("\na model's listings, sorted three ways and kept to a year")
+# ---------------------------------------------------------------------------
+# Eight made offers, in the order the API sends them -- priced cheapest
+# first, then an unusable price and none -- covering a tie, a missing year and
+# every grade an odometer can carry. The ids are not in that order, so a tie
+# broken by id is not mistaken for the API's.
+def _offer(oid, price, status, year, km, grade):
+    return {"id": oid, "asking_price_toman": price, "price_status": status,
+            "price_kind": "cash" if price else None, "year_jalali": year,
+            "mileage_km": km, "mileage_status": grade}
+
+
+_OFFERS = [_offer("o3", 300_000_000, "ok", 1398, 90_000, "plausible"),
+           _offer("o8", 350_000_000, "ok", 1401, 1_000, "suspicious"),
+           _offer("o1", 400_000_000, "ok", 1401, 40_000, "plausible"),
+           _offer("o6", 420_000_000, "ok", None, 20_000, "plausible"),
+           _offer("o2", 450_000_000, "ok", 1395, None, None),
+           _offer("o7", 500_000_000, "ok", 1398, 60_000, None),
+           _offer("o4", 100_000_000, "placeholder", 1399, 5_000_000, "impossible"),
+           _offer("o5", None, None, 1399, 30_000, "unknown")]
+
+
+def _at(*ps):
+    """The ids of the offers at these places (1-based) of the API's order."""
+    return [_OFFERS[p - 1]["id"] for p in ps]
+
+
+_so, why = call("lib/offers.ts", "sortOffers",
+                [[_OFFERS, "price"], [_OFFERS, "year"], [_OFFERS, "mileage"]])
+_oy, why2 = call("lib/offers.ts", "offersOfYear", [[_OFFERS, 1398], [_OFFERS, None]])
+if _so is None or _oy is None:
+    check("sortOffers and offersOfYear could be called", False, why or why2)
+else:
+    _ids = [[o["id"] for o in got] for got in _so]
+    check("cheapest: the API's order, untouched -- an unusable 100 million stays after "
+          "the priced", _ids[0] == _at(1, 2, 3, 4, 5, 6, 7, 8), str(_ids[0]))
+    check("newest: by year down, no year last, a tie in the API's order",
+          _ids[1] == _at(2, 3, 7, 8, 1, 6, 5, 4), str(_ids[1]))
+    check("least driven: plausible or ungraded odometers up, then the rest in the "
+          "API's order -- a suspicious 1,000 km after a plausible 90,000",
+          _ids[2] == _at(4, 3, 6, 1, 2, 5, 7, 8), str(_ids[2]))
+    check("a year keeps that year's listings in order; none keeps all",
+          [o["id"] for o in _oy[0]] == _at(1, 6)
+          and [o["id"] for o in _oy[1]] == [o["id"] for o in _OFFERS],
+          str([[o["id"] for o in g] for g in _oy]))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

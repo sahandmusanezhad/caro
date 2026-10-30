@@ -7,6 +7,7 @@ import {
   askingPrice, compact, faNum, faPlain, modelLabel, odometer, provinceLabel,
 } from '@/lib/format';
 import SaveButton from '@/components/SaveButton';
+import { type OfferSort, offersOfYear, sortOffers } from '@/lib/offers';
 
 /* One model, as a price-comparison site shows a product: the range of the
    asking prices, how they stood in every published run, and every listing,
@@ -15,7 +16,20 @@ import SaveButton from '@/components/SaveButton';
    What the chart is NOT. Each point is the middle asking price of one run's
    priced listings of this model, drawn only where three or more stand behind
    it; a run with fewer is named with its count and is no point. Four runs of
-   one source are four samples, not a market (D36), and the caption says so. */
+   one source are four samples, not a market (D36), and the caption says so.
+
+   The listings can be read three ways -- cheapest, newest, least driven
+   (lib/offers.ts says what each does with a listing it cannot place) -- and
+   kept to one year by its chip. */
+
+const SORTS: { by: OfferSort; fa: string; heading: string; note: string }[] = [
+  { by: 'price', fa: 'ارزان‌ترین', heading: 'آگهی‌ها، ارزان‌ترین اول',
+    note: 'قیمت‌ها همان‌اند که آگهی‌ها گفته‌اند. آگهی‌ای که قیمتش قابل استفاده نیست بعد از آگهی‌های با قیمت آمده است.' },
+  { by: 'year', fa: 'جدیدترین', heading: 'آگهی‌ها، جدیدترین مدل اول',
+    note: 'آگهی‌ای که سال ساختش معلوم نیست آخر آمده است؛ هم‌سال‌ها ارزان‌ترین اول.' },
+  { by: 'mileage', fa: 'کم‌کارکردترین', heading: 'آگهی‌ها، کم‌کارکردترین اول',
+    note: 'کارکردی که مشکوک یا ناممکن خوانده شده، یا معلوم نیست، بعد از بقیه آمده است.' },
+];
 
 function History({ points }: { points: HistoryPoint[] }) {
   const drawn = points.filter((p) => p.price_median != null);
@@ -64,6 +78,8 @@ function History({ points }: { points: HistoryPoint[] }) {
 export default function ModelDetail({ make, model }: { make: string; model: string }) {
   const [data, setData] = useState<ModelResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [by, setBy] = useState<OfferSort>('price');
+  const [year, setYear] = useState<number | null>(null);
   useEffect(() => {
     api.model(make, model).then(setData).catch((e) => {
       if (e instanceof ApiError && e.fault?.code === 'MODEL_NOT_FOUND') {
@@ -88,6 +104,8 @@ export default function ModelDetail({ make, model }: { make: string; model: stri
     return <p className="text-ink-3">در حال خواندن…</p>;
   }
   const s = data.summary;
+  const sort = SORTS.find((x) => x.by === by) ?? SORTS[0];
+  const shown = offersOfYear(sortOffers(data.offers, by), year);
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -118,23 +136,44 @@ export default function ModelDetail({ make, model }: { make: string; model: stri
 
       {data.by_year.length > 0 && (
         <section className="panel">
-          <p className="eyebrow">بر اساس سال ساخت</p>
+          <p className="eyebrow">بر اساس سال ساخت — روی هر سال بزن تا فقط آگهی‌های همان سال بماند</p>
           <div className="flex flex-wrap gap-2">
             {data.by_year.map((y) => (
-              <span key={y.year_jalali} className="glass rounded-xl px-3 py-1.5 text-[13px]">
+              <button key={y.year_jalali} type="button" aria-pressed={year === y.year_jalali}
+                      onClick={() => setYear(year === y.year_jalali ? null : y.year_jalali)}
+                      className={`glass rounded-xl px-3 py-1.5 text-[13px] text-ink cursor-pointer
+                                  ${year === y.year_jalali ? '!border-accent' : ''}`}>
                 <span className="fig font-bold">{faPlain(y.year_jalali)}</span>{' '}
-                <span className="text-ink-3">· <span className="fig">{faNum(y.priced)}</span> آگهی</span>
+                <span className="text-ink-3">· <span className="fig">{faNum(y.priced)}</span> آگهی با قیمت</span>
                 {y.price_median != null && <> · میانه <span className="fig">{compact(y.price_median)}</span></>}
-              </span>
+              </button>
             ))}
           </div>
         </section>
       )}
 
       <section>
-        <p className="eyebrow">آگهی‌ها، ارزان‌ترین اول</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3.5">
+          <p className="eyebrow !mb-0">
+            {sort.heading}
+            {year != null && <> · مدل <span className="fig">{faPlain(year)}</span> ({faNum(shown.length)} آگهی)</>}
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="ترتیب آگهی‌ها">
+            {SORTS.map((x) => (
+              <button key={x.by} type="button" aria-pressed={by === x.by} onClick={() => setBy(x.by)}
+                      className={`btn px-3 py-1 text-[12.5px] ${by === x.by ? '!bg-accent-soft !text-ink font-bold' : ''}`}>
+                {x.fa}
+              </button>
+            ))}
+            {year != null && (
+              <button type="button" onClick={() => setYear(null)} className="btn px-3 py-1 text-[12.5px]">
+                همه‌ی سال‌ها
+              </button>
+            )}
+          </div>
+        </div>
         <ul className="m-0 p-0 list-none flex flex-col tiles">
-          {data.offers.map((o) => (
+          {shown.map((o) => (
             <li key={o.id} className="p-4 flex flex-wrap items-center gap-x-6 gap-y-2">
               <div className="min-w-[11rem]">
                 <p className="m-0 text-[17px] font-bold fig">
@@ -162,10 +201,7 @@ export default function ModelDetail({ make, model }: { make: string; model: stri
             </li>
           ))}
         </ul>
-        <p className="text-[12px] text-ink-3 mt-3 mb-0">
-          قیمت‌ها همان‌اند که آگهی‌ها گفته‌اند. آگهی‌ای که قیمتش قابل استفاده
-          نیست بعد از آگهی‌های با قیمت آمده است.
-        </p>
+        <p className="text-[12px] text-ink-3 mt-3 mb-0">{sort.note}</p>
       </section>
     </div>
   );
