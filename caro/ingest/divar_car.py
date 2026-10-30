@@ -135,6 +135,14 @@ BODY_CONDITION: tuple[tuple[str, tuple[str, ...]], ...] = (
                 "سالم و بدون رنگ")),
 )
 
+# A cue does not count where it is part of a longer cue of a milder label:
+# «بدون خط و خش» is intact, not the «خط و خش» in it. For each label, the
+# milder cues to take out of the text before it is tried.
+_MILDER_HOLDING = tuple(
+    tuple(normalize(m) for _, milder in BODY_CONDITION[i + 1:] for m in milder
+          if any(normalize(c) in normalize(m) for c in cues))
+    for i, (_, cues) in enumerate(BODY_CONDITION))
+
 DOC_ISSUE_CUES = ("در گرو", "وکالتی", "سند در رهن", "سند نداره", "کارخانه ای")
 
 
@@ -184,8 +192,11 @@ def extract_body_condition(text: str) -> str:
     mistake a filter makes and a buyer regrets.
     """
     s = normalize(text)
-    for label, cues in BODY_CONDITION:
-        if any(normalize(c) in s for c in cues):
+    for (label, cues), holding in zip(BODY_CONDITION, _MILDER_HOLDING):
+        t = s
+        for m in holding:
+            t = t.replace(m, " ")
+        if any(normalize(c) in t for c in cues):
             return label
     return "unknown"
 

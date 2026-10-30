@@ -117,6 +117,15 @@ check("the WORSE claim wins when title and body disagree",
       == "replaced_part")
 check("an empty description is unknown, not intact",
       extract_body_condition("") == "unknown")
+check("BC1: «سالم بدون خط و خش» is intact: minor_paint's «خط و خش» inside intact's «بدون خط و خش» does not count "
+      "(Sheypoor's own value, 15 of 26 listing pages on the owner's run of 2026-10-30)",
+      [extract_body_condition(t) for t in ("سالم بدون خط و خش", "بدون خط و خش")] == ["intact", "intact"],
+      str([extract_body_condition(t) for t in ("سالم بدون خط و خش", "بدون خط و خش")]))
+_b2 = [("بدون خط و خش، یک خط و خش روی درب", "minor_paint"), ("سالم با خط و خش", "minor_paint"),
+       ("چند لکه رنگ", "multi_paint"), ("صافکاری بدون رنگ", "minor_paint")]
+check("BC2: a worse claim beside it still wins, and scratches are still minor_paint",
+      [extract_body_condition(t) for t, _ in _b2] == [w for _, w in _b2],
+      str([extract_body_condition(t) for t, _ in _b2]))
 
 check("document issue detected", has_document_issue("سند در گرو بانک") is True)
 check("clear document detected", has_document_issue("سند آزاد") is False)
@@ -4516,6 +4525,10 @@ _spl = parse_sheypoor(_sp_listing("462345678"), _spl_tr)
 check("SP2-1: a listing page is its own car only: one listing, not the six cards of others on it",
       [x.listing_id for x in _spl] == ["462345678"] and _spl_tr[0].kind == "listing"
       and _spl_tr[0].merged == Counter({"alone": 1}), str([x.listing_id for x in _spl]))
+_spb3 = parse_sheypoor(_sp_listing("462345690", damages="سالم بدون خط و خش", desc="ماشین تمیز"))[0]
+check("BC3: a listing page whose field says «سالم بدون خط و خش» is intact, from the field",
+      (_spb3.body_condition, _spb3.condition_source) == ("intact", "field"),
+      str((_spb3.body_condition, _spb3.condition_source)))
 _spl2_tr = []
 _spl2 = parse_sheypoor(_sp_listing("462345678", sku="462345699"), _spl2_tr)
 _spl3_tr = []
