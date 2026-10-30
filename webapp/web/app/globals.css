@@ -93,18 +93,37 @@ body {
    eye starts from in a right-to-left page, the warn tone low on the other
    side, the accent again at the foot -- so that a surface that lets the page
    through has something to let through. They are faint on purpose: the
-   accent is still spent on what you can act on. */
+   accent is still spent on what you can act on.
+
+   Their strength is per scheme, and the light one is the fainter by far. A
+   glow darkens a light ground where it falls, and at a quarter of the accent
+   it took the warn tone under 4.5:1 on a pane and the faintest ink under 3:1
+   on the ground, where every page draws its eyebrow. On the dark ground the
+   same glow costs no colour its band. `tests/test_palette.py` holds both. The
+   strengths are set on body rather than in the palette blocks, which the
+   demo has to match token for token. */
 body {
+  --glow-1: 6%; --glow-2: 6%; --glow-3: 4%; --glow-4: 3%;
   background-image:
     radial-gradient(60rem 38rem at 100% -10%,
-      color-mix(in srgb, var(--accent) 24%, transparent), transparent 68%),
+      color-mix(in srgb, var(--accent) var(--glow-1), transparent), transparent 68%),
     radial-gradient(48rem 34rem at -10% 30%,
-      color-mix(in srgb, var(--warn) 20%, transparent), transparent 68%),
+      color-mix(in srgb, var(--warn) var(--glow-2), transparent), transparent 68%),
     radial-gradient(56rem 34rem at 30% 112%,
-      color-mix(in srgb, var(--bad) 12%, transparent), transparent 70%),
+      color-mix(in srgb, var(--bad) var(--glow-3), transparent), transparent 70%),
     radial-gradient(40rem 26rem at 70% 55%,
-      color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
+      color-mix(in srgb, var(--accent) var(--glow-4), transparent), transparent 70%);
   background-attachment: fixed;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    --glow-1: 24%; --glow-2: 20%; --glow-3: 12%; --glow-4: 7%;
+  }
+}
+
+:root[data-theme="dark"] body {
+  --glow-1: 24%; --glow-2: 20%; --glow-3: 12%; --glow-4: 7%;
 }
 
 /* Two classes, and using the wrong one is a visible bug rather than a matter

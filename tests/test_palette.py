@@ -356,6 +356,160 @@ if _first:
           f"{_before} before, {len(misplaced(_broken))} after")
 
 
+
+# ---------------------------------------------------------------------------
+print("\nthe glass costs no text its contrast band")
+# ---------------------------------------------------------------------------
+
+# The panes are translucent over a ground lit by four soft glows (the glass of
+# 2026-10-30). Where a glow falls it darkens the light ground and lightens the
+# dark one, and a pane lets it through, so a colour that is legible on the
+# opaque surface can stop being legible on glass. It did: when the glass was
+# built, the light scheme's warn tone fell from 4.95:1 to 4.41:1 on a pane at
+# the accent glow, and its faintest ink from 3.28:1 to 2.41:1 on the bare
+# ground beside it, where every page draws its eyebrow.
+#
+# So no text colour may leave the WCAG band it is in on the opaque surface --
+# 4.5:1 for text, 3:1 for large text and controls, below that -- because of
+# the glass. A colour already below a line is not lifted over it; that is the
+# palette's matter, not the glass's. Each glow is taken at its peak and alone:
+# the four are placed apart, and at one's peak the others have faded out. The
+# blur averages what is already uniform there, and the saturation keeps the
+# luminance it changes the hue of, so neither moves a ratio. On the bare
+# ground only what the pages draw there is held: ink, ink-2, ink-3 and the
+# accent (titles, eyebrows, the hero's emphasis); warn and bad are drawn in
+# panes and chips.
+
+_PANE_TEXT = ("--ink", "--ink-2", "--ink-3", "--accent", "--warn", "--bad")
+_GROUND_TEXT = ("--ink", "--ink-2", "--ink-3", "--accent")
+_SCHEMES = {
+    # a rule whose whole selector is `body`: one that only ends in it is not
+    "light": re.compile(r"(?:^|(?<=[};]))\s*body\s*\{"),
+    "dark-by-preference": re.compile(
+        r":root\s*:not\(\s*\[\s*data-theme\s*=\s*\"light\"\s*\]\s*\)\s+body\s*\{"),
+    "dark-by-choice": re.compile(
+        r":root\s*\[\s*data-theme\s*=\s*\"dark\"\s*\]\s+body\s*\{"),
+}
+_GLOW = re.compile(
+    r"color-mix\(\s*in\s+srgb\s*,\s*var\(\s*(--[a-z0-9-]+)\s*\)\s+"
+    r"(var\(\s*--[a-z0-9-]+\s*\)|\d+(?:\.\d+)?%)\s*,\s*transparent\s*\)")
+_SHARE = re.compile(
+    r"color-mix\(\s*in\s+srgb\s*,\s*var\(\s*--surface\s*\)\s+(\d+(?:\.\d+)?)%"
+    r"\s*,\s*transparent\s*\)")
+
+
+def _rgb(value: str) -> tuple[float, float, float]:
+    v = value.strip().lstrip("#")
+    return tuple(int(v[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+
+def _luminance(c) -> float:
+    lin = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def contrast(a, b) -> float:
+    la, lb = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def band(ratio: float) -> int:
+    return 2 if ratio >= 4.5 else 1 if ratio >= 3 else 0
+
+
+def _over(top, share: float, under):
+    """`top` at `share` (0..1) laid over the opaque `under`."""
+    return tuple(t * share + u * (1 - share) for t, u in zip(top, under))
+
+
+def glass(css: str) -> dict:
+    """What the sheet's glass is made of: the glows of the ground (token and
+    strength per scheme) and the share of the surface in each pane."""
+    body = next((_body(css, m.end() - 1) for m in _SCHEMES["light"].finditer(css)
+                 if "background-image" in _body(css, m.end() - 1)), "")
+    own = {}
+    for name, pat in _SCHEMES.items():
+        decls = {}
+        for m in pat.finditer(css):
+            decls.update(_DECL.findall(_body(css, m.end() - 1)))
+        own[name] = decls
+    glows = []
+    for token, strength in _GLOW.findall(body):
+        per = {}
+        for name in _SCHEMES:
+            raw = strength
+            if strength.startswith("var("):
+                var = re.search(r"--[a-z0-9-]+", strength).group(0)
+                raw = own[name].get(var, own["light"].get(var, ""))
+            m = re.fullmatch(r"\s*(\d+(?:\.\d+)?)%\s*", raw or "")
+            per[name] = float(m.group(1)) / 100 if m else None
+        glows.append((token, per))
+    panes = {}
+    for pane in (".glass", ".glass-bar"):
+        m = re.search(re.escape(pane) + r"\s*\{", css)
+        got = _SHARE.search(_body(css, m.end() - 1)) if m else None
+        panes[pane] = float(got.group(1)) / 100 if got else None
+    return {"glows": glows, "panes": panes}
+
+
+def glass_failures(css: str, palettes: dict) -> dict[str, list[str]]:
+    g = glass(css)
+    out = {"pane": [], "ground": []}
+    for name in _SCHEMES:
+        pal = {k: _rgb(v) for k, v in palettes[name].items() if v.startswith("#")}
+        ground, surface = pal["--ground"], pal["--surface"]
+        for token, per in g["glows"]:
+            lit = _over(pal[token], per[name], ground)
+            for pane, share in g["panes"].items():
+                bg = _over(surface, share, lit)
+                for t in _PANE_TEXT:
+                    was, now = contrast(pal[t], surface), contrast(pal[t], bg)
+                    if band(now) != band(was):
+                        out["pane"].append(f"{name} {t} on {pane} at the {token} glow: "
+                                           f"{was:.2f} -> {now:.2f}")
+            for t in _GROUND_TEXT:
+                was, now = contrast(pal[t], ground), contrast(pal[t], lit)
+                if band(now) != band(was):
+                    out["ground"].append(f"{name} {t} on the ground at the {token} glow: "
+                                         f"{was:.2f} -> {now:.2f}")
+    return out
+
+
+_css = stylesheet(SITE)
+_g = glass(_css)
+_parsed = (len(_g["glows"]) == 4
+           and all(token in site[name] for token, _ in _g["glows"] for name in _SCHEMES)
+           and all(per[name] is not None for _, per in _g["glows"] for name in _SCHEMES)
+           and all(v is not None for v in _g["panes"].values()))
+check("the ground has four glows, each a palette token at a strength every scheme resolves, "
+      "and both panes a share of the surface", _parsed,
+      f"glows {_g['glows']} panes {_g['panes']}")
+_fail = glass_failures(_css, site) if _parsed else {"pane": ["not parsed"], "ground": ["not parsed"]}
+check("on .glass and .glass-bar, at each glow, every text colour keeps its band, "
+      "in all three schemes", not _fail["pane"], " · ".join(_fail["pane"]))
+check("on the bare ground, at each glow, ink, ink-2, ink-3 and the accent keep their band",
+      not _fail["ground"], " · ".join(_fail["ground"]))
+
+# The rows above are green on a sheet that keeps the bands, which is also what
+# they would look like if the arithmetic had stopped seeing anything. So the
+# light scheme's first glow is put back to the strength it had when the glass
+# was built, in a copy, and the same checker must report it.
+_first_var = next((re.search(r"--[a-z0-9-]+", s).group(0)
+                   for s in [_GLOW.findall(stylesheet(SITE))[0][1]]
+                   if s.startswith("var(")), None) if _g["glows"] else None
+_hot = _css
+if _first_var:
+    for m in _SCHEMES["light"].finditer(_css):
+        b = _body(_css, m.end() - 1)
+        if _first_var in b:
+            _hot = _css.replace(b, re.sub(re.escape(_first_var) + r"\s*:\s*[^;}]+",
+                                          f"{_first_var}: 24%", b, count=1), 1)
+            break
+_hot_fail = glass_failures(_hot, site) if _hot != _css else {"pane": [], "ground": []}
+check("a copy with the light accent glow back at 24% is reported by the same checker",
+      _hot != _css and bool(_hot_fail["pane"]) and bool(_hot_fail["ground"]),
+      f"changed {_hot != _css}, pane {len(_hot_fail['pane'])}, ground {len(_hot_fail['ground'])}")
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
