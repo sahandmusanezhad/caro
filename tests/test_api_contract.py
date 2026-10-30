@@ -1859,6 +1859,7 @@ print("\n20 — a model's page, as Torob gives a product one: its listings, its 
 from webapp.api import market as market_mod                        # noqa: E402
 
 _run_was = os.environ.pop("CARO_RUN", None)
+_corpora_was = corpus_reader.CORPORA
 corpus_mod.active.cache_clear()
 market_mod.published_runs.cache_clear()
 try:
@@ -1894,11 +1895,12 @@ try:
           "characters is 422",
           _nf.status_code == 404 and _nf.json()["fault"]["code"] == "MODEL_NOT_FOUND"
           and "corpus" in _nf.json() and _long.status_code == 422, f"{_nf.status_code} {_long.status_code}")
-    check("MKT-3: one point per published run, by date, with its priced count and middle: Pride 54, 52, 53 "
-          "and 50 priced, 612.5, 600, 635 and 650 million",
-          [(h["run_id"], h["collected_on"], h["priced"], h["price_median"]) for h in _mj["history"]]
-          == [("run11", "2026-09-10", 54, 612500000), ("run13", "2026-10-06", 52, 600000000),
-              ("run14", "2026-10-11", 53, 635000000), ("run16", "2026-10-15", 50, 650000000)],
+    check("MKT-3: one point per published run, by date, with its source, its priced count and its middle: "
+          "Pride 54, 52, 53 and 50 priced on bama, 612.5, 600, 635 and 650 million",
+          [(h["run_id"], h["collected_on"], h.get("source"), h["priced"], h["price_median"])
+           for h in _mj["history"]]
+          == [("run11", "2026-09-10", "bama", 54, 612500000), ("run13", "2026-10-06", "bama", 52, 600000000),
+              ("run14", "2026-10-11", "bama", 53, 635000000), ("run16", "2026-10-15", "bama", 50, 650000000)],
           str(_mj["history"]))
     _run11 = json.loads((ROOT / "data" / "corpora" / "run11.json").read_text(encoding="utf-8"))
     _quik11 = [x for x in _run11["listings"] if x.get("model") == "Quik"]
@@ -1917,9 +1919,65 @@ try:
           "priced listing has a range and no middle",
           (_sm.listings, _sm.priced, _sm.price_min, _sm.price_max, _sm.price_median)
           == (4, 1, 100_000_000, 100_000_000, None), str(_sm))
+
+    # SRC-1, SRC-2 (predictions of 2026-10-30, evening, locked before the
+    # code): a second source's runs beside Bama's, in a directory of the
+    # test's own -- the four published runs, and two of Khodro45's made here.
+    # run17 is dated between run14 and run16, so the two sources interleave.
+    def _k45(run_id, on, cars):
+        return {"schema": SCHEMA, "run_id": run_id, "source": "khodro45", "collected_on": on,
+                "listings": [{"listing_id": f"k45-{run_id}-{i}", "make": mk, "model": md,
+                              "year_jalali": 1400, "mileage_km": 40_000, "asking_price_toman": p,
+                              "price_status": "display_confirmed", "price_kind": "cash",
+                              "product_class": "vehicle"} for i, (mk, md, p) in enumerate(cars)]}
+    with tempfile.TemporaryDirectory() as _tmp20:
+        _src_dir = Path(_tmp20)
+        for _f in sorted((ROOT / "data" / "corpora").glob("*.json")):
+            (_src_dir / _f.name).write_bytes(_f.read_bytes())
+        _dena = lambda *ps: [("IKCO", "Dena", p) for p in ps]                      # noqa: E731
+        for _rid, _on, _cars in (
+                ("run17", "2026-10-12", _dena(1_000_000_000, 1_100_000_000, 1_200_000_000)),
+                ("run18", "2026-10-31", _dena(1_050_000_000, 1_150_000_000, 1_250_000_000)
+                 + [("Saipa", "Pride", p) for p in (700_000_000, 720_000_000, 760_000_000)])):
+            (_src_dir / f"{_rid}.json").write_text(
+                json.dumps(_k45(_rid, _on, _cars), ensure_ascii=False, indent=1), encoding="utf-8")
+        corpus_reader.CORPORA = _src_dir
+        corpus_mod.active.cache_clear()
+        market_mod.published_runs.cache_clear()
+        _h = lambda r: [(h["run_id"], h["collected_on"], h.get("source"), h["priced"],  # noqa: E731
+                         h["price_median"]) for h in r.json().get("history", [])]
+        _pride_h = _h(_c20.get("/api/model", params={"make": "Saipa", "model": "Pride"}))
+        _quik_hs = _h(_c20.get("/api/model", params={"make": "Saipa", "model": "Quik"}))
+        check("SRC-1: beside two Khodro45 runs, Pride's history is its four Bama runs and both Khodro45 "
+              "ones, by date -- run17, which holds no Pride, with 0 priced; Quik's is its four Bama runs "
+              "and nothing of khodro45, which never lists a Quik",
+              _pride_h == [("run11", "2026-09-10", "bama", 54, 612500000),
+                           ("run13", "2026-10-06", "bama", 52, 600000000),
+                           ("run14", "2026-10-11", "bama", 53, 635000000),
+                           ("run17", "2026-10-12", "khodro45", 0, None),
+                           ("run16", "2026-10-15", "bama", 50, 650000000),
+                           ("run18", "2026-10-31", "khodro45", 3, 720000000)]
+              and [(r, s) for r, _on, s, _n, _m in _quik_hs]
+              == [("run11", "bama"), ("run13", "bama"), ("run14", "bama"), ("run16", "bama")],
+              f"{_pride_h} | {_quik_hs}")
+        os.environ["CARO_RUN"] = "run17"
+        corpus_mod.active.cache_clear()
+        _dena_r = _c20.get("/api/model", params={"make": "IKCO", "model": "Dena"})
+        check("SRC-2: served run17, Dena's history is run17 and run18, both khodro45, three priced in "
+              "each with its middle; no Bama run, which holds no Dena, is a point",
+              _dena_r.status_code == 200
+              and _dena_r.json()["corpus"]["identity"]["run_id"] == "run17"
+              and _h(_dena_r) == [("run17", "2026-10-12", "khodro45", 3, 1_100_000_000),
+                                  ("run18", "2026-10-31", "khodro45", 3, 1_150_000_000)],
+              f"{_dena_r.status_code} {_h(_dena_r)}")
+        os.environ.pop("CARO_RUN", None)
+        corpus_reader.CORPORA = _corpora_was
 finally:
     if _run_was is not None:
         os.environ["CARO_RUN"] = _run_was
+    else:
+        os.environ.pop("CARO_RUN", None)
+    corpus_reader.CORPORA = _corpora_was
     corpus_mod.active.cache_clear()
     market_mod.published_runs.cache_clear()
 

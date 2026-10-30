@@ -368,6 +368,7 @@ class YearPoint(BaseModel):
 class HistoryPoint(BaseModel):
     run_id: str
     collected_on: str
+    source: str
     priced: int
     price_median: int | None = None
 

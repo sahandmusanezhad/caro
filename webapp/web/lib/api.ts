@@ -280,6 +280,8 @@ export interface YearPoint {
 export interface HistoryPoint {
   run_id: string;
   collected_on: string;
+  /** The source the run read, as its artifact names it: 'bama', 'khodro45'. */
+  source: string;
   priced: number;
   price_median: number | null;
 }

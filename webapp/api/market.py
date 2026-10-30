@@ -12,6 +12,11 @@ is something it cannot. So a middle is given only where three priced listings
 or more stand behind it, a run with fewer gives its count and no middle, and
 the page draws no line through a point that is not there.
 
+A run is a run of one source, and its points are that source's. A source none
+of whose runs holds the model gives no point: a site that never listed a
+Pride is not a run in which the Prides were zero. The page draws each
+source's runs as their own line and joins no two sources.
+
 «Priced» is the listing gate's own reading of a price (caro.ingest.quality): a
 status that is not unusable and a kind that is cash. A listing with no such
 price is still a listing of the model and is shown, after the priced ones.
@@ -41,6 +46,12 @@ _UNUSABLE = frozenset(s.value for s in UNUSABLE_PRICE)
 
 def _key(make, model) -> tuple[str, str]:
     return ((make or "").strip(), (model or "").strip())
+
+
+def _of(x, want: tuple[str, str]) -> bool:
+    """x is a listing of the model asked for; a make left out matches any."""
+    got = _key(getattr(x, "make", None), getattr(x, "model", None))
+    return got == want or (not want[0] and got[1] == want[1])
 
 
 def priced(x) -> int | None:
@@ -101,8 +112,9 @@ def _groups(xs: list) -> dict[tuple[str, str], list]:
 
 @lru_cache(maxsize=1)
 def published_runs() -> tuple:
-    """((run_id, collected_on, listings), ...) for every corpus in
-    data/corpora, by collection date. Read once per process."""
+    """((run_id, collected_on, source, listings), ...) for every corpus in
+    data/corpora, by collection date. Read once per process. The source is
+    the artifact's own, never guessed from a file name or an address."""
     from caro.corpus_reader import CORPORA, load_corpus, rows_from_corpus   # noqa: PLC0415
     out = []
     for path in sorted(CORPORA.glob("*.json")):
@@ -111,9 +123,10 @@ def published_runs() -> tuple:
             artifact = load_corpus(run_id)
             listings, _rows = rows_from_corpus(artifact)
             collected = str(artifact.get("collected_on") or "")
+            source = str(artifact["source"])
         except Exception:                       # noqa: BLE001 — a run that does not load is not a point
             continue
-        out.append((run_id, collected, tuple(
+        out.append((run_id, collected, source, tuple(
             x for x in listings if getattr(x, "product_class", "vehicle") == "vehicle")))
     out.sort(key=lambda t: (t[1], t[0]))
     return tuple(out)
@@ -140,9 +153,7 @@ def model(make: str = Query("", max_length=MAX_NAME),
     if c.kind == "UNUSABLE":
         return ModelResponse(**_envelope(c, served=False).model_dump())
     want = _key(make, model)
-    xs = [x for x in _vehicles(c)
-          if _key(getattr(x, "make", None), getattr(x, "model", None)) == want
-          or (not want[0] and _key(None, getattr(x, "model", None))[1] == want[1])]
+    xs = [x for x in _vehicles(c) if _of(x, want)]
     if not xs:
         if response is not None:
             response.status_code = 404
@@ -161,13 +172,15 @@ def model(make: str = Query("", max_length=MAX_NAME),
             by_year.setdefault(int(x.year_jalali), []).append(p)
     years = [YearPoint(year_jalali=y, priced=len(v), price_median=_middle(v))
              for y, v in sorted(by_year.items())]
+    runs = published_runs()
+    holding = {source for _run, _on, source, listings in runs
+               if any(_of(x, want) for x in listings)}
     history = []
-    for run_id, collected, listings in published_runs():
-        same = [x for x in listings
-                if _key(getattr(x, "make", None), getattr(x, "model", None)) == want
-                or (not want[0] and _key(None, getattr(x, "model", None))[1] == want[1])]
-        prices = [p for p in (priced(x) for x in same) if p is not None]
-        history.append(HistoryPoint(run_id=run_id, collected_on=collected,
+    for run_id, collected, source, listings in runs:
+        if source not in holding:
+            continue
+        prices = [p for p in (priced(x) for x in listings if _of(x, want)) if p is not None]
+        history.append(HistoryPoint(run_id=run_id, collected_on=collected, source=source,
                                     priced=len(prices), price_median=_middle(prices)))
     return ModelResponse(
         **_envelope(c, served=False).model_dump(),
