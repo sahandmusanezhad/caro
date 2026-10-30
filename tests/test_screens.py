@@ -1192,6 +1192,25 @@ else:
           REF in _text(_with) and "d1g3st42" in _text(_with)
           and REF not in _text(_without))
 
+# ---------------------------------------------------------------------------
+print("\na model's page is titled with the model")
+# ---------------------------------------------------------------------------
+# One title for every model page made two tabs, or two search results, of two
+# models read the same. The title is the label the page draws.
+_tt, why = call("lib/format.ts", "modelTitle",
+                [["Saipa", "Pride"], ["", "Pride"], ["_", "Pride"]])
+_tl, why2 = call("lib/format.ts", "modelLabel", [["Saipa|Pride"], ["Pride"]])
+if _tt is None or _tl is None:
+    check("modelTitle could be called", False, why or why2)
+else:
+    check(f"modelTitle('Saipa', 'Pride') holds the label «{_tl[0]}» and ends «— CARO»",
+          _tl[0] in _tt[0] and _tt[0].endswith("— CARO"), _tt[0])
+    # the page hands the make over as it is in the address, `_` included
+    check("with no make -- '' or the page's `_` -- the model's label alone, and no "
+          "«_» and no «|»",
+          all(_tl[1] in t and "_" not in t and "|" not in t and _tl[0] not in t
+              for t in _tt[1:]), " / ".join(_tt[1:]))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

@@ -320,6 +320,14 @@ export function modelLabel(key: string): string {
     .join(' · ');
 }
 
+/** A model page's title: the model as the page draws it, then the site, so
+ *  two tabs or two search results of two models do not read the same. `_`
+ *  is the page's placeholder for a make the corpus does not give. */
+export function modelTitle(make: string, model: string): string {
+  const key = [make === '_' ? '' : make, model].filter(Boolean).join('|');
+  return `${modelLabel(key)}: آگهی‌ها و قیمت‌ها — CARO`;
+}
+
 /** A signed decimal that survives bidi: U+2212, never the ASCII hyphen.
  *  In an RTL line the ASCII `-` from `toFixed` is reordered to the far side
  *  and «−۰٫۱۹۸» renders as «۰٫۱۹۸−». */
