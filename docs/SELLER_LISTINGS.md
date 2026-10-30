@@ -163,6 +163,13 @@ commits, a delivery.
    session does (both are 30 days), so renewing it after that takes a new
    login.
 4. **The operator** -- pending, approve, reject with a reason, the reports.
+   *Built 2026-10-30:* `webapp/api/review.py`, held by section 24 of
+   `tests/test_api_contract.py`, behind the inbox's own door (the token, and
+   the code where a TOTP secret is set). A report's reasons are sold, wrong,
+   fake, spam, offensive and other; one address counts once for a listing,
+   three take it down, and an address has 20 reports a day -- a proposal.
+   Released, a listing's reports are cleared; removed, its public version is
+   rejected with the reason, which its seller reads.
 5. **The site** -- «ورود», «آگهی‌های من», «ثبت آگهی», the public list, the
    section on a model's page, «نمایش شماره», «گزارش آگهی».
 6. **The provider** -- the one the owner chose, behind the same interface,

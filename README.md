@@ -270,7 +270,8 @@ seller's listing, `/api/listings…`, are the first parts of the listings
 sellers will post on CARO themselves (docs/SELLER_LISTINGS.md): they are off
 unless `DATABASE_URL` and `CARO_STORE_SECRET` are set, logging in needs an
 SMS provider too, and the only provider so far is a fake one, which a
-Postgres store refuses. No answer of the decision API reads them. The site is Next.js, TypeScript and Tailwind, in
+Postgres store refuses. The operator reviews them behind the inbox's door,
+`/api/admin/listings/…`. No answer of the decision API reads them. The site is Next.js, TypeScript and Tailwind, in
 right-to-left Persian, its panes glass over the palette: `/`, `/search`,
 `/models`, `/model/[make]/[model]`, `/car/[id]`, `/compare`, `/saved`,
 `/before-buying`, `/how-it-works`, `/about`, `/contact` and `/admin`.
