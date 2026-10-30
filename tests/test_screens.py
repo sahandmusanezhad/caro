@@ -1146,6 +1146,52 @@ if _pr11 is not None:
     check("  «پراید»: no «استان» line, no assumption, nothing left out",
           "استان" not in _f and not _a and not _u, str((_f, _a, _u)))
 
+# ---------------------------------------------------------------------------
+print("\na page that is not there, and a page that broke, are told in Persian")
+# ---------------------------------------------------------------------------
+# Next's own pages say both in English («This page could not be found»,
+# «Application error»). The site's say them in its language, and the error
+# page draws the digest a reader can quote and never the error's message,
+# which can carry a path or a value that is nobody's business on a screen.
+
+def _latin(html: str, allowed: set[str]) -> list[str]:
+    return [w for w in re.findall(r"[A-Za-z][A-Za-z0-9_.-]*", _text(html))
+            if w not in allowed]
+
+
+_LEAK = "/srv/caro/.env DATABASE_PASSWORD=hunter2 at query()"
+_nf, why = node({"component": "app/not-found.tsx", "export": "default", "props": [{}],
+                 "consts": {"module": "app/not-found.tsx", "names": ["NOT_FOUND_FA"]}})
+_er, why2 = node({"component": "app/error.tsx", "export": "default",
+                  "props": [{"error": {"message": _LEAK, "digest": "d1g3st42"}},
+                            {"error": {"message": _LEAK}}],
+                  "consts": {"module": "app/error.tsx",
+                             "names": ["BROKE_FA", "REFERENCE_FA"]}})
+if _nf is None or _er is None:
+    check("the not-found and error pages could be drawn", False, why or why2)
+else:
+    _h = _nf["markup"][0]
+    _hrefs = set(re.findall(r'href="([^"]*)"', _h))
+    check("not-found: its sentence, links to /, /models and /search, and no Latin "
+          "word but CARO",
+          _nf["consts"]["NOT_FOUND_FA"] in _text(_h)
+          and {"/", "/models", "/search"} <= _hrefs and not _latin(_h, {"CARO"}),
+          f"hrefs {sorted(_hrefs)} latin {_latin(_h, {'CARO'})}")
+    _with, _without = _er["markup"]
+    BROKE, REF = _er["consts"]["BROKE_FA"], _er["consts"]["REFERENCE_FA"]
+    check("error: its sentence, a button, a link to /, and no Latin word but CARO "
+          "and the reference",
+          BROKE in _text(_with) and "<button" in _with
+          and 'href="/"' in _with and not _latin(_with, {"CARO", "d1g3st42"}),
+          f"latin {_latin(_with, {'CARO', 'd1g3st42'})}")
+    check("error: the error's message is not drawn",
+          all(x not in h for h in (_with, _without)
+              for x in (_LEAK, ".env", "DATABASE_PASSWORD", "hunter2")))
+    check("error: the digest is drawn as the reference to quote, and no reference "
+          "line without one",
+          REF in _text(_with) and "d1g3st42" in _text(_with)
+          and REF not in _text(_without))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
