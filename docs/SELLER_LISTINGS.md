@@ -171,7 +171,14 @@ commits, a delivery.
    Released, a listing's reports are cleared; removed, its public version is
    rejected with the reason, which its seller reads.
 5. **The site** -- «ورود», «آگهی‌های من», «ثبت آگهی», the public list, the
-   section on a model's page, «نمایش شماره», «گزارش آگهی».
+   section on a model's page, «نمایش شماره», «گزارش آگهی». *Built
+   2026-10-30:* `/login`, `/sell`, `/my-listings` and `/listings`, and the
+   section after a model's corpus listings, drawn only where there are some;
+   `webapp/web/lib/seller.ts` holds the site's copies of the API's lists, and
+   the screens suite holds the copies to the originals. The car is chosen
+   from the site's own table of models, so it appears on that model's page,
+   or written under «دیگر». Tried in a browser on a local store with the fake
+   provider, from the login to the reveal.
 6. **The provider** -- the one the owner chose, behind the same interface,
    tried by the owner on the owner's own number before anyone else's.
 

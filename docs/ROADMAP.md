@@ -84,10 +84,13 @@ section that holds its detail.
    built and wait for the push. No payment (P0). Later the same day the owner
    chose listings that sellers post on CARO themselves, with a number shown
    only by their choice, built alongside the first live runs: the design and
-   the choices it waits on are [SELLER_LISTINGS](SELLER_LISTINGS.md). Its
-   first four steps, the store, the login against a fake SMS provider, the
-   listing with its reveal and the operator's view with the reports, are
-   built; the site and the provider are left.
+   the choices it waits on are [SELLER_LISTINGS](SELLER_LISTINGS.md). Five
+   of its six steps are built -- the store, the login against a fake SMS
+   provider, the listing with its reveal, the operator's view with the
+   reports, and the site's pages. What is left is the owner's: the SMS
+   provider, the Postgres driver, and the deploy holder setting the store's
+   address and secret. Until then the deployed site shows the pages and says
+   that this deployment does not take listings.
 9. **The demo** (the end). The last: the demo script brought up to date with
    the site as it is, recorded, and sent where the owner decides.
 
