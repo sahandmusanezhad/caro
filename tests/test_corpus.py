@@ -240,6 +240,37 @@ def promote(fixture):
 
 code, exists, text = promote(CLEAN)
 check("clean snapshot promotes", code == 0 and exists)
+
+# FP6, FP7 (predictions FAR, commit B, locked before the code): a run whose
+# fourth Samand asks 118 times the middle of the other three.
+_SAMANDS = {"taken_on": "2026-11-01", "listings": [
+    {"listing_id": f"khodro45:S{i}", "make": "IKCO", "model": "Samand", "year_jalali": 1401,
+     "mileage_km": 46_000 + i, "km_line": "کارکرد ۴۶٬۰۰۰ کیلومتر", "asking_price_toman": p,
+     "price_status": "structured_only", "price_kind": "cash", "product_class": "vehicle",
+     "mileage_status": "plausible"}
+    for i, p in enumerate((2_000_000_000, 2_096_250_000, 2_200_000_000, 247_500_000_000))]}
+_fs_code, _fs_exists, _fs_text = promote(_SAMANDS)
+_fs = json.loads(_fs_text) if _fs_exists else {}
+_fs_rows = {r["listing_id"]: r for r in _fs.get("listings", [])}
+check("FP6: promotion holds the far price apart -- its row says far_from_model and keeps its number, the "
+      "other three keep their own status; the provenance says the rule ran, at 5 times, for 3 priced, "
+      "and held 1 apart; both guards pass",
+      _fs_code == 0
+      and [_fs_rows.get(f"khodro45:S{i}", {}).get("price_status") for i in range(4)]
+      == ["structured_only"] * 3 + ["far_from_model"]
+      and _fs_rows.get("khodro45:S3", {}).get("asking_price_toman") == 247_500_000_000
+      and (_fs.get("provenance") or {}).get("far_from_model")
+      == {"ratio": 5, "min_priced": 3, "held_apart": 1}
+      and not validate(_fs, _fs_text),
+      f"{_fs_code} {[(k, r.get('price_status')) for k, r in _fs_rows.items()]} "
+      f"{(_fs.get('provenance') or {}).get('far_from_model')}")
+from caro.corpus_reader import rows_from_corpus as _rows_from_corpus   # noqa: E402
+
+_fs_all, _fs_eligible = _rows_from_corpus(_fs) if _fs else ([], [])
+check("FP7: and the corpus reader's eligible rows leave it out: 3 of 4",
+      (len(_fs_all), sorted(r.listing_id for r in _fs_eligible))
+      == (4, ["khodro45:S0", "khodro45:S1", "khodro45:S2"]),
+      str((len(_fs_all), [r.listing_id for r in _fs_eligible])))
 check("  and the artifact declares the schema", f'"{SCHEMA}"' in text)
 check("  and carries provenance for the input it came from",
       '"input_sha256"' in text)

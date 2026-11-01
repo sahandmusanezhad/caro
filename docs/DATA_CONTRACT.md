@@ -69,8 +69,11 @@ figure in both of its price fields. The floor judges a number alone; this
 judges it against its run. A price five times its model's middle in the same
 run or more, or a fifth of it or less, for a model with three priced listings
 or more, is held apart: the row keeps the number, and its status says the
-number is not believed (`caro/ingest/quality.py`, `far_prices`). The
-five corpora published before it were measured first -- no priced listing at
+number is not believed (`caro/ingest/quality.py`, `far_prices`). Promotion
+sets it over the whole run (`scripts/promote_corpus.py`), and its provenance
+says the rule ran and how many it held apart; a parser, which sees one
+listing, never sets it. The five corpora published before it were measured
+first -- no priced listing at
 three times its model's middle; one, run11's Pride at 65 million, at a fifth
 or less -- and are read as they were.
 

@@ -63,7 +63,9 @@ from caro.ingest.divar_car import (                               # noqa: E402
     extract_body_condition, has_document_issue,
 )
 from caro.ingest.persian import parse_mileage_km                  # noqa: E402
-from caro.ingest.quality import Validity, classify_mileage         # noqa: E402
+from caro.ingest.quality import (                                 # noqa: E402
+    FAR_PRICE_RATIO, MIN_PRICED_FOR_MIDDLE, Validity, classify_mileage, hold_apart_far_prices,
+)
 
 # Keys a snapshot may use for the prose we derive from and then drop.
 _DESC_KEYS = ("description", "desc", "DESC", "توضیحات")
@@ -259,6 +261,13 @@ def main() -> int:
         row, why = promote_record(rec)
         (rows.append(row) if row else refused.append((i, why)))
 
+    # A price far from its model's middle is a fact about the run, so it is
+    # judged here, over every row promoted, and not by promote_record, which
+    # sees one (caro/ingest/quality.py, `far_prices`; the owner's choice of
+    # 2026-11-01). The row keeps its number and its status says the number is
+    # not believed; the snapshot it came from is not changed.
+    rows, far = hold_apart_far_prices(rows)
+
     artifact = {
         "schema": SCHEMA,
         "run_id": a.run_id,
@@ -273,6 +282,9 @@ def main() -> int:
             "records_in": len(records),
             "records_published": len(rows),
             "records_refused": len(refused),
+            "far_from_model": {"ratio": FAR_PRICE_RATIO,
+                               "min_priced": MIN_PRICED_FOR_MIDDLE,
+                               "held_apart": len(far)},
         },
         "listings": rows,
     }
@@ -286,6 +298,12 @@ def main() -> int:
         print(f"  refused #{i}: {why}")
     if len(refused) > 10:
         print(f"  … and {len(refused) - 10} more")
+    if far:
+        print(f"{len(far)} held apart: {FAR_PRICE_RATIO} times its model's middle "
+              f"in this run or more, or a fifth of it or less")
+        for f in far:
+            print(f"  {f.listing_id}  {f.price:,} toman  middle {f.middle:,.0f} "
+                  f"of {f.priced}  x{f.ratio:.2f}")
 
     if violations:
         print(f"\nREFUSING TO WRITE — {len(violations)} guard violation(s):",
