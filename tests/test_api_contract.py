@@ -1901,11 +1901,13 @@ try:
           _nf.status_code == 404 and _nf.json()["fault"]["code"] == "MODEL_NOT_FOUND"
           and "corpus" in _nf.json() and _long.status_code == 422, f"{_nf.status_code} {_long.status_code}")
     check("MKT-3: one point per published run, by date, with its source, its priced count and its middle: "
-          "Pride 54, 52, 53 and 50 priced on bama, 612.5, 600, 635 and 650 million",
+          "Pride 54, 52, 53 and 50 priced on bama, 612.5, 600, 635 and 650 million; and run17, khodro45's "
+          "one Pride, priced and with no middle",
           [(h["run_id"], h["collected_on"], h.get("source"), h["priced"], h["price_median"])
            for h in _mj["history"]]
           == [("run11", "2026-09-10", "bama", 54, 612500000), ("run13", "2026-10-06", "bama", 52, 600000000),
-              ("run14", "2026-10-11", "bama", 53, 635000000), ("run16", "2026-10-15", "bama", 50, 650000000)],
+              ("run14", "2026-10-11", "bama", 53, 635000000), ("run16", "2026-10-15", "bama", 50, 650000000),
+              ("run17", "2026-10-30", "khodro45", 1, None)],
           str(_mj["history"]))
     _run11 = json.loads((ROOT / "data" / "corpora" / "run11.json").read_text(encoding="utf-8"))
     _quik11 = [x for x in _run11["listings"] if x.get("model") == "Quik"]

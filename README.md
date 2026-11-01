@@ -21,7 +21,7 @@ intent → explain the best choice**.
 
 | Requirement | State, 2026-10-25 |
 |---|---|
-| crawl offers | ⚠️ **one source.** Four runs of `BamaAdapter` are published — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15): 76, 74, 77 and 73 listings, of which 71, 64, 64 and 63 can be appraised. The site serves run16. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and since 2026-10-26 the extraction of a category page (`caro/ingest/divar_page.py`), written offline against the shape the owner's probe found; it has read the owner's saved copy of one real page once (2026-10-26: 24 of 24 listings, 22 prices confirmed by the card, the page's own body-condition field), and its live path has never run. Sheypoor and Khodro45 have adapters since 2026-10-29, written offline against one saved list page each (`caro/ingest/sheypoor.py`, `caro/ingest/khodro45.py`); neither has run live, and Sheypoor's list gives no year and no odometer. |
+| crawl offers | ⚠️ **two sources published.** Four runs of `BamaAdapter` — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15): 76, 74, 77 and 73 listings, of which 71, 64, 64 and 63 can be appraised — and one of Khodro45's, run17 (2026-10-30): 492 listings, of which 480 can be appraised, every line read before it was published. The site serves run16. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and since 2026-10-26 the extraction of a category page (`caro/ingest/divar_page.py`), written offline against the shape the owner's probe found; it has read the owner's saved copy of one real page once (2026-10-26: 24 of 24 listings, 22 prices confirmed by the card, the page's own body-condition field), and its live path has never run. Sheypoor and Khodro45 have adapters since 2026-10-29 (`caro/ingest/sheypoor.py`, `caro/ingest/khodro45.py`), and both have run live since 2026-10-30, on the owner's machine: Khodro45 every day, forty pages of its newest-first list (TEMPORAL_CONTRACT §11); Sheypoor's list gives no year and no odometer, and none of its runs is published. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province, with how each was read. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
 | explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
@@ -138,8 +138,9 @@ Three independent, *measured* reasons the appraiser stays locked:
 | **D31** | the acquisition ceiling is 63% | proved from the source's own trim census — 135 listings across 34 Pride trim pages, 22 holding fewer than five |
 | **D34** | the corpus cannot calibrate the estimator | n=54 and n=26 against a derived floor of 58 |
 
-The runs published since, run11 to run16, hold 73 to 77 listings each, and
-no estimator has cleared the gate on any of them. Clearing it on real data is
+The Bama runs published since, run11 to run16, hold 73 to 77 listings each,
+and Khodro45's run17 holds 492; no estimator has cleared the gate on any of
+them. Clearing it on real data is
 step 7 of the roadmap's order of work.
 
 One snapshot cannot be benchmarked in time: it has no first-seen history, and
@@ -208,7 +209,7 @@ git clone https://github.com/Tecso-Dev/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all sixteen suites
 
-python3 tests/run_all.py            # 3407 assertions, no API key, no network
+python3 tests/run_all.py            # 3420 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 ```
@@ -229,7 +230,7 @@ suites need more, and the runner says so rather than failing:
 python3 tests/run_all.py            # 2766 assertions across 13 of 16 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3407 across all sixteen
+python3 tests/run_all.py            # 3420 across all sixteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -531,7 +532,7 @@ blurred them before (D41). Five levels, weakest last:
 
 | | | Claim |
 |---|---|---|
-| **VALIDATED** | evidence on real data | ingestion and retrieval reach real Bama listings; parsing and normalisation to the level the 515 ingest assertions reach; the relaxation ladder; the refusal and uncertainty policy; four published corpora |
+| **VALIDATED** | evidence on real data | ingestion and retrieval reach real Bama listings; parsing and normalisation to the level the 515 ingest assertions reach; the relaxation ladder; the refusal and uncertainty policy; five published corpora, four of Bama's and one of Khodro45's |
 | **EVALUATED** | measured on real data, and it did not pass | conditional appraisal — Run 3 `UNJUDGEABLE_SLICE`, Run 5 `REJECTED` with D39's interval attached; the baseline class, which fails the gate on Run 5's corpus at 0.206 coverage error |
 | **AUDITABLE** | traceable on real data, no ground truth required | the decision ledger — which inputs each ranking decision actually had. On Run 5 it reports 38% mean completeness with a reason for every absence (`scripts/rank_run5.py`) |
 | **NOT VALIDATED** | correct within a contract this project wrote | ranking correctness — the win-rate beats price-sort on a synthetic corpus whose generating process this repository defines. It says the ranker responds correctly in a world built to have that property; it is not evidence about Iran |
@@ -548,7 +549,7 @@ And the specific gaps behind those rows:
 | Source adapter contract + CSV adapter | ✅ built |
 | Divar + Bama adapters; robots.txt read in code (RFC 9309, D73) | ✅ built, tested offline |
 | Cross-source identity and supply correction | ✅ built, tested |
-| **Real Bama corpora** | ✅ the September runs (Run 5: 403 parsed, 228 appraisal-eligible; never committed, D46) and four published since — the site serves run16 |
+| **Real Bama corpora** | ✅ the September runs (Run 5: 403 parsed, 228 appraisal-eligible; never committed, D46) and four published since — the site serves run16 — and one of Khodro45's, run17 (492 listings, 2026-10-30) |
 | **The fields the ranking reads, on real data** | ✅ recorded — run16 carries the body condition, gearbox, fuel and province on all 73 listings and the colour on 70 — though no ranking runs on them yet (the next row) |
 | **A shortlist over real listings** | ❌ does not exist — no estimator clears the gate on any real corpus, so `Ranker.score` raises and every shortlist refuses |
 | **Live collection run against Divar** | ❌ the network path is unexercised |
@@ -646,10 +647,10 @@ trade for a system whose pitch is that it does not overclaim.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3407 assertions across sixteen suites
+tests/           3420 assertions across sixteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, replays, the benchmarks, the probes
-data/corpora/    the published runs — run11, run13, run14, run16; snapshots are never committed
+data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
 docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) · eval · roadmap
