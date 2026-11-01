@@ -83,7 +83,8 @@ from caro.ingest.sheypoor import (                                      # noqa: 
 from caro.ingest import coverage as cov_mod                           # noqa: E402
 from caro.ingest.robots import RobotsViolation, describe              # noqa: E402
 from caro.ingest.quality import (                                     # noqa: E402
-    classify_mileage, classify_price_value, eligibility,
+    FAR_PRICE_RATIO, classify_mileage, classify_price_value, eligibility,
+    hold_apart_far_prices,
 )
 from caro.tracking import (                                          # noqa: E402
     FetchOutcome, FetchStatus, Snapshot, assess_integrity, write_snapshot,
@@ -443,6 +444,11 @@ def inventory(listings: list, traces: list | None = None,
     n = len(listings)
     if not n:
         return "no listings parsed — nothing to report"
+    # The report reads the run as promotion will (caro/ingest/quality.py,
+    # `hold_apart_far_prices`): a price far from its model's middle is held
+    # apart here too, so that the funnel, the coverage and the verdict refuse
+    # what the corpus will. Copies: what the snapshot holds is not changed.
+    listings, far = hold_apart_far_prices(listings)
 
     L = [f"CORPUS INVENTORY  ({n} listings)", "=" * 62, "",
          f"{'field':<18}{'filled':>9}{'garbage':>9}{'usable':>9}", "-" * 62]
@@ -488,6 +494,17 @@ def inventory(listings: list, traces: list | None = None,
               f"  min {q(0)/1e9:>6.2f}B   p25 {q(.25)/1e9:>6.2f}B   "
               f"median {q(.5)/1e9:>6.2f}B   p75 {q(.75)/1e9:>6.2f}B   "
               f"max {q(1)/1e9:>6.2f}B"]
+
+    if far:
+        by_id = {str(getattr(x, "listing_id", "")): x for x in listings}
+        L += ["", f"PRICES HELD APART  ({len(far)}: {FAR_PRICE_RATIO} times their "
+                  "model's middle in this run or more, or a fifth of it or less)",
+              "-" * 62]
+        for f in far:
+            x = by_id.get(f.listing_id)
+            L.append(f"  {f.listing_id}  {getattr(x, 'make', None)} {getattr(x, 'model', None)} "
+                     f"{getattr(x, 'year_jalali', None)}  {getattr(x, 'mileage_km', None)} km  "
+                     f"{f.price:,} toman  middle {f.middle:,.0f} of {f.priced}  x{f.ratio:.2f}")
 
     L += funnel(fetched if fetched is not None else len(listings), listings)
     L += provenance(traces or [])

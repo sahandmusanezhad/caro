@@ -4963,6 +4963,24 @@ check("FP5: of three priced where two are 247.5 billion, the middle is theirs an
       "held apart, low -- what three cannot tell, as the rule reads it",
       [(f.listing_id, f.ratio < 1 / 5) for f in _fp_three or []] == [("f1", True)], str(_fp_three))
 
+# FPR (predictions FAR, commit C, locked before the code): the run's report.
+_fr_snap = {"outcomes": [
+    {"listing_id": f"khodro45:R{i}", "status": "ok", "make": "IKCO", "model": "Samand",
+     "year_jalali": 1401, "mileage_km": 46_226 + i, "asking_price_toman": p,
+     "price_status": "structured_only", "price_kind": "cash", "product_class": "vehicle",
+     "mileage_status": "plausible"}
+    for i, p in enumerate((2_000_000_000, 2_096_250_000, 2_200_000_000, 2_100_000_000, 247_500_000_000))]}
+_fr_rc, _fr_txt = _replay(_fr_snap)
+_fr_line = next((ln for ln in _fr_txt.splitlines() if ln.strip().startswith("khodro45:R4")), "")
+check("FPR: the run's report prints the price it holds apart, with its numbers -- id, model, year, km, "
+      "price, the middle and the count behind it, the ratio -- and its funnel holds it back as "
+      "far_from_model",
+      _fr_rc == 0 and "PRICES HELD APART  (1:" in _fr_txt
+      and _fr_line.split() == ["khodro45:R4", "IKCO", "Samand", "1401", "46230", "km",
+                               "247,500,000,000", "toman", "middle", "2,100,000,000", "of", "5", "x117.86"]
+      and _re.search(r"price is far_from_model\s+1\b", _fr_txt) is not None,
+      _fr_line or _fr_txt[-400:])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
