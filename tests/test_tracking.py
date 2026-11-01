@@ -421,6 +421,22 @@ with tempfile.TemporaryDirectory() as _d:
           first_run.snapshot_id(_args(source="divar"))
           != first_run.snapshot_id(_args(source="bama")))
 
+    # PIN1 (predictions PIN, locked before the code): a list's depth is its
+    # sample, so it is in the name -- 40 pages and 60 are two samples -- and
+    # Bama, which reads no list, keeps the names it had.
+    def _paged(source, pages):
+        ns = _args(source=source)
+        ns.pages = pages
+        return first_run.snapshot_id(ns)
+    check("PIN1: Khodro45 at 40 pages and at 60 has two names, the same pages one name; Bama's name is "
+          "the same with or without a pages value, and as it was before (…-e91506 for the suite's pin)",
+          _paged("khodro45", 40) != _paged("khodro45", 60)
+          and _paged("khodro45", 60) == _paged("khodro45", 60)
+          and _paged("bama", 40) == first_run.snapshot_id(_args()) == _paged("bama", 60)
+          and first_run.snapshot_id(_args()).endswith("-e91506"),
+          str((_paged("khodro45", 40), _paged("khodro45", 60), _paged("bama", 40),
+               first_run.snapshot_id(_args()))))
+
 # ---------------------------------------------------------------------------
 print("\nthe same-pin replicate says what it counts")
 # ---------------------------------------------------------------------------
@@ -481,6 +497,23 @@ with _rtmp.TemporaryDirectory() as _rd:
     (_RPath(_rd) / "d.json").write_text(_rjson.dumps(_sb), encoding="utf-8")
     _code, _out = _replicate(_RPath(_rd) / "c.json", _RPath(_rd) / "d.json")
     _flat = " ".join(_out.split())
+    _sp2_out, _sp2_flat = _out, _flat
+
+    # PIN2 (predictions PIN): the note is about the pin, so the date in the
+    # name is not compared -- one pin on two days is one pin.
+    def _named(sid, path):
+        s = _rsnap({"k:same": 900_000_000})
+        s["snapshot_id"] = sid
+        path.write_text(_rjson.dumps(s), encoding="utf-8")
+        return path
+    _, _two_days = _replicate(_named("khodro45-2026-10-30-51454a", _RPath(_rd) / "e.json"),
+                              _named("khodro45-2026-11-01-51454a", _RPath(_rd) / "f.json"))
+    _, _two_pins = _replicate(_named("khodro45-2026-11-01-51454a", _RPath(_rd) / "g.json"),
+                              _named("khodro45-2026-11-01-c37bc9", _RPath(_rd) / "h.json"))
+    check("PIN2: one pin on two dates is not called two pins; two pins on one date are",
+          "different snapshot_id" not in _two_days and "different snapshot_id" in _two_pins,
+          f"{_two_days[:200]} | {_two_pins[:200]}")
+    _out, _flat = _sp2_out, _sp2_flat
     check("SP2: under a changed price, both runs' source fields: price 1,308,050,000 in both, final_price "
           "1,334,800,000 then 1,308,050,000 -- the source's own number moved",
           _code == 0 and "price changed 1" in _flat

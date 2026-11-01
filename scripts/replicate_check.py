@@ -38,6 +38,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -78,6 +79,12 @@ STABLE_FIELDS = ("year_jalali", "mileage_km", "make", "model", "trim",
                  "price_status", "mileage_status", "seller_type")
 
 
+def _pin(sid) -> str:
+    """A snapshot id with its date taken out: what makes two runs one pin."""
+    m = re.fullmatch(r"(.+)-\d{4}-\d{2}-\d{2}-([0-9a-f]+)", str(sid or ""))
+    return f"{m.group(1)}-{m.group(2)}" if m else str(sid)
+
+
 def index(snap: dict) -> dict[str, dict]:
     return {str(o["listing_id"]): o for o in snap.get("outcomes", [])
             if isinstance(o, dict) and o.get("status") == "ok"}
@@ -99,7 +106,10 @@ def main() -> int:
     A = json.loads(a.first.read_text(encoding="utf-8"))
     B = json.loads(a.second.read_text(encoding="utf-8"))
 
-    if A.get("snapshot_id") != B.get("snapshot_id"):
+    # The pin, not the name: `<source>-<YYYY-MM-DD>-<digest>` carries the
+    # date it ran, and one pin on two days is one pin. An id of another shape
+    # is compared whole.
+    if _pin(A.get("snapshot_id")) != _pin(B.get("snapshot_id")):
         print("NOTE: different snapshot_id, so these are not the same pin.")
         print(f"  {A.get('snapshot_id')}  vs  {B.get('snapshot_id')}")
         print("  The numbers below then mix sampler churn with a changed "

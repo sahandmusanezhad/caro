@@ -691,6 +691,9 @@ def main() -> int:
     return 0
 
 
+LIST_SOURCES = ("divar", "khodro45", "sheypoor")
+
+
 def snapshot_id(args) -> str:
     """A name no other run can collide with, and that never overwrites one.
 
@@ -711,6 +714,12 @@ def snapshot_id(args) -> str:
     `today`'s while the write went to the snapshot's own date.
     """
     spec = f"{make_list(args)}|{args.seed}|{args.limit}|{args.source}"
+    # A source that reads a list samples by its depth: forty pages and sixty
+    # are two samples, and shared one name until the owner's Khodro45 runs
+    # moved from one to the other (2026-11-01). Bama reads no list, so its
+    # names are what they were.
+    if args.source in LIST_SOURCES:
+        spec += f"|pages={getattr(args, 'pages', None)}"
     tag = hashlib.sha256(spec.encode()).hexdigest()[:6]
     return f"{args.source}-{date.today().isoformat()}-{tag}"
 
