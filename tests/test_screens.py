@@ -807,6 +807,8 @@ _P8 = [   # id, kind, status, amount, what both places say
      ("kind", "financing_total")),
     ("p_amb", "cash", "ambiguous", 500_000_000, ("status", "ambiguous")),
     ("p_abs", "absent", "absent", None, ("kind", "absent")),
+    # FP9 (predictions FAR, commit A): a price promotion held apart.
+    ("p_far", "cash", "far_from_model", 247_500_000_000, ("status", "far_from_model")),
 ]
 _rows8 = []
 for _i, _k, _s, _a, _ in _P8:
@@ -880,8 +882,9 @@ if _out8 is not None:
                + [(_cash11["listing_id"], _cash11["asking_price_toman"],
                    "amount")])
     for (_i, _a, _w), _html in zip(_cases8, _out8["markup"]):
+        # `.get`, so that a status with no phrase fails here by name.
         _want = (_toman8(_a) if _w == "amount"
-                 else (_KIND8 if _w[0] == "kind" else _STAT8)[_w[1]])
+                 else (_KIND8 if _w[0] == "kind" else _STAT8).get(_w[1], "<no phrase>"))
         _head = re.search(r'class="mt-2 mb-0[^"]*"><span class="fig">(.*?)'
                           r'</span>', _html, re.S)
         _cell = re.search(r"<dt[^>]*>قیمت پیشنهادی</dt><dd[^>]*>(.*?)</dd>",

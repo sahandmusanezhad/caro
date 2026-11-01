@@ -308,7 +308,7 @@ export interface ModelResponse extends Envelope {
  *  than trusted for the same reason the interfaces above are: the contract
  *  suite asserts this list is exactly `UNUSABLE_PRICE`, member for member. */
 export const PRICE_STATUS_UNUSABLE: string[] = [
-  'ambiguous', 'negotiable', 'absent',
+  'ambiguous', 'negotiable', 'absent', 'far_from_model',
 ];
 
 export const WEIGHT_KEYS: (keyof WeightSet)[] = [

@@ -4880,6 +4880,107 @@ check("SP1: a Khodro45 result's price and final_price are kept, by name, on the 
       str((getattr(_spl.get("SPF001"), "source_prices", "<missing>"),
            getattr(_spl.get("SPF002"), "source_prices", "<missing>"), _sp_refused)))
 
+# ---------------------------------------------------------------------------
+print("\na price far from its model's middle is held apart (the owner's choice, 2026-11-01)")
+# ---------------------------------------------------------------------------
+# FP1..FP5 (predictions FAR, commit A, locked before the code). Read off the
+# module rather than imported by name, so that on a tree without the rule
+# these rows fail by name instead of stopping the suite.
+import caro.ingest.quality as _quality                               # noqa: E402
+from caro.ingest.quality import UNUSABLE_PRICE                        # noqa: E402
+
+FAR_PRICE_RATIO = getattr(_quality, "FAR_PRICE_RATIO", None)
+MIN_PRICED_FOR_MIDDLE = getattr(_quality, "MIN_PRICED_FOR_MIDDLE", None)
+far_prices = getattr(_quality, "far_prices", lambda items: None)
+hold_apart_far_prices = getattr(_quality, "hold_apart_far_prices", lambda items: (list(items), []))
+_FAR = getattr(PriceStatus, "FAR_FROM_MODEL", None)
+
+_FM = 2_000_000_000
+
+
+def _fp(i, p, **kw):
+    r = {"listing_id": f"f{i}", "make": "IKCO", "model": "Samand", "asking_price_toman": p,
+         "price_status": "structured_only", "price_kind": "cash", "product_class": "vehicle"}
+    r.update(kw)
+    return r
+
+
+def _fp_ids(fs):
+    return None if fs is None else [x.listing_id for x in fs]
+
+
+_fp_at = _fp_ids(far_prices(
+    [_fp(1, _FM), _fp(2, _FM), _fp(3, _FM), _fp(4, 5 * _FM), _fp(5, _FM // 5)]))
+_fp_in = _fp_ids(far_prices(
+    [_fp(1, _FM), _fp(2, _FM), _fp(3, _FM), _fp(4, 4.99 * _FM), _fp(5, 0.2001 * _FM)]))
+check("FP1: of a model of five, the price at five times the middle and the one at a fifth of it are "
+      "held apart; at 4.99 times and 0.2001 times, none is",
+      (FAR_PRICE_RATIO, MIN_PRICED_FOR_MIDDLE) == (5, 3) and _fp_at == ["f4", "f5"] and _fp_in == [],
+      f"{_fp_at} | {_fp_in}")
+
+_fp_two = far_prices([_fp(1, _FM, model="Dena"), _fp(2, 30 * _FM, model="Dena")])
+_fp_mixed = far_prices(
+    [_fp(1, _FM), _fp(2, _FM), _fp(3, _FM),
+     _fp(4, 30 * _FM, price_status="ambiguous"), _fp(5, 30 * _FM, price_status="negotiable"),
+     _fp(6, 30 * _FM, price_status="absent"), _fp(7, 30 * _FM, price_kind="financing_total"),
+     _fp(8, 30 * _FM, product_class="assignment"), _fp(9, 5_000_000),
+     _fp(10, _FM, model="Tara"), _fp(11, _FM, model="Tara"), _fp(12, _FM, model="Tara"),
+     _fp(13, 30 * _FM, model="Runna"), _fp(14, 30 * _FM, model="Runna"), _fp(15, 30 * _FM, model="Runna")])
+check("FP2: a model of two is not judged; an ambiguous, a negotiable and an absent price, a financing "
+      "total, an assignment and a price under the floor neither make the middle nor are held apart; "
+      "two models do not mix",
+      _fp_two == [] and _fp_mixed == [], f"{_fp_two} | {_fp_mixed}")
+
+_fpc = [_replace(parse_detail_page(LU, LIVE, trace=ParseTrace()), listing_id=f"c{i}", make="IKCO",
+                 model="Samand", asking_price_toman=p, price_status="display_confirmed")
+        for i, p in enumerate((_FM, _FM, _FM, 118 * _FM))]
+_fpc_out, _fpc_far = hold_apart_far_prices(_fpc)
+_fpd = [_fp(1, _FM), _fp(2, _FM), _fp(3, _FM), _fp(4, _FM // 6)]
+_fpd_out, _fpd_far = hold_apart_far_prices(_fpd)
+check("FP3: held apart is a status, not a deletion: the copies say far_from_model and keep the price, "
+      "the listings and the records given are unchanged, and each one held apart names its id, its "
+      "price, the middle, the count behind it and the ratio",
+      [x.price_status for x in _fpc_out] == ["display_confirmed"] * 3 + ["far_from_model"]
+      and _fpc_out[3].asking_price_toman == 118 * _FM
+      and [x.price_status for x in _fpc] == ["display_confirmed"] * 4
+      and [x["price_status"] for x in _fpd_out] == ["structured_only"] * 3 + ["far_from_model"]
+      and [x["price_status"] for x in _fpd] == ["structured_only"] * 4
+      and [(f.listing_id, f.price, f.middle, f.priced, f.ratio) for f in _fpc_far]
+      == [("c3", 118 * _FM, _FM, 4, 118.0)]
+      and [(f.listing_id, f.priced) for f in _fpd_far] == [("f4", 4)],
+      f"{[x.price_status for x in _fpc_out]} {_fpc_far} {_fpd_far}")
+
+_fp_ok, _ = eligibility(_Prov())
+_fp_no, _fp_why = eligibility(_Prov(price_status="far_from_model"))
+check("FP4: the gate refuses it -- UNUSABLE_PRICE holds far_from_model, and a listing sound in every "
+      "other way is refused with «price is far_from_model»",
+      _FAR is not None and _FAR in UNUSABLE_PRICE and _FAR.value == "far_from_model"
+      and _fp_ok and not _fp_no and _fp_why == ["price is far_from_model"],
+      str(_fp_why))
+
+_fp_three = far_prices([_fp(1, 1_000_000_000), _fp(2, 247_500_000_000), _fp(3, 247_500_000_000)])
+check("FP5: of three priced where two are 247.5 billion, the middle is theirs and the one at a billion is "
+      "held apart, low -- what three cannot tell, as the rule reads it",
+      [(f.listing_id, f.ratio < 1 / 5) for f in _fp_three or []] == [("f1", True)], str(_fp_three))
+
+# FPR (predictions FAR, commit C, locked before the code): the run's report.
+_fr_snap = {"outcomes": [
+    {"listing_id": f"khodro45:R{i}", "status": "ok", "make": "IKCO", "model": "Samand",
+     "year_jalali": 1401, "mileage_km": 46_226 + i, "asking_price_toman": p,
+     "price_status": "structured_only", "price_kind": "cash", "product_class": "vehicle",
+     "mileage_status": "plausible"}
+    for i, p in enumerate((2_000_000_000, 2_096_250_000, 2_200_000_000, 2_100_000_000, 247_500_000_000))]}
+_fr_rc, _fr_txt = _replay(_fr_snap)
+_fr_line = next((ln for ln in _fr_txt.splitlines() if ln.strip().startswith("khodro45:R4")), "")
+check("FPR: the run's report prints the price it holds apart, with its numbers -- id, model, year, km, "
+      "price, the middle and the count behind it, the ratio -- and its funnel holds it back as "
+      "far_from_model",
+      _fr_rc == 0 and "PRICES HELD APART  (1:" in _fr_txt
+      and _fr_line.split() == ["khodro45:R4", "IKCO", "Samand", "1401", "46230", "km",
+                               "247,500,000,000", "toman", "middle", "2,100,000,000", "of", "5", "x117.86"]
+      and _re.search(r"price is far_from_model\s+1\b", _fr_txt) is not None,
+      _fr_line or _fr_txt[-400:])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

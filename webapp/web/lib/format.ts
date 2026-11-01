@@ -58,6 +58,10 @@ export const PRICE_STATUS_FA: Record<string, string> = {
   ambiguous: 'قیمت مبهم',
   negotiable: 'توافقی',
   absent: 'قیمت اعلام‌نشده',
+  // Five times its model's middle in the same run or more, or a fifth of it
+  // or less (caro/ingest/quality.py, `far_prices`): the number is kept in the
+  // corpus and not shown as an asking price.
+  far_from_model: 'دور از میانه‌ی این مدل',
 };
 
 /* What a listing shown apart has no value for — one phrase per

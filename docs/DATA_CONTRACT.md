@@ -57,9 +57,25 @@ and an odometer reading that is not `suspicious` or `impossible`.
 |---|---|
 | `asking_price_toman` present | nothing to price against without it |
 | `price_status` not `ambiguous` / `negotiable` / `absent` | an instalment deposit is not a cash asking price |
+| `price_status` not `far_from_model` | 247,500,000,000 toman for a 1401 Samand is a number read cleanly and believed by nothing: 118 times the middle of its model's 31 in run17 |
 | `year_jalali` present | the strongest single predictor |
 | `mileage_km` present and `plausible` | 999,990 km is present, in range, and false |
 | `model` present | a comparable set has to be *of* something |
+
+`far_from_model` was added on 2026-11-01, the owner's choice, after the
+first price that cleared every rule here and could not be true: Khodro45's
+run of that day held a 1401 Samand at 247,500,000,000 toman, the source's own
+figure in both of its price fields. The floor judges a number alone; this
+judges it against its run. A price five times its model's middle in the same
+run or more, or a fifth of it or less, for a model with three priced listings
+or more, is held apart: the row keeps the number, and its status says the
+number is not believed (`caro/ingest/quality.py`, `far_prices`). Promotion
+sets it over the whole run (`scripts/promote_corpus.py`), and its provenance
+says the rule ran and how many it held apart; a parser, which sees one
+listing, never sets it. The five corpora published before it were measured
+first -- no priced listing at
+three times its model's middle; one, run11's Pride at 65 million, at a fifth
+or less -- and are read as they were.
 
 **comparable support** — a model is ready to price against only when **both**
 hold:
