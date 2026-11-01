@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="394" viewBox="0 0 880 394" role="img" aria-labelledby="t d" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">5 published runs, 792 listings</title>
+<desc id="d">run11 (bama, 2026-09-10): 76 listings, 71 appraisal-eligible; run13 (bama, 2026-10-06): 74 listings, 64 appraisal-eligible; run14 (bama, 2026-10-11): 77 listings, 64 appraisal-eligible; run16 (bama, 2026-10-15): 73 listings, 63 appraisal-eligible; run17 (khodro45, 2026-10-30): 492 listings, 480 appraisal-eligible</desc>
+<rect x="0.5" y="0.5" width="879" height="393" rx="14" fill="#131312" stroke="#242422"/>
+<text x="28.0" y="40.0" font-size="16" font-weight="600" fill="#f5f5f2" text-anchor="start">5 published runs, 792 listings</text>
+<text x="28.0" y="62.0" font-size="12.5" font-weight="400" fill="#a9a9a1" text-anchor="start">Per run: the listings it holds, and those the gate lets inform an estimate</text>
+<rect x="552" y="82" width="12" height="12" rx="3" fill="#ff6234"/>
+<text x="570.0" y="92.0" font-size="12" font-weight="400" fill="#a9a9a1" text-anchor="start">appraisal-eligible</text>
+<rect x="702" y="82" width="12" height="12" rx="3" fill="#7a321c"/>
+<text x="720.0" y="92.0" font-size="12" font-weight="400" fill="#a9a9a1" text-anchor="start">listings</text>
+<line x1="230.0" y1="104" x2="230.0" y2="346" stroke="#34342f" stroke-width="1"/>
+<text x="230.0" y="364.0" font-size="11" font-weight="400" fill="#74746d" text-anchor="middle" style="font-variant-numeric:tabular-nums">0</text>
+<line x1="340.8" y1="104" x2="340.8" y2="346" stroke="#242422" stroke-width="1"/>
+<text x="340.8" y="364.0" font-size="11" font-weight="400" fill="#74746d" text-anchor="middle" style="font-variant-numeric:tabular-nums">100</text>
+<line x1="451.6" y1="104" x2="451.6" y2="346" stroke="#242422" stroke-width="1"/>
+<text x="451.6" y="364.0" font-size="11" font-weight="400" fill="#74746d" text-anchor="middle" style="font-variant-numeric:tabular-nums">200</text>
+<line x1="562.4" y1="104" x2="562.4" y2="346" stroke="#242422" stroke-width="1"/>
+<text x="562.4" y="364.0" font-size="11" font-weight="400" fill="#74746d" text-anchor="middle" style="font-variant-numeric:tabular-nums">300</text>
+<line x1="673.2" y1="104" x2="673.2" y2="346" stroke="#242422" stroke-width="1"/>
+<text x="673.2" y="364.0" font-size="11" font-weight="400" fill="#74746d" text-anchor="middle" style="font-variant-numeric:tabular-nums">400</text>
+<line x1="784.0" y1="104" x2="784.0" y2="346" stroke="#242422" stroke-width="1"/>
+<text x="784.0" y="364.0" font-size="11" font-weight="400" fill="#74746d" text-anchor="middle" style="font-variant-numeric:tabular-nums">500</text>
+<text x="28.0" y="125.0" font-size="13" font-weight="600" fill="#f5f5f2" text-anchor="start">run11 · Bama</text>
+<text x="28.0" y="142.0" font-size="11.5" font-weight="400" fill="#74746d" text-anchor="start" style="font-variant-numeric:tabular-nums">2026-09-10</text>
+<path d="M230.0,116.0 H310.2 Q314.2,116.0 314.2,120.0 V130.0 Q314.2,134.0 310.2,134.0 H230.0 Z" fill="#7a321c"/>
+<path d="M230.0,116.0 H304.7 Q308.7,116.0 308.7,120.0 V130.0 Q308.7,134.0 304.7,134.0 H230.0 Z" fill="#ff6234"/>
+<text x="322.2" y="130.0" font-size="12.5" font-weight="600" fill="#f5f5f2" text-anchor="start" style="font-variant-numeric:tabular-nums">71 of 76</text>
+<text x="28.0" y="171.0" font-size="13" font-weight="600" fill="#f5f5f2" text-anchor="start">run13 · Bama</text>
+<text x="28.0" y="188.0" font-size="11.5" font-weight="400" fill="#74746d" text-anchor="start" style="font-variant-numeric:tabular-nums">2026-10-06</text>
+<path d="M230.0,162.0 H308.0 Q312.0,162.0 312.0,166.0 V176.0 Q312.0,180.0 308.0,180.0 H230.0 Z" fill="#7a321c"/>
+<path d="M230.0,162.0 H296.9 Q300.9,162.0 300.9,166.0 V176.0 Q300.9,180.0 296.9,180.0 H230.0 Z" fill="#ff6234"/>
+<text x="320.0" y="176.0" font-size="12.5" font-weight="600" fill="#f5f5f2" text-anchor="start" style="font-variant-numeric:tabular-nums">64 of 74</text>
+<text x="28.0" y="217.0" font-size="13" font-weight="600" fill="#f5f5f2" text-anchor="start">run14 · Bama</text>
+<text x="28.0" y="234.0" font-size="11.5" font-weight="400" fill="#74746d" text-anchor="start" style="font-variant-numeric:tabular-nums">2026-10-11</text>
+<path d="M230.0,208.0 H311.3 Q315.3,208.0 315.3,212.0 V222.0 Q315.3,226.0 311.3,226.0 H230.0 Z" fill="#7a321c"/>
+<path d="M230.0,208.0 H296.9 Q300.9,208.0 300.9,212.0 V222.0 Q300.9,226.0 296.9,226.0 H230.0 Z" fill="#ff6234"/>
+<text x="323.3" y="222.0" font-size="12.5" font-weight="600" fill="#f5f5f2" text-anchor="start" style="font-variant-numeric:tabular-nums">64 of 77</text>
+<text x="28.0" y="263.0" font-size="13" font-weight="600" fill="#f5f5f2" text-anchor="start">run16 · Bama</text>
+<text x="28.0" y="280.0" font-size="11.5" font-weight="400" fill="#74746d" text-anchor="start" style="font-variant-numeric:tabular-nums">2026-10-15</text>
+<path d="M230.0,254.0 H306.9 Q310.9,254.0 310.9,258.0 V268.0 Q310.9,272.0 306.9,272.0 H230.0 Z" fill="#7a321c"/>
+<path d="M230.0,254.0 H295.8 Q299.8,254.0 299.8,258.0 V268.0 Q299.8,272.0 295.8,272.0 H230.0 Z" fill="#ff6234"/>
+<text x="318.9" y="268.0" font-size="12.5" font-weight="600" fill="#f5f5f2" text-anchor="start" style="font-variant-numeric:tabular-nums">63 of 73</text>
+<text x="28.0" y="309.0" font-size="13" font-weight="600" fill="#f5f5f2" text-anchor="start">run17 · Khodro45</text>
+<text x="28.0" y="326.0" font-size="11.5" font-weight="400" fill="#74746d" text-anchor="start" style="font-variant-numeric:tabular-nums">2026-10-30</text>
+<path d="M230.0,300.0 H771.1 Q775.1,300.0 775.1,304.0 V314.0 Q775.1,318.0 771.1,318.0 H230.0 Z" fill="#7a321c"/>
+<path d="M230.0,300.0 H757.8 Q761.8,300.0 761.8,304.0 V314.0 Q761.8,318.0 757.8,318.0 H230.0 Z" fill="#ff6234"/>
+<text x="783.1" y="314.0" font-size="12.5" font-weight="600" fill="#f5f5f2" text-anchor="start" style="font-variant-numeric:tabular-nums">480 of 492</text>
+</svg>

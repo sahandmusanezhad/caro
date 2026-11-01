@@ -717,6 +717,50 @@ check(f"  and README's layout names the same range, D1-D{max(_decisions)}",
       bool(_range) and int(_range.group(1)) == max(_decisions),
       f"README says {'D1-D' + _range.group(1) if _range else 'no range'}")
 
+# RC1-RC3 (predictions README, 2026-11-01, locked before the change). The
+# README's three charts, and its table of the published corpora, are numbers
+# about data/corpora; kept by hand they would drift the first time a corpus is
+# published, so they are read from the corpora here. The script is loaded by
+# path, and a tree without it fails these rows by name.
+import importlib.util                                                 # noqa: E402
+import json                                                           # noqa: E402
+
+_README_TEXT = (ROOT / "README.md").read_text(encoding="utf-8")
+_RC_SCRIPT = ROOT / "scripts" / "readme_charts.py"
+_rc_stale, _rc_drawn = ["(no scripts/readme_charts.py)"], []
+if _RC_SCRIPT.is_file():
+    _rc_spec = importlib.util.spec_from_file_location("_readme_charts", _RC_SCRIPT)
+    _rc = importlib.util.module_from_spec(_rc_spec)
+    _rc_spec.loader.exec_module(_rc)
+    _rc_drawn = sorted(_rc.draw_all())
+    _rc_stale = _rc.stale()
+check("RC1: every chart in docs/readme is what scripts/readme_charts.py draws from data/corpora "
+      "today, three charts in two schemes",
+      not _rc_stale and len(_rc_drawn) == 6, f"stale: {_rc_stale} · drawn: {_rc_drawn}")
+
+_rc_missing = [n for n in ("runs", "pride", "held-back")
+               if not re.search(r'<picture>\s*<source media="\(prefers-color-scheme: dark\)" '
+                                rf'srcset="docs/readme/{n}-dark\.svg">\s*<img src="docs/readme/{n}-light\.svg"',
+                                _README_TEXT)]
+check("RC2: the README shows each chart in both schemes -- the light file as the image, the dark "
+      "one as its dark-scheme source",
+      not _rc_missing, f"not shown so: {_rc_missing}")
+
+from caro.corpus_reader import CORPORA as _RC_CORPORA, rows_from_corpus as _rc_rows  # noqa: E402
+
+_rc_want = {}
+for _p in sorted(_RC_CORPORA.glob("*.json")):
+    _a = json.loads(_p.read_text(encoding="utf-8"))
+    _l, _e = _rc_rows(_a)
+    _rc_want[_a["run_id"]] = (_a["source"].capitalize(), _a["collected_on"], len(_l), len(_e))
+_rc_said = {m.group(1): (m.group(2), m.group(3), int(m.group(4)), int(m.group(5)))
+            for m in re.finditer(r"^\| (run\d+) \| (\w+) \| (\d{4}-\d{2}-\d{2}) \| (\d+) \| (\d+) \|",
+                                 _README_TEXT, re.M)}
+check("RC3: the README's table of published corpora gives each its source, its date, its listings "
+      "and its appraisal-eligible count as the corpus holds them",
+      bool(_rc_want) and _rc_said == _rc_want,
+      f"README: {_rc_said} · corpora: {_rc_want}")
+
 # ---------------------------------------------------------------------------
 # scripts/setup.sh is the README's first command, and it tells whoever ran it
 # how many suites they now have. Both halves have been wrong before, with

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="240" viewBox="0 0 880 240" role="img" aria-labelledby="t d">
+<title id="t">CARO</title>
+<desc id="d">CARO, an evidence-grounded, uncertainty-aware decision engine for used-car listings. An illustration: a cloud of listings, and one held apart.</desc>
+<defs>
+  <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(40 10) scale(520 300)">
+    <stop offset="0" stop-color="#ff6234" stop-opacity="0.22"/><stop offset="1" stop-color="#ff6234" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="g2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(860 240) scale(420 240)">
+    <stop offset="0" stop-color="#ff6234" stop-opacity="0.12"/><stop offset="1" stop-color="#ff6234" stop-opacity="0"/>
+  </radialGradient>
+</defs>
+<rect x="0.5" y="0.5" width="879" height="239" rx="18" fill="#131312" stroke="#242422"/>
+<rect x="0.5" y="0.5" width="879" height="239" rx="18" fill="url(#g1)"/>
+<rect x="0.5" y="0.5" width="879" height="239" rx="18" fill="url(#g2)"/>
+<text x="44" y="104" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="56" font-weight="600" letter-spacing="12" fill="#ff6234">CARO</text>
+<text x="46" y="142" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#f5f5f2">An evidence-grounded, uncertainty-aware</text>
+<text x="46" y="165" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#f5f5f2">decision engine for used-car listings.</text>
+<text x="46" y="198" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13.5" fill="#a9a9a1">It estimates a range, then tries to prove itself wrong.</text>
+<line x1="440" y1="182" x2="840" y2="182" stroke="#242422" stroke-width="1"/>
+<circle cx="558.0" cy="119.1" r="5.5" fill="#ff6234" fill-opacity="0.35"/><circle cx="555.0" cy="122.5" r="4.5" fill="#ff6234" fill-opacity="0.65"/><circle cx="547.8" cy="136.8" r="5.5" fill="#ff6234" fill-opacity="0.35"/><circle cx="602.2" cy="147.0" r="5" fill="#ff6234" fill-opacity="0.35"/><circle cx="538.5" cy="128.4" r="4" fill="#ff6234" fill-opacity="0.5"/><circle cx="522.0" cy="94.2" r="4" fill="#ff6234" fill-opacity="0.65"/><circle cx="589.4" cy="120.8" r="5" fill="#ff6234" fill-opacity="0.65"/><circle cx="562.8" cy="117.6" r="4.5" fill="#ff6234" fill-opacity="0.8"/><circle cx="549.7" cy="141.0" r="5.5" fill="#ff6234" fill-opacity="1.0"/><circle cx="575.6" cy="129.9" r="5.5" fill="#ff6234" fill-opacity="0.5"/><circle cx="533.2" cy="146.0" r="4.5" fill="#ff6234" fill-opacity="0.8"/><circle cx="555.3" cy="119.6" r="4.5" fill="#ff6234" fill-opacity="1.0"/><circle cx="583.4" cy="109.3" r="4" fill="#ff6234" fill-opacity="0.35"/><circle cx="526.8" cy="97.2" r="4.5" fill="#ff6234" fill-opacity="1.0"/><circle cx="508.0" cy="131.8" r="4.5" fill="#ff6234" fill-opacity="0.5"/><circle cx="562.6" cy="123.2" r="5" fill="#ff6234" fill-opacity="0.8"/><circle cx="631.9" cy="123.8" r="5" fill="#ff6234" fill-opacity="0.35"/><circle cx="585.2" cy="137.5" r="5" fill="#ff6234" fill-opacity="0.35"/><circle cx="521.1" cy="121.5" r="5" fill="#ff6234" fill-opacity="0.8"/><circle cx="604.3" cy="119.7" r="4" fill="#ff6234" fill-opacity="0.8"/><circle cx="547.3" cy="117.2" r="5.5" fill="#ff6234" fill-opacity="0.5"/><circle cx="497.6" cy="137.2" r="4" fill="#ff6234" fill-opacity="0.5"/><circle cx="453.9" cy="122.0" r="4" fill="#ff6234" fill-opacity="0.8"/><circle cx="551.2" cy="117.7" r="4" fill="#ff6234" fill-opacity="1.0"/><circle cx="550.3" cy="141.8" r="4" fill="#ff6234" fill-opacity="0.8"/><circle cx="631.1" cy="122.0" r="4.5" fill="#ff6234" fill-opacity="1.0"/>
+<circle cx="792" cy="128" r="5.5" fill="none" stroke="#74746d" stroke-width="1.6"/>
+<text x="792" y="108" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#74746d" text-anchor="middle">held apart</text>
+<text x="560" y="206" font-family="system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#74746d" text-anchor="middle">evidence, one dot per listing</text>
+</svg>
