@@ -1979,6 +1979,28 @@ try:
               and _h(_dena_r) == [("run17", "2026-10-12", "khodro45", 3, 1_100_000_000),
                                   ("run18", "2026-10-31", "khodro45", 3, 1_150_000_000)],
               f"{_dena_r.status_code} {_h(_dena_r)}")
+        # FP8 (predictions FAR, commit A, locked before the code): a run whose
+        # fourth Samand promotion held apart, served.
+        _sam = _k45("run19", "2026-11-01", [("IKCO", "Samand", p) for p in
+                                            (1_900_000_000, 2_100_000_000, 2_200_000_000, 247_500_000_000)])
+        _sam["listings"][3]["price_status"] = "far_from_model"
+        (_src_dir / "run19.json").write_text(json.dumps(_sam, ensure_ascii=False, indent=1), encoding="utf-8")
+        os.environ["CARO_RUN"] = "run19"
+        corpus_mod.active.cache_clear()
+        market_mod.published_runs.cache_clear()
+        _sam_r = _c20.get("/api/model", params={"make": "IKCO", "model": "Samand"})
+        _sam_j = _sam_r.json() if _sam_r.status_code == 200 else {}
+        _sam_s = _sam_j.get("summary") or {}
+        _sam_o = [(o.get("asking_price_toman"), o.get("price_status")) for o in _sam_j.get("offers", [])]
+        check("FP8: on the site a price held apart is no price -- of four Samands, three priced, from 1.9 to "
+              "2.2 billion; the fourth listed after them, its status far_from_model; run19's point has three",
+              _sam_r.status_code == 200
+              and (_sam_s.get("listings"), _sam_s.get("priced"), _sam_s.get("price_min"), _sam_s.get("price_max"))
+              == (4, 3, 1_900_000_000, 2_200_000_000)
+              and _sam_o == [(1_900_000_000, "display_confirmed"), (2_100_000_000, "display_confirmed"),
+                             (2_200_000_000, "display_confirmed"), (247_500_000_000, "far_from_model")]
+              and [(h[0], h[3], h[4]) for h in _h(_sam_r) if h[0] == "run19"] == [("run19", 3, 2_100_000_000)],
+              f"{_sam_r.status_code} {_sam_s} {_sam_o} {_h(_sam_r)}")
         os.environ.pop("CARO_RUN", None)
         corpus_reader.CORPORA = _corpora_was
 finally:

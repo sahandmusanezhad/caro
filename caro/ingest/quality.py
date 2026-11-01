@@ -31,8 +31,10 @@ cases or admit corrupt ones, so they stay separate and the caller decides.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import copy
+from dataclasses import dataclass, is_dataclass, replace
 from enum import Enum
+from statistics import median
 
 from caro.ingest.persian import normalize
 
@@ -87,13 +89,19 @@ class PriceStatus(str, Enum):
     AMBIGUOUS = "ambiguous"
     NEGOTIABLE = "negotiable"
     ABSENT = "absent"
+    # Read cleanly, and five times its model's middle in the same run or
+    # more, or a fifth of it or less (`far_prices` below). However cleanly a
+    # number was read, that far from every other listing of its model it is
+    # not worth believing. Set over a whole run, by promotion, never by a
+    # parser: a parser sees one listing, and a middle is the run's.
+    FAR_FROM_MODEL = "far_from_model"
 
 
 # Prices we will not price against. AMBIGUOUS covers the instalment listing
 # whose only visible numbers are a deposit and a monthly payment: neither is a
 # cash asking price, and picking one would fabricate a valuation.
 UNUSABLE_PRICE = (PriceStatus.AMBIGUOUS, PriceStatus.NEGOTIABLE,
-                  PriceStatus.ABSENT)
+                  PriceStatus.ABSENT, PriceStatus.FAR_FROM_MODEL)
 
 
 @dataclass(frozen=True)
@@ -144,6 +152,130 @@ def classify_price_value(toman: int | None) -> Judgement:
         return Judgement(Validity.SUSPICIOUS,
                          f"{toman:,} toman is below any car's floor")
     return Judgement(Validity.PLAUSIBLE)
+
+
+# ---------------------------------------------------------------------------
+# A price far from its model's middle, in the same run
+# ---------------------------------------------------------------------------
+# The floor above judges a number alone, and a number can clear it and still
+# not be what anyone asks for the car. Khodro45's run of 2026-11-01 held an
+# IKCO Samand of 1401 at 247,500,000,000 toman -- the source's own figure, in
+# both of its price fields -- 118 times the middle of run17's 31 Samands.
+# Whether a price is that far is a fact about a run, not about a listing, so
+# it is judged over a run's listings at once.
+#
+# The owner chose on 2026-11-01, on the five published corpora measured (no
+# priced listing at three times its model's middle or more; one at a fifth
+# or less, run11's Pride at 65 million): both sides, five times, for a model
+# with three priced listings or more; status, not deletion; for runs promoted
+# from then on, so that the five already published read as they did.
+FAR_PRICE_RATIO = 5
+MIN_PRICED_FOR_MIDDLE = 3
+
+
+@dataclass(frozen=True)
+class FarPrice:
+    """A price held apart, and what it was held apart against."""
+    listing_id: str
+    price: int
+    middle: float        # the median of its model's priced listings in the run
+    priced: int          # how many stood behind that middle, itself among them
+    ratio: float         # price / middle
+
+
+def _field(x, name: str):
+    return x.get(name) if isinstance(x, dict) else getattr(x, name, None)
+
+
+def _value(v):
+    return getattr(v, "value", v)
+
+
+def _price_for_middle(x) -> int | None:
+    """The price a model's middle is made of, or None.
+
+    The site's rule for a priced listing (webapp/api/market.py, `priced`) --
+    a price above zero, a status the gate does not refuse, a cash or an
+    unrecorded kind, a vehicle or an unrecorded class -- and the floor. The
+    measurement the owner chose on read the first four; none of the five
+    corpora's priced listings is under the floor, so the fifth changes none
+    of its numbers.
+    """
+    p = _field(x, "asking_price_toman")
+    if isinstance(p, bool) or not isinstance(p, (int, float)) or p <= 0:
+        return None
+    if _value(_field(x, "price_status")) in {s.value for s in UNUSABLE_PRICE}:
+        return None
+    if _value(_field(x, "price_kind")) not in (None, "cash"):
+        return None
+    if _value(_field(x, "product_class")) not in (None, "vehicle"):
+        return None
+    if not classify_price_value(int(p)).usable:
+        return None
+    return int(p)
+
+
+def _far_by_position(items: list) -> dict[int, FarPrice]:
+    groups: dict[tuple[str, str], list[tuple[int, int]]] = {}
+    for i, x in enumerate(items):
+        p = _price_for_middle(x)
+        model = (_field(x, "model") or "").strip()
+        if p is None or not model:
+            continue
+        make = (_field(x, "make") or "").strip()
+        groups.setdefault((make, model), []).append((i, p))
+    far: dict[int, FarPrice] = {}
+    for group in groups.values():
+        if len(group) < MIN_PRICED_FOR_MIDDLE:
+            continue
+        middle = median(p for _i, p in group)
+        for i, p in group:
+            # Products, not a ratio, so that five times and a fifth are
+            # judged exactly at the bound.
+            if p >= FAR_PRICE_RATIO * middle or p * FAR_PRICE_RATIO <= middle:
+                far[i] = FarPrice(str(_field(items[i], "listing_id")), p,
+                                  middle, len(group), p / middle)
+    return far
+
+
+def far_prices(items) -> list[FarPrice]:
+    """The priced listings of a run five times their model's middle or more,
+    or a fifth of it or less, in the order given.
+
+    A model is its make and model as written. Its middle is the median of its
+    priced listings, the one judged among them, and only a model with
+    MIN_PRICED_FOR_MIDDLE of them has one. What three cannot tell: of three
+    where two are wrong alike, the middle is theirs and the right one is held
+    apart.
+    """
+    items = list(items)
+    far = _far_by_position(items)
+    return [far[i] for i in sorted(far)]
+
+
+def hold_apart_far_prices(items) -> tuple[list, list[FarPrice]]:
+    """(the items, with each far price's status FAR_FROM_MODEL; the far ones).
+
+    Status, not deletion: the price is kept, the listing is kept, and only
+    its status says the number is not believed. The items are copied, never
+    changed in place -- a snapshot's records, and a run's listings, stay as
+    they were read. Dicts and dataclass listings alike.
+    """
+    items = list(items)
+    far = _far_by_position(items)
+    out = []
+    for i, x in enumerate(items):
+        if i in far:
+            status = PriceStatus.FAR_FROM_MODEL.value
+            if isinstance(x, dict):
+                x = {**x, "price_status": status}
+            elif is_dataclass(x):
+                x = replace(x, price_status=status)
+            else:
+                x = copy.copy(x)
+                x.price_status = status
+        out.append(x)
+    return out, [far[i] for i in sorted(far)]
 
 
 # ---------------------------------------------------------------------------
