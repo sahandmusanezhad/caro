@@ -40,16 +40,21 @@ change looks small.
    build when the site is touched. The published counts — the README's four
    numbers and `/about`'s — move in the commit that moves them, or
    `tests/run_all.py` fails.
-5. **The push is the owner's.**
-6. **After the push,** read CI on both repositories and the site from the
-   outside, and only then write the D-entry, with his hashes and what was
-   seen. No D-number is cited anywhere before its entry exists.
+5. **The landing is a pull request, merged by the session.** The owner chose
+   on 2026-11-01 that every task ends with its commits in a pull request into
+   `main` of `github.com/sahandmusanezhad/caro`, merged by the session itself
+   once CI on it is green. A red pull request is fixed or left open with the
+   reason; it is never merged red.
+6. **After the merge,** read CI on `main` and the site from the outside, and
+   only then write the D-entry, with the merged hashes and what was seen. No
+   D-number is cited anywhere before its entry exists.
 
 ## Commits and pushes
 
 - **Every commit is authored and committed as
   `sahandmusanezhad <sahand.mosanejad4488@gmail.com>`**, and under no other
-  name or address.
+  name or address. The one exception is the merge commit GitHub writes when a
+  pull request is merged, which carries his account.
 - **No trailer of any kind** — no co-author line, no session link, no line
   that credits a tool with the work — and no tool or vendor name in any file,
   commit message or branch name of this repository.
@@ -58,15 +63,18 @@ change looks small.
   there, not only in the code. Pushed history is never squashed or rewritten.
 - **Add files by name**, never with `git add -A` or `git add .`; a build
   directory or a link to one (`webapp/web/node_modules`) is never committed.
-- **A session on the owner's machine** commits in his checkout and stops
-  before `git push`. **A session that cannot reach his checkout** hands him
-  the commits as patches, with a script that applies them with `git am`,
-  checks the state it starts from and refuses any other, and is rehearsed on a
-  fresh clone before he gets it.
-- **The owner pushes**, to `github.com/Tecso-Dev/caro`, branch `main`, and the
-  same branch to his own copy, `github.com/sahandmusanezhad/caro`. Never
-  handle his GitHub token or any other credential; the credentials live on his
-  machine and stay there.
+- **Every task ends in a merged pull request**, on the owner's machine or
+  away from it. The session pushes its commits to a branch of
+  `github.com/sahandmusanezhad/caro` named for the change — never a tool's
+  name — opens a pull request into `main` that says what changed and why,
+  waits for CI on it, and merges it with a merge commit; never squash or
+  rebase. **A session that cannot push or merge** hands him the commits as
+  patches, with a script that applies them with `git am`, checks the state it
+  starts from and refuses any other, and is rehearsed on a fresh clone before
+  he gets it.
+- **The owner keeps `github.com/Tecso-Dev/caro` in step**: after a merge he
+  brings its `main` to the same commit. Never handle his GitHub token or any
+  other credential; the credentials live on his machine and stay there.
 - **Prepare each commit so it is green on its own.** The working tree may
   hold several pending changes at once, so `run_all.py` before a commit
   reports the tree rather than the commit. When more than one commit is
