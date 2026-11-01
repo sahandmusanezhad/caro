@@ -421,6 +421,22 @@ with tempfile.TemporaryDirectory() as _d:
           first_run.snapshot_id(_args(source="divar"))
           != first_run.snapshot_id(_args(source="bama")))
 
+    # PIN1 (predictions PIN, locked before the code): a list's depth is its
+    # sample, so it is in the name -- 40 pages and 60 are two samples -- and
+    # Bama, which reads no list, keeps the names it had.
+    def _paged(source, pages):
+        ns = _args(source=source)
+        ns.pages = pages
+        return first_run.snapshot_id(ns)
+    check("PIN1: Khodro45 at 40 pages and at 60 has two names, the same pages one name; Bama's name is "
+          "the same with or without a pages value, and as it was before (…-e91506 for the suite's pin)",
+          _paged("khodro45", 40) != _paged("khodro45", 60)
+          and _paged("khodro45", 60) == _paged("khodro45", 60)
+          and _paged("bama", 40) == first_run.snapshot_id(_args()) == _paged("bama", 60)
+          and first_run.snapshot_id(_args()).endswith("-e91506"),
+          str((_paged("khodro45", 40), _paged("khodro45", 60), _paged("bama", 40),
+               first_run.snapshot_id(_args()))))
+
 # ---------------------------------------------------------------------------
 print("\nthe same-pin replicate says what it counts")
 # ---------------------------------------------------------------------------
