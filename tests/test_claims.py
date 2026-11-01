@@ -717,6 +717,28 @@ check(f"  and README's layout names the same range, D1-D{max(_decisions)}",
       bool(_range) and int(_range.group(1)) == max(_decisions),
       f"README says {'D1-D' + _range.group(1) if _range else 'no range'}")
 
+# RC1 (predictions README, 2026-11-01, locked before the change). The
+# README's three charts are numbers about data/corpora; kept by hand they
+# would drift the first time a corpus is published, so they are drawn from
+# the corpora and checked here. The script is loaded by
+# path, and a tree without it fails these rows by name.
+import importlib.util                                                 # noqa: E402
+import json                                                           # noqa: E402
+
+_README_TEXT = (ROOT / "README.md").read_text(encoding="utf-8")
+_RC_SCRIPT = ROOT / "scripts" / "readme_charts.py"
+_rc_stale, _rc_drawn = ["(no scripts/readme_charts.py)"], []
+if _RC_SCRIPT.is_file():
+    _rc_spec = importlib.util.spec_from_file_location("_readme_charts", _RC_SCRIPT)
+    _rc = importlib.util.module_from_spec(_rc_spec)
+    _rc_spec.loader.exec_module(_rc)
+    _rc_drawn = sorted(_rc.draw_all())
+    _rc_stale = _rc.stale()
+check("RC1: every chart in docs/readme is what scripts/readme_charts.py draws from data/corpora "
+      "today, three charts in two schemes",
+      not _rc_stale and len(_rc_drawn) == 6, f"stale: {_rc_stale} · drawn: {_rc_drawn}")
+
+
 # ---------------------------------------------------------------------------
 # scripts/setup.sh is the README's first command, and it tells whoever ran it
 # how many suites they now have. Both halves have been wrong before, with
