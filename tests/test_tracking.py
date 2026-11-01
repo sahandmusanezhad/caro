@@ -497,6 +497,23 @@ with _rtmp.TemporaryDirectory() as _rd:
     (_RPath(_rd) / "d.json").write_text(_rjson.dumps(_sb), encoding="utf-8")
     _code, _out = _replicate(_RPath(_rd) / "c.json", _RPath(_rd) / "d.json")
     _flat = " ".join(_out.split())
+    _sp2_out, _sp2_flat = _out, _flat
+
+    # PIN2 (predictions PIN): the note is about the pin, so the date in the
+    # name is not compared -- one pin on two days is one pin.
+    def _named(sid, path):
+        s = _rsnap({"k:same": 900_000_000})
+        s["snapshot_id"] = sid
+        path.write_text(_rjson.dumps(s), encoding="utf-8")
+        return path
+    _, _two_days = _replicate(_named("khodro45-2026-10-30-51454a", _RPath(_rd) / "e.json"),
+                              _named("khodro45-2026-11-01-51454a", _RPath(_rd) / "f.json"))
+    _, _two_pins = _replicate(_named("khodro45-2026-11-01-51454a", _RPath(_rd) / "g.json"),
+                              _named("khodro45-2026-11-01-c37bc9", _RPath(_rd) / "h.json"))
+    check("PIN2: one pin on two dates is not called two pins; two pins on one date are",
+          "different snapshot_id" not in _two_days and "different snapshot_id" in _two_pins,
+          f"{_two_days[:200]} | {_two_pins[:200]}")
+    _out, _flat = _sp2_out, _sp2_flat
     check("SP2: under a changed price, both runs' source fields: price 1,308,050,000 in both, final_price "
           "1,334,800,000 then 1,308,050,000 -- the source's own number moved",
           _code == 0 and "price changed 1" in _flat
