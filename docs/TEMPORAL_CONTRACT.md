@@ -527,8 +527,24 @@ script that exists (`scripts/replicate_check.py`), no new code:
    reads — under half, say. If not, more pages, decided before the series
    starts and kept for its whole life (the pin, §9).
 
-**What a series needs**, as §9: the same pin every day (`--pages 40`, no
-other change), one run a day at about the same hour, each day's snapshot
+**Measured, 2026-10-30 to 2026-11-01.** The same-day floor: two full runs of
+the 30th, 3.1 hours apart, drew the same 492 listings, and four prices
+moved. Day to day: the run of 1 November against the last of 30 October drew
+204 listings in both, 288 only in the first and 288 only in the second; the
+«created» line counted 287 listings created on Saturday the 31st and none on
+Friday the 30th; and of the fourteen prices that moved, each of the twelve
+the report printed moved in both of the site's fields at once
+(`source_prices`) -- the site's numbers, not our reading. So a Saturday after a Friday without arrivals brought 287, more
+than half of the 492 the window read. The window still held them; the margin
+was thin.
+
+**The pin, changed once, by the owner, on 2026-11-01:** `--pages 60` from 2
+November -- 732 listings at most, about two of the busiest days measured --
+and no other change after it. The runs of 30 October and 1 November were
+read at 40 pages; a series folded from them says so.
+
+**What a series needs**, as §9: the same pin every day (`--pages 60` from 2
+November, no other change), one run a day at about the same hour, each day's snapshot
 kept by the owner (snapshots are never committed), and each day's corpus
 promoted as its own run — the daily corpora are what the site serves and
 what `scripts/benchmark_within.py` reads. The series artifact, folded from
