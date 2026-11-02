@@ -61,6 +61,9 @@ CorpusKind = Literal["SYNTHETIC", "REAL", "UNUSABLE"]
 #                             file
 #     RUN_NOT_FOUND           CARO_RUN names a run with no artifact → fix the
 #                             configuration, or collect that run
+#     CATALOG_UNAVAILABLE     CARO_CATALOG_URL names a catalog that cannot
+#                             serve the run → fix the database, or load the
+#                             run into it (scripts/catalog_load.py)
 #
 #   about the CLAIM — a corpus was read, and a number may not be published
 #     ESTIMATOR_NOT_GATED     nothing has cleared the gate here → not a defect
@@ -85,6 +88,7 @@ CorpusKind = Literal["SYNTHETIC", "REAL", "UNUSABLE"]
 FaultCode = Literal[
     "CORPUS_INVALID",
     "RUN_NOT_FOUND",
+    "CATALOG_UNAVAILABLE",
     "ESTIMATOR_NOT_GATED",
     "LISTING_NOT_FOUND",
     "COMPARE_IDS_NOT_FOUND",

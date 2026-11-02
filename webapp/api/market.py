@@ -22,6 +22,13 @@ status that is not unusable and a kind that is cash. A listing with no such
 price is still a listing of the model and is shown, after the priced ones.
 Only vehicles are models' listings: an assignment (حواله) carries a make, a
 model and a price, and is not a car.
+
+Where the served corpus came from the catalog (CARO_CATALOG_URL), a model's
+runs are read from it: every run, and that model's listings in each, by an
+index — not every corpus in memory, which was 20.5 s and 508 MB on a cold
+process at ten daily runs of 10,000 (docs/SERVICES.md). The listings go
+through the reader's own mapping and the same loop below reads both, so the
+history is the same either way; the contract suite holds it to that.
 """
 
 from __future__ import annotations
@@ -31,6 +38,7 @@ from statistics import median
 
 from fastapi import APIRouter, Query, Response
 
+from caro.catalog import AS_PUBLISHED, CatalogError, match_key
 from caro.ingest.quality import UNUSABLE_PRICE
 from webapp.api import corpus as corpus_mod
 from webapp.api.schemas import (
@@ -45,7 +53,7 @@ _UNUSABLE = frozenset(s.value for s in UNUSABLE_PRICE)
 
 
 def _key(make, model) -> tuple[str, str]:
-    return ((make or "").strip(), (model or "").strip())
+    return (match_key(make), match_key(model))
 
 
 def _of(x, want: tuple[str, str]) -> bool:
@@ -126,10 +134,42 @@ def published_runs() -> tuple:
             source = str(artifact["source"])
         except Exception:                       # noqa: BLE001 — a run that does not load is not a point
             continue
-        out.append((run_id, collected, source, tuple(
-            x for x in listings if getattr(x, "product_class", "vehicle") == "vehicle")))
+        out.append((run_id, collected, source, _cars(listings)))
     out.sort(key=lambda t: (t[1], t[0]))
     return tuple(out)
+
+
+def _cars(listings) -> tuple:
+    return tuple(x for x in listings if getattr(x, "product_class", "vehicle") == "vehicle")
+
+
+def _runs(c, want: tuple[str, str]) -> tuple:
+    """((run_id, collected_on, source, listings), ...) by collection date, for
+    the history of the model `want`: from the catalog where the served corpus
+    came from one -- every run, each with its listings of that model -- and
+    from every file in data/corpora otherwise. Raises CatalogError when the
+    catalog does not answer."""
+    if c.catalog_url is None:
+        return published_runs()
+    from caro.catalog import open_catalog                                  # noqa: PLC0415
+    from caro.corpus_reader import listing_from_record                     # noqa: PLC0415
+    cat = open_catalog(c.catalog_url)
+    if cat is None:
+        raise CatalogError("the catalog is no longer named")
+    try:
+        runs = cat.runs()
+        got = cat.model_rows(*want)
+    except Exception as e:                      # noqa: BLE001 — a database that stops answering
+        raise CatalogError(f"the catalog did not answer ({type(e).__name__})") from None
+    finally:
+        cat.close()
+    by_run: dict[str, list] = {}
+    for r in got:
+        rec = {"listing_id": r["listing_id"], "make": r["make_key"] or None,
+               "model": r["model_key"] or None, **{k: r[k] for k in AS_PUBLISHED}}
+        by_run.setdefault(r["run_id"], []).append(listing_from_record(rec))
+    return tuple((r["run_id"], r["collected_on"], r["source"], _cars(by_run.get(r["run_id"], ())))
+                 for r in runs)
 
 
 @router.get("/api/models", response_model=ModelsResponse)
@@ -172,7 +212,19 @@ def model(make: str = Query("", max_length=MAX_NAME),
             by_year.setdefault(int(x.year_jalali), []).append(p)
     years = [YearPoint(year_jalali=y, priced=len(v), price_median=_middle(v))
              for y, v in sorted(by_year.items())]
-    runs = published_runs()
+    try:
+        runs = _runs(c, want)
+    except CatalogError as e:
+        # The listings are here and their history is not: a page without
+        # its history would say the model has none. 503, and the reason.
+        if response is not None:
+            response.status_code = 503
+        return ModelResponse(**_envelope(c, served=False, fault=Fault(
+            code="CATALOG_UNAVAILABLE",
+            message=f"this model's runs could not be read: {e}",
+            fa="تاریخچه‌ی قیمت این مدل از انبار کاتالوگ خوانده نشد. کمی بعد "
+               "دوباره امتحان کن.",
+            still_available=["models"])).model_dump())
     holding = {source for _run, _on, source, listings in runs
                if any(_of(x, want) for x in listings)}
     history = []

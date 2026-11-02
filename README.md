@@ -574,32 +574,37 @@ decision API reads them.
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 #                                   add --extras, and npm install in
-#                                   webapp/web, for all sixteen suites
+#                                   webapp/web, for all seventeen suites
 
-python3 tests/run_all.py            # 3492 assertions, no API key, no network
+python3 tests/run_all.py            # 3514 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
+CARO_CATALOG_URL=sqlite:///data/catalog.sqlite3 python3 scripts/catalog_load.py
+#                                   the published runs into the catalog; the API
+#                                   then serves from it (docs/SERVICES.md)
 ```
 
 Those run on a clean clone with no network. **numpy is the only hard
-dependency of `caro/`.** Three of the sixteen test suites need more, and the
+dependency of `caro/`.** Three of the seventeen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2779 assertions across 13 of 16 suites
+python3 tests/run_all.py            # 2795 assertions across 14 of 17 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3492 across all sixteen
+python3 tests/run_all.py            # 3514 across all seventeen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
 command that enables it — skipped is never printed as passed, and the count
-reads "13 of 16". scipy builds an oracle inside `tests/test_appraisal.py`,
+reads "14 of 17". scipy builds an oracle inside `tests/test_appraisal.py`,
 fastapi is only reachable from `webapp/`, and node only draws the site's own
 components in `tests/test_screens.py`. `.github/workflows/ci.yml` runs every
 suite and the site's type check, lint and build on each push to `main` and
-each pull request, and fails when a suite is skipped.
+each pull request, and fails when a suite is skipped. A third job runs the
+seller store, the catalog and the site served from the catalog once more
+against a real Postgres 16, where a laptop and the other jobs use SQLite.
 
 <details>
 <summary><b>Why <code>setup.sh</code>, why no scikit-learn, and the scripts that need a corpus no clone has</b></summary>
@@ -777,10 +782,10 @@ it.
 
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
-                 ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3492 assertions across sixteen suites
+                 ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
+tests/           3514 assertions across seventeen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
-scripts/         setup, live runs, promotion, replays, the benchmarks, the probes, the charts
+scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
@@ -795,7 +800,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) ·
 | [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md) | how the work is done: measured rounds, separate commits, pull requests, and the rules no session breaks |
 | [DECISIONS](docs/DECISIONS.md) | the design record, including bugs found and what they cost |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
-| [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, and the way there |
+| [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |
 | [FIELD_PROVENANCE](docs/FIELD_PROVENANCE.md) | where each field of a listing comes from |

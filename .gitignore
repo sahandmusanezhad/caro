@@ -33,6 +33,12 @@ data/inbox/
 #                     with their phone numbers, and the listings sellers post.
 #                     Not a corpus, never published (docs/SELLER_LISTINGS.md).
 data/store/
+#   data/catalog.sqlite3  Where a laptop keeps the catalog when
+#                     CARO_CATALOG_URL says sqlite:///data/catalog.sqlite3:
+#                     the published runs again, loaded from data/corpora by
+#                     scripts/catalog_load.py. A copy, never the publication;
+#                     data/corpora is (docs/SERVICES.md).
+data/catalog.sqlite3*
 #   data/derived/     PUBLISHED, and NOT listed here. Written only by an
 #                     explicit --export, and only the fields a document's
 #                     numbers are computed from — never page text. It exists

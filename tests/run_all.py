@@ -93,6 +93,9 @@ SUITES = [
     ("--  store", "tests/test_store.py",
      "the seller listings' store keeps, deletes and migrates as it says",
      (), "", ()),
+    ("--  catalog", "tests/test_catalog.py",
+     "the published runs in a database: their bytes come back, and only adds",
+     (), "", ()),
 ]
 
 

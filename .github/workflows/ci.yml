@@ -1,11 +1,17 @@
 # What a change has to pass before it merges.
 #
-# Two jobs, run side by side:
+# Three jobs, run side by side:
 #
-#   suites  all sixteen suites of tests/run_all.py. The runner exits 0 when a
-#           suite is skipped for a missing dependency, and "skipped is not
-#           passed" is this project's rule, so this job fails on any skip.
-#   web     the site's type check, lint and production build.
+#   suites    all seventeen suites of tests/run_all.py. The runner exits 0 when
+#             a suite is skipped for a missing dependency, and "skipped is not
+#             passed" is this project's rule, so this job fails on any skip.
+#   web       the site's type check, lint and production build.
+#   postgres  the suites that touch a database, once more against a real
+#             Postgres: the seller store, the catalog, and the contract
+#             suite's rows that serve the site from the catalog. On the
+#             runner they use SQLite in a temporary file, which is what a
+#             laptop has; production uses Postgres, and the two differ in
+#             exactly the places caro/sql.py exists for.
 #
 # Nothing here deploys. Deploys are the host's job: Vercel builds the site and
 # Railway builds the API image, each from the push to main.
@@ -16,7 +22,7 @@
 # no fork checkout on pull_request_target, the npm and pip caches named
 # explicitly, no pip-install input, Python 3.12.
 #
-# Both jobs are pinned to Ubuntu 24.04, the image `ubuntu-latest` has been.
+# The jobs are pinned to Ubuntu 24.04, the image `ubuntu-latest` has been.
 # GitHub moves that label to Ubuntu 26.04 from 2026-10-19, to be done by
 # 2026-11-19, and warns that workflows tied to 24.04 may be affected. Moving
 # to 26.04 is a change to make on purpose, in a commit and a run of its own.
@@ -90,3 +96,68 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+
+  postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # A database for this job alone, gone with it. Trust instead of a
+    # password: nothing outside the job can reach it, and no password is
+    # written in the repository.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: caro
+          POSTGRES_DB: caro
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U caro"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PG: postgresql://caro@localhost:5432
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: webapp/requirements.txt
+
+      # psycopg is the driver caro/sql.py imports for a Postgres address,
+      # and only for one; nothing else needs it.
+      - name: Install Python packages
+        run: pip install numpy scipy httpx "psycopg[binary]" -r webapp/requirements.txt
+
+      # Each suite refuses a database that already holds its tables, so each
+      # gets an empty one. `shared` is the seller store and the catalog in one
+      # database, as docs/SERVICES.md allows.
+      - name: Empty databases
+        run: |
+          python - <<'PY'
+          import os, psycopg
+          with psycopg.connect(os.environ["PG"] + "/caro", autocommit=True) as c:
+              for db in ("store", "catalog", "api_catalog", "shared"):
+                  c.execute(f"CREATE DATABASE {db}")
+          PY
+
+      - name: The seller store on Postgres
+        run: python tests/test_store.py
+        env:
+          CARO_TEST_STORE_URL: ${{ env.PG }}/store
+
+      - name: The catalog on Postgres
+        run: python tests/test_catalog.py
+        env:
+          CARO_TEST_CATALOG_URL: ${{ env.PG }}/catalog
+
+      - name: The site served from a Postgres catalog
+        run: python tests/test_api_contract.py
+        env:
+          CARO_TEST_API_CATALOG_URL: ${{ env.PG }}/api_catalog
+
+      - name: The seller store and the catalog in one database
+        run: |
+          CARO_TEST_STORE_URL=$PG/shared python tests/test_store.py
+          CARO_TEST_CATALOG_URL=$PG/shared python tests/test_catalog.py

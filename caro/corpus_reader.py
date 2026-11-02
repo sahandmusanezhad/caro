@@ -126,13 +126,13 @@ def corpus_identity(run_id: str) -> CorpusIdentity:
     p = corpus_path(run_id)
     if not p.exists():
         raise CorpusUnavailable(
-            f"no publishable corpus for {run_id!r} at {_display(p)} — "
+            f"no publishable corpus for {run_id!r} at {display_path(p)} — "
             f"see D46 in docs/DECISIONS.md")
-    return CorpusIdentity(run_id=run_id, path=_display(p),
+    return CorpusIdentity(run_id=run_id, path=display_path(p),
                           sha256=sha256_of(p), bytes=p.stat().st_size)
 
 
-def _display(p: Path) -> str:
+def display_path(p: Path) -> str:
     """Repository-relative when it can be, absolute when it cannot.
 
     `relative_to` RAISES on a path outside the root, and a corpus directory
@@ -154,7 +154,7 @@ def load_corpus(run_id: str) -> dict:
     p = corpus_path(run_id)
     if not p.exists():
         raise CorpusUnavailable(
-            # `_display`, not `relative_to`. This raised ValueError for a
+            # `display_path`, not `relative_to`. This raised ValueError for a
             # corpus directory outside the repository — a mounted volume, or
             # a test pointing at a temp dir — so a MISSING corpus surfaced as
             # a malformed one. Reporting "unusable" about a file that does
@@ -162,7 +162,7 @@ def load_corpus(run_id: str) -> dict:
             # was still here in the one function whose whole job is to say
             # which of the two it is.
             f"no publishable corpus for {run_id!r} at "
-            f"{_display(p)}.\n"
+            f"{display_path(p)}.\n"
             f"  This is an acquisition prerequisite, not a code fault: see "
             f"D46 in docs/DECISIONS.md.\n"
             f"  A corpus is produced by scripts/promote_corpus.py from an "
@@ -174,7 +174,7 @@ def load_corpus(run_id: str) -> dict:
     problems = validate(artifact, text)
     if problems:
         raise ValueError(
-            f"{_display(p)} is not a valid {SCHEMA} artifact:\n"
+            f"{display_path(p)} is not a valid {SCHEMA} artifact:\n"
             + "\n".join(str(v) for v in problems))
     return artifact
 
@@ -253,7 +253,13 @@ def rows_from_corpus(artifact: dict) -> tuple[list[CarListing], list[Row]]:
     Mirrors what each consumer used to do inline: keep the full listing set
     for counting and coverage, and admit only eligible ones to W1.
     """
-    listings = listings_from_corpus(artifact)
+    return rows_from_records(artifact.get("listings", []))
+
+
+def rows_from_records(records: list[dict]) -> tuple[list[CarListing], list[Row]]:
+    """`rows_from_corpus` for the records alone: what the catalog gives back
+    for a run (caro/catalog.py) goes through the same mapping as a file."""
+    listings = [listing_from_record(r) for r in records]
     rows = []
     for got in listings:
         if not eligibility(got)[0]:

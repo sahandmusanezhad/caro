@@ -76,6 +76,8 @@ export interface ServingStatus {
  *   about the SOURCE, nothing can be served — do not name a car
  *     CORPUS_INVALID         an artifact exists and will not load
  *     RUN_NOT_FOUND          CARO_RUN names a run with no artifact on disk
+ *     CATALOG_UNAVAILABLE    CARO_CATALOG_URL names a catalog that cannot
+ *                            serve the run
  *
  *   about the CLAIM, a corpus was read — show evidence, no estimate
  *     ESTIMATOR_NOT_GATED    nothing has cleared the acceptance gate here
@@ -91,6 +93,7 @@ export interface ServingStatus {
 export type FaultCode =
   | 'CORPUS_INVALID'
   | 'RUN_NOT_FOUND'
+  | 'CATALOG_UNAVAILABLE'
   | 'ESTIMATOR_NOT_GATED'
   | 'LISTING_NOT_FOUND'
   | 'COMPARE_IDS_NOT_FOUND'

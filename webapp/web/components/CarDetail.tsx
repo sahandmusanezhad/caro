@@ -36,7 +36,8 @@ import TermBars from '@/components/TermBars';
  *
  *   blocked    the API answered with a fault. Two kinds, and the difference
  *              is what the page is allowed to say:
- *                source    no corpus was read (RUN_NOT_FOUND, CORPUS_INVALID).
+ *                source    no corpus was read (RUN_NOT_FOUND, CORPUS_INVALID,
+ *                          CATALOG_UNAVAILABLE).
  *                          «پیدا نشد» would be false — the car may be sitting
  *                          right there; we have nowhere to look.
  *                resource  a corpus WAS read and does not hold this id
@@ -67,7 +68,7 @@ import TermBars from '@/components/TermBars';
 
 /* Codes that mean NO CORPUS WAS READ. The page may not name a car in this
    state — not even to say it is absent. */
-const SOURCE_FAULTS = new Set(['CORPUS_INVALID', 'RUN_NOT_FOUND']);
+const SOURCE_FAULTS = new Set(['CORPUS_INVALID', 'RUN_NOT_FOUND', 'CATALOG_UNAVAILABLE']);
 
 /** What one request came to — as data, not as a thrown error, so the page can
  *  be decided from it by a function that fetches nothing. `fault` is the
