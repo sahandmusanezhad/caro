@@ -3,8 +3,9 @@
 Written 2026-11-02. The owner decided that CARO becomes a set of services,
 because the listings are going to grow to tens of thousands. D56 kept CARO in
 one process until a measurement showed where it breaks; this document is that
-measurement, and the design it leads to. Nothing in it is built yet: each
-step below is a pull request of its own, measured and tested like any other.
+measurement, and the design it leads to. Each step below is a pull request of
+its own, measured and tested like any other. **Built:** step 1, the catalog
+(«The catalog, as built», below), and step 3, the site serving run17.
 
 **Chosen by the owner, 2026-11-01 and 2026-11-02:**
 
@@ -60,9 +61,9 @@ So the first boundary is **the data**, not the logic.
   Live requests start on the owner's machine, by his decision, until he
   decides otherwise.
 - **The suites run offline.** Postgres in production, SQLite in the suites
-  through the same module, as the seller store already does
-  (`webapp/api/store.py`); CI runs the same tests once more against a real
-  Postgres.
+  through the same module (`caro/sql.py`, which the seller store and the
+  catalog share); CI's `postgres` job runs the same tests once more against
+  a real Postgres 16.
 - **`caro.corpus/1` stays the published format.** A run promoted into the
   database is also written as the JSON it is today, so what was published
   can still be read, checked and replayed without a database.
@@ -85,6 +86,9 @@ The decision core is kept in the API on purpose: it is fast (the search at
 middle of the chain the suites check end to end today.
 
 ## The data
+
+As designed, before step 1; «The catalog, as built» below says what step 1
+changed of it, and why.
 
 ```
 runs        run_id PK · source · collected_on · promoted_on · listings · provenance (json)
@@ -110,15 +114,16 @@ jobs        id · kind · payload (json) · state · run_after · attempts · lo
 
 ## The way there — each step a pull request, the site never down
 
-1. **The catalog store.** The tables above, SQLite and Postgres behind one
+1. **The catalog store.** ✅ Built (below). SQLite and Postgres behind one
    module; a loader that reads `data/corpora/*.json` into it, idempotent;
-   the API reads it where `DATABASE_URL` is set, files otherwise. The
-   contract suite runs both ways and the answers must be the same.
+   the API reads it where `CARO_CATALOG_URL` is set, files otherwise. The
+   contract suite runs both ways and the answers are the same.
 2. **Ingest.** Promotion writes into the store as well as the JSON, and
-   fills `model_runs`.
-3. **Serving Khodro45** (the owner's choice, after its measurement): which
-   models, counts and examples change on the site when run17 replaces run16,
-   then the switch.
+   fills `model_runs` -- with what to do when a rule changes and the stored
+   middles were computed by the rule before (see below).
+3. **Serving Khodro45** ✅ (the owner's choice, after its measurement):
+   which models, counts and examples change on the site when run17 replaces
+   run16, then the switch. The site serves run17 since 2026-11-02.
 4. **The queue and the collector.** The `jobs` table, a worker that runs a
    Khodro45 collection on a schedule on the owner's machine and hands its
    snapshot to ingest.
@@ -133,10 +138,57 @@ What the owner will be asked on the way: where Postgres lives once the site
 is served from it (the server, or a managed one), and when collection leaves
 his machine — that changes a rule of the working agreement, so it is his.
 
+## The catalog, as built
+
+Step 1, 2026-11-02: `caro/catalog.py`, `scripts/catalog_load.py`, read by
+`webapp/api/corpus.py` and `webapp/api/market.py` where `CARO_CATALOG_URL`
+is set. Off by default: the site at caro-rho.vercel.app is still served
+from the files, until the owner decides where Postgres lives.
+
+What changed from the design above, and why:
+
+- **The names.** `catalog_runs` and `catalog_listings`, migrations recorded in
+  `catalog_migrations`: the seller store, which may share one database, already
+  has a table called `listings` and records its migrations in
+  `schema_migrations`. And `CARO_CATALOG_URL`, not `DATABASE_URL`, which
+  names the seller store and turns the seller pages on.
+- **A listing is its record as published**, in the artifact's order, with the
+  values a model's history is narrowed by beside it -- the make and model as a
+  model's page matches them, and four as published. Every corpus is
+  `serialize(artifact)`, byte for byte, so the catalog gives back the bytes a
+  run was published as, and `--verify` recomputes the digest the site shows.
+- **No `model_runs` yet.** Nothing derived is stored, so a rule changed in code
+  applies to every run at once. A model's history is read from the
+  catalog's index and computed by the same Python as from the files. The
+  stored per-model summary is step 2's, where what happens to stored middles
+  when a rule changes is decided on purpose.
+- **A catalog that cannot serve** -- not opened, never loaded, without the
+  run -- answers UNUSABLE with `CATALOG_UNAVAILABLE` on every endpoint: never
+  the files, never the synthetic corpus. A database can be down for a minute
+  where a file cannot, so that state is asked again after 30 s.
+
+Measured on the scale round's synthetic corpora, network off, a fresh
+process each (files: the table at the top):
+
+| | files | catalog, SQLite | catalog, Postgres 16 |
+|---|---|---|---|
+| first request, 10,000 listings | 2.5 s · 205 MB | 0.33 s · 124 MB | 0.59 s · 163 MB |
+| first request, 100,000 | 22.1 s · 1.36 GB | 5.7 s · 636 MB | 6.8 s · 645 MB |
+| a model's page, first call, ten runs of 10,000 | 20.5 s · 508 MB | 0.18 s · 135 MB | 0.31 s · 163 MB |
+| the same, warm | 125 ms | 138 ms | 254 ms |
+| loading a run of 10,000 / 100,000 | — | 2.0 s / 29.6 s | 3.1 s / 33.4 s |
+| loading it again, unchanged | — | 0.03 s / 0.28 s | 0.02 s / 0.27 s |
+
+The warm model page is no faster: it now opens the catalog and reads the
+model's rows on every call, which is the price of holding no run but the
+served one in memory. `/api/models` (574 ms warm at 100,000), the search and
+a listing are as before, because they still read the served run in memory.
+
 ## What it costs
 
-- Two ways to read data during the move — files and the store — until step 3
-  is done; the contract suite runs both, so they cannot drift.
+- Two ways to read data during the move -- files and the catalog -- until the
+  site is served from the catalog; the contract suite runs both, 740
+  questions each way, so they cannot drift.
 - A database to keep: backups, upgrades, a password outside the repository.
 - More moving parts in a deploy. The site is never switched to the store
   before the store has served the same answers as the files in CI.

@@ -580,6 +580,9 @@ python3 tests/run_all.py            # 3514 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
+CARO_CATALOG_URL=sqlite:///data/catalog.sqlite3 python3 scripts/catalog_load.py
+#                                   the published runs into the catalog; the API
+#                                   then serves from it (docs/SERVICES.md)
 ```
 
 Those run on a clean clone with no network. **numpy is the only hard
@@ -797,7 +800,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) ·
 | [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md) | how the work is done: measured rounds, separate commits, pull requests, and the rules no session breaks |
 | [DECISIONS](docs/DECISIONS.md) | the design record, including bugs found and what they cost |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
-| [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, and the way there |
+| [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |
 | [FIELD_PROVENANCE](docs/FIELD_PROVENANCE.md) | where each field of a listing comes from |
