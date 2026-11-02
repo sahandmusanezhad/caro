@@ -10,9 +10,12 @@ The catalog is the database `CARO_CATALOG_URL` names (caro/catalog.py),
 Loading is idempotent: a run already there with the same digest is left as
 it is, and one whose file changed is refused unless --replace names it.
 
-`--verify` writes nothing. For every run it gives back the published text
-from the catalog's rows and checks its sha256 and size against the ones
-the run was loaded with -- the digest the site shows, recomputed.
+A run already loaded is known by its digest and not checked again: its
+bytes passed the guards when they were loaded. `--verify` writes nothing.
+For every run it gives back the published text from the catalog's rows,
+checks its sha256 and size against the ones the run was loaded with -- the
+digest the site shows, recomputed -- and runs today's guards over it, which
+can have changed since.
 
 Exit status: 0 when every corpus is in the catalog as published (and, with
 --verify, every run gives its bytes back); 1 when one was refused or did
@@ -87,11 +90,16 @@ def _load(cat, corpora: Path, replace: frozenset[str]) -> int:
 def _verify(cat) -> int:
     runs = cat.runs()
     bad = [r["run_id"] for r in runs if not cat.verify(r["run_id"])]
+    refused = {r["run_id"]: cat.recheck(r["run_id"]) for r in runs}
     for r in runs:
         mark = "DIFFERS" if r["run_id"] in bad else "same bytes"
-        print(f"  {r['run_id']:<10} {mark:<10} sha256 {r['sha256'][:12]}…  {int(r['bytes']):,} bytes")
-    print(f"{len(runs) - len(bad)} of {len(runs)} runs give back the bytes they were loaded from")
-    return 1 if bad else 0
+        guards = (f"today's guards refuse it: {len(refused[r['run_id']])}, the first: "
+                  f"{str(refused[r['run_id']][0]).strip()}" if refused[r["run_id"]] else "today's guards take it")
+        print(f"  {r['run_id']:<10} {mark:<10} sha256 {r['sha256'][:12]}…  {int(r['bytes']):,} bytes  {guards}")
+    n_refused = sum(1 for v in refused.values() if v)
+    print(f"{len(runs) - len(bad)} of {len(runs)} runs give back the bytes they were loaded from; "
+          f"today's guards refuse {n_refused}")
+    return 1 if bad or n_refused else 0
 
 
 if __name__ == "__main__":

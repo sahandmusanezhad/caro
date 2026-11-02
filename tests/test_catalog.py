@@ -30,6 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import caro.catalog as catalog_mod  # noqa: E402
 from caro.catalog import (  # noqa: E402
     AS_PUBLISHED, CATALOG_ENV, HEAD, MIGRATIONS, TABLES, CatalogError, match_key, open_catalog)
 from caro.corpus_reader import corpus_identity  # noqa: E402
@@ -301,6 +302,46 @@ check("CT14: a load that fails halfway leaves nothing: no run row, no listing, a
       and _fresh.row("SELECT COUNT(*) AS n FROM catalog_runs")["n"] == 0
       and _fresh.row("SELECT COUNT(*) AS n FROM catalog_listings")["n"] == 0, str(_e14))
 _fresh.close()
+
+# ---------------------------------------------------------------------------
+# An unchanged run is known by its digest; today's guards run on demand
+# ---------------------------------------------------------------------------
+# Predictions B1..B3 (2026-11-02, locked before the change).
+_real_validate = catalog_mod.validate
+_guard_calls = []
+
+
+def _counting_validate(obj, text):
+    _guard_calls.append(len(text))
+    return _real_validate(obj, text)
+
+
+try:
+    catalog_mod.validate = _counting_validate
+    _r15 = [CAT.load_run(p) for p in FILES]
+    _calls_unchanged = len(_guard_calls)
+    _e15 = raises(lambda: CAT.load_run(_d12 / "run16.json"), CatalogError)
+    _calls_changed = len(_guard_calls) - _calls_unchanged
+finally:
+    catalog_mod.validate = _real_validate
+check("CT15: loading a run the catalog holds with the same digest is known by the digest alone: unchanged, "
+      "with the guards not run; a changed file under the name is still read, guarded and refused",
+      [r.did for r in _r15] == ["unchanged"] * len(FILES) and [r.listings for r in _r15] == [_n[p.stem] for p in FILES]
+      and _calls_unchanged == 0 and _calls_changed == 1 and _e15 is not None,
+      str(([r.did for r in _r15], _calls_unchanged, _calls_changed, _e15)))
+
+_today = [CAT.recheck(p.stem) for p in FILES]
+try:
+    catalog_mod.validate = lambda obj, text: (
+        ["[content] a rule written after run13 was loaded"] if obj.get("run_id") == "run13" else [])
+    _tomorrow = {p.stem: CAT.recheck(p.stem) for p in FILES}
+finally:
+    catalog_mod.validate = _real_validate
+check("CT16: today's guards can be run over every run the catalog holds, from its own rows: they take all "
+      "five; a guard that refuses one names that run and no other, and removes nothing",
+      _today == [[]] * len(FILES) and [r for r, v in _tomorrow.items() if v] == ["run13"]
+      and count("catalog_listings", "WHERE run_id = ?", ("run13",)) == _n["run13"],
+      str((_today, _tomorrow)))
 
 CAT.close()
 print()

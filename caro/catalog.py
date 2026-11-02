@@ -35,8 +35,11 @@ A rule changed in code applies to every run at once, and no stored figure
 is left over from the rule before.
 
 **A published run is not changed.** Loading a run the catalog holds with the
-same digest writes nothing. With another digest it is refused and nothing
-is written: replacing a published run is asked for by its name.
+same digest writes nothing, and reads nothing but the file's bytes: they
+are the bytes that passed the guards when they were loaded. With another
+digest it is refused and nothing is written: replacing a published run is
+asked for by its name. The guards can change in code, so `recheck` runs
+today's over a run the catalog holds, from its own rows.
 
 **Names of its own.** The seller store may share one database with this
 one, and it has a table called `listings` and records its migrations in
@@ -163,9 +166,22 @@ class Catalog(Database):
         where = display_path(path)
         try:
             data = path.read_bytes()
+        except OSError as e:
+            raise CatalogError(f"{where}: not a corpus that can be read ({type(e).__name__})") from None
+        sha = hashlib.sha256(data).hexdigest()
+        # Known by its digest first. A file whose name is a run the catalog
+        # holds, with that run's digest, is the run's own bytes: the guards
+        # passed them when they were loaded, and nothing below would change.
+        try:
+            held = self.row("SELECT sha256, listings FROM catalog_runs WHERE run_id = ?", (path.stem,))
+        except Exception as e:
+            raise CatalogError(f"{where}: the database refused the run ({type(e).__name__}: {e})") from e
+        if held is not None and held["sha256"] == sha:
+            return Loaded(path.stem, "unchanged", int(held["listings"]), sha)
+        try:
             text = data.decode("utf-8")
             artifact = json.loads(text)
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
             raise CatalogError(f"{where}: not a corpus that can be read ({type(e).__name__})") from None
         problems = validate(artifact, text)
         if problems:
@@ -183,7 +199,6 @@ class Catalog(Database):
                 raise CatalogError(f"{where}: listing {r[2]} is in it twice")
             seen.add(r[2])
         head = {k: v for k, v in artifact.items() if k != "listings"}
-        sha = hashlib.sha256(data).hexdigest()
         try:
             return self._write(run_id, artifact, head, rows, data, sha, where, replace)
         except CatalogError:
@@ -271,6 +286,16 @@ class Catalog(Database):
         artifact = json.loads(got["head"])
         artifact["listings"] = self.records(run_id)
         return serialize(artifact)
+
+    def recheck(self, run_id: str) -> list:
+        """What today's guards refuse in a run the catalog holds, read from
+        its rows: [] when they take it, as they took it when it was loaded.
+        Removes nothing; what to do with a run the guards now refuse is the
+        operator's decision."""
+        text = self.artifact_text(run_id)
+        if text is None:
+            raise CatalogError(f"the catalog holds no run {run_id!r}")
+        return validate(json.loads(text), text)
 
     def verify(self, run_id: str) -> bool:
         """The run's bytes, given back from the rows, have the digest and the
