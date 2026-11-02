@@ -51,6 +51,7 @@ export default function CorpusBadge() {
 
   const broken = c.status.kind === 'UNUSABLE';
   const notFound = c.fault?.code === 'RUN_NOT_FOUND';
+  const noCatalog = c.fault?.code === 'CATALOG_UNAVAILABLE';
   const real = c.status.kind === 'REAL';
   const tone = broken
     ? 'border-bad text-bad bg-bad-soft'
@@ -67,7 +68,7 @@ export default function CorpusBadge() {
         className={`chip ${tone} cursor-pointer`}
       >
         {broken
-          ? (notFound ? 'RUN NOT FOUND' : 'CORPUS UNUSABLE')
+          ? (notFound ? 'RUN NOT FOUND' : noCatalog ? 'CATALOG UNAVAILABLE' : 'CORPUS UNUSABLE')
           : `${real ? 'REAL DATA' : 'SYNTHETIC'} · ${faNum(c.corpus.rows)}`}
       </button>
 

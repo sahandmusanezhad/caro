@@ -142,6 +142,10 @@ export default function ModelDetail({ make, model }: { make: string; model: stri
     api.model(make, model).then(setData).catch((e) => {
       if (e instanceof ApiError && e.fault?.code === 'MODEL_NOT_FOUND') {
         setErr('این مدل در پیکره‌ای که همین حالا سرو می‌شود آگهی‌ای ندارد.');
+      } else if (e instanceof ApiError && e.fault) {
+        // CATALOG_UNAVAILABLE among them: the history could not be read, and
+        // the API says so in Persian.
+        setErr(e.fault.fa);
       } else {
         setErr(e instanceof ApiError ? e.message : 'پاسخی از سرویس دریافت نشد.');
       }

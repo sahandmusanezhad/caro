@@ -98,7 +98,7 @@ MAX_ID = 120
 # ---------------------------------------------------------------------------
 
 def _fault(c) -> Fault | None:
-    """Why nothing is being served, or None. Three reasons, never merged.
+    """Why nothing is being served, or None. Four reasons, never merged.
 
     Collapsing them would tell an operator whose artifact failed to load that
     the estimator has not been benchmarked: true, and not their problem. The
@@ -115,6 +115,15 @@ def _fault(c) -> Fault | None:
                "ساختگی برنمی‌گردیم: وقتی کسی گفته کدام شواهد باید سرو شود، "
                "جایگزینی خاموشِ آن با داده‌ی تولیدشده دقیقاً همان چیزی است "
                "که برچسب پیکره برای جلوگیری از آن هست.",
+            still_available=["intent"])
+    if c.fault_code == "CATALOG_UNAVAILABLE":
+        return Fault(
+            code="CATALOG_UNAVAILABLE",
+            message=c.fault or "the catalog cannot serve the configured run",
+            fa="این استقرار آگهی‌ها را از انبار کاتالوگ می‌خواند و آن انبار "
+               "الان نمی‌تواند این run را سرو کند، پس هیچ چیز سرو نمی‌شود. به "
+               "فایل‌ها یا داده‌ی ساختگی برنمی‌گردیم: وقتی گفته شده شواهد از "
+               "کجا خوانده شود، خواندن از جای دیگر جایگزینی بی‌صداست.",
             still_available=["intent"])
     if c.kind == "UNUSABLE":
         return Fault(

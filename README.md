@@ -576,7 +576,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all seventeen suites
 
-python3 tests/run_all.py            # 3506 assertions, no API key, no network
+python3 tests/run_all.py            # 3512 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -590,7 +590,7 @@ runner says so rather than failing:
 python3 tests/run_all.py            # 2793 assertions across 14 of 17 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3506 across all seventeen
+python3 tests/run_all.py            # 3512 across all seventeen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -778,7 +778,7 @@ it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3506 assertions across seventeen suites
+tests/           3512 assertions across seventeen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed

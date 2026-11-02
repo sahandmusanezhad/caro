@@ -2739,6 +2739,169 @@ finally:
     accounts_mod.CLOCK = _kept24[1]
     contact_mod.ADMIN_FAILURES.clear()
 
+# ---------------------------------------------------------------------------
+print("\n25 — from the catalog, every answer is the one the files give")
+# ---------------------------------------------------------------------------
+# Predictions C3, C4 (2026-11-02, locked before the code). data/corpora is
+# loaded into a catalog -- a temporary SQLite file, or the empty Postgres
+# database CARO_TEST_API_CATALOG_URL names -- and every question the site
+# asks is asked twice, of the files and of the catalog. While the catalog
+# answers, the reader is pointed at an empty directory: an answer that came
+# from a file would then differ.
+from caro.catalog import CATALOG_ENV, open_catalog as _open_catalog  # noqa: E402
+
+_ENV25 = (CATALOG_ENV, corpus_mod.RUN_ENV)
+_kept25 = ({k: os.environ.get(k) for k in _ENV25}, corpus_reader.CORPORA, corpus_mod._monotonic)
+
+
+def _mode25(url=None, corpora=None, run=None):
+    """Serve from the catalog at `url`, or from the files where it is None."""
+    for _k in _ENV25:
+        os.environ.pop(_k, None)
+    if url is not None:
+        os.environ[CATALOG_ENV] = url
+    if run is not None:
+        os.environ[corpus_mod.RUN_ENV] = run
+    corpus_reader.CORPORA = corpora if corpora is not None else _kept25[1]
+    corpus_mod.active.cache_clear()
+    market_mod.published_runs.cache_clear()
+
+
+def _ask25(client, questions):
+    out = []
+    for method, path, kw in questions:
+        r = client.request(method, path, **kw)
+        out.append((r.status_code, r.json()))
+    return out
+
+
+_Q25 = ["دنا", "پژو ۲۰۶ زیر ۱.۵ میلیارد", "ماشین برای اسنپ، کم‌مصرف، قطعاتش ارزون باشه، زیر ۲ میلیارد",
+        "ماشین اول خانواده، تصادفی نباشه، بودجه ۳ میلیارد", "یه کوییک کم‌کارکرد تا ۱.۸ میلیارد میخوام",
+        "دنا از ۳ میلیارد به بالا", "دنا در مشهد", "دنا زیر ۱۰۰ هزار کیلومتر", "کوییک در تهران", "پراید"]
+try:
+    with tempfile.TemporaryDirectory() as _tmp25:
+        _URL25 = os.environ.get("CARO_TEST_API_CATALOG_URL") or f"sqlite:///{_tmp25}/catalog.sqlite3"
+        _empty25 = Path(_tmp25) / "no-corpora"
+        _empty25.mkdir()
+        with contextlib.redirect_stdout(io.StringIO()):
+            _c25 = TestClient(api.app, raise_server_exceptions=False)
+        _cat25 = _open_catalog(_URL25, migrate=True)
+        _done25, _refused25 = _cat25.load_corpora(corpus_reader.CORPORA)
+        _cat25.close()
+
+        _mode25()
+        _served = _c25.get("/api/corpus").json()
+        _models = _c25.get("/api/models").json()["models"]
+        _ids = [x.listing_id for x in corpus_mod.active().listings]
+        _pairs = [(m["make"] or "", m["model"]) for m in _models]
+        _questions = (
+            [("GET", "/api/corpus", {}), ("GET", "/api/models", {})]
+            + [("GET", "/api/model", {"params": {"make": mk, "model": md}}) for mk, md in _pairs]
+            + [("GET", "/api/model", {"params": {"model": md}}) for md in sorted({md for _, md in _pairs})]
+            + [("GET", "/api/model", {"params": {"make": "Peugeot", "model": "no such model"}})]
+            + [("GET", "/api/search", {"params": {"q": q, "k": 24}}) for q in _Q25]
+            + [("POST", "/api/search/reweight", {"params": {"q": _Q25[1], "k": 12}, "json": {"value": 3, "risk": 1}})]
+            + [("GET", f"/api/listing/{i}", {}) for i in _ids]
+            + [("GET", "/api/listing/no-such-listing", {}),
+               ("POST", "/api/compare", {"json": {"ids": _ids[:3] + ["no-such-listing"], "q": _Q25[1]}})])
+        _from_files = _ask25(_c25, _questions)
+
+        _mode25(_URL25, corpora=_empty25)
+        _from_catalog = _ask25(_c25, _questions)
+        _differ = [(q[1], q[2].get("params")) for q, a, b in zip(_questions, _from_files, _from_catalog, strict=True)
+                   if a != b]
+        check(f"CAT1: data/corpora loads into the catalog ({len(_done25)} runs), and served from it the corpus "
+              f"is REAL with the file's run, digest and size",
+              not _refused25 and _from_catalog[0][0] == 200 and _from_catalog[0][1]["status"]["kind"] == "REAL"
+              and _from_catalog[0][1]["corpus"]["identity"] == _served["corpus"]["identity"]
+              and _served["corpus"]["identity"]["run_id"] == RUN, str((_refused25, _from_catalog[0])))
+        check(f"CAT2: {len(_questions)} questions -- the corpus, the models, every model's page with its make and "
+              f"without it, ten searches, a reweight, every listing of {RUN} and one that is not there, a "
+              f"compare -- answer the same from the catalog as from the files, status and body, field for "
+              f"field, with no file to read",
+              not _differ and len(_from_files) == len(_questions), str(_differ[:3]))
+        _hist = [b for q, (st, b) in zip(_questions, _from_catalog, strict=True)
+                 if q[1] == "/api/model" and st == 200]
+        check("CAT3: the model pages' histories come from the catalog: every page has one, and no corpus file "
+              "was read for any of them",
+              _hist and all(len(b["history"]) >= 1 for b in _hist)
+              and market_mod.published_runs.cache_info().currsize == 0,
+              str((len(_hist), market_mod.published_runs.cache_info())))
+
+        # A catalog that cannot serve: never the files, never the synthetic
+        # corpus, never a 500, and never the password.
+        _cases = {
+            "an address it does not know": "mysql://u:hunter2-pw@db.example/x",
+            "a Postgres that refuses": "postgresql://u:hunter2-pw@127.0.0.1:1/x",
+            "a database never loaded": f"sqlite:///{_tmp25}/never-loaded.sqlite3",
+        }
+        _bad4 = {}
+        for _why, _u in list(_cases.items()) + [("a run it does not hold", _URL25)]:
+            _mode25(_u, run="run_no_such_thing" if _u == _URL25 else None)
+            _rs = [_c25.get("/api/corpus"), _c25.get("/api/search", params={"q": "دنا"}),
+                   _c25.get(f"/api/listing/{_ids[0]}"), _c25.get("/api/models"),
+                   _c25.get("/api/model", params={"make": "IKCO", "model": "Dena"}),
+                   _c25.post("/api/compare", json={"ids": _ids[:2], "q": "دنا"})]
+            _bodies = [r.json() for r in _rs]
+            _bad4[_why] = (all(r.status_code == 200 for r in _rs)
+                           and all(b["status"]["kind"] == "UNUSABLE" and not b["status"]["served"]
+                                   and (b.get("fault") or {}).get("code") == "CATALOG_UNAVAILABLE" for b in _bodies)
+                           and not any("hunter2" in r.text for r in _rs)
+                           and _bodies[1]["evidence"] == [] and _bodies[3]["models"] == []
+                           and _bodies[2]["listing"] is None)
+        check("CAT4: a catalog that cannot serve -- an address it does not know, a Postgres that refuses, a "
+              "database never loaded, a run it does not hold -- answers UNUSABLE and CATALOG_UNAVAILABLE on every "
+              "endpoint, 200 and never a 500, serves nothing, and no answer holds the password",
+              all(_bad4.values()) and len(_bad4) == 4, str(_bad4))
+
+        _now25 = [1000.0]
+        corpus_mod._monotonic = lambda: _now25[0]
+        _late = f"sqlite:///{_tmp25}/late.sqlite3"
+        _mode25(_late, corpora=_empty25)
+        _k1 = _c25.get("/api/corpus").json()["status"]["kind"]
+        _lc = _open_catalog(_late, migrate=True)
+        _lc.load_corpora(_kept25[1])
+        _lc.close()
+        _now25[0] += corpus_mod.RETRY_S - 1
+        _k2 = _c25.get("/api/corpus").json()["status"]["kind"]
+        _now25[0] += 2
+        _k3 = _c25.get("/api/corpus").json()
+        _now25[0] += 10 * corpus_mod.RETRY_S
+        _k4 = _c25.get("/api/corpus").json()["status"]["kind"]
+        check("CAT5: a catalog that could not serve is asked again after RETRY_S, without a restart: loaded "
+              "meanwhile, it is still UNUSABLE a second before and REAL after, and stays REAL",
+              (_k1, _k2, _k3["status"]["kind"], _k4) == ("UNUSABLE", "UNUSABLE", "REAL", "REAL")
+              and _k3["corpus"]["identity"]["sha256"] == _served["corpus"]["identity"]["sha256"],
+              str((_k1, _k2, _k3["status"], _k4)))
+        corpus_mod._monotonic = _kept25[2]
+
+        _gone = Path(_tmp25) / "goes-away.sqlite3"
+        _gc = _open_catalog(f"sqlite:///{_gone}", migrate=True)
+        _gc.load_corpora(_kept25[1])
+        _gc.close()
+        _mode25(f"sqlite:///{_gone}", corpora=_empty25)
+        _before6 = _c25.get("/api/model", params={"make": "IKCO", "model": "Dena"}).status_code
+        for _f in Path(_tmp25).glob("goes-away.sqlite3*"):
+            _f.unlink()
+        _r6 = _c25.get("/api/model", params={"make": "IKCO", "model": "Dena"})
+        _m6 = _c25.get("/api/models")
+        check("CAT6: when the catalog stops answering after the run was served, a model's page is 503 with "
+              "CATALOG_UNAVAILABLE rather than a page with no history, and what is in memory is still served",
+              _before6 == 200 and _r6.status_code == 503
+              and (_r6.json().get("fault") or {}).get("code") == "CATALOG_UNAVAILABLE"
+              and _m6.status_code == 200 and len(_m6.json()["models"]) == len(_models),
+              str((_before6, _r6.status_code, _r6.text[:200])))
+finally:
+    for _k, _v in _kept25[0].items():
+        if _v is None:
+            os.environ.pop(_k, None)
+        else:
+            os.environ[_k] = _v
+    corpus_reader.CORPORA = _kept25[1]
+    corpus_mod._monotonic = _kept25[2]
+    corpus_mod.active.cache_clear()
+    market_mod.published_runs.cache_clear()
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

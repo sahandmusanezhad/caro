@@ -253,7 +253,13 @@ def rows_from_corpus(artifact: dict) -> tuple[list[CarListing], list[Row]]:
     Mirrors what each consumer used to do inline: keep the full listing set
     for counting and coverage, and admit only eligible ones to W1.
     """
-    listings = listings_from_corpus(artifact)
+    return rows_from_records(artifact.get("listings", []))
+
+
+def rows_from_records(records: list[dict]) -> tuple[list[CarListing], list[Row]]:
+    """`rows_from_corpus` for the records alone: what the catalog gives back
+    for a run (caro/catalog.py) goes through the same mapping as a file."""
+    listings = [listing_from_record(r) for r in records]
     rows = []
     for got in listings:
         if not eligibility(got)[0]:

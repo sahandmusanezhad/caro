@@ -73,14 +73,37 @@ no corpus, because none is committed; that is absence, absence is a fallback,
 and a fault that fires on the documented normal state is a fault nobody reads.
 What was wrong before was not the fallback — it was that the fallback said
 nothing about what it had looked for. It says so now.
+
+## From the catalog
+
+`CARO_CATALOG_URL` names a database that holds the published runs
+(caro/catalog.py, docs/SERVICES.md step 1). Where it is set, the run is read
+from there and the files are not looked at: the same records, through the
+same mapping, so the same corpus — and a model's history becomes one indexed
+read instead of every corpus in memory (webapp/api/market.py).
+
+    CARO_CATALOG_URL set, run in it      → REAL, as from the file
+    set, and it cannot serve the run     → UNUSABLE / CATALOG_UNAVAILABLE:
+                                           not opened, never loaded, or
+                                           without the run. Never the files
+                                           and never the synthetic corpus —
+                                           the deployment said where its
+                                           evidence is read from.
+
+A database can be down for a minute where a file cannot, so that one state
+is not kept for the life of the process: after `RETRY_S` the next request
+opens the catalog again.
 """
 
 from __future__ import annotations
 
 import os
+import threading
+import time
 from dataclasses import dataclass, field
-from functools import lru_cache
 from pathlib import Path
+
+from caro.catalog import CATALOG_ENV
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -138,6 +161,13 @@ class Corpus:
     # the branch depend on wording.
     fault: str | None = None
     fault_code: str | None = None
+    # Set on a corpus read from the catalog: where a model's history is read
+    # from. An address can carry a password, so it is in no repr and in no
+    # response.
+    catalog_url: str | None = field(default=None, repr=False)
+    # When `active()` builds this state again (time.monotonic); None for a
+    # state that is kept: see `RETRY_S`.
+    retry_at: float | None = None
 
     def as_dict(self) -> dict:
         return {"kind": self.kind, "label_fa": self.label_fa,
@@ -264,6 +294,11 @@ def _missing(run_id: str) -> Corpus:
     )
 
 
+_REAL_NOTE = ("آگهی‌های واقعی. هیچ برآوردگری روی پیکره‌ی واقعی از دروازه‌ی "
+              "پذیرش عبور نکرده، پس رتبه‌بندی سرو نمی‌شود و آنچه می‌بینید "
+              "شواهد است، نه توصیه.")
+
+
 def _real(run_id: str) -> Corpus | None:
     from caro.corpus_reader import (            # noqa: PLC0415
         corpus_identity, corpus_path, load_corpus, rows_from_corpus,
@@ -299,25 +334,135 @@ def _real(run_id: str) -> Corpus | None:
         pipeline=_ungated_pipeline(),
         gated=False,
         source=f"data/corpora/{run_id}.json",
-        note_fa="آگهی‌های واقعی. هیچ برآوردگری روی پیکره‌ی واقعی از دروازه‌ی "
-                "پذیرش عبور نکرده، پس رتبه‌بندی سرو نمی‌شود و آنچه می‌بینید "
-                "شواهد است، نه توصیه.",
+        note_fa=_REAL_NOTE,
         identity=identity,
     )
 
 
-@lru_cache(maxsize=1)
-def active() -> Corpus:
-    """The corpus this process serves, and never one it was not asked for.
+# How long a catalog that could not serve is believed before it is asked again.
+RETRY_S = 30.0
+_monotonic = time.monotonic          # the suites move it
+
+
+def _catalog_unavailable(run_id: str, why: str) -> Corpus:
+    """CARO_CATALOG_URL names the catalog and it cannot serve `run_id`.
+
+    Not a fallback to the files and not to the synthetic corpus: a deployment
+    that says where its evidence is read from, and serves it from somewhere
+    else, is the substitution this module exists to prevent. `why` never
+    holds the address."""
+    return Corpus(
+        kind="UNUSABLE",
+        label_fa="انبار کاتالوگ در دسترس نیست",
+        rows=[], listings=[], pipeline=_ungated_pipeline(),
+        gated=False,
+        source=f"catalog: {run_id}",
+        note_fa="این استقرار آگهی‌ها را از انبار کاتالوگ می‌خواند و آن انبار "
+                "الان نمی‌تواند این run را سرو کند، پس چیزی سرو نمی‌شود. به "
+                "فایل‌ها یا داده‌ی ساختگی برنمی‌گردیم: وقتی گفته شده شواهد از "
+                "کجا خوانده شود، خواندن از جای دیگر همان جایگزینی بی‌صدایی است "
+                "که برچسب پیکره برای جلوگیری از آن ساخته شده. چند ثانیه بعد "
+                "دوباره امتحان می‌شود.",
+        fault=why,
+        fault_code="CATALOG_UNAVAILABLE",
+        retry_at=_monotonic() + RETRY_S,
+    )
+
+
+def _from_catalog(url: str, run_id: str) -> Corpus:
+    """The run, read from the catalog: its records through the reader's own
+    mapping, its identity as it was loaded. The guards ran when it was
+    loaded (`Catalog.load_run`), and do not run again on every read: that
+    was most of a cold start (docs/SERVICES.md)."""
+    from caro.catalog import HEAD, CatalogError, open_catalog     # noqa: PLC0415
+    from caro.corpus_reader import CorpusIdentity, rows_from_records  # noqa: PLC0415
+    try:
+        cat = open_catalog(url)
+    except CatalogError as e:
+        return _catalog_unavailable(run_id, str(e))
+    assert cat is not None
+    try:
+        version = cat.version()
+        if version < HEAD:
+            return _catalog_unavailable(
+                run_id, f"the catalog {CATALOG_ENV} names is at version {version} and this code "
+                        f"reads version {HEAD}: scripts/catalog_load.py migrates it and loads the runs")
+        run = cat.run(run_id)
+        if run is None:
+            return _catalog_unavailable(
+                run_id, f"the catalog {CATALOG_ENV} names holds no run {run_id!r}: "
+                        "scripts/catalog_load.py loads data/corpora into it")
+        records = cat.records(run_id)
+    except Exception as e:                      # noqa: BLE001 — a database that stops answering
+        return _catalog_unavailable(run_id, f"the catalog did not answer ({type(e).__name__})")
+    finally:
+        cat.close()
+    try:
+        listings, rows = rows_from_records(records)
+    except Exception as e:                      # noqa: BLE001 — as `_real` does
+        return _unusable(run_id, e)
+    return Corpus(
+        kind="REAL",
+        label_fa="داده‌ی واقعی",
+        rows=rows,
+        listings=listings,
+        pipeline=_ungated_pipeline(),
+        gated=False,
+        source=f"data/corpora/{run_id}.json",
+        note_fa=_REAL_NOTE,
+        identity=CorpusIdentity(run_id=run["run_id"], path=run["path"],
+                                sha256=run["sha256"], bytes=int(run["bytes"])),
+        catalog_url=url,
+    )
+
+
+def _serve() -> Corpus:
+    """The corpus to serve, and never one this process was not asked for.
 
     Takes no argument on purpose. The run was a default parameter, every call
     site omitted it, and the default named an artifact that does not exist —
     so the choice was made in a signature nobody read. It is made here, from
-    the environment, once, and `configured()` is the only place that answers
-    "which run".
+    the environment, and `configured()` is the only place that answers
+    "which run"; CARO_CATALOG_URL is the only one that answers "from where".
     """
     run_id, explicit = configured()
+    url = os.environ.get(CATALOG_ENV, "").strip()
+    if url:
+        return _from_catalog(url, run_id)
     real = _real(run_id)
     if real is not None:
         return real
     return _missing(run_id) if explicit else _synthetic(sought=run_id)
+
+
+class _Served:
+    """`active()`: the corpus this process serves, built once.
+    `active.cache_clear()` forgets it, as the suites do between corpora.
+
+    Once, but for one state: a catalog that could not serve is asked again
+    after `RETRY_S`, because a process that kept that first answer would
+    serve nothing until it was restarted. A file that will not load is kept
+    as it is: reading it again gives the same answer."""
+
+    def __init__(self) -> None:
+        self._corpus: Corpus | None = None
+        self._lock = threading.Lock()
+
+    def _stale(self, c: Corpus | None) -> bool:
+        return c is None or (c.retry_at is not None and _monotonic() >= c.retry_at)
+
+    def __call__(self) -> Corpus:
+        c = self._corpus
+        if not self._stale(c):
+            return c                            # type: ignore[return-value]
+        with self._lock:
+            if self._stale(self._corpus):
+                self._corpus = _serve()
+            return self._corpus                 # type: ignore[return-value]
+
+    def cache_clear(self) -> None:
+        with self._lock:
+            self._corpus = None
+
+
+active = _Served()
