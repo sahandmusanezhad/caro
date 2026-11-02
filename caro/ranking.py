@@ -42,6 +42,7 @@ from typing import Protocol, Sequence
 import numpy as np
 
 from caro.appraisal import QUANTILES, MarketEstimator, NotBenchmarked, Row
+from caro.ingest.models import search_aliases
 from caro.ingest.persian import PROVINCE_SPELLINGS, PROVINCES
 
 # ---------------------------------------------------------------------------
@@ -251,19 +252,11 @@ def _floor_by_word(q: str):
 
 
 # Model aliases. Sellers and buyers type the same car a dozen ways; the
-# taxonomy is data, not code, so a new model is one line.
-MODEL_ALIASES: dict[str, tuple[str, ...]] = {
-    "206": ("206", "پژو 206", "پژو206", "دویست و شش"),
-    "207": ("207", "پژو 207", "پژو207"),
-    "pride": ("پراید", "pride", "131", "111"),
-    "tiba": ("تیبا", "tiba"),
-    "quik": ("کوییک", "quick", "quik"),
-    "pars": ("پارس", "پژو پارس", "pars"),
-    "405": ("405", "پژو 405"),
-    "dena": ("دنا", "dena"),
-    "shahin": ("شاهین", "shahin"),
-    "saina": ("ساینا", "saina"),
-}
+# taxonomy is data, not code. It is one table with the listing parser's since
+# 2026-11-02 (caro/ingest/models.py): the two had drifted, and a buyer who
+# asked for a Samand was shown every car. The key is the model's name
+# lower-cased, what a listing's model is compared with.
+MODEL_ALIASES: dict[str, tuple[str, ...]] = search_aliases()
 
 # A model's number is a model only where it stands alone. «دنا تا ۱۳۱۰ میلیون»
 # holds 131, which is Pride's, inside an amount of money, and «تیبا مدل ۱۴۰۵»

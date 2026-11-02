@@ -52,6 +52,7 @@ from datetime import date
 from typing import Callable, Iterable, Iterator
 
 from caro.ingest.base import salted_fingerprint
+from caro.ingest.models import MAKE_MODEL as MODEL_TABLE
 from caro.ingest.persian import (
     normalize, parse_mileage_km, parse_price, parse_year_jalali,
 )
@@ -88,21 +89,9 @@ MAX_CONSECUTIVE_FAILURES = 3
 # Car field extraction — the domain half, which shares nothing with property
 # ---------------------------------------------------------------------------
 
-MAKE_MODEL: dict[str, tuple[str, ...]] = {
-    ("Peugeot", "206"): ("پژو 206", "206", "پژو206"),
-    ("Peugeot", "207"): ("پژو 207", "207i", "207"),
-    ("Peugeot", "405"): ("پژو 405", "405"),
-    ("Peugeot", "Pars"): ("پژو پارس", "پارس"),
-    ("Saipa", "Pride"): ("پراید", "سایپا 131", "131", "111", "132"),
-    ("Saipa", "Tiba"): ("تیبا",),
-    ("Saipa", "Quik"): ("کوییک", "کوئیک"),
-    ("Saipa", "Saina"): ("ساینا",),
-    ("Saipa", "Shahin"): ("شاهین",),
-    ("IKCO", "Dena"): ("دنا",),
-    ("IKCO", "Runna"): ("رانا",),
-    ("IKCO", "Samand"): ("سمند",),
-    ("IKCO", "Tara"): ("تارا",),
-}
+# The models read by name: one table with the search's, since 2026-11-02
+# (caro/ingest/models.py). The listing parser tries them in its order.
+MAKE_MODEL = MODEL_TABLE
 
 TRIM_CUES = ("تیپ 2", "تیپ 3", "تیپ 5", "تیپ 6", "SD", "ELX", "LX", "TU5",
              "XU7", "پانوراما", "پلاس", "plus", "اتوماتیک", "دنده ای")

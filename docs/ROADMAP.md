@@ -77,9 +77,14 @@ an item says so.
    published. The plan and its predictions:
    [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
 4. **The parser's open topics** (the parser). The floor topics left — ranges
-   and the bare «X به بالا» — the models it does not know yet, «سمند» and
-   «تارا» among them, and the five ways Khodro45 writes an assembled model's
-   name. A session measures and builds; the owner decides each.
+   and the bare «X به بالا» — and the five ways Khodro45 writes an assembled
+   model's name. The models a buyer can name: since 2026-11-02 the search
+   and the listing parser read one table (`caro/ingest/models.py`), so IKCO's
+   Samand, Tara and Runna are read — 281 of run17's 492 listings are of a
+   model a query can name, from 217. Offered the same day and not chosen: a
+   short unread name listed as unread, and Persian names for the 104 other
+   models run17 holds (211 listings). A session measures and builds; the
+   owner decides each.
 5. **An estimator that clears the gate on real data** (the product gaps, item
    2). A session, on the corpus of item 2. It is what reopens the ranked
    path's two items (the parser, items 1 and 2), compare's gated branch, and

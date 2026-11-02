@@ -1634,6 +1634,23 @@ check("a zero-risk car carries no damage charge",
 print(f"     uplift over price-sort: {res.uplift:+.1%}")
 
 
+# ---------------------------------------------------------------------------
+print("\nthe models a buyer can name: one table with the listing parser's")
+# Predictions MODELS and MODELS-B1 (2026-11-02, locked before the build): the
+# search read ten models and the listing parser thirteen, so «سمند زیر ۲
+# میلیارد» had no model and showed every car under two billion. The owner
+# chose one table (caro/ingest/models.py), with no name added.
+_md_q = {q: P.parse(q).model_hints for q in (
+    "سمند زیر ۲ میلیارد", "تارا زیر ۲ میلیارد", "رانا زیر ۲ میلیارد", "کوئیک زیر ۲ میلیارد",
+    "کوییک زیر ۲ میلیارد", "پراید ۱۳۲", "207i دنده ای", "تا ۱۳۲ میلیون")}
+check("MD2: the search reads IKCO's Samand, Tara and Runna, and the names only the listing parser had -- "
+      "«کوئیک», «۱۳۲», «207i» -- for the models it knew; a number inside an amount is still no model",
+      _md_q == {"سمند زیر ۲ میلیارد": ("samand",), "تارا زیر ۲ میلیارد": ("tara",),
+                "رانا زیر ۲ میلیارد": ("runna",), "کوئیک زیر ۲ میلیارد": ("quik",),
+                "کوییک زیر ۲ میلیارد": ("quik",), "پراید ۱۳۲": ("pride",), "207i دنده ای": ("207",),
+                "تا ۱۳۲ میلیون": ()}, str(_md_q))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
