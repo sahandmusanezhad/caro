@@ -593,7 +593,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all seventeen suites
 
-python3 tests/run_all.py            # 3528 assertions, no API key, no network
+python3 tests/run_all.py            # 3531 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -607,10 +607,10 @@ dependency of `caro/`.** Three of the seventeen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2803 assertions across 14 of 17 suites
+python3 tests/run_all.py            # 2805 assertions across 14 of 17 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3528 across all seventeen
+python3 tests/run_all.py            # 3531 across all seventeen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -801,7 +801,7 @@ the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3528 assertions across seventeen suites
+tests/           3531 assertions across seventeen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
@@ -819,6 +819,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) ·
 | [DECISIONS](docs/DECISIONS.md) | the design record, including bugs found and what they cost |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
 | [REARCHITECTURE](docs/REARCHITECTURE.md) | the 2026 plan for the platform, phases 0 to 7: Sobhan's, accepted with its review's amendments |
+| [PHASE0_SETUP](docs/PHASE0_SETUP.md) | phase 0's steps in the owner's accounts — GitHub, Sentry, Cloudflare, UptimeRobot — each with what to see when it worked |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |

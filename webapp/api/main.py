@@ -59,6 +59,7 @@ from webapp.api.schemas import (                                   # noqa: E402
     UncheckedItem, Weights,
 )
 from webapp.api.observability import init_sentry                   # noqa: E402
+from webapp.api.observability import router as observability_router # noqa: E402
 
 # Error reports, before the app exists so that the SDK sees it built. Off
 # without SENTRY_DSN; with it, nothing personal leaves (observability.py).
@@ -84,6 +85,8 @@ app.include_router(listings_router)
 # What the operator decides about them, and what the public reports
 # (webapp/api/review.py).
 app.include_router(review_router)
+# The operator's test of the error reports (webapp/api/observability.py).
+app.include_router(observability_router)
 
 # CORS is for development (webapp/api/security.py): production serves the
 # site and the API from one origin. No cookie is used, so no credentials.
