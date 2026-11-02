@@ -1,0 +1,15 @@
+# Who is asked to review what (docs/WORKING_AGREEMENT.md, «Who works on it»).
+#
+# GitHub asks the owners of the paths a pull request touches for a review,
+# and branch protection on main can require one (the plan's phase 0). The
+# person who opened a pull request is never asked to review it. The last
+# line that matches a path wins.
+
+# The owner decides everything.
+*                           @sahandmusanezhad
+
+# The platform, which Sobhan builds and the owner decides: containers,
+# environments, the edge, the workflows, and the plan they follow.
+/infra/                     @sobhanaz @sahandmusanezhad
+/.github/workflows/         @sobhanaz @sahandmusanezhad
+/docs/REARCHITECTURE.md     @sobhanaz @sahandmusanezhad
