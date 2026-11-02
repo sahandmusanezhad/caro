@@ -1,11 +1,15 @@
-# Re-architecture plan, 2026 — a proposal for the owner
+# Re-architecture plan, 2026
 
-**Status: PROPOSAL.** Written 2026-11-02 by Sobhan, after the discovery round
-the two of us ran, for the owner to accept, amend or refuse. Nothing in it is
-built, and nothing in it is a decision until the owner's D-entry says so.
-Each phase names the lines it reopens, because several of them are lines
-this record froze on purpose (D47, D56, D64, WORKING_AGREEMENT), and a frozen
-line is reopened in the open or not at all.
+**Status: ACCEPTED, as amended by its review.** Written 2026-11-02 by Sobhan,
+after the discovery round the two of us ran, for the owner to accept, amend
+or refuse. The owner asked the same day for it to be reviewed and for the
+best of what it proposes to be chosen; «What the review changed» says what
+was changed and why, and the stack, the structure and the phases below are
+written as accepted. Each phase names the lines it reopens, because several
+of them are lines this record froze on purpose (D47, D56, D64,
+WORKING_AGREEMENT), and a frozen line is reopened in the open or not at
+all; the decision entry that records them follows the merge, as the working
+agreement requires.
 
 The order of work in [ROADMAP](ROADMAP.md) — the first live Divar run, a
 larger corpus over time, an estimator that clears the gate on real data — is
@@ -22,6 +26,28 @@ is built with — and none of them moves a number to a second place where it
 could change on the way past (D50, D56). `caro/` stays one package, imported
 by the API, in one language.
 
+## What the review changed
+
+Most of the plan is taken as it was written: the phase order, Cloudflare in
+front, the environments and the deploys, the read model in D47's direction,
+the edge cache keyed by the corpus digest, the alerts, the load tests, and
+D56's measurements before any talk of Go. Five things changed:
+
+| Proposed | Chosen | Why |
+|---|---|---|
+| Arq and Redis for the run queue | **A table in Postgres**, `jobs`, taken with `SELECT … FOR UPDATE SKIP LOCKED`, as [SERVICES](SERVICES.md) designs it | The owner chose Postgres alone, for the data and for the queue, on 2026-11-02. A handful of runs a day needs no second stateful service; a job and what it writes commit in one transaction; there is one database to back up. |
+| Nuxt 4: the panels first (phase 5), then the public site, Next.js retired (phase 6) | **Next.js stays.** The design system and the panels are done in it (phase 5); phase 6 becomes the site in its own image on the server, and Vercel is retired | Seven to ten of the plan's sixteen weeks would go to a second front end that gives a buyer nothing the site lacks, and every refusal state the site's suites hold today would have to be earned again — 261 rows of the screens suite, the section-7 contract between the TypeScript and the Python, the palette's contrast; the plan names that risk itself. D47's Next.js line stays closed. |
+| Kubernetes out of scope | **Later, not out**: the same images, when a server and its traffic warrant it | The owner's choice of 2026-11-02: Docker now, Kubernetes later. Nothing in phases 1 to 7 depends on it, and phase 7's load tests are where the need would show. |
+| Caddy at the origin | **nginx** | The owner's choice, and the ingress Kubernetes would use later. |
+| One API process and one worker | **One image, a container per role**: the API, the collection worker, and the ingest worker that promotes a snapshot into the catalog | The owner asked for services, for tens of thousands of listings. A process per role is deployed and scaled apart, with every rule still in `caro/`, once; SERVICES.md has the design, and D56's measurements still decide anything finer. |
+
+Already built when the plan was accepted: the listings read model of phase
+2, as the catalog (`caro/catalog.py`, sahandmusanezhad/caro#10) — loaded from the published
+artifacts, read by the API under `CARO_CATALOG_URL`, and answering 740
+questions the same as the files on SQLite and on Postgres — and phase 2's
+`tests/test_store.py` on a real Postgres, which CI's `postgres` job now runs
+on every pull request.
+
 ## What is proposed
 
 A public product for buyers in Iran at `caro.noxioai.com`, behind
@@ -29,14 +55,15 @@ Cloudflare: a **modular monolith** — the API and a separate collection
 worker, both the same package — in Docker Compose, with the API and the
 product database in Europe (Hetzner, Neon) and the collection worker on a
 VPS in Iran under the owner's control and the same politeness and robots
-rules as today; a queue (Arq) for collection runs, each of which still
-writes its own transcript; artifacts in git until they outgrow it, then an
+rules as today; a queue in Postgres for collection runs, each of which
+still writes its own transcript; artifacts in git until they outgrow it, then an
 object store addressed by digest; error tracking, logs, metrics and uptime
 alerts; CI/CD with preview, staging and production environments; the seller
-listings switched on with a real SMS provider; and a new front end — a design
-system and the operator and seller panels in Nuxt 4 first, then the public
-site migrated to the same stack and Next.js retired. Go and any service
-boundary come last, and only if the measurements D56 names say so.
+listings switched on with a real SMS provider; and the front end's design
+system and panels, in the Next.js the site is built with, then the site in
+its own image on the server. Go and any boundary inside the decision core
+come last, and only if the measurements D56 names say so; Kubernetes comes
+when a server and its traffic warrant it.
 
 ## Stack
 
@@ -44,15 +71,15 @@ boundary come last, and only if the measurements D56 names say so.
 |---|---|---|
 | Decision core | Python 3.12 + numpy, unchanged | D56; no second place for a number |
 | API | FastAPI + pydantic, unchanged; `psycopg[binary]` 3 | the two contract suites already hold it |
-| Queue and worker | Arq + Redis; the worker is the same package, `first_run.collect` as a job | D47 names Arq for the day a queue is warranted; every run keeps its transcript |
-| Front end | Nuxt 4 + Vue 3 + TypeScript + Tailwind 4, RTL, Vazirmatn; Next.js stays until parity | one stack at the end; the team's strength; reopens the Next.js line of D47 |
-| Product database | Neon Postgres (production, staging by branch); SQLite locally and in the suites | D47: Postgres for product state and the read model only |
+| Queue and worker | a `jobs` table in Postgres, taken with `FOR UPDATE SKIP LOCKED`; the worker is the same package, `first_run.collect` as a job | the owner's choice: Postgres alone; every run keeps its transcript |
+| Front end | Next.js 15 + TypeScript + Tailwind, RTL, Vazirmatn, as today; its design system and panels refreshed in place | D47's line kept; the suites that hold the site stay as they are |
+| Product database | Neon Postgres (production, staging by branch), or Postgres in Compose on the VPS if the reachability probe says so; SQLite locally and in the suites | D47: Postgres for product state and the read model only |
 | Evidence storage | `data/corpora` in git to about 50 MB, then Cloudflare R2 addressed by content with the digest in the repository; snapshots in a private R2 bucket | DATA_CONTRACT allows exactly this |
 | Edge | Cloudflare: proxied DNS, managed WAF (free), rate-limiting rules, Turnstile on our own forms, cache rules; the origin answers Cloudflare's addresses only | security and a CDN at no cost |
-| Hosting | Hetzner CX for API + Redis + Caddy in Compose; an Iranian VPS for the worker; Cloudflare Pages for Nuxt; Vercel until Next.js is retired | D47: Compose, no Kubernetes |
+| Hosting | Hetzner CX for the API, the site and nginx in Compose; an Iranian VPS for the worker; Vercel until phase 6 moves the site; Kubernetes later, with the same images | Docker now, Kubernetes later: the owner's choice |
 | Observability | Sentry (API and front end); OpenTelemetry to Grafana Cloud; UptimeRobot to Telegram | free tiers |
 | CI/CD | GitHub Actions: PR → preview, `main` → staging, tag `vX.Y.Z` → production; images in GHCR; deploy by SSH and `docker compose` | simple, reviewable |
-| Tests | the sixteen suites unchanged; a screens suite for Vue; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
+| Tests | the seventeen suites, CI's Postgres job; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
 | Secrets | platform environments and a shared password vault; `CARO_SELLER_SALT` only in the worker's environment | the existing rule |
 
 ## Structure (monorepo)
@@ -60,11 +87,10 @@ boundary come last, and only if the measurements D56 names say so.
 ```
 caro/                    the decision core, unchanged
 webapp/api/              FastAPI, plus the read model and the job definitions
-webapp/web/              Next.js, alive until phase 6, then removed
-webapp/nuxt/             Nuxt 4: the design system, the panels, then the public site
+webapp/web/              Next.js: the site, its design system and the panels
 scripts/                 unchanged; first_run is also callable as a job
-infra/docker/            Dockerfile.api, Dockerfile.worker
-infra/compose/           compose.yml (local), compose.vps.yml, compose.worker.yml
+infra/docker/            one image for the API and the workers, one for the site
+infra/compose/           compose.yml (local: API, Postgres), compose.vps.yml (nginx, API, site, Postgres or Neon), compose.worker.yml
 infra/cloudflare/        WAF, rate-limit and cache rules as code
 infra/otel/              collector configuration
 .github/workflows/       ci.yml unchanged; build-images, deploy-staging, deploy-prod, e2e
@@ -82,13 +108,18 @@ docs/REARCHITECTURE.md   this document
    worker runs; the operator's second step stays as O1 built it.
 5. Every new client keeps the envelope and the fault vocabulary, held by a
    contract test of the same kind as section 7 of `tests/test_api_contract.py`.
+6. An error report carries no personal data: Sentry with its default PII
+   off, and a seller's number, a session cookie and an address scrubbed
+   before an event leaves the process.
 
 ## Deliberately out of scope
 
-Kubernetes · gRPC · splitting the decision core into a service · buyer
+gRPC · splitting the decision core into a service · buyer
 accounts · payment (P0) · accident damage from photos (the owner's, later) ·
 a language model anywhere on the decision path · any change to the politeness
-policy (2–5 s) · any change to the estimator, the gate or the parser.
+policy (2–5 s) · any change to the estimator, the gate or the parser. Kubernetes is not
+out of scope but later: the same images, when a server and its traffic
+warrant it.
 
 ## Assumptions the owner may veto
 
@@ -132,8 +163,9 @@ overlap phases 3 and 4.
 
 ### Phase 1 — Containers and environments (one to two weeks; Sobhan)
 
-- `Dockerfile.api`, `Dockerfile.worker`; `compose.yml` for a laptop (API,
-  Redis, a local Postgres) and `compose.vps.yml` (Caddy, API, Redis).
+- One image for the API and the workers — a role per command — and one for
+  the site; `compose.yml` for a laptop (API, a local Postgres) and
+  `compose.vps.yml` (nginx, API, Postgres or the Neon address).
 - One Hetzner instance holding staging and production as two Compose
   projects; the origin locked to Cloudflare's addresses.
 - Workflows: images to GHCR; deploy to staging on every push to `main`;
@@ -153,7 +185,11 @@ overlap phases 3 and 4.
 - The listings read model in Postgres, in D47's direction and no other:
   `promote → artifact → projection job → Postgres`. Search keeps reading the
   artifact until the contract suite shows the read model answers the same,
-  then switches.
+  then switches. **Built** as the catalog (sahandmusanezhad/caro#10): the projection from the
+  published artifacts, the API reading it under `CARO_CATALOG_URL`, and 740
+  questions answered the same both ways on SQLite and Postgres. Left:
+  promotion writing into it (SERVICES.md, step 2), its per-model summaries,
+  and production switched to it.
 - The SMS provider the owner chooses (Kavenegar proposed) behind the existing
   `Provider` interface, tried by the owner on his own number first;
   `DATABASE_URL`, `CARO_STORE_SECRET`, `CARO_SITE_ORIGINS` and
@@ -162,15 +198,18 @@ overlap phases 3 and 4.
   corpora written into DATA_CONTRACT.
 - **Closes when** a seller logs in, posts, is approved and has the number
   revealed in production with real SMS, and `tests/test_store.py` is green on
-  a real Postgres.
+  a real Postgres — which CI's `postgres` job has done since sahandmusanezhad/caro#10.
 - **Waits on the owner:** the driver, the provider.
 - **Risk:** Neon unreachable from Iran → Postgres in Compose on the VPS.
 
 ### Phase 3 — Collection worker and scheduler (about two weeks; both)
 
-- Arq and Redis; a job `collect(source, pin)` that calls `first_run.collect`
-  and writes the transcript and the snapshot to the private bucket; one
-  record per run with its pin, digest and output.
+- The queue in Postgres — SERVICES.md's `jobs` table, taken with
+  `FOR UPDATE SKIP LOCKED`, retried with a backoff, its error kept — and a
+  job `collect(source, pin)` that calls `first_run.collect` and writes the
+  transcript and the snapshot to the private bucket; one record per run with
+  its pin, digest and output. One collector per source holds that source's
+  lock, so the pause between two requests to a domain is never shared out.
 - The worker on an Iranian VPS (`compose.worker.yml`); `CARO_SELLER_SALT`
   only there; the daily Khodro45 run on the same pin (`--pages 60`).
 - Promotion stays a deliberate, reviewed step: a pull request carrying the
@@ -181,9 +220,10 @@ overlap phases 3 and 4.
 - **Closes when** seven consecutive daily runs have come from the VPS with
   their transcripts and no manual step but promotion, and
   `scripts/replicate_check.py` has compared two of them from the bucket.
-- **Reopens:** D47 (no queue — with Arq, as D47 itself says) and
-  WORKING_AGREEMENT (live requests on the owner's machine → on a worker the
-  owner controls). **Waits on the owner** for both.
+- **Reopens:** D47 (no queue — in Postgres, the owner's choice, rather than
+  the Arq D47 names) and WORKING_AGREEMENT (live requests on the owner's
+  machine → on a worker the owner controls). **Waits on the owner** for the
+  second: until then the worker runs on the owner's machine.
 
 ### Phase 4 — The edge: cache, rate limiting, Turnstile (about a week; Sobhan)
 
@@ -199,37 +239,33 @@ overlap phases 3 and 4.
   other than the corpus being served.
 - **Reopens:** D47 (no cache — at the edge only, keyed as D47 requires).
 
-### Phase 5 — The design system and the Nuxt 4 panels (three to four weeks; Sobhan)
+### Phase 5 — The design system and the panels, in Next.js (one to two weeks; Sobhan)
 
-- `webapp/nuxt/`: Nuxt 4, Tailwind 4, RTL from the first commit, Vazirmatn,
-  dark and light; a design system whose tokens start from the site's palette
-  and evolve, with the contrast checks `tests/test_palette.py` makes.
+- A design system for the site as it is, in `webapp/web`: tokens that start
+  from the site's palette and evolve, with the contrast checks
+  `tests/test_palette.py` makes; RTL, Vazirmatn, dark and light.
 - The operator panel (review queue, inbox, corpus state) and the seller
-  panel (login, post, my listings), on the endpoints that exist.
-- A typed client with a contract test of the section-7 kind; a screens suite
-  for Vue (server-rendered) over these pages.
-- Served from Cloudflare Pages under the same domain.
-- **Closes when** the operator and seller flows run on Nuxt in production
-  and `/admin`, `/login`, `/sell` and `/my-listings` are removed from Next.js.
-- **Reopens:** nothing yet; Next.js keeps the public site.
+  panel (login, post, my listings), which exist, brought into it.
+- Playwright end-to-end on the key routes, in CI.
+- **Closes when** the panels and the public pages share the system, the
+  suites are green, and the end-to-end run is part of CI.
+- **Reopens:** nothing. (Proposed as Nuxt 4 panels; see «What the review
+  changed».)
 
-### Phase 6 — The public site on Nuxt (four to six weeks; Sobhan, reviewed by the owner)
+### Phase 6 — The site in its own image, Vercel retired (about a week; Sobhan, reviewed by the owner)
 
-- The thirteen remaining routes in the new design, against a **parity
-  checklist**: the corpus badge on every screen; the NOT SERVED panel and the
-  two evidence tables that never mix; the intent panel with what was read,
-  assumed and left unread; the card rules for price, odometer and province
-  with how each was read; one history line per source; the non-vehicle page;
-  what a visitor keeps, kept in the browser.
-- `tests/test_screens.py` rewritten for Vue, `tests/test_palette.py` pointed
-  at the new tokens, `tests/test_claims.py` scanning `webapp/nuxt`, the
-  README and `/about` counts moved in the same commit.
-- Next.js and `webapp/web` removed; the Vercel project retired; the site
-  served from Pages.
-- **Closes when** the checklist is green, all sixteen suites are green, and
-  the D-entry records that Next.js is retired.
-- **Reopens:** D47 (Next.js + TypeScript + Tailwind). **Waits on the owner**
-  before the phase starts.
+- The site built standalone into an image of its own, served beside the API
+  behind nginx on the VPS, through Cloudflare; `/api/*` to the API's
+  container.
+- Every refusal state kept exactly as it is: the screens suite, the
+  section-7 contract and the palette's checks run against the same code, so
+  nothing has to be earned again.
+- The Vercel project retired.
+- **Closes when** the site answers from the VPS through Cloudflare, the
+  suites are green against it, and the decision entry records that the site
+  left Vercel.
+- **Reopens:** D64 (the site as a Vercel service). (Proposed as the public
+  site on Nuxt with Next.js retired; see «What the review changed».)
 
 ### Phase 7 — Observability, scale, and the D56 review (about two weeks; both)
 
@@ -238,7 +274,8 @@ overlap phases 3 and 4.
   catalogue, including "a published count disagrees with the suites", raised
   from CI.
 - k6 at ten times the target; the hot path profiled and the slowest stage
-  named.
+  named; and whether one VPS still holds that load, which is the question
+  Kubernetes answers.
 - **The three conditions of D56 measured**, not anticipated: whether a
   multi-source crawl finishes in its window (with Divar live, if the owner
   has run it); whether `duration_stats` is genuinely running; which stage, if
@@ -255,17 +292,18 @@ overlap phases 3 and 4.
 |---|---|---|
 | WORKING_AGREEMENT: one person | 0 | two people, each under his own name |
 | D64: the API as a Vercel service | 1 | the API in Compose on a VPS |
-| D47: no queue | 3 | Arq, every run with its transcript |
+| D47: no queue | 3 | in Postgres (the owner's choice), every run with its transcript |
 | WORKING_AGREEMENT: live requests on the owner's machine | 3 | on a worker the owner controls |
 | D47: no cache | 4 | at the edge only, keyed by digest, gate and version |
-| D47: Next.js + TypeScript + Tailwind | 6 | Nuxt 4, after parity |
+| D64: the site as a Vercel service | 6 | the site's own image on the server |
 | D56: one language | 7 | only if the measurements it names come out that way |
 
 ## Timing
 
-Phase 0: a week · 1: one to two · 2: two · 3: two · 4: one · 5: three to
-four · 6: four to six · 7: two — about four months for two people part-time,
-re-estimated in each issue.
+Phase 0: a week · 1: one to two · 2: two · 3: two · 4: one · 5: one to two
+· 6: one · 7: two — about three months for two people part-time,
+re-estimated in each issue. (Proposed: about four; the five to eight weeks
+saved are phases 5 and 6 without a second front end.)
 
 ## Tracking
 

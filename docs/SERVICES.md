@@ -114,6 +114,13 @@ jobs        id · kind · payload (json) · state · run_after · attempts · lo
 
 ## The way there — each step a pull request, the site never down
 
+The re-architecture plan, accepted on 2026-11-02
+([REARCHITECTURE](REARCHITECTURE.md)), schedules these steps among its
+phases, and that plan is the order of work; this document stays the design
+of the data and the services. Step 1 is its phase 2's read model, step 2
+the rest of phase 2, step 3 is done, step 4 is phase 3, step 5 is phase 1,
+and step 6 is decided in phase 7.
+
 1. **The catalog store.** ✅ Built (below). SQLite and Postgres behind one
    module; a loader that reads `data/corpora/*.json` into it, idempotent;
    the API reads it where `CARO_CATALOG_URL` is set, files otherwise. The
@@ -135,8 +142,9 @@ jobs        id · kind · payload (json) · state · run_after · attempts · lo
    each, a CronJob for the daily collection, nginx in front.
 
 What the owner will be asked on the way: where Postgres lives once the site
-is served from it (the server, or a managed one), and when collection leaves
-his machine — that changes a rule of the working agreement, so it is his.
+is served from it (the server, or a managed one: the plan's phase 0 measures
+whether Iran reaches each), and when collection leaves the owner's machine —
+that changes a rule of the working agreement, so it is the owner's.
 
 ## The catalog, as built
 
