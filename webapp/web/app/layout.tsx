@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import './globals.css';
 import CorpusBadge from '@/components/CorpusBadge';
+import ErrorReports from '@/components/ErrorReports';
 import { navItems } from '@/lib/nav';
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({
               type="font/woff2" crossOrigin="" />
       </head>
       <body>
+        <ErrorReports />
         <header className="glass-bar sm:sticky top-0 z-40 border-b">
           {/* On a phone the logo and the badge share a row and the nav is the
               next one, a single row that scrolls sideways: wrapped, it took

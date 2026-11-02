@@ -3077,6 +3077,86 @@ check("OB6: the operator's test report -- refused without the operator's token; 
       and len(_ob_sent) == 1 and ob_mod.TEST_MESSAGE in _ob_sent6 and _OB_TOKEN not in _ob_sent6,
       str((_ob_no, _ob_off, _ob_on, _ob_sent6[:300])))
 
+# The site's reports, relayed by POST /api/report (predictions SITESENTRY,
+# locked before the code). The forward is recorded, never sent.
+_ob_fw: list = []
+_ob_send_was = ob_mod.SEND
+
+
+def _ob_env(*items, dsn="https://other-key@o9.ingest.elsewhere.example/9", size=None):
+    head = json.dumps({"event_id": "f" * 32, "sent_at": "2026-11-02T22:00:00Z", "dsn": dsn})
+    out = [head]
+    for kind, payload, with_length in items:
+        body = json.dumps(payload, ensure_ascii=False)
+        ih = {"type": kind}
+        if with_length:
+            ih["length"] = len(body.encode("utf-8"))
+        out += [json.dumps(ih), body]
+    raw = "\n".join(out) + "\n"
+    return raw.encode("utf-8") + (b" " * (size - len(raw.encode("utf-8"))) if size else b"")
+
+
+_ob_js_event = {
+    "event_id": "e" * 32, "platform": "javascript", "level": "error",
+    "message": f"login failed for {_OB_SHAPES[0]}",
+    "request": {"url": "https://caro.example/sell?phone=09123456789",
+                "headers": {"Cookie": "caro_session=abc", "User-Agent": "Mozilla/5.0", "Referer": "https://x/?p=1"},
+                "cookies": "caro_session=abc"},
+    "user": {"ip_address": "{{auto}}"},
+    "breadcrumbs": [{"category": "ui.input", "message": f"typed {_OB_SHAPES[1]}"}],
+    "exception": {"values": [{"type": "TypeError", "value": "x is undefined",
+                              "stacktrace": {"frames": [{"filename": "app:///_next/static/chunks/app.js",
+                                                         "function": "submit", "lineno": 1, "colno": 4096}]}}]},
+}
+try:
+    ob_mod.SEND = lambda url, key, body: _ob_fw.append((url, key, body))
+    ob_mod.REPORT_LIMIT.clear()
+    with contextlib.redirect_stdout(io.StringIO()):
+        _ob_c7 = TestClient(api.app)
+    ob_mod._ON, ob_mod._DSN = False, None
+    _ob_t1 = _ob_c7.post("/api/report", content=_ob_env(("event", _ob_js_event, True))).status_code
+    _ob_t1_sent = len(_ob_fw)
+    ob_mod._ON, ob_mod._DSN = True, "https://our-key@o1.ingest.sentry.example/42"
+    _ob_t2 = _ob_c7.post("/api/report", content=_ob_env(
+        ("session", {"sid": "s", "status": "ok"}, False), ("event", _ob_js_event, True),
+        ("event", {**_ob_js_event, "event_id": "d" * 32}, False))).status_code
+    _ob_t4a = _ob_c7.post("/api/report", content=_ob_env(("event", _ob_js_event, True), size=65 * 1024)).status_code
+    ob_mod.SEND = lambda url, key, body: (_ for _ in ()).throw(OSError("unreachable"))
+    _ob_t5 = _ob_c7.post("/api/report", content=_ob_env(("event", _ob_js_event, True))).status_code
+    ob_mod.SEND = lambda url, key, body: None
+    _ob_t4b = [_ob_c7.post("/api/report", content=_ob_env(("event", _ob_js_event, True))).status_code
+               for _ in range(30)]
+finally:
+    ob_mod.SEND = _ob_send_was
+    ob_mod._ON, ob_mod._DSN = False, None
+    ob_mod.REPORT_LIMIT.clear()
+_ob_url, _ob_key, _ob_body = _ob_fw[0] if _ob_fw else ("", "", b"")
+_ob_lines = _ob_body.decode("utf-8").splitlines()
+_ob_fwd = [json.loads(_ob_lines[i]) for i in range(2, len(_ob_lines), 2)] if _ob_lines else []
+check("OB7: the site's reports are relayed only where reports are on -- 204 and nothing sent where they "
+      "are off; where on, each error event of the envelope goes to the project SENTRY_DSN names, whatever "
+      "the envelope names, and everything else in it is dropped",
+      _ob_t1 == 204 and _ob_t1_sent == 0 and _ob_t2 == 202 and len(_ob_fw) == 1
+      and _ob_url == "https://o1.ingest.sentry.example/api/42/envelope/" and _ob_key == "our-key"
+      and json.loads(_ob_lines[0])["dsn"] == "https://our-key@o1.ingest.sentry.example/42"
+      and "elsewhere" not in _ob_body.decode("utf-8") and len(_ob_fwd) == 2
+      and all(json.loads(_ob_lines[i])["type"] == "event" for i in range(1, len(_ob_lines), 2)),
+      str((_ob_t1, _ob_t1_sent, _ob_t2, _ob_url, _ob_lines[:1])))
+_ob_fwd_txt = _ob_body.decode("utf-8")
+check("OB8: a relayed event goes through the API's own scrubber: no mobile number in its message or "
+      "breadcrumbs, no query in its URL, no cookie, no user, headers but four; its type, message and "
+      "frames kept",
+      bool(_ob_fwd) and not any(d in _ob_fwd_txt for d in ("912", "۹۱۲", "abc", "{{auto}}", "Mozilla"))
+      and all(e["request"] == {"url": "https://caro.example/sell", "headers": {}} for e in _ob_fwd)
+      and all("user" not in e for e in _ob_fwd)
+      and _ob_fwd[0]["exception"]["values"][0]["type"] == "TypeError"
+      and _ob_fwd[0]["exception"]["values"][0]["stacktrace"]["frames"][0]["function"] == "submit"
+      and _ob_fwd[0]["message"] == f"login failed for {ob_mod.REDACTED}", _ob_fwd_txt[:400])
+check("OB9: a report over 64 KB is refused, 413; a forward that fails still answers 202; the 31st report "
+      "in a minute from one address is 429",
+      _ob_t4a == 413 and _ob_t5 == 202 and _ob_t4b[:27] == [202] * 27 and _ob_t4b[-1] == 429,
+      str((_ob_t4a, _ob_t5, _ob_t4b[-5:])))
+
 # ---------------------------------------------------------------------------
 print("\n27 — a model the search did not know is the model the buyer is shown")
 # ---------------------------------------------------------------------------

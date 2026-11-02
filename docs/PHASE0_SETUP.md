@@ -55,6 +55,15 @@ that id, «a test report, sent by the operator …», is in the project. If it
 prints `{"reports":"off"}`, the DSN did not reach the deployment. Send back:
 what it printed.
 
+4. **The site's reports.** Add `NEXT_PUBLIC_SENTRY_DSN` with the same DSN,
+   for **Production**, and redeploy: the site is built with it, and only
+   then loads Sentry's script. A browser sends its reports to the site's own
+   `/api/report`, which the API cleans and forwards to the same project --
+   never to Sentry directly, which the site's policy forbids. To see one,
+   open the site, open the browser's console, and run
+   `setTimeout(() => { throw new Error("a test from the console") })`;
+   the error is in the project a few seconds later.
+
 ## 3. Cloudflare in front of `caro.noxioai.com`
 
 `noxioai.com` is on Cloudflare's nameservers and `caro` points at Vercel,

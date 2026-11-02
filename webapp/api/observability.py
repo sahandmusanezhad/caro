@@ -34,7 +34,13 @@ import re
 import sys
 from typing import Any, Callable, Mapping
 
-from fastapi import APIRouter, Header, Request
+import json
+import urllib.parse
+import urllib.request
+
+from fastapi import APIRouter, Header, HTTPException, Request, Response
+
+from webapp.api.security import RateLimiter, client_address, too_many
 
 from webapp.api.store import phone_09
 
@@ -143,6 +149,7 @@ def init_sentry(env: Mapping[str, str] | None = None, *,
         return False
     global _ON
     _ON = True
+    _remember_dsn(dsn)
     return True
 
 
@@ -165,3 +172,99 @@ def report_test(request: Request, x_admin_token: str | None = Header(default=Non
     event_id = sdk.capture_message(TEST_MESSAGE, level="info")
     sdk.flush(timeout=5)
     return {"reports": "on", "event_id": event_id}
+
+
+# ---------------------------------------------------------------------------
+# The site's reports: through this API, never to Sentry from a browser
+# ---------------------------------------------------------------------------
+#
+# The site's policy allows a browser to connect to its own origin and to
+# nothing else, and the rule for what a report may carry is the one above,
+# written once. So the site's SDK sends its envelopes here
+# (`tunnel: "/api/report"`), and each error event in one is scrubbed as the
+# API's own are and forwarded to the project SENTRY_DSN names -- whatever
+# project the envelope names, so that the route relays our reports and
+# nobody else's.
+
+REPORT_MAX_BYTES = 64 * 1024
+REPORT_LIMIT = RateLimiter(30, 60)
+_DSN: str | None = None          # the DSN init_sentry started with
+
+
+def _remember_dsn(dsn: str) -> None:
+    global _DSN
+    _DSN = dsn
+
+
+def envelope_url(dsn: str) -> tuple[str, str]:
+    """(where a project's envelopes go, its public key), from a DSN
+    `https://<key>@<host>/<project>`."""
+    u = urllib.parse.urlsplit(dsn)
+    path, _, project = u.path.rpartition("/")
+    where = f"{u.hostname}:{u.port}" if u.port else f"{u.hostname}"
+    return f"{u.scheme}://{where}{path}/api/{project}/envelope/", u.username or ""
+
+
+def _send(url: str, key: str, body: bytes) -> None:
+    req = urllib.request.Request(url, data=body, method="POST", headers={
+        "Content-Type": "application/x-sentry-envelope",
+        "X-Sentry-Auth": f"Sentry sentry_version=7, sentry_key={key}, sentry_client=caro-report/1"})
+    with urllib.request.urlopen(req, timeout=5) as r:
+        r.read()
+
+
+SEND: Callable[[str, str, bytes], None] = _send    # the suites put a recorder here
+
+
+def events_of(envelope: bytes) -> tuple[dict, list[dict]]:
+    """(the envelope's header, the error events in it). An item is a header
+    line and a payload, the payload `length` bytes long where the header
+    says so and one line where it does not; items of any other type are
+    passed over."""
+    lines = envelope.split(b"\n", 1)
+    header = json.loads(lines[0] or b"{}")
+    rest = lines[1] if len(lines) > 1 else b""
+    events = []
+    while rest.strip():
+        item_line, _, rest = rest.partition(b"\n")
+        item = json.loads(item_line)
+        n = item.get("length")
+        if isinstance(n, int):
+            payload, rest = rest[:n], rest[n:].lstrip(b"\n")
+        else:
+            payload, _, rest = rest.partition(b"\n")
+        if item.get("type") == "event":
+            events.append(json.loads(payload))
+    return header, events
+
+
+@router.post("/api/report", status_code=202)
+async def report(request: Request) -> Response:
+    """A browser's envelope of error reports. 204 where reports are off, 202
+    once its events are forwarded or dropped: a report is never a reason
+    for a page's request to fail."""
+    if not _ON or not _DSN:
+        return Response(status_code=204)
+    wait = REPORT_LIMIT.hit(client_address(request))
+    if wait is not None:
+        raise too_many(wait)
+    body = await request.body()
+    if len(body) > REPORT_MAX_BYTES:
+        raise HTTPException(413, "a report is at most 64 KB")
+    try:
+        header, events = events_of(body)
+    except (ValueError, UnicodeDecodeError):
+        raise HTTPException(400, "not an envelope of reports") from None
+    if not events:
+        return Response(status_code=202)
+    url, key = envelope_url(_DSN)
+    out = [json.dumps({"event_id": header.get("event_id"), "sent_at": header.get("sent_at"),
+                       "dsn": _DSN}).encode("utf-8")]
+    for event in events:
+        clean = json.dumps(scrub(event), ensure_ascii=False).encode("utf-8")
+        out += [json.dumps({"type": "event", "length": len(clean)}).encode("utf-8"), clean]
+    try:
+        SEND(url, key, b"\n".join(out) + b"\n")
+    except Exception:                           # noqa: BLE001 — see the docstring
+        pass
+    return Response(status_code=202)
