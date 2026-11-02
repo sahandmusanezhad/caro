@@ -37,7 +37,7 @@ one nginx (or equivalent) so the browser sees a single origin.
 | `CARO_RUN` | which corpus the API serves, by run id. Unset means `webapp.api.corpus.DEFAULT_RUN`. **Set it and get it wrong and the site serves nothing** — see below; that is the point of setting it. |
 | `CARO_CORPORA` | where corpora are read from. For pointing the reader at a directory a test controls, and for nothing else. |
 | `CARO_CATALOG_URL` | serve the published runs from the catalog, `sqlite:///<path>` or `postgresql://...`, loaded by `scripts/catalog_load.py` (docs/SERVICES.md). Unset, the files are read. **Set and unable to serve the run, the site serves nothing** (`CATALOG_UNAVAILABLE`), asked again every 30 s. |
-| `SENTRY_DSN` | error reports to Sentry (`webapp/api/observability.py`). Unset, the SDK is not even imported. Set, an event carries an exception's type, message and frames, and no cookie, body, query, address, user, variable, source line or mobile number. `SENTRY_ENVIRONMENT` (default `production`), `SENTRY_RELEASE` and `SENTRY_TRACES_SAMPLE_RATE` (default 0) beside it. |
+| `SENTRY_DSN` | error reports to Sentry (`webapp/api/observability.py`). Unset, the SDK is not even imported. Set, an event carries an exception's type, message and frames, and no cookie, body, query, address, user, variable, source line or mobile number. `SENTRY_ENVIRONMENT` (default `production`), `SENTRY_RELEASE` and `SENTRY_TRACES_SAMPLE_RATE` (default 0) beside it. `POST /api/admin/report-test`, with the operator's token and code, sends one test message and gives back its id, or says `off`. |
 
 ### Python version
 

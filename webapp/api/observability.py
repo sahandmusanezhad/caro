@@ -34,6 +34,8 @@ import re
 import sys
 from typing import Any, Callable, Mapping
 
+from fastapi import APIRouter, Header, Request
+
 from webapp.api.store import phone_09
 
 DSN_ENV = "SENTRY_DSN"
@@ -105,6 +107,11 @@ def scrub_breadcrumb(crumb: dict, hint: Any = None) -> dict:
     return _clean(crumb)
 
 
+# Whether init_sentry started the SDK in this process.
+_ON = False
+TEST_MESSAGE = "a test report, sent by the operator from /api/admin/report-test"
+
+
 def init_sentry(env: Mapping[str, str] | None = None, *,
                 importer: Callable[[str], Any] = importlib.import_module) -> bool:
     """Starts error reports when SENTRY_DSN is set; True when they are on.
@@ -134,4 +141,27 @@ def init_sentry(env: Mapping[str, str] | None = None, *,
     except Exception as e:                      # noqa: BLE001 — see the docstring
         print(f"error reports are off: Sentry would not start ({type(e).__name__})", file=sys.stderr)
         return False
+    global _ON
+    _ON = True
     return True
+
+
+router = APIRouter()
+
+
+@router.post("/api/admin/report-test")
+def report_test(request: Request, x_admin_token: str | None = Header(default=None),
+                x_admin_code: str | None = Header(default=None)) -> dict:
+    """The operator's way to see an error report arrive: one message, sent
+    through the same scrubbers as any event, and its id to find it by. It
+    says "off" where SENTRY_DSN is not set -- which is how to tell that from
+    reports that are on and not arriving. The operator's check is the
+    inbox's, so it is refused, and slowed, as every operator's endpoint is."""
+    from webapp.api.contact import require_operator          # noqa: PLC0415
+    require_operator(request, x_admin_token, x_admin_code)
+    if not _ON:
+        return {"reports": "off"}
+    sdk = importlib.import_module("sentry_sdk")
+    event_id = sdk.capture_message(TEST_MESSAGE, level="info")
+    sdk.flush(timeout=5)
+    return {"reports": "on", "event_id": event_id}

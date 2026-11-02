@@ -3045,6 +3045,38 @@ check("OB5: through the real SDK, an exception raised beside a seller's number a
       == [f"login asked for {ob_mod.REDACTED}"],
       _ob_body[:400])
 
+_OB_TOKEN = "the-operators-token-26-0123456789"
+_ob_kept6 = {k: os.environ.get(k) for k in ("CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET")}
+try:
+    os.environ["CARO_ADMIN_TOKEN"] = _OB_TOKEN
+    os.environ.pop("CARO_ADMIN_TOTP_SECRET", None)
+    contact_mod.ADMIN_FAILURES.clear()
+    with contextlib.redirect_stdout(io.StringIO()):
+        _ob_c6 = TestClient(api.app)
+    _ob_no = _ob_c6.post("/api/admin/report-test").status_code
+    ob_mod._ON = False
+    _ob_off = _ob_c6.post("/api/admin/report-test", headers={"x-admin-token": _OB_TOKEN}).json()
+    _ob_sent.clear()
+    ob_mod.init_sentry({"SENTRY_DSN": "https://public@sentry.example.invalid/1"}, importer=lambda n: _OBReal)
+    _ob_on = _ob_c6.post("/api/admin/report-test", headers={"x-admin-token": _OB_TOKEN}).json()
+finally:
+    _ob_sdk.init(dsn=None)
+    ob_mod._ON = False
+    for _k, _v in _ob_kept6.items():
+        if _v is None:
+            os.environ.pop(_k, None)
+        else:
+            os.environ[_k] = _v
+    contact_mod.ADMIN_FAILURES.clear()
+_ob_sent6 = "\n".join(_ob_sent)
+check("OB6: the operator's test report -- refused without the operator's token; «off» where reports are "
+      "off; where they are on, one message sent through the scrubbers, its id given back, and the token "
+      "nowhere in what was sent",
+      _ob_no == 401 and _ob_off == {"reports": "off"} and _ob_on.get("reports") == "on"
+      and re.fullmatch(r"[0-9a-f]{32}", str(_ob_on.get("event_id"))) is not None
+      and len(_ob_sent) == 1 and ob_mod.TEST_MESSAGE in _ob_sent6 and _OB_TOKEN not in _ob_sent6,
+      str((_ob_no, _ob_off, _ob_on, _ob_sent6[:300])))
+
 # ---------------------------------------------------------------------------
 print("\n27 — a model the search did not know is the model the buyer is shown")
 # ---------------------------------------------------------------------------
