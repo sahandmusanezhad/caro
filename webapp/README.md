@@ -36,6 +36,8 @@ one nginx (or equivalent) so the browser sees a single origin.
 | `CARO_INBOX` | `off` switches the contact inbox off: no form is drawn, and `POST /api/contact` answers 503 and names GitHub Issues. **Set it wherever the disk does not keep what is written** — a serverless function, a container without a volume. Unset, messages are appended to `data/inbox/messages.jsonl`, and a write that fails anyway is the same 503: never a reference for a message that was not kept. |
 | `CARO_RUN` | which corpus the API serves, by run id. Unset means `webapp.api.corpus.DEFAULT_RUN`. **Set it and get it wrong and the site serves nothing** — see below; that is the point of setting it. |
 | `CARO_CORPORA` | where corpora are read from. For pointing the reader at a directory a test controls, and for nothing else. |
+| `CARO_CATALOG_URL` | serve the published runs from the catalog, `sqlite:///<path>` or `postgresql://...`, loaded by `scripts/catalog_load.py` (docs/SERVICES.md). Unset, the files are read. **Set and unable to serve the run, the site serves nothing** (`CATALOG_UNAVAILABLE`), asked again every 30 s. |
+| `SENTRY_DSN` | error reports to Sentry (`webapp/api/observability.py`). Unset, the SDK is not even imported. Set, an event carries an exception's type, message and frames, and no cookie, body, query, address, user, variable, source line or mobile number. `SENTRY_ENVIRONMENT` (default `production`), `SENTRY_RELEASE` and `SENTRY_TRACES_SAMPLE_RATE` (default 0) beside it. |
 
 ### Python version
 

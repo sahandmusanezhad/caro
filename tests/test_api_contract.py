@@ -2902,6 +2902,149 @@ finally:
     corpus_mod.active.cache_clear()
     market_mod.published_runs.cache_clear()
 
+# ---------------------------------------------------------------------------
+print("\n26 — error reports, and nothing personal in them")
+# ---------------------------------------------------------------------------
+# Predictions (PHASE0, 2026-11-02, locked before the code): Sentry on the
+# API, off without SENTRY_DSN; with it, an event carries an exception's type,
+# message and frames, and nothing a person could be found by. Made data
+# throughout; the real SDK is sent through a transport that keeps what it is
+# given, and nothing leaves this process.
+import subprocess as _ob_sp                                            # noqa: E402
+
+from webapp.api import observability as ob_mod                        # noqa: E402
+
+_ob_env = {k: v for k, v in os.environ.items() if k != "SENTRY_DSN"}
+_ob_child = _ob_sp.run([sys.executable, "-c",
+                        "import sys; sys.path.insert(0, sys.argv[1]); import webapp.api.main; "
+                        "print('sentry_sdk' in sys.modules)", str(ROOT)],
+                       capture_output=True, text=True, env=_ob_env, timeout=120)
+check("OB1: with no SENTRY_DSN, the API starts with Sentry off and the SDK never imported",
+      ob_mod.init_sentry({}) is False and ob_mod.init_sentry({"SENTRY_DSN": "  "}) is False
+      and _ob_child.returncode == 0 and _ob_child.stdout.strip().splitlines()[-1:] == ["False"],
+      _ob_child.stdout[-200:] + _ob_child.stderr[-300:])
+
+
+def _ob_missing(name):
+    raise ImportError(f"No module named {name!r}")
+
+
+class _OBBroken:
+    @staticmethod
+    def init(**kw):
+        raise RuntimeError("the SDK refused its options")
+
+
+_ob_err = io.StringIO()
+with contextlib.redirect_stderr(_ob_err):
+    _ob2 = (ob_mod.init_sentry({"SENTRY_DSN": "https://k@sentry.example.invalid/1"}, importer=_ob_missing),
+            ob_mod.init_sentry({"SENTRY_DSN": "https://k@sentry.example.invalid/1"}, importer=lambda n: _OBBroken))
+check("OB2: a DSN with the SDK missing, or an SDK that will not start, leaves error reports off with a "
+      "warning, and the API starting",
+      _ob2 == (False, False) and "not installed" in _ob_err.getvalue()
+      and "would not start" in _ob_err.getvalue() and "k@sentry" not in _ob_err.getvalue(), _ob_err.getvalue())
+
+_ob_kw = {}
+
+
+class _OBStandIn:
+    @staticmethod
+    def init(**kw):
+        _ob_kw.update(kw)
+
+
+_ob3 = ob_mod.init_sentry({"SENTRY_DSN": "https://k@sentry.example.invalid/1", "SENTRY_ENVIRONMENT": "staging",
+                           "SENTRY_TRACES_SAMPLE_RATE": "not a number"}, importer=lambda n: _OBStandIn)
+check("OB3: with a DSN, the SDK starts with no default PII, no frame's variables and no source lines, both "
+      "scrubbers, the environment named, and no tracing unless a rate is given",
+      _ob3 is True and _ob_kw.get("send_default_pii") is False and _ob_kw.get("include_local_variables") is False
+      and _ob_kw.get("include_source_context") is False
+      and _ob_kw.get("before_send") is ob_mod.scrub and _ob_kw.get("before_breadcrumb") is ob_mod.scrub_breadcrumb
+      and _ob_kw.get("environment") == "staging" and _ob_kw.get("traces_sample_rate") == 0.0,
+      str({k: v for k, v in _ob_kw.items() if k != "dsn"}))
+
+_OB_SHAPES = ("۰۹۱۲ ۳۴۵ ۶۷۸۹", "+98 912 345 6789", "0098-912-345-6789", "9123456789", "٠٩١٢٣٤٥٦٧٨٩",
+              "989123456789", "(0912) 345.67.89")
+_ob_event = {
+    "event_id": "0" * 32, "level": "error", "environment": "production", "server_name": "api-1",
+    "request": {"url": "https://caro.example/api/account/code?phone=09123456789#x", "method": "POST",
+                "query_string": "phone=09123456789",
+                "headers": {"Cookie": "caro_session=abc", "Authorization": "Bearer t",
+                            "X-Admin-Token": "the-token", "X-Admin-Code": "123456",
+                            "X-Forwarded-For": "198.51.100.7", "User-Agent": "Mozilla/5.0",
+                            "Content-Type": "application/json", "Host": "caro.example"},
+                "cookies": {"caro_session": "abc"}, "data": {"phone": "09123456789", "code": "4821"},
+                "env": {"REMOTE_ADDR": "198.51.100.7"}},
+    "user": {"ip_address": "198.51.100.7"},
+    "exception": {"values": [{"type": "ValueError",
+                              "value": f"no account for {_OB_SHAPES[0]} (price 1850000000)",
+                              "stacktrace": {"frames": [{"filename": "webapp/api/accounts.py", "function": "login",
+                                                         "lineno": 214, "vars": {"phone": "09123456789"}}]}}]},
+    "breadcrumbs": {"values": [{"message": f"asked for {x}", "category": "auth"} for x in _OB_SHAPES[1:]]},
+    "extra": {"note": "a seller at " + _OB_SHAPES[6]},
+}
+_ob_out = ob_mod.scrub(_ob_event)
+_ob_txt = json.dumps(_ob_out, ensure_ascii=False)
+_ob_req = _ob_out["request"]
+check("OB4: an event loses the cookies, the body, the query string, the environment, the user, every header "
+      "but four, the URL's query and every frame's variables, and every mobile number in the seven shapes "
+      "people write one; it keeps the exception's type, frames and message, and a price",
+      set(_ob_req) == {"url", "method", "headers"} and _ob_req["url"] == "https://caro.example/api/account/code"
+      and set(_ob_req["headers"]) == {"Content-Type", "Host"} and "user" not in _ob_out
+      and not any(x in _ob_txt for x in ("abc", "the-token", "198.51.100.7", "4821", "Bearer", "123456"))
+      and not any(d in _ob_txt for d in ("912", "۹۱۲", "٩١٢"))
+      and _ob_out["exception"]["values"][0]["type"] == "ValueError"
+      and _ob_out["exception"]["values"][0]["stacktrace"]["frames"][0] == {
+          "filename": "webapp/api/accounts.py", "function": "login", "lineno": 214}
+      and "price 1850000000" in _ob_out["exception"]["values"][0]["value"]
+      and _ob_out["server_name"] == "api-1", _ob_txt[:600])
+
+import sentry_sdk as _ob_sdk                                          # noqa: E402
+from sentry_sdk.transport import Transport as _OBTransport            # noqa: E402
+
+_ob_sent: list = []
+
+
+class _OBCapture(_OBTransport):
+    def capture_envelope(self, envelope):
+        for item in envelope.items:
+            _ob_sent.append(item.payload.get_bytes().decode("utf-8", "replace"))
+
+
+class _OBReal:
+    @staticmethod
+    def init(**kw):
+        return _ob_sdk.init(**kw, transport=_OBCapture(kw))
+
+
+try:
+    _ob5_on = ob_mod.init_sentry({"SENTRY_DSN": "https://public@sentry.example.invalid/1"},
+                                 importer=lambda n: _OBReal)
+    _ob_sdk.add_breadcrumb(message=f"login asked for {_OB_SHAPES[1]}", category="auth")
+
+    def _ob_fails(phone="09123456789", secret="made-up-secret-0123456789abcdef0123"):
+        raise ValueError(f"no account for {_OB_SHAPES[0]} (price 1850000000)")
+    try:
+        _ob_fails()
+    except ValueError:
+        _ob_sdk.capture_exception()
+    _ob_sdk.flush(2)
+finally:
+    _ob_sdk.init(dsn=None)          # off again, for every row after this one
+_ob_body = "\n".join(_ob_sent)
+_ob_ev = next((json.loads(x) for x in _ob_sent if '"exception"' in x), {})
+_ob_frames = [f for v in _ob_ev.get("exception", {}).get("values", []) for f in v["stacktrace"]["frames"]]
+check("OB5: through the real SDK, an exception raised beside a seller's number and a secret is sent with "
+      "its type, its message without the number, its frames without their variables, and a breadcrumb "
+      "without the number; nothing else is sent",
+      _ob5_on is True and len(_ob_sent) == 1 and _ob_frames and not any("vars" in f for f in _ob_frames)
+      and not any(d in _ob_body for d in ("9123456789", "912 345", "۹۱۲", "made-up-secret"))
+      and _ob_ev["exception"]["values"][0]["type"] == "ValueError"
+      and _ob_ev["exception"]["values"][0]["value"] == f"no account for {ob_mod.REDACTED} (price 1850000000)"
+      and [b.get("message") for b in _ob_ev.get("breadcrumbs", {}).get("values", [])][-1:]
+      == [f"login asked for {ob_mod.REDACTED}"],
+      _ob_body[:400])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

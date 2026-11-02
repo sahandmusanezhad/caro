@@ -31,3 +31,7 @@
 fastapi>=0.115.6,<1
 uvicorn[standard]>=0.34.0,<1
 pydantic>=2.10.4,<3
+# Error reports (webapp/api/observability.py), the plan's phase 0. Imported
+# only where SENTRY_DSN is set; 2.0 is the API the code uses: init with
+# before_send, before_breadcrumb and include_local_variables.
+sentry-sdk[fastapi]>=2.0,<3
