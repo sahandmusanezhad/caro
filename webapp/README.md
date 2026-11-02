@@ -38,6 +38,7 @@ one nginx (or equivalent) so the browser sees a single origin.
 | `CARO_CORPORA` | where corpora are read from. For pointing the reader at a directory a test controls, and for nothing else. |
 | `CARO_CATALOG_URL` | serve the published runs from the catalog, `sqlite:///<path>` or `postgresql://...`, loaded by `scripts/catalog_load.py` (docs/SERVICES.md). Unset, the files are read. **Set and unable to serve the run, the site serves nothing** (`CATALOG_UNAVAILABLE`), asked again every 30 s. |
 | `SENTRY_DSN` | error reports to Sentry (`webapp/api/observability.py`). Unset, the SDK is not even imported. Set, an event carries an exception's type, message and frames, and no cookie, body, query, address, user, variable, source line or mobile number. `SENTRY_ENVIRONMENT` (default `production`), `SENTRY_RELEASE` and `SENTRY_TRACES_SAMPLE_RATE` (default 0) beside it. `POST /api/admin/report-test`, with the operator's token and code, sends one test message and gives back its id, or says `off`. |
+| `NEXT_PUBLIC_SENTRY_DSN` | the site's error reports, read at **build** time. Unset, the site loads no Sentry script at all. Set, a browser sends its reports to `/api/report`, where the API cleans each with its own rule and forwards it to the project `SENTRY_DSN` names; nothing goes from a browser to Sentry directly (the site's `connect-src 'self'`). |
 
 ### Python version
 
