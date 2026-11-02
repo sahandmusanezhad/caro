@@ -8,6 +8,24 @@ is corrected in a commit of its own.
 
 What is left to do, and in what order, is in [ROADMAP](ROADMAP.md).
 
+## Who works on it
+
+Two people, since 2026-11-02, by the owner's choice of that day:
+
+- **The owner**, `sahandmusanezhad`, decides — technology, rules about
+  Persian, product, scope, what is sent where — starts every live request to
+  a source, and keeps `Tecso-Dev/caro` in step.
+- **Sobhan**, `sobhanaz`, builds the platform: the phases of
+  [REARCHITECTURE](REARCHITECTURE.md) — containers, environments, the edge,
+  observability, the front end's design system — and proposes; what he
+  proposes is the owner's to decide, as anything else here is.
+- **A session** builds what the owner has chosen, under the rules below.
+
+Each commits under their own name. The work is tracked as issues in
+[Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues), one per phase of
+the plan under an epic, and lands only by pull request into `main` of
+`github.com/sahandmusanezhad/caro`, from either person or a session.
+
 ## The round
 
 Every change goes through the same steps, and none is skipped because the
@@ -51,10 +69,12 @@ change looks small.
 
 ## Commits and pushes
 
-- **Every commit is authored and committed as
-  `sahandmusanezhad <sahand.mosanejad4488@gmail.com>`**, and under no other
-  name or address. The one exception is the merge commit GitHub writes when a
-  pull request is merged, which carries his account.
+- **Every commit carries the name of the person whose work it is.** The
+  owner's, and a session's, are authored and committed as
+  `sahandmusanezhad <sahand.mosanejad4488@gmail.com>`, under no other name or
+  address; Sobhan's under his own. Writing one person's name on the other's
+  work would misstate who did it. The merge commit GitHub writes when a pull
+  request is merged carries the account that merged it.
 - **No trailer of any kind** — no co-author line, no session link, no line
   that credits a tool with the work — and no tool or vendor name in any file,
   commit message or branch name of this repository.
