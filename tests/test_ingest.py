@@ -4981,6 +4981,197 @@ check("FPR: the run's report prints the price it holds apart, with its numbers -
       and _re.search(r"price is far_from_model\s+1\b", _fr_txt) is not None,
       _fr_line or _fr_txt[-400:])
 
+# ---------------------------------------------------------------------------
+print("\nreach_probe: can this machine reach the hosts the platform plan would use")
+# Phase 0 of the plan (docs/REARCHITECTURE.md): the owner runs it from inside
+# Iran, and it decides where the API and Postgres live. Predictions RP1..RP6
+# (2026-11-02, locked before the code). Every server here is made here, on
+# 127.0.0.1, and the probe's connector refuses any other address, so the
+# suite reaches nothing outside this machine.
+import socket as _rp_socket                                            # noqa: E402
+import ssl as _rp_ssl                                                  # noqa: E402
+import threading as _rp_threading                                      # noqa: E402
+import time as _rp_time                                                # noqa: E402
+
+from scripts import reach_probe as _rp                                 # noqa: E402
+
+_RP_SEEN: list = []
+
+
+def _rp_connect(addr, timeout=None):
+    """The probe's connector in this suite: 127.0.0.1 and nothing else."""
+    _RP_SEEN.append(addr[0])
+    if addr[0] != "127.0.0.1":
+        raise AssertionError(f"the suite tried to reach {addr[0]}")
+    return _rp_socket.create_connection(addr, timeout=timeout)
+
+
+def _rp_serve(handler):
+    s = _rp_socket.socket()
+    s.bind(("127.0.0.1", 0))
+    s.listen(8)
+
+    def loop():
+        while True:
+            try:
+                c, _ = s.accept()
+            except OSError:
+                return
+            _rp_threading.Thread(target=handler, args=(c,), daemon=True).start()
+    _rp_threading.Thread(target=loop, daemon=True).start()
+    return s, s.getsockname()[1]
+
+
+def _rp_garbage(c):
+    c.sendall(b"hello, this is not TLS\r\n")
+    _rp_time.sleep(0.2)
+    c.close()
+
+
+def _rp_silent(c):
+    _rp_time.sleep(1.5)
+    c.close()
+
+
+def _rp_rst(c):
+    c.setsockopt(_rp_socket.SOL_SOCKET, _rp_socket.SO_LINGER, b"\x01\x00\x00\x00\x00\x00\x00\x00")
+    c.recv(64)
+    c.close()
+
+
+def _rp_http(line):
+    def h(c):
+        c.recv(1024)
+        c.sendall(line)
+        c.close()
+    return h
+
+
+class _RPPlain:
+    """A context that hands back the socket as it is: HTTP over plain TCP,
+    so the status line can be read without a certificate."""
+    def wrap_socket(self, sock, server_hostname=None):
+        return sock
+
+
+_rp_servers = {k: _rp_serve(h) for k, h in (
+    ("garbage", _rp_garbage), ("silent", _rp_silent), ("rst", _rp_rst),
+    ("204", _rp_http(b"HTTP/1.1 204 No Content\r\n\r\n")),
+    ("ssh", _rp_http(b"SSH-2.0-OpenSSH_9.6\r\n")))}
+_rp_closed = _rp_socket.socket()
+_rp_closed.bind(("127.0.0.1", 0))
+_RP_CLOSED = _rp_closed.getsockname()[1]
+_rp_closed.close()
+
+
+def _rp_local(**kw):
+    return _rp.Probe(timeout=0.5, pause=0.0, allow_private=True, connect=_rp_connect, **kw)
+
+
+def _rp_t(name, port, **kw):
+    return _rp.Target(name, "127.0.0.1", port, **kw)
+
+
+_rp_kinds = {name: (a.ok, a.kind, a.failed_at) for name, a in (
+    (n, _rp_local().attempt(t, 1)) for n, t in (
+        ("open", _rp_t("open", _rp_servers["garbage"][1], tls=False, http=False)),
+        ("closed", _rp_t("closed", _RP_CLOSED)),
+        ("garbage", _rp_t("garbage", _rp_servers["garbage"][1])),
+        ("silent", _rp_t("silent", _rp_servers["silent"][1])),
+        ("rst", _rp_t("rst", _rp_servers["rst"][1]))))}
+check("RP1: each failure is named by its kind and its step: a listening port is reached; a closed one is "
+      "refused; garbage where a handshake was expected is tls; silence is a timeout; a reset is a reset",
+      _rp_kinds == {"open": (True, None, None), "closed": (False, "refused", "tcp"),
+                    "garbage": (False, "tls", "tls"), "silent": (False, "timeout", "tls"),
+                    "rst": (False, "reset", "tls")}, str(_rp_kinds))
+
+
+def _rp_no_dns(*a, **kw):
+    raise _rp_socket.gaierror(-2, "Name or service not known")
+
+
+_rp_dialled: list = []
+_rp_poisoned = _rp.Probe(timeout=0.5, pause=0.0, connect=lambda addr, timeout=None: _rp_dialled.append(addr),
+                         resolve=lambda *a, **kw: [(_rp_socket.AF_INET, _rp_socket.SOCK_STREAM, 6, "",
+                                                    ("10.10.34.35", 443))])
+_rp_a2 = _rp_poisoned.attempt(_rp.Target("filtered", "blocked.example"), 1)
+_rp_b2 = _rp.Probe(resolve=_rp_no_dns, connect=_rp_connect).attempt(_rp.Target("nx", "nx.example"), 1)
+check("RP2: a name that does not resolve is dns; a public name answered with a private address is "
+      "dns-private, and nothing is dialled",
+      (_rp_b2.kind, _rp_b2.failed_at) == ("dns", "dns")
+      and (_rp_a2.kind, _rp_a2.failed_at, _rp_a2.address) == ("dns-private", "dns", "10.10.34.35")
+      and _rp_dialled == [], str((_rp_b2, _rp_a2, _rp_dialled)))
+
+_rp_c3 = _rp_local(context=_RPPlain()).attempt(_rp_t("204", _rp_servers["204"][1]), 1)
+_rp_d3 = _rp_local(context=_RPPlain()).attempt(_rp_t("ssh", _rp_servers["ssh"][1]), 1)
+check("RP3: the first line after HEAD / is read as a status: 204 is reached with its status; a line "
+      "that is not HTTP is http",
+      (_rp_c3.ok, _rp_c3.status, _rp_c3.http_ms is not None) == (True, 204, True)
+      and (_rp_d3.ok, _rp_d3.kind, _rp_d3.failed_at) == (False, "http", "http"), str((_rp_c3, _rp_d3)))
+
+_rp_now = [100.0]
+_rp_slept: list = []
+_rp_conn_at: list = []
+
+
+def _rp_sleep(s):
+    _rp_slept.append(round(s, 3))
+    _rp_now[0] += s
+
+
+def _rp_timed_connect(addr, timeout=None):
+    _rp_conn_at.append((addr[1], _rp_now[0]))
+    _rp_now[0] += 0.3
+    return _rp_connect(addr, timeout=timeout)
+
+
+_rp_p4 = _rp.Probe(timeout=0.5, pause=2.0, allow_private=True, connect=_rp_timed_connect,
+                   clock=lambda: _rp_now[0], sleep=_rp_sleep)
+_rp_port = _rp_servers["garbage"][1]
+_rp_four = _rp_p4.run([_rp_t("a", _rp_port, tls=False, http=False),
+                       _rp_t("b", _RP_CLOSED, tls=False, http=False)], 3)
+_rp_gaps = [b - a for (_, a), (_, b) in zip(_rp_conn_at, _rp_conn_at[1:])]
+check("RP4: round by round, every target once in each, and never less than the pause between two "
+      "connections to one host -- the two targets here share 127.0.0.1",
+      [a.target for a in _rp_four] == ["a", "b"] * 3 and len(_rp_conn_at) == 6
+      and all(g >= 2.0 - 1e-9 for g in _rp_gaps) and _rp_slept and all(x > 0 for x in _rp_slept),
+      str((_rp_gaps, _rp_slept)))
+
+_rp_rec = _rp.record(_rp_four + [_rp_c3, _rp_a2], rounds=3, timeout=0.5, pause=2.0, ran_at="2026-11-02T00:00:00+00:00")
+_rp_txt = json.dumps(_rp_rec)
+_rp_table = _rp.table(_rp_four + [_rp_c3])
+check("RP5: the record holds every attempt with its steps and kind, and nothing about the machine it ran "
+      "on; the table gives each target's medians, how many of its rounds reached it, and its failures "
+      "by kind and step",
+      _rp_rec["schema"] == "caro.reach/1" and len(_rp_rec["attempts"]) == 8
+      and set(_rp_rec) == {"schema", "ran_at", "rounds", "timeout_s", "pause_s", "attempts"}
+      and _rp_socket.gethostname() not in _rp_txt
+      and "3/3" in _rp_table and "refused at tcp ×3" in _rp_table and "204" in _rp_table,
+      _rp_table)
+
+_rp_out = _Path(_tempfile.mkdtemp()) / "reach.json"
+_rp_buf, _rp_err = _io.StringIO(), _io.StringIO()
+with _contextlib.redirect_stdout(_rp_buf), _contextlib.redirect_stderr(_rp_err):
+    _rp_rc = _rp.main(["--only", "--rounds", "1", "--pause", "0", "--target", f"local=127.0.0.1:{_RP_CLOSED}",
+                       "--postgres", f"127.0.0.1:{_rp_port}", "--postgres", "127.0.0.1", "--json", str(_rp_out)])
+_rp_written = json.loads(_rp_out.read_text(encoding="utf-8")) if _rp_out.exists() else {"attempts": []}
+_rp_w = [(a["target"], a["port"], a["kind"], a["tcp_ms"]) for a in _rp_written["attempts"]]
+check("RP6: from the command line, only the targets given -- a host's own name, a Postgres endpoint "
+      "on 5432 unless given -- the table printed and every attempt written; a target that resolves to a "
+      "private address is refused there before any connection; and no address but 127.0.0.1 was "
+      "reached in this whole section",
+      _rp_rc == 0 and _rp_w == [("local", _RP_CLOSED, "dns-private", None),
+                                ("Postgres 127.0.0.1", _rp_port, "dns-private", None),
+                                ("Postgres 127.0.0.1", 5432, "dns-private", None)]
+      and "dns-private at dns" in _rp_buf.getvalue()
+      and _rp.parse_target("db.example") == _rp.Target("db.example", "db.example", 443)
+      and _rp.parse_target("vps=203.0.113.7:8443") == _rp.Target("vps", "203.0.113.7", 8443)
+      and set(_RP_SEEN) == {"127.0.0.1"},
+      str((_rp_rc, _rp_w, _rp_err.getvalue()[-300:])))
+for _s, _p in _rp_servers.values():
+    _s.close()
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
