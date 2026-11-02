@@ -133,8 +133,25 @@ intent → explain the best choice**.
 | deployed | ✅ **from `main`** — one Vercel project of two services (D64, D80), following [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro). |
 
 Everything that is left until the end of the project — in order, with what
-closes each item and who does it — is in [ROADMAP](docs/ROADMAP.md). How the
-work is done, and the rules every session keeps, are in
+closes each item and who does it — is in [ROADMAP](docs/ROADMAP.md), in two
+tracks. The evidence track is the owner's: Divar live, a larger corpus over
+time, an estimator that clears the gate. The platform track is the 2026
+plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
+2026-11-02 with its review's amendments, each phase an issue in
+[Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues):
+
+| Phase | What | State |
+|---|---|---|
+| 0 | foundation: the agreement for two, `caro.noxioai.com` behind Cloudflare, alerts, branch protection, a reachability probe from Iran | the agreement and the plan done |
+| 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | next |
+| 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | the catalog built, off by default |
+| 3 | the queue in Postgres, the collection worker | |
+| 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | |
+| 5 | the design system and the panels, in Next.js | |
+| 6 | the site in its own image, Vercel retired | |
+| 7 | observability, ten times the load, D56's measurements, Kubernetes decided | |
+
+How the work is done, and the rules every session keeps, are in
 [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md).
 
 ### Try it
@@ -772,11 +789,12 @@ The rules every session keeps are in
 6. **After the merge**, CI on `main` and the site are read from the outside,
    and only then is the decision recorded.
 
-**Two repositories hold this code.** Work lands in
-[sahandmusanezhad/caro](https://github.com/sahandmusanezhad/caro), by pull
-request; [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro) is kept at the
-same `main` by the owner after every merge, and the deployed site follows
-it.
+**Two people, two repositories.** The owner decides and runs the live
+collections; Sobhan builds the platform; each commits under their own name.
+Work lands in [sahandmusanezhad/caro](https://github.com/sahandmusanezhad/caro),
+by pull request; [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro) holds
+the issues, is kept at the same `main` by the owner after every merge, and
+the deployed site follows it.
 
 ## Repository layout
 
@@ -800,6 +818,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) ·
 | [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md) | how the work is done: measured rounds, separate commits, pull requests, and the rules no session breaks |
 | [DECISIONS](docs/DECISIONS.md) | the design record, including bugs found and what they cost |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
+| [REARCHITECTURE](docs/REARCHITECTURE.md) | the 2026 plan for the platform, phases 0 to 7: Sobhan's, accepted with its review's amendments |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |
