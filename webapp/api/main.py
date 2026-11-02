@@ -58,6 +58,11 @@ from webapp.api.schemas import (                                   # noqa: E402
     ReweightRequest, ScoredItem, SearchResponse, ServingStatus,
     UncheckedItem, Weights,
 )
+from webapp.api.observability import init_sentry                   # noqa: E402
+
+# Error reports, before the app exists so that the SDK sees it built. Off
+# without SENTRY_DSN; with it, nothing personal leaves (observability.py).
+init_sentry()
 
 app = FastAPI(title="CARO", version="0.2.0",
               description="سامانه‌ی تصمیم‌یار خرید خودروی کارکرده")

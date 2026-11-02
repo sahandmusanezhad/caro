@@ -40,7 +40,7 @@ WANT_EXTRAS=0
 # that stays numpy-only, which is the claim the README makes and this script
 # must not quietly break.
 if [ "$WANT_EXTRAS" = "1" ]; then
-  PKGS="numpy scipy fastapi pydantic uvicorn"
+  PKGS="numpy scipy fastapi pydantic uvicorn sentry_sdk"
   WHAT="numpy and the test extras"
   THEN="sixteen of seventeen suites — the seventeenth also needs node: (cd webapp/web && npm install)"
 else

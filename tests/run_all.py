@@ -74,7 +74,7 @@ SUITES = [
     # the cheap check.
     ("--  contract", "tests/test_api_contract.py",
      "every endpoint, in every corpus state, against the client's types",
-     ("fastapi", "pydantic"), "pip install -r webapp/requirements.txt",
+     ("fastapi", "pydantic", "sentry_sdk"), "pip install -r webapp/requirements.txt",
      ("fastapi.testclient",)),
     # Draws the site's own components with the site's own TypeScript, so it
     # needs node and the web app's node_modules. Declared like any module and
