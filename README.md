@@ -599,7 +599,9 @@ reads "14 of 17". scipy builds an oracle inside `tests/test_appraisal.py`,
 fastapi is only reachable from `webapp/`, and node only draws the site's own
 components in `tests/test_screens.py`. `.github/workflows/ci.yml` runs every
 suite and the site's type check, lint and build on each push to `main` and
-each pull request, and fails when a suite is skipped.
+each pull request, and fails when a suite is skipped. A third job runs the
+seller store, the catalog and the site served from the catalog once more
+against a real Postgres 16, where a laptop and the other jobs use SQLite.
 
 <details>
 <summary><b>Why <code>setup.sh</code>, why no scikit-learn, and the scripts that need a corpus no clone has</b></summary>
