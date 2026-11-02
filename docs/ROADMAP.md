@@ -50,12 +50,15 @@ an item says so.
 ### Now
 
 - **The decision entries for the merged work since D84** — this
-  repository's pull requests #5 to #10 and the plan's own: the price far
-  from its model's middle, the README, the services design, run17 served,
-  the plan, and the catalog. A session, once the owner has read the site
-  from the outside after the last of them (operations, item 2).
+  repository's pull requests #5 to #15: the price far from its model's
+  middle, the README, the services design, run17 served, the catalog, the
+  plan and its acceptance with the agreement for two, the one table of
+  model names, and phase 0's parts -- the probe and the hosting it decided,
+  error reports. A session, once the owner has read the site from the
+  outside after the last of them (operations, item 2).
 - **`Tecso-Dev/caro` brought to `main`.** The owner; its `main` was last
-  brought in step at this repository's pull request #6.
+  brought in step at this repository's pull request #13, so the site does
+  not run #14 and #15 yet.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -104,18 +107,20 @@ names. Durations are for two people part-time.
 
 0. **Foundation and governance** (issue #3; a week; both). Done: the working
    agreement for two people; the plan accepted and merged; CODEOWNERS;
-   Sentry in the API, off until its DSN is set, with no personal data in an
-   event; and the reachability probe, run by the owner from Iran on
+   error reports from the API and from the site, off until a DSN is set,
+   with no personal data in an event -- the site's go through the API's
+   `/api/report` and its scrubber; the operator's test report; the site
+   check; and the reachability probe, run by the owner from Iran on
    2026-11-02 with no VPN -- Hetzner reached 0 times in 15, Cloudflare,
    Vercel, GitHub, its registry and Neon every time -- after which the owner
    chose Hetzner reached only through Cloudflare, Postgres beside the API
-   (REARCHITECTURE, phase 0). Left, every step written down in
-   [PHASE0_SETUP](PHASE0_SETUP.md): `caro.noxioai.com` proxied through
-   Cloudflare (WAF, a first rate limit on `/api/*`, `/api/*` not cached until
-   phase 4); Sentry's DSN set, and Sentry on the site; UptimeRobot on
-   `/api/health` and `/`, alerting to Telegram; branch protection on `main`
-   and the `staging` and `production` environments. **Waits on the owner:**
-   the accounts and the DNS.
+   (REARCHITECTURE, phase 0). Left, all of it in the owner's accounts and
+   every step written down in [PHASE0_SETUP](PHASE0_SETUP.md): branch
+   protection on `main` and the `staging` and `production` environments;
+   Sentry's DSN set for the API and the site; `caro.noxioai.com` proxied
+   through Cloudflare (WAF, a first rate limit on `/api/*`, `/api/*` not
+   cached until phase 4); UptimeRobot on `/api/health` and `/`, alerting to
+   Telegram. **Waits on the owner:** the accounts and the DNS.
 1. **Containers and environments** (issue #4; one to two weeks; Sobhan, a
    session). One image for the API and the workers, a role per command, and
    one for the site; `compose.yml` for a laptop (API, Postgres) and

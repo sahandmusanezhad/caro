@@ -142,7 +142,7 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 
 | Phase | What | State |
 |---|---|---|
-| 0 | foundation: the agreement for two, `caro.noxioai.com` behind Cloudflare, alerts, branch protection, a reachability probe from Iran | the agreement and the plan done |
+| 0 | foundation: the agreement for two, `caro.noxioai.com` behind Cloudflare, alerts, branch protection, a reachability probe from Iran | the agreement, the plan, the probe and the hosting it decided, error reports, CODEOWNERS done; left, the owner's accounts ([the steps](docs/PHASE0_SETUP.md)) |
 | 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | next |
 | 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | the catalog built, off by default |
 | 3 | the queue in Postgres, the collection worker | |

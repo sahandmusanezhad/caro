@@ -4,9 +4,12 @@ Phase 0 of the plan ([REARCHITECTURE](REARCHITECTURE.md); Tecso-Dev/caro
 issue 3) closes when the site answers at `caro.noxioai.com` through
 Cloudflare, a test alert has reached Telegram, and its decision entry
 exists. What a session could build is built: the reachability probe, error
-reports in the API, the operator's test report, CODEOWNERS. What is left is
-done in four accounts, and only the owner can do it. Each step below says
-what to do, what to see when it worked, and what to send back.
+reports from the API and from the site, the operator's test report, the
+site check, CODEOWNERS. What is left is done in four accounts, and only the
+owner can do it. Each step below says what to do, what to see when it
+worked, and what to send back. Steps 2 and 3 test what the site runs, so
+first bring `Tecso-Dev/caro` to `main` (WORKING_AGREEMENT): the test report
+and the site's error reports are in it, and the site is deployed from it.
 
 No step asks for a key to be written here or in a conversation: a DSN, a
 token or a password is typed into the service that holds it, and stays
@@ -36,7 +39,7 @@ Worked when: the first command prints the protection back, with
 `"enforce_admins": {"enabled": true}`, and the other two print each
 environment's name. Send back: their last lines.
 
-## 2. Sentry: the API's error reports
+## 2. Sentry: error reports from the API and the site
 
 1. Make an account at sentry.io and a project whose platform is
    **FastAPI**. Copy its **DSN**.
@@ -62,7 +65,8 @@ what it printed.
    never to Sentry directly, which the site's policy forbids. To see one,
    open the site, open the browser's console, and run
    `setTimeout(() => { throw new Error("a test from the console") })`;
-   the error is in the project a few seconds later.
+   the error is in the project a few seconds later. Send back: whether it
+   arrived.
 
 ## 3. Cloudflare in front of `caro.noxioai.com`
 
