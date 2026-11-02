@@ -795,6 +795,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) ·
 | [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md) | how the work is done: measured rounds, separate commits, pull requests, and the rules no session breaks |
 | [DECISIONS](docs/DECISIONS.md) | the design record, including bugs found and what they cost |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
+| [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, and the way there |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |
 | [FIELD_PROVENANCE](docs/FIELD_PROVENANCE.md) | where each field of a listing comes from |
