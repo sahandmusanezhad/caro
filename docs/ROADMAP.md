@@ -50,12 +50,15 @@ an item says so.
 ### Now
 
 - **The decision entries for the merged work since D84** — this
-  repository's pull requests #5 to #10 and the plan's own: the price far
-  from its model's middle, the README, the services design, run17 served,
-  the plan, and the catalog. A session, once the owner has read the site
-  from the outside after the last of them (operations, item 2).
+  repository's pull requests #5 to #15: the price far from its model's
+  middle, the README, the services design, run17 served, the catalog, the
+  plan and its acceptance with the agreement for two, the one table of
+  model names, and phase 0's parts -- the probe and the hosting it decided,
+  error reports. A session, once the owner has read the site from the
+  outside after the last of them (operations, item 2).
 - **`Tecso-Dev/caro` brought to `main`.** The owner; its `main` was last
-  brought in step at this repository's pull request #6.
+  brought in step at this repository's pull request #13, so the site does
+  not run #14 and #15 yet.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
