@@ -58,7 +58,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from caro.ingest.corpus import SCHEMA, redact, validate           # noqa: E402
+from caro.ingest.corpus import SCHEMA, redact, serialize, validate  # noqa: E402
 from caro.ingest.divar_car import (                               # noqa: E402
     extract_body_condition, has_document_issue,
 )
@@ -289,8 +289,7 @@ def main() -> int:
         "listings": rows,
     }
 
-    serialized = json.dumps(artifact, ensure_ascii=False, indent=1,
-                            sort_keys=True)
+    serialized = serialize(artifact)
     violations = validate(artifact, serialized)
 
     print(f"{len(records)} in · {len(rows)} publishable · {len(refused)} refused")

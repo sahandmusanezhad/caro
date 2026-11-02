@@ -29,7 +29,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Any, Callable, Iterable, Iterator
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -129,6 +129,14 @@ class Database:
     # ---- statements --------------------------------------------------------
     def execute(self, sql: str, params: tuple = ()) -> Any:
         return self.conn.execute(to_driver(sql, self.dialect), params)
+
+    def execute_many(self, sql: str, params: Iterable[tuple]) -> None:
+        """One statement for many rows, in one round of the driver's."""
+        cur = self.conn.cursor()
+        try:
+            cur.executemany(to_driver(sql, self.dialect), params)
+        finally:
+            cur.close()
 
     def rows(self, sql: str, params: tuple = ()) -> list[dict]:
         cur = self.execute(sql, params)

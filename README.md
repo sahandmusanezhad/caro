@@ -574,28 +574,28 @@ decision API reads them.
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 #                                   add --extras, and npm install in
-#                                   webapp/web, for all sixteen suites
+#                                   webapp/web, for all seventeen suites
 
-python3 tests/run_all.py            # 3492 assertions, no API key, no network
+python3 tests/run_all.py            # 3506 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
 ```
 
 Those run on a clean clone with no network. **numpy is the only hard
-dependency of `caro/`.** Three of the sixteen test suites need more, and the
+dependency of `caro/`.** Three of the seventeen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2779 assertions across 13 of 16 suites
+python3 tests/run_all.py            # 2793 assertions across 14 of 17 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3492 across all sixteen
+python3 tests/run_all.py            # 3506 across all seventeen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
 command that enables it — skipped is never printed as passed, and the count
-reads "13 of 16". scipy builds an oracle inside `tests/test_appraisal.py`,
+reads "14 of 17". scipy builds an oracle inside `tests/test_appraisal.py`,
 fastapi is only reachable from `webapp/`, and node only draws the site's own
 components in `tests/test_screens.py`. `.github/workflows/ci.yml` runs every
 suite and the site's type check, lint and build on each push to `main` and
@@ -777,10 +777,10 @@ it.
 
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
-                 ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3492 assertions across sixteen suites
+                 ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
+tests/           3506 assertions across seventeen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
-scripts/         setup, live runs, promotion, replays, the benchmarks, the probes, the charts
+scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json

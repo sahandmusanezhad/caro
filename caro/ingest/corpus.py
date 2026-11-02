@@ -20,6 +20,7 @@ fails, and the corpus test suite fails the build.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 
@@ -157,6 +158,14 @@ def scan_keys(obj, *, path: str = "") -> list[Violation]:
         for i, v in enumerate(obj):
             out += scan_keys(v, path=f"{path}[{i}]")
     return out
+
+
+def serialize(artifact: dict) -> str:
+    """The text a published corpus is, byte for byte. Promotion writes it
+    (scripts/promote_corpus.py), and the catalog gives it back from its rows
+    (caro/catalog.py) -- one function, so the digest of a run is the same
+    whichever of the two made the text."""
+    return json.dumps(artifact, ensure_ascii=False, indent=1, sort_keys=True)
 
 
 def validate(obj, serialized: str) -> list[Violation]:
