@@ -7,19 +7,21 @@ the predictions are written first, the measurement is run, the owner decides
 on it, and the change goes in, in its own commit
 ([WORKING_AGREEMENT](WORKING_AGREEMENT.md)).
 
-Last revised 2026-11-01.
+Last revised 2026-11-02.
 
-Who does what:
+Who does what ([WORKING_AGREEMENT](WORKING_AGREEMENT.md), «Who works on it»):
 
-- **The owner** starts every live request to a source, on his own machine;
-  makes every choice of technology, of a rule about Persian, and of product;
-  pushes; and decides what is sent where.
+- **The owner** starts every live request to a source, on the owner's own
+  machine; makes every choice of technology, of a rule about Persian, and of
+  product; and decides what is sent where.
+- **Sobhan** builds the platform track below and proposes; each of its
+  phases is an issue in [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues),
+  under the epic #2 there.
 - **The deploy holder** owns the Vercel project and makes every change there
-  (D78). The owner passes him the steps.
-- **A session** — an assistant working on the owner's machine, or one that
-  hands him commits to apply — measures, builds what the owner has chosen,
-  commits under his name, writes the D-entry once his push is seen, and stops
-  before the push.
+  (D78) until phase 6 of the platform track retires it.
+- **A session** measures, builds what the owner has chosen, commits under the
+  owner's name, lands the work by a pull request it merges once CI is green,
+  and writes the D-entry after CI on `main` and the site are read.
 
 ## Where it stands against the brief
 
@@ -36,67 +38,122 @@ intent → explain the best choice**.
 
 ## The order of work
 
-The items below, in the order they are meant to be done. Each one names the
-section that holds its detail.
+Two tracks, side by side. **The evidence track** is the owner's, and is what
+CARO is for: more real data, read honestly, and an estimator that earns the
+right to rank. **The platform track** is the 2026 plan,
+[REARCHITECTURE](REARCHITECTURE.md), accepted on 2026-11-02 with its
+review's amendments: it changes what is under the decision core — where it
+runs, how a collection is scheduled, how an answer is served and watched —
+and nothing on the decision path. Neither waits on the other, except where
+an item says so.
 
-1. **The next D-entry, once this round is pushed.** A session. First: the
-   owner pushes the four commits of 2026-10-25 (D84, the README, this roadmap,
-   the working agreement). Closes when both repositories hold them, CI is
-   green on the tip of the push, `/about` states 84 decisions, and the next
-   entry records the push with his hashes, as D84 does for the nine commits
-   before it.
-2. **The floor topics** — the other words for a floor, the bare «X به بالا»,
-   ranges, and the negated floor (the parser, item 5). A session measures and
-   builds; the owner decides each. Two are built and wait for their push --
-   the other words for a floor, and the negated floor, which the owner took on
-   2026-10-30 -- and two are left. Closes each when its round is recorded in a
-   D-entry after the push.
-3. **CI's warnings** (operations, item 1). The owner chose both changes on
-   2026-10-30 and both are built; what is left is the first CI run after the
-   push, which closes the item if it carries no warning.
-4. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
-   owner, on his machine, after the review it names. The probe is done, the
-   extraction is written and has read one saved page; what is left is the
-   odd cases and the brands it lists (`first_run.py --page <the saved file>`),
-   a probe of `?page=2`, and then the run. The run's plan and its predictions
-   are written: [RUN_PLAN_DIVAR_FIRST](RUN_PLAN_DIVAR_FIRST.md).
-5. **A larger real corpus, and collection over time** (the product gaps, item
+### Now
+
+- **The decision entries for the merged work since D84** — this
+  repository's pull requests #5 to #10 and the plan's own: the price far
+  from its model's middle, the README, the services design, run17 served,
+  the plan, and the catalog. A session, once the owner has read the site
+  from the outside after the last of them (operations, item 2).
+- **`Tecso-Dev/caro` brought to `main`.** The owner; its `main` was last
+  brought in step at this repository's pull request #6.
+- **Khodro45 every day** on the owner's machine, 60 pages a run since
+  2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
+
+### The evidence track
+
+1. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
+   owner, on the owner's machine, after the review it names. The probe is
+   done, the extraction is written and has read one saved page; what is left
+   is the odd cases and the brands it lists (`first_run.py --page <the saved
+   file>`), a probe of `?page=2`, and then the run. The run's plan and its
+   predictions are written: [RUN_PLAN_DIVAR_FIRST](RUN_PLAN_DIVAR_FIRST.md).
+2. **A larger real corpus, and collection over time** (the product gaps, item
    1). The owner runs it; a session writes the run's plan and predictions and
-   reads what comes back.
-6. **Sheypoor and Khodro45** (the product gaps, item 1). The owner probes;
-   a session builds the adapter offline from what the probe kept. Both are
-   built (2026-10-29), against the owner's saved pages: Khodro45's list,
-   Sheypoor's list and two of its listing pages, whose year and odometer the
-   list does not give. The offline reads have been made and acted on (the
-   plan's addendum); what is left is the first live runs. The plan and its
-   predictions: [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
-7. **An estimator that clears the gate on real data** (the product gaps, item
-   2). A session, on the corpus of step 5. It is what reopens the ranked
+   reads what comes back. Khodro45's daily runs are the first of it; the
+   catalog (platform phase 2) is where a month of them is read without every
+   corpus in memory.
+3. **Sheypoor** (the product gaps, item 1). Its adapter is built and has run
+   live on the owner's machine since 2026-10-30; none of its runs is
+   published. The plan and its predictions:
+   [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
+4. **The parser's open topics** (the parser). The floor topics left — ranges
+   and the bare «X به بالا» — the models it does not know yet, «سمند» and
+   «تارا» among them, and the five ways Khodro45 writes an assembled model's
+   name. A session measures and builds; the owner decides each.
+5. **An estimator that clears the gate on real data** (the product gaps, item
+   2). A session, on the corpus of item 2. It is what reopens the ranked
    path's two items (the parser, items 1 and 2), compare's gated branch, and
    the calibration of the confidence policy (the product gaps, item 6).
-8. **The product additions** — accident damage from listing photos, a login
-   by authenticator, and the contact inbox on the deployed site (the product
-   gaps, items 3, 4 and 5). The owner decides each design first. The
-   options for accounts, payment and the operator's login are written, each
-   with what it needs from the owner and the one a session recommends:
-   [ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md). On 2026-10-30 the owner
-   chose the login by authenticator (O1) and «پیش از خرید» (B1); both are
-   built and wait for the push. No payment (P0). Later the same day the owner
-   chose listings that sellers post on CARO themselves, with a number shown
-   only by their choice, built alongside the first live runs: the design and
-   the choices it waits on are [SELLER_LISTINGS](SELLER_LISTINGS.md). Five
-   of its six steps are built -- the store, the login against a fake SMS
-   provider, the listing with its reveal, the operator's view with the
-   reports, and the site's pages. What is left is the owner's: the SMS
-   provider, the Postgres driver, and the deploy holder setting the store's
-   address and secret. Until then the deployed site shows the pages and says
-   that this deployment does not take listings.
-9. **The demo** (the end). The last: the demo script brought up to date with
-   the site as it is, recorded, and sent where the owner decides.
+6. **The product additions** (the product gaps, items 3 to 5): accident
+   damage from listing photos, and the listings sellers post, built in five
+   of six steps ([SELLER_LISTINGS](SELLER_LISTINGS.md)); what is left of them
+   is the owner's — the SMS provider, the Postgres driver in production, and
+   the store's address and secret — and is platform phase 2.
+7. **The demo** (the end). The last.
 
-Steps 1 to 3 need no live request and no new decision about data; 4 to 6 are
-the owner's live runs; 7 depends on 5; 8 and 9 can wait for 7, or not, as
-the owner chooses.
+### The platform track
+
+Each phase is one issue in `Tecso-Dev/caro` — the issue numbers below are
+that repository's — and a phase starts when the one before it is closed, and never before the owner has made the decisions it
+names. Durations are for two people part-time.
+
+0. **Foundation and governance** (issue #3; a week; both). Done: the working
+   agreement for two people, and the plan accepted and merged. Left:
+   `caro.noxioai.com` proxied through Cloudflare (WAF, a first rate limit on
+   `/api/*`, `/api/*` not cached until phase 4); Sentry on the API and the
+   site, with no personal data in an event; UptimeRobot on `/api/health` and
+   `/`, alerting to Telegram; branch protection on `main`, the `staging` and
+   `production` environments, CODEOWNERS; and a reachability probe from
+   inside Iran to Hetzner and Neon, recorded. **Waits on the owner:** the
+   accounts and the DNS, and the probe, which only someone in Iran can run.
+1. **Containers and environments** (issue #4; one to two weeks; Sobhan, a
+   session). One image for the API and the workers, a role per command, and
+   one for the site; `compose.yml` for a laptop (API, Postgres) and
+   `compose.vps.yml` (nginx, API, Postgres or Neon); images in GHCR; staging
+   on every merge into `main`, production on a tag; the API leaves Vercel for
+   the VPS. Closes when staging and production answer from the VPS through
+   Cloudflare and the contract suite is green against staging. Reopens D64
+   for the API.
+2. **The data layer and the seller listings** (issue #5; about two weeks;
+   Sobhan, two decisions of the owner's). Done: the listings read model, as
+   the catalog (this repository's pull request #10), and the seller store's
+   suite on a real Postgres in CI. Left: promotion writing into the catalog, with the per-model
+   summaries ([SERVICES](SERVICES.md), step 2); production on Postgres (Neon,
+   or Compose if the probe says so) and the site served from the catalog;
+   the SMS provider behind the existing interface, tried by the owner on the
+   owner's own number first; the seller listings switched on in production;
+   a private bucket for snapshots; the 50 MB rule for corpora written into
+   DATA_CONTRACT. **Waits on the owner:** the provider, the database.
+3. **The queue and the collection worker** (issue #6; about two weeks; both).
+   The queue in Postgres — SERVICES.md's `jobs` table, taken with
+   `FOR UPDATE SKIP LOCKED` — and a worker of the same package that runs
+   `first_run.collect` as a job, writes its transcript and snapshot, and holds
+   one lock per source; the daily Khodro45 run on its pin; promotion still a
+   reviewed pull request; alerts for a run that did not come, stopped on a
+   block or a robots.txt answering 5xx, or counted far from its usual range.
+   The worker runs on the owner's machine until the owner decides that a VPS
+   the owner controls counts as that machine. Reopens D47 (no queue) and the
+   working agreement's live-request rule.
+4. **The edge** (issue #7; about a week; Sobhan). `ETag` carrying the corpus
+   digest on the three pure reads, cached at the edge and purged on
+   promotion, keyed as D47 requires; rate limits tuned from what phases 0 to
+   3 saw; Turnstile on the seller login and the contact form, on our own
+   site only; a k6 baseline on `/api/search` with its p95 target written
+   down. Reopens D47 (no cache), at the edge only.
+5. **The design system and the panels, in Next.js** (issue #10; one to two
+   weeks; Sobhan). Tokens that start from the site's palette and evolve,
+   with `tests/test_palette.py`'s contrast checks; the operator and seller
+   panels brought into it; Playwright end-to-end on the key routes, in CI.
+6. **The site in its own image, Vercel retired** (issue #8; about a week;
+   Sobhan, reviewed by the owner). The site's standalone build beside the API
+   behind nginx, through Cloudflare, every suite run against the same code.
+   Reopens D64 for the site.
+7. **Observability, scale, and the D56 review** (issue #9; about two weeks;
+   both). OpenTelemetry to Grafana, dashboards and SLOs, the full alert
+   catalogue; k6 at ten times the target; D56's three conditions measured,
+   and then a written decision on Go for the collector, on any boundary
+   inside the decision core, and on Kubernetes — whether one VPS still holds
+   ten times the target — each its own D-entry.
 
 ## The parser — open, recorded
 
@@ -527,9 +584,10 @@ the owner chooses.
    of the site (`webapp/web/public/fonts`), so `next lint` reports nothing.
    What is left is the first run after the push: both jobs green and no
    warning on either.
-2. **After every push.** CI on both repositories, and the site read from the
-   outside: `/about`'s counts, and the queries the push changed. What was
-   read goes into the next D-entry.
+2. **After every merge.** CI on `main`, and the site read from the outside:
+   `/about`'s counts, and the queries the merge changed. What was read goes
+   into the next D-entry. The sandbox a session works in cannot reach the
+   site, so the owner runs the read and passes back what it printed.
 
 ## The end
 
