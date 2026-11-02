@@ -109,7 +109,8 @@ names. Durations are for two people part-time.
    2026-11-02 with no VPN -- Hetzner reached 0 times in 15, Cloudflare,
    Vercel, GitHub, its registry and Neon every time -- after which the owner
    chose Hetzner reached only through Cloudflare, Postgres beside the API
-   (REARCHITECTURE, phase 0). Left: `caro.noxioai.com` proxied through
+   (REARCHITECTURE, phase 0). Left, every step written down in
+   [PHASE0_SETUP](PHASE0_SETUP.md): `caro.noxioai.com` proxied through
    Cloudflare (WAF, a first rate limit on `/api/*`, `/api/*` not cached until
    phase 4); Sentry's DSN set, and Sentry on the site; UptimeRobot on
    `/api/health` and `/`, alerting to Telegram; branch protection on `main`
