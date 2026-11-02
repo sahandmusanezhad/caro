@@ -597,7 +597,8 @@ names. Durations are for two people part-time.
 2. **After every merge.** CI on `main`, and the site read from the outside:
    `/about`'s counts, and the queries the merge changed. What was read goes
    into the next D-entry. The sandbox a session works in cannot reach the
-   site, so the owner runs the read and passes back what it printed.
+   site, so the owner runs the read -- `python3 scripts/site_check.py`, with
+   `--site` once the address changes -- and passes back what it printed.
 
 ## The end
 

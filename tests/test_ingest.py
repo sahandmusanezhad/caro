@@ -5192,6 +5192,24 @@ check("MD1: the listing parser and the search read one table -- every model of o
       str((_md_same, _md_read)))
 
 
+# ---------------------------------------------------------------------------
+print("\nsite_check: the site read from the outside, after a merge")
+# The owner runs it (a session's sandbox cannot reach the site); here it is
+# read on made pages, and pointed at a closed port on 127.0.0.1.
+from scripts import site_check as _sc                                  # noqa: E402
+
+_sc_html = ("<div><b>۸۴</b> تصمیم ثبت‌شده</div><p>۳۵۲۹ <i>گزاره</i>‌ی آزمون</p><span>۱۷ مجموعه</span>"
+            "<p>این ۸۴ تصمیم</p>")
+check("SC1: the counts /about publishes are read once each, in the page's order, through its markup",
+      _sc.about_counts(_sc_html) == ["۸۴=تصمیم", "۳۵۲۹=گزاره", "۱۷=مجموعه"], str(_sc.about_counts(_sc_html)))
+_sc_out, _sc_err = _io.StringIO(), _io.StringIO()
+with _contextlib.redirect_stdout(_sc_out), _contextlib.redirect_stderr(_sc_err):
+    _sc_rc = _sc.main(["--site", f"http://127.0.0.1:{_RP_CLOSED}"])
+check("SC2: a site that does not answer stops the check with exit 1 and says what failed, printing no "
+      "line that could be read as a result",
+      _sc_rc == 1 and _sc_out.getvalue() == "" and "stopped" in _sc_err.getvalue(), _sc_err.getvalue())
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
