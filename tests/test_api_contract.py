@@ -3045,6 +3045,34 @@ check("OB5: through the real SDK, an exception raised beside a seller's number a
       == [f"login asked for {ob_mod.REDACTED}"],
       _ob_body[:400])
 
+# ---------------------------------------------------------------------------
+print("\n27 — a model the search did not know is the model the buyer is shown")
+# ---------------------------------------------------------------------------
+# MODELS-B1 P1 (2026-11-02, locked before the build): on the served corpus,
+# «سمند زیر ۲ میلیارد» used to show every car under two billion. Counted here
+# from the served corpus with the site's own rule for a price, so the row
+# follows the corpus.
+from webapp.api.market import priced as _md_priced                   # noqa: E402
+
+corpus_mod.active.cache_clear()
+with contextlib.redirect_stdout(io.StringIO()):
+    _md_c = TestClient(api.app)
+    _md_cars = [x for x in corpus_mod.active().listings if x.product_class == "vehicle"]
+_md_rows = {}
+for _md_name, _md_model in (("سمند", "Samand"), ("تارا", "Tara"), ("رانا", "Runna")):
+    _r = _md_c.get("/api/search", params={"q": f"{_md_name} زیر ۲ میلیارد", "k": 24}).json()
+    _xs = [x for x in _md_cars if x.model == _md_model]
+    _shown = {e["model"] for e in _r["evidence"] + _r.get("evidence_unchecked", [])}
+    _md_rows[_md_model] = (
+        _r["intent"]["models"] == [_md_model.lower()] and _shown <= {_md_model}
+        and _r["evidence_total"] == sum(1 for x in _xs if _md_priced(x) is not None and _md_priced(x) <= 2_000_000_000)
+        and _r.get("evidence_unchecked_total") == sum(1 for x in _xs if _md_priced(x) is None),
+        _r["evidence_total"], _r.get("evidence_unchecked_total"), len(_xs))
+check(f"MD3: on {RUN}, «سمند», «تارا» and «رانا زیر ۲ میلیارد» show that model alone -- its priced listings "
+      f"under two billion, and apart the ones whose price is unread -- and none of another model",
+      all(v[0] for v in _md_rows.values()) and any(v[1] for v in _md_rows.values()), str(_md_rows))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

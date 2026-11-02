@@ -5172,6 +5172,26 @@ for _s, _p in _rp_servers.values():
     _s.close()
 
 
+# ---------------------------------------------------------------------------
+print("\nthe models read by name: one table for the listings and the search")
+# The drift MD2 (ranking suite) is about cannot come back: both readers take
+# their tables from caro/ingest/models.py, and this row holds them to it.
+from caro.ingest import models as _md_models                           # noqa: E402
+from caro.ingest.divar_car import MAKE_MODEL as _md_listing            # noqa: E402
+from caro.ingest.divar_car import extract_make_model as _md_extract    # noqa: E402
+from caro.ranking import MODEL_ALIASES as _md_search                   # noqa: E402
+
+_md_same = (_md_listing is _md_models.MAKE_MODEL
+            and list(_md_search) == [mo.lower() for _mk, mo in _md_listing]
+            and all(_md_search[mo.lower()] is names for (_mk, mo), names in _md_listing.items()))
+_md_read = [_md_extract(t) for t in ("سمند سورن ۱۴۰۰", "quick دنده ای", "دویست و شش تیپ ۲", "پژو207 اتوماتیک")]
+check("MD1: the listing parser and the search read one table -- every model of one is a model of the "
+      "other, by the same names, in the listing parser's order -- so the parser reads what the search "
+      "had alone: «quick», «دویست و شش», «پژو207»",
+      _md_same and _md_read == [("IKCO", "Samand"), ("Saipa", "Quik"), ("Peugeot", "206"), ("Peugeot", "207")],
+      str((_md_same, _md_read)))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
