@@ -41,16 +41,18 @@ ignorance with less excuse.
 
 ## What was measured, and how to measure it again
 
-One artifact: `data/corpora/run16.json` — 73 Bama listings, collected
-2026-10-15, `schema: caro.corpus/1`, the run the API serves by default, and
-the first whose every location line was read before it was published (D80).
-Three earlier runs on the same pin stay published: `run14.json` — 77
-listings, collected 2026-10-11, served until run16 — `run13.json` — 74
-listings, collected 2026-10-06, served until run14 — and `run11.json` — 76
-listings, collected 2026-09-10 (D57): this file was first measured on it,
-the decision record cites it, and its assignment is the non-vehicle the
-suites follow by name. Where a row below says what run11, run13 or run14
-held, it names it.
+One artifact: `data/corpora/run17.json` — 492 Khodro45 listings, collected
+2026-10-30, `schema: caro.corpus/1`, the run the API serves by default since
+2026-11-02, every line of it read before it was published. Four earlier
+runs, Bama's, stay published: `run16.json` — 73 listings, collected
+2026-10-15, served until run17, the first whose every location line was read
+before it was published (D80) — `run14.json` — 77 listings, collected
+2026-10-11, served until run16 — `run13.json` — 74 listings, collected
+2026-10-06, served until run14 — and `run11.json` — 76 listings, collected
+2026-09-10 (D57): this file was first measured on it, the decision record
+cites it, and its assignment is the non-vehicle the suites follow by name.
+Where a row or a section below says what run16 or an earlier run held, it
+names it.
 
 A value counts as filled when it is not null, empty, `"unknown"` or `"none"`.
 Distinct counts the filled values.
@@ -58,7 +60,7 @@ Distinct counts the filled values.
 ```python
 import json
 from pathlib import Path
-rows = json.loads(Path("data/corpora/run16.json").read_text(encoding="utf-8"))["listings"]
+rows = json.loads(Path("data/corpora/run17.json").read_text(encoding="utf-8"))["listings"]
 EMPTY = {None, "", "unknown", "none"}
 for k in sorted({k for r in rows for k in r}):
     nn = [r.get(k) for r in rows if r.get(k) not in EMPTY]
@@ -68,36 +70,37 @@ for k in sorted({k for r in rows for k in r}):
 
 ## The table
 
-`filled` and `distinct` are that script's output on run16, unedited.
+`filled` and `distinct` are that script's output on run17, unedited; where a
+reason gives run16's figure, it names it.
 
 | field | status | filled | distinct | card | detail | gate | facet | reason |
 |---|---|---|---|---|---|---|---|---|
-| `listing_id` | `SOURCE_BACKED` | 73/73 | 73 | no | no | no | no | identity; keyed on, never drawn |
-| `source_url` | `SOURCE_BACKED` | 73/73 | 73 | yes | yes | no | no | the source's own statement of where the listing lives |
-| `make` | `SOURCE_BACKED` | 73/73 | 1 | yes | yes | no | no | one distinct value here; a filter over it offers one choice |
-| `model` | `SOURCE_BACKED` | 73/73 | 3 | yes | yes | no | yes |  |
-| `trim` | `SOURCE_BACKED` | 73/73 | 22 | yes | yes | no | yes |  |
-| `year_jalali` | `SOURCE_BACKED` | 73/73 | 20 | yes | yes | no | yes |  |
-| `color` | `SOURCE_BACKED` | 70/73 | 7 | no | yes | no | yes |  |
-| `asking_price_toman` | `SOURCE_BACKED` | 69/73 | 50 | yes | yes | no | yes | 4 listings carry no price and must render as carrying none |
-| `price_status` | `SOURCE_BACKED` | 73/73 | 4 | yes | yes | no | no | extraction quality, NOT plausibility — see below |
-| `price_kind` | `SOURCE_BACKED` | 73/73 | 3 | yes | yes | no | no | what the number means (D52); own namespace, see below |
-| `price_kind_source` | `SOURCE_BACKED` | 73/73 | 3 | no | yes | no | no |  |
-| `price_currency_raw` | `SOURCE_BACKED` | 70/73 | 1 | no | no | no | no | the structured block's currency label, `IRR` wherever there is one; diagnostic only — `assert_not_features` refuses it as a predictor |
-| `mileage_km` | `SOURCE_BACKED` | 70/73 | 56 | yes | yes | no | yes | 3 listings carry none, all of 1405 |
-| `mileage_status` | `SOURCE_BACKED` | 70/73 | 2 | yes | yes | no | no | travels with the number or neither renders |
-| `mileage_line_canonical` | `SOURCE_BACKED` | 70/73 | 56 | no | yes | no | no | canonicalised, not the source's prose |
-| `condition` | `SOURCE_BACKED` | 64/73 | 5 | no | yes | no | yes | the body-condition block (D45); `unknown` is a value, not an absence |
-| `condition_source` | `SOURCE_BACKED` | 64/73 | 1 | no | yes | no | no | `field` here — never `description` on this corpus |
-| `product_class` | `SOURCE_BACKED` | 73/73 | 1 | yes | yes | yes | no | the gate: only `vehicle` renders as a car (D52), and search applies it (D60). `card` because compare shows a non-vehicle row labelled with its class instead of dropping it — the class drawn as a fact about the row. run16 holds no non-vehicle, run14 one assignment, `bama:ktawd8le`; the suites follow run11's by name |
-| `product_class_source` | `SOURCE_BACKED` | 73/73 | 1 | no | yes | no | no |  |
-| `dealer_badge` | `SOURCE_BACKED` | 73/73 | 2 | no | no | no | no | `true` on two rows, the two `seller_type` reads as dealers, and `false` on the rest |
-| `document_issue` | `DERIVED` | — | — | no | no | no | no | not a key in run16: no row's text names a phrase the parser knows; run14 carried it on one row — see below |
-| `seller_type` | `SOURCE_BACKED` | 2/73 | 1 | no | no | no | no | inferred only from a business badge, never from a person (D26): `dealer` on the two rows that carry one, the first value a real run has produced |
-| `province` | `SOURCE_BACKED` | 73/73 | 23 | yes | yes | no | yes | read off the page by position (D74); the car page and the lists draw it with how it was known. `facet` because «در تهران» is a constraint a buyer states and the search judges it against this field (`webapp/api/constraints.py`, D82) — see below |
-| `province_source` | `SOURCE_BACKED` | 73/73 | 2 | yes | yes | no | no | `stated` or `city`: whether the line names the province or a city sharing its name gave it — 42 and 31 here. Drawn beside the province, never apart from it. Not a key in run13, which predates it |
-| `gearbox` | `SOURCE_BACKED` | 73/73 | 2 | no | no | no | yes | the structured block's transmission, on every row since `72c2573` carried it across the boundary; `automatic` on one row of run16, a Quik, and `manual` on the rest. `facet` because «اتومات» is a red line a buyer states and the search checks against it (`webapp/api/constraints.py`) — see below |
-| `fuel` | `SOURCE_BACKED` | 73/73 | 3 | no | no | no | no | on every row; nothing reads it yet |
+| `listing_id` | `SOURCE_BACKED` | 492/492 | 492 | no | no | no | no | identity; keyed on, never drawn |
+| `source_url` | `SOURCE_BACKED` | 492/492 | 492 | yes | yes | no | no | the source's own statement of where the listing lives |
+| `make` | `SOURCE_BACKED` | 492/492 | 45 | yes | yes | no | no | 45 values here and one on run16; no filter over it is built — see below |
+| `model` | `SOURCE_BACKED` | 492/492 | 115 | yes | yes | no | yes |  |
+| `trim` | `SOURCE_BACKED` | 492/492 | 71 | yes | yes | no | yes |  |
+| `year_jalali` | `SOURCE_BACKED` | 492/492 | 19 | yes | yes | no | yes |  |
+| `color` | `SOURCE_BACKED` | — | — | no | yes | no | yes | not a key in run17: Khodro45's list gives no colour; on 70 of run16's 73 |
+| `asking_price_toman` | `SOURCE_BACKED` | 482/492 | 189 | yes | yes | no | yes | 10 listings carry no price and must render as carrying none |
+| `price_status` | `SOURCE_BACKED` | 492/492 | 3 | yes | yes | no | no | extraction quality, NOT plausibility — see below |
+| `price_kind` | `SOURCE_BACKED` | 492/492 | 2 | yes | yes | no | no | what the number means (D52); own namespace, see below |
+| `price_kind_source` | `SOURCE_BACKED` | 482/492 | 1 | no | yes | no | no |  |
+| `price_currency_raw` | `SOURCE_BACKED` | — | — | no | no | no | no | the structured block's currency label: not a key in run17, whose source states none, and `IRR` on 70 of run16's 73; diagnostic only — `assert_not_features` refuses it as a predictor |
+| `mileage_km` | `SOURCE_BACKED` | 492/492 | 490 | yes | yes | no | yes | on every row; run16's three without one were all of 1405 |
+| `mileage_status` | `SOURCE_BACKED` | 492/492 | 2 | yes | yes | no | no | travels with the number or neither renders |
+| `mileage_line_canonical` | `SOURCE_BACKED` | 492/492 | 490 | no | yes | no | no | canonicalised, not the source's prose |
+| `condition` | `SOURCE_BACKED` | 95/492 | 1 | no | yes | no | yes | the body-condition block (D45); `unknown` is a value, not an absence. One value here, `intact`, on 95 rows; five on run16 |
+| `condition_source` | `SOURCE_BACKED` | 95/492 | 1 | no | yes | no | no | `field` here — never `description` on this corpus |
+| `product_class` | `SOURCE_BACKED` | 492/492 | 1 | yes | yes | yes | no | the gate: only `vehicle` renders as a car (D52), and search applies it (D60). `card` because compare shows a non-vehicle row labelled with its class instead of dropping it — the class drawn as a fact about the row. run17 and run16 hold no non-vehicle, run14 one assignment, `bama:ktawd8le`; the suites follow run11's by name |
+| `product_class_source` | `SOURCE_BACKED` | 492/492 | 1 | no | yes | no | no |  |
+| `dealer_badge` | `SOURCE_BACKED` | 492/492 | 1 | no | no | no | no | `false` on every row of run17, whose cards show no business badge; on run16 `true` on the two rows `seller_type` reads as dealers |
+| `document_issue` | `DERIVED` | — | — | no | no | no | no | not a key in run17 or run16: no row's text names a phrase the parser knows; run14 carried it on one row — see below |
+| `seller_type` | `SOURCE_BACKED` | 0/492 | 0 | no | no | no | no | inferred only from a business badge, never from a person (D26): `unknown` on every row of run17; `dealer` on the two rows of run16 that carry one, the first value a real run produced |
+| `province` | `SOURCE_BACKED` | 471/492 | 21 | yes | yes | no | yes | read off the page by position (D74); the car page and the lists draw it with how it was known. `facet` because «در تهران» is a constraint a buyer states and the search judges it against this field (`webapp/api/constraints.py`, D82) — see below |
+| `province_source` | `SOURCE_BACKED` | 471/492 | 1 | yes | yes | no | no | `stated` or `city`: whether the line names the province or a city gave it — `city` on all 471 here, 42 and 31 on run16. Drawn beside the province, never apart from it. Not a key in run13, which predates it |
+| `gearbox` | `SOURCE_BACKED` | 271/492 | 2 | no | no | no | yes | the transmission: `automatic` on 152 rows here and `manual` on 119; on every row of run16 since `72c2573` carried it across the boundary, `automatic` on one, a Quik. `facet` because «اتومات» is a red line a buyer states and the search checks against it (`webapp/api/constraints.py`) — see below |
+| `fuel` | `SOURCE_BACKED` | 42/492 | 4 | no | no | no | no | on 42 rows here, on every row of run16; nothing reads it yet |
 | `model_key` | `DERIVED` | — | — | yes | yes | no | no | make, model and trim joined into one key, rendered through `modelLabel`. Drawn by the detail page and by all three card surfaces — the evidence grid, `ListingCard` and `CompareTable` — which is why `card` is `yes`: `derived_title`, which this table meant for the card, is not a key in any published corpus and is not on the payload |
 | `derived_title` | `DERIVED` | — | — | yes | yes | no | no | composed from `make + model + trim + year_jalali` |
 | `observed_at` | `DERIVED` | — | — | yes | yes | no | no | the artifact's `collected_on`, carried onto every row — see below |
@@ -126,7 +129,7 @@ run11, is a gate on all four and would fail the variety condition as a facet
 on run16 and run13, which is the clearest case of why the two are not one
 column.
 
-A dash means the field is not a key in run16 at all. `promote_corpus.py` ends
+A dash means the field is not a key in run17 at all. `promote_corpus.py` ends
 with `{k: v for k, v in out.items() if v is not None}`, so a key with no value
 does not reach the artifact — and absence has more than one upstream cause,
 which the table keeps apart rather than flattening into "missing":
@@ -135,10 +138,13 @@ which the table keeps apart rather than flattening into "missing":
   artifact is read, never in it.
 - `document_issue` — a dash again: a value the parser writes only where the
   seller's text has a phrase it knows, an issue or a clean title, and no
-  text in run16 had one. run14 carried it on one row, and run13 on none.
+  text in run17 or run16 had one. run14 carried it on one row, and run13 on
+  none.
+- `color`, `price_currency_raw` — dashes on run17: Khodro45's list gives no
+  colour and its API states no currency; run16 carried both on 70 rows.
 - `seller_type` — not a dash: the key survives on every row, `unknown` where
-  the page carried no business badge, which this file counts as unfilled,
-  and `dealer` on the two rows of run16 that carry one. It is published
+  the page carried no business badge, which this file counts as unfilled --
+  every row of run17 -- and `dealer` on the two rows of run16 that carry one. It is published
   precisely so that a car with no business badge is never published as
   `private` (D26).
 
@@ -150,9 +156,11 @@ corpus promoted after both repairs, and run14 the first to carry
 
 ## Coverage is not variety
 
-`make` is filled on every one of the 73 rows and has exactly **one** value.
-A brand filter over this corpus offers the reader a single choice, and a
-ranking term computed from it moves nothing. D41 found four of six scoring
+On run16, `make` was filled on every one of the 73 rows and had exactly
+**one** value: a brand filter over it would have offered the reader a single
+choice, and a ranking term computed from it would have moved nothing. On
+run17 it has 45, and would pass the variety condition; the `facet` column
+says what the site does, and no brand filter is built. D41 found four of six scoring
 terms constant on a real corpus and the gate refusing; the same arithmetic
 applies to a filter.
 
@@ -176,9 +184,13 @@ The variety condition applies to `facet` and not to `gate`. A gate exists to
 remove rows the reader should never have been offered, so two values is all it
 needs.
 
-## Province: on 73 of 73
+## Province: on 471 of 492, and on 73 of 73
 
-run16, collected on 2026-10-15, is the corpus served and the first read by
+run17, served since 2026-11-02, has a province on 471 of its 492 rows, every
+one by the city — the 31 capitals give theirs since 2026-10-30 — and none on
+21, whose city is no capital. The rest of this section is run16's.
+
+run16, collected on 2026-10-15, was the corpus served until 2026-11-02 and the first read by
 the rule below as it stands since `f82efec`: a province on all 73 rows, 42
 stated and 31 by the city. تهران is on 20, 17 of them by the city, and
 اصفهان on 12, 9 by the city, and there are twenty-three provinces in all.
@@ -228,7 +240,7 @@ corpus serves, search's two tables and compare's evidence rows, in the same
 words. That is `detail` and `card`. On run13 every flag was `no` for
 coverage — a value missing where the market is largest is not one a filter
 may offer — and on run14 that no longer held. What held them after that was
-the first hazard below, measured on the lines of run16, the corpus served.
+the first hazard below, measured on the lines of run16, the corpus served until 2026-11-02.
 In a list a misread is one row among others, labelled with how it was read;
 a search that reads «در تهران» would drop a misread car from its answer
 without a word. So `facet` is `yes` since D82, after that search was built

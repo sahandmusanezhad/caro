@@ -17,8 +17,8 @@
 
 ---
 
-**It is live at https://caro-rho.vercel.app.** The site serves 73 real Bama
-listings collected on 2026-10-15 (`data/corpora/run16.json`). Ask it in
+**It is live at https://caro-rho.vercel.app.** The site serves 492 real
+Khodro45 listings collected on 2026-10-30 (`data/corpora/run17.json`). Ask it in
 Persian for a car, and it shows the listings that meet the request, what it
 read from the request and what it did not. It does not rank them: no
 estimator has cleared the acceptance gate on a real corpus (D43), and a
@@ -27,16 +27,16 @@ corpus it is reading.
 
 <table>
 <tr>
-<td width="50%"><a href="docs/readme/site-model-dark.png"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/site-model-dark.png"><img src="docs/readme/site-model-light.png" alt="The Saipa Pride's page on the site: the smallest, middle and largest asking price, and the middle of every published run, one line per source"></picture></a></td>
+<td width="50%"><a href="docs/readme/site-model-dark.png"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/site-model-dark.png"><img src="docs/readme/site-model-light.png" alt="The IKCO Dena's page on the site: the smallest, middle and largest asking price, and the middle of every published run that lists it"></picture></a></td>
 <td width="50%"><a href="docs/readme/site-search-dark.png"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/readme/site-search-dark.png"><img src="docs/readme/site-search-light.png" alt="A search on the site: what it read from the request, the notice that no ranking is served, and the listings that meet the request"></picture></a></td>
 </tr>
 <tr>
 <td align="center"><sub><b>A model's page.</b> Asking prices, counted: the smallest, the middle and the largest, and the middle of every published run, one line per source.</sub></td>
-<td align="center"><sub><b>A search.</b> «پراید از ۴۰۰ میلیون به بالا»: what was read, the notice that no ranking is served, and the 47 listings that meet it.</sub></td>
+<td align="center"><sub><b>A search.</b> «پژو ۲۰۶ زیر ۱.۵ میلیارد»: what was read, the notice that no ranking is served, and the 21 listings that meet it.</sub></td>
 </tr>
 </table>
 
-<sub>The site as built from this commit, serving run16, captured locally on 2026-11-01.</sub>
+<sub>The site as built from this commit, serving run17, captured locally on 2026-11-02.</sub>
 
 ---
 
@@ -126,7 +126,7 @@ intent → explain the best choice**.
 
 | Requirement | State, 2026-11-01 |
 |---|---|
-| crawl offers | ⚠️ **two sources published.** Four runs of `BamaAdapter` and one of Khodro45's ([the data](#the-data)), every line of run16 and run17 read before it was published; the site serves run16. Khodro45 runs every day on the owner's machine (TEMPORAL_CONTRACT §11) and Sheypoor has run live, none of its runs published. `DivarCarAdapter` has read one saved real page (24 of 24 listings) and its live path has never run. |
+| crawl offers | ⚠️ **two sources published.** Four runs of `BamaAdapter` and one of Khodro45's ([the data](#the-data)), every line of run16 and run17 read before it was published; the site serves run17. Khodro45 runs every day on the owner's machine (TEMPORAL_CONTRACT §11) and Sheypoor has run live, none of its runs published. `DivarCarAdapter` has read one saved real page (24 of 24 listings) and its live path has never run. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province — the 31 capitals give theirs — with how each was read. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
 | explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
@@ -139,22 +139,22 @@ work is done, and the rules every session keeps, are in
 
 ### Try it
 
-Four requests, asked of this commit's API on 2026-11-01, on run16:
+Four requests, asked of this commit's API on 2026-11-02, on run17:
 
 ```
-پراید از ۴۰۰ میلیون به بالا      a budget floor of 400 million and no ceiling:
-                                  47 of run16's 53 Pride listings meet it, and
-                                  3 are held apart because they carry no price
+دنا از ۳ میلیارد به بالا          a budget floor of 3 billion and no ceiling:
+                                  17 of run17's 40 Dena listings meet it, and
+                                  2 are held apart because they carry no price
 
-پراید در مشهد                     a city is not read, so it is not used; the
+دنا در مشهد                       a city is not read, so it is not used; the
                                   page lists «در مشهد» under «نفهمیدیم» and
-                                  shows the 53 Pride listings
+                                  shows the 40 Dena listings
 
-۲۰۶ زیر ۱۰۰ هزار کیلومتر          the model 206 and an odometer cap of
-                                  100,000 km; run16 holds no 206, so none
+دنا زیر ۱۰۰ هزار کیلومتر          the model Dena and an odometer cap of
+                                  100,000 km: 33 of the 40 meet it
 
-پراید در تهران                    the province is a constraint like the
-                                  budget: 18 of the 53 are in Tehran
+کوییک در تهران                    the province is a constraint like the
+                                  budget: 9 of run17's 36 Quiks are in Tehran
 ```
 
 The search page's panel is «آنچه از جمله‌ی تو فهمیدیم»: the model, the
@@ -179,8 +179,8 @@ owner's machine; what is published is a promoted corpus, under
 | run11 | Bama | 2026-09-10 | 76 | 71 | |
 | run13 | Bama | 2026-10-06 | 74 | 64 | |
 | run14 | Bama | 2026-10-11 | 77 | 64 | |
-| run16 | Bama | 2026-10-15 | 73 | 63 | served by the site |
-| run17 | Khodro45 | 2026-10-30 | 492 | 480 | forty pages of its newest-first list |
+| run16 | Bama | 2026-10-15 | 73 | 63 | served until 2026-11-02 |
+| run17 | Khodro45 | 2026-10-30 | 492 | 480 | served by the site; forty pages of its newest-first list |
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/readme/runs-dark.svg">
@@ -203,7 +203,7 @@ and the site draws each source as its own line and joins no two.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/readme/held-back-dark.svg">
-  <img src="docs/readme/held-back-light.svg" width="880" alt="Of run16's 73 listings, 63 can inform an estimate; the reasons the other 10 are held back">
+  <img src="docs/readme/held-back-light.svg" width="880" alt="Of run17's 492 listings, 480 can inform an estimate; the reasons the other 12 are held back">
 </picture>
 
 <sub>The three charts are drawn from `data/corpora` by `scripts/readme_charts.py`, in the site's palette, and `tests/test_claims.py` fails when a committed chart is not what the script draws today.</sub>
@@ -472,8 +472,8 @@ blurred them before (D41). Five levels, weakest last:
 | The site and its API, deployed from `main` | ✅ built, tested by two suites of their own |
 | Bama, Divar, Sheypoor and Khodro45 adapters; robots.txt read in code (RFC 9309, D73) | ✅ built, tested offline; Bama, Sheypoor and Khodro45 run live |
 | Cross-source identity and supply correction | ✅ built, tested |
-| **Real corpora** | ✅ the September runs (Run 5: 403 parsed, 228 appraisal-eligible; never committed, D46), four of Bama's published since — the site serves run16 — and one of Khodro45's, run17 |
-| **The fields the ranking reads, on real data** | ✅ recorded — run16 carries the body condition, gearbox, fuel and province on all 73 listings and the colour on 70 — though no ranking runs on them yet (the next row) |
+| **Real corpora** | ✅ the September runs (Run 5: 403 parsed, 228 appraisal-eligible; never committed, D46), four of Bama's published since and one of Khodro45's, run17, which the site serves |
+| **The fields the ranking reads, on real data** | ⚠️ recorded, thinner on the corpus served — run17 carries the province on 471 of 492 listings, the gearbox on 271, the body condition on 95 and the fuel on 42, and no colour; run16 carried all of them on its 73 — and no ranking runs on them yet (the next row) |
 | **A shortlist over real listings** | ❌ does not exist — no estimator clears the gate on any real corpus, so `Ranker.score` raises and every shortlist refuses |
 | **A live collection against Divar** | ❌ the network path is unexercised |
 
@@ -576,7 +576,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all sixteen suites
 
-python3 tests/run_all.py            # 3435 assertions, no API key, no network
+python3 tests/run_all.py            # 3492 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -590,7 +590,7 @@ runner says so rather than failing:
 python3 tests/run_all.py            # 2779 assertions across 13 of 16 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3435 across all sixteen
+python3 tests/run_all.py            # 3492 across all sixteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -778,7 +778,7 @@ it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic
-tests/           3435 assertions across sixteen suites
+tests/           3492 assertions across sixteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
 scripts/         setup, live runs, promotion, replays, the benchmarks, the probes, the charts
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed

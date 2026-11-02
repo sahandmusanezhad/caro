@@ -20,7 +20,10 @@ import { useState } from 'react';
  * invitation, and the first thing a visitor does with an invitation is accept
  * it. Three of these used to name a 206. `run11` holds 56 Pride, 10 Tiba and
  * 10 Quik, and no Peugeot at all, so the likeliest first click on the site
- * produced an empty screen.
+ * produced an empty screen. Since 2026-11-02 the site serves run17,
+ * Khodro45's 492 listings, which hold one Pride: the examples name what it
+ * holds -- 40 Denas, 32 206s, 36 Quiks -- and «پراید زیر ۳۰۰ میلیون», which
+ * found nothing there, is gone.
  *
  * Between the five they still exercise everything the box exists to
  * demonstrate — a bare model, a budget, a vague odometer cue, a use case, a
@@ -32,10 +35,10 @@ import { useState } from 'react';
  * entry still finds something. Change the default corpus and the build says
  * which example died. */
 const EXAMPLES = [
-  'پراید',
-  'پراید زیر ۳۰۰ میلیون',
-  'ماشین برای اسنپ، کم‌مصرف، قطعاتش ارزون باشه، زیر ۸۰۰ میلیون',
-  'ماشین اول خانواده، تصادفی نباشه، بودجه ۱.۲ میلیارد',
+  'دنا',
+  'پژو ۲۰۶ زیر ۱.۵ میلیارد',
+  'ماشین برای اسنپ، کم‌مصرف، قطعاتش ارزون باشه، زیر ۲ میلیارد',
+  'ماشین اول خانواده، تصادفی نباشه، بودجه ۳ میلیارد',
   'یه کوییک کم‌کارکرد تا ۱.۸ میلیارد میخوام',
 ];
 
