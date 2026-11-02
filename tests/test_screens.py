@@ -177,6 +177,15 @@ check("node, and the web app's own node_modules",
 # they read run11 by name, served as the configured run, whatever the default
 # is. Every other section draws what the default serves.
 ART = ROOT / "data" / "corpora" / f"{RUN}.json"
+# The corpus whose listings these rows also draw where they need a kind of
+# listing the served corpus may not hold -- a «توافقی» price, a province the
+# listing states. run16 holds every one of them; it is named, because the
+# served corpus is chosen for buyers, not for these rows. The car files and
+# the searches are drawn on every corpus in CORPORA_DRAWN, so the served one is
+# always drawn in full and the kinds are always reached.
+SHOWCASE = "run16"
+SHOWCASE_ART = ART.parent / f"{SHOWCASE}.json"
+CORPORA_DRAWN = [RUN] + ([SHOWCASE] if SHOWCASE != RUN else [])
 NV_RUN = "run11"
 NV_ART = ROOT / "data" / "corpora" / f"{NV_RUN}.json"
 CLS = {x["listing_id"]: x.get("product_class")
@@ -442,16 +451,18 @@ def isolated_year(html: str, tag: str, year) -> bool:
     return bool(m and re.search(rf"<bdi[^>]*>\s*{y}\s*</bdi>", m.group(1)))
 
 
-_CLS4 = {x["listing_id"]: x.get("product_class")
-         for x in json.loads(ART.read_text(encoding="utf-8"))["listings"]}
-with serving(ART.parent):
-    _cars = [(x.listing_id, api.listing(x.listing_id))
-             for x in corpus_mod.active().listings
-             if _CLS4.get(x.listing_id) == "vehicle"]
+_cars = []
+for _run4 in CORPORA_DRAWN:
+    _CLS4 = {x["listing_id"]: x.get("product_class") for x in json.loads(
+        (ART.parent / f"{_run4}.json").read_text(encoding="utf-8"))["listings"]}
+    with serving(ART.parent, _run4):
+        _cars += [(x.listing_id, api.listing(x.listing_id))
+                  for x in corpus_mod.active().listings
+                  if _CLS4.get(x.listing_id) == "vehicle"]
 _cout, why = render("components/CarDetail.tsx", "ListingFile", [
     {"id": i, "listing": as_json(d.listing), "corpus": as_json(d.corpus),
      "scored": None, "refused": REFUSED} for i, d in _cars])
-check(f"every vehicle in {RUN} drawn as its car file ({len(_cars)})",
+check(f"every vehicle in {' and '.join(CORPORA_DRAWN)} drawn as its car file ({len(_cars)})",
       _cout is not None and len(_cars) > 0, why or "no vehicles to draw")
 if _cout is not None:
     _run = [i for (i, d), html in zip(_cars, _cout["markup"])
@@ -506,8 +517,10 @@ _m5 = re.search(r"const EXAMPLES = \[(.*?)\];", _BOX5, re.S)
 _Q5 = (re.findall(r"'([^']+)'", _m5.group(1)) if _m5 else []) \
     + ["پراید زیر ۱۰ میلیون", "تیبا زیر ۱۰ میلیون", "پراید سند آزاد",
        "پژو ۲۰۶", "پراید در تهران"]
-with serving(ART.parent):
-    _found5 = [(q, api.search(q=q, k=8)) for q in _Q5]
+_found5 = []
+for _run5d in CORPORA_DRAWN:
+    with serving(ART.parent, _run5d):
+        _found5 += [(q, api.search(q=q, k=8)) for q in _Q5]
 _held5, _run5 = [], None
 for _p5 in sorted(ART.parent.glob("*.json")):
     with serving(ART.parent, _p5.stem):
@@ -828,7 +841,7 @@ with tempfile.TemporaryDirectory() as d:
     with serving(Path(d)):
         _built8 = [(i, api.listing(i)) for i, *_ in _P8]
 
-_L11 = json.loads(ART.read_text(encoding="utf-8"))["listings"]
+_L11 = json.loads(SHOWCASE_ART.read_text(encoding="utf-8"))["listings"]
 _neg11 = sorted(x["listing_id"] for x in _L11
                 if x.get("product_class") == "vehicle"
                 and x.get("price_kind") == "negotiable")
@@ -836,7 +849,7 @@ _cash11 = next(x for x in _L11 if x.get("product_class") == "vehicle"
                and x.get("price_kind") == "cash"
                and x.get("price_status") == "display_confirmed"
                and x.get("asking_price_toman"))
-with serving(ART.parent):
+with serving(ART.parent, SHOWCASE):
     _run8 = [(i, api.listing(i)) for i in _neg11 + [_cash11["listing_id"]]]
 
 check("the API sends each built listing's price fields as the artifact "
@@ -848,7 +861,7 @@ check("the API sends each built listing's price fields as the artifact "
       str([(r.listing.price_kind, r.listing.price_status,
             r.listing.asking_price_toman) if r.listing else None
            for _, r in _built8]))
-check(f"{RUN} holds «توافقی» listings to draw, and a cash one",
+check(f"{SHOWCASE} holds «توافقی» listings to draw, and a cash one",
       len(_neg11) > 0, "nothing to draw — said, not passed")
 
 _row8 = {"id": "p_row", "url": "", "model_key": "peugeot 206 TU5",
@@ -934,7 +947,7 @@ if _out9 is not None and _cout is not None:
         want = _prov9(d.listing.province, d.listing.province_source)
         if got != want:
             _off9.append((i, got, want))
-    check(f"  every car file in {RUN} says it as the payload has it "
+    check(f"  every car file in {' and '.join(CORPORA_DRAWN)} says it as the payload has it "
           f"({len(_cars) - len(_off9)} of {len(_cars)})",
           not _off9, f"e.g. {_off9[:2]}")
     _kinds9 = {k: sum(1 for _, d in _cars
@@ -1021,7 +1034,7 @@ if _out9 is not None and _cout is not None:
         check(f"  the rows reach {_label} ({_kinds10[_k]})", _kinds10[_k] > 0,
               "none drawn — said, not passed")
 
-    _art10 = json.loads(ART.read_text(encoding="utf-8"))["listings"]
+    _art10 = json.loads(SHOWCASE_ART.read_text(encoding="utf-8"))["listings"]
     _pick10 = [next(dict(x) for x in _art10
                     if x.get("product_class") == "vehicle"
                     and x.get("province_source") == src)

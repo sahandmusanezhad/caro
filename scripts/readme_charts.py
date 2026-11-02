@@ -107,11 +107,11 @@ def pride_data(arts: list[dict]) -> list[dict]:
 REASONS = (
     ("price is a financing_total", "An instalment total, not a cash price"),
     ("price is a negotiable", "Negotiable: no price stated"),
-    ("price is ambiguous", "A price that cannot be read as one"),
     ("price is far_from_model", "Far from its model's middle"),
+    ("no asking_price_toman", "No price stated"),
+    ("price is ambiguous", "A price that cannot be read as one"),
     ("mileage is suspicious", "An odometer that cannot be true"),
     ("no mileage_km", "No odometer stated"),
-    ("no asking_price_toman", "No price stated"),
 )
 
 
@@ -270,7 +270,7 @@ def chart_held_back(run_id: str, n: int, ok: int, reasons: list[tuple[str, int]]
     return _card(height, title, subtitle, "\n".join(parts), c, label)
 
 
-SERVED = "run16"
+SERVED = "run17"
 
 
 def draw_all() -> dict[str, str]:

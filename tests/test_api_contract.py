@@ -1859,11 +1859,13 @@ check("SEC-6: the site's config sends the policy in production, HSTS, no framing
 # ---------------------------------------------------------------------------
 print("\n20 — a model's page, as Torob gives a product one: its listings, its range, its runs")
 # ---------------------------------------------------------------------------
-# Predictions MKT-1..MKT-7 (2026-10-30, locked before the code), on the corpus
-# the site serves (run16) and the four published runs.
+# Predictions MKT-1..MKT-7 (2026-10-30, locked before the code), on run16 --
+# served by name here, so that these rows read the Prides they were written
+# for whichever corpus the site serves -- and the published runs.
 from webapp.api import market as market_mod                        # noqa: E402
 
-_run_was = os.environ.pop("CARO_RUN", None)
+_run_was = os.environ.get("CARO_RUN")
+os.environ["CARO_RUN"] = "run16"
 _corpora_was = corpus_reader.CORPORA
 corpus_mod.active.cache_clear()
 market_mod.published_runs.cache_clear()
