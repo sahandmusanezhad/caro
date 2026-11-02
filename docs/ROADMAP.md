@@ -103,14 +103,18 @@ that repository's — and a phase starts when the one before it is closed, and n
 names. Durations are for two people part-time.
 
 0. **Foundation and governance** (issue #3; a week; both). Done: the working
-   agreement for two people, and the plan accepted and merged. Left:
-   `caro.noxioai.com` proxied through Cloudflare (WAF, a first rate limit on
-   `/api/*`, `/api/*` not cached until phase 4); Sentry on the API and the
-   site, with no personal data in an event; UptimeRobot on `/api/health` and
-   `/`, alerting to Telegram; branch protection on `main`, the `staging` and
-   `production` environments, CODEOWNERS; and a reachability probe from
-   inside Iran to Hetzner and Neon, recorded. **Waits on the owner:** the
-   accounts and the DNS, and the probe, which only someone in Iran can run.
+   agreement for two people; the plan accepted and merged; CODEOWNERS;
+   Sentry in the API, off until its DSN is set, with no personal data in an
+   event; and the reachability probe, run by the owner from Iran on
+   2026-11-02 with no VPN -- Hetzner reached 0 times in 15, Cloudflare,
+   Vercel, GitHub, its registry and Neon every time -- after which the owner
+   chose Hetzner reached only through Cloudflare, Postgres beside the API
+   (REARCHITECTURE, phase 0). Left: `caro.noxioai.com` proxied through
+   Cloudflare (WAF, a first rate limit on `/api/*`, `/api/*` not cached until
+   phase 4); Sentry's DSN set, and Sentry on the site; UptimeRobot on
+   `/api/health` and `/`, alerting to Telegram; branch protection on `main`
+   and the `staging` and `production` environments. **Waits on the owner:**
+   the accounts and the DNS.
 1. **Containers and environments** (issue #4; one to two weeks; Sobhan, a
    session). One image for the API and the workers, a role per command, and
    one for the site; `compose.yml` for a laptop (API, Postgres) and
@@ -123,8 +127,9 @@ names. Durations are for two people part-time.
    Sobhan, two decisions of the owner's). Done: the listings read model, as
    the catalog (this repository's pull request #10), and the seller store's
    suite on a real Postgres in CI. Left: promotion writing into the catalog, with the per-model
-   summaries ([SERVICES](SERVICES.md), step 2); production on Postgres (Neon,
-   or Compose if the probe says so) and the site served from the catalog;
+   summaries ([SERVICES](SERVICES.md), step 2); production on Postgres beside
+   the API on the Hetzner server (the owner's choice after phase 0's probe)
+   and the site served from the catalog;
    the SMS provider behind the existing interface, tried by the owner on the
    owner's own number first; the seller listings switched on in production;
    a private bucket for snapshots; the 50 MB rule for corpora written into

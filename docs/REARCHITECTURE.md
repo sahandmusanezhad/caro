@@ -73,10 +73,10 @@ when a server and its traffic warrant it.
 | API | FastAPI + pydantic, unchanged; `psycopg[binary]` 3 | the two contract suites already hold it |
 | Queue and worker | a `jobs` table in Postgres, taken with `FOR UPDATE SKIP LOCKED`; the worker is the same package, `first_run.collect` as a job | the owner's choice: Postgres alone; every run keeps its transcript |
 | Front end | Next.js 15 + TypeScript + Tailwind, RTL, Vazirmatn, as today; its design system and panels refreshed in place | D47's line kept; the suites that hold the site stay as they are |
-| Product database | Neon Postgres (production, staging by branch), or Postgres in Compose on the VPS if the reachability probe says so; SQLite locally and in the suites | D47: Postgres for product state and the read model only |
+| Product database | Postgres in Compose on the Hetzner server, beside the API; SQLite locally and in the suites | the owner's choice of 2026-11-02, after the probe from Iran (phase 0): the API is the only reader that has to reach it, and it is next to it |
 | Evidence storage | `data/corpora` in git to about 50 MB, then Cloudflare R2 addressed by content with the digest in the repository; snapshots in a private R2 bucket | DATA_CONTRACT allows exactly this |
 | Edge | Cloudflare: proxied DNS, managed WAF (free), rate-limiting rules, Turnstile on our own forms, cache rules; the origin answers Cloudflare's addresses only | security and a CDN at no cost |
-| Hosting | Hetzner CX for the API, the site and nginx in Compose; an Iranian VPS for the worker; Vercel until phase 6 moves the site; Kubernetes later, with the same images | Docker now, Kubernetes later: the owner's choice |
+| Hosting | Hetzner CX for the API, Postgres, the site and nginx in Compose, **reached only through Cloudflare**; the worker in Iran, which writes through Cloudflare and never to Hetzner directly; Vercel until phase 6 moves the site; Kubernetes later, with the same images | the owner's choices of 2026-11-02: Docker now, Kubernetes later; Hetzner behind Cloudflare after the probe from Iran found Hetzner unreachable from there and Cloudflare reachable |
 | Observability | Sentry (API and front end); OpenTelemetry to Grafana Cloud; UptimeRobot to Telegram | free tiers |
 | CI/CD | GitHub Actions: PR → preview, `main` → staging, tag `vX.Y.Z` → production; images in GHCR; deploy by SSH and `docker compose` | simple, reviewable |
 | Tests | the seventeen suites, CI's Postgres job; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
@@ -156,7 +156,33 @@ overlap phases 3 and 4.
 - Branch protection on `main`, `staging` and `production` environments,
   CODEOWNERS.
 - A reachability probe from inside Iran to Hetzner and Neon, recorded,
-  because D64 raised that question and nobody measured it.
+  because D64 raised that question and nobody measured it. **Run** by the
+  owner on 2026-11-02 at 21:30 UTC, from an ordinary connection in Iran
+  with no VPN, five rounds (`scripts/reach_probe.py`):
+
+  | target | TLS handshake, median | reached | failed |
+  |---|---|---|---|
+  | Hetzner, Falkenstein | 1057 ms | 0/5 | no answer after the handshake ×5 |
+  | Hetzner, Nuremberg | 494 ms | 0/5 | no answer after the handshake ×5 |
+  | Hetzner, Helsinki | 598 ms | 0/5 | no answer ×4, reset in the handshake ×1 |
+  | Neon's console | 520 ms | 5/5 | — |
+  | Cloudflare | 580 ms | 5/5 | — |
+  | the site on Vercel | 636 ms | 5/5 | — |
+  | GitHub | 1403 ms | 5/5 | — |
+  | GitHub's container registry | 786 ms | 5/5 | — |
+
+  Every Hetzner handshake that finished carried Hetzner's own certificate,
+  and every request after it was met by the connection closing without a
+  byte: filtering, not a server that does not answer. The TCP connection
+  took 14 to 16 ms to every target, Helsinki and Virginia alike, which no
+  route from Iran can do: an intercepting proxy on the way answers the
+  connection, and the handshake times are the real path.
+  **What follows from it,** the owner's choice of the same day: the
+  servers are Hetzner's and are reached only through Cloudflare, which
+  answers from Iran; Postgres sits beside the API; the collection worker in
+  Iran writes through Cloudflare (the bucket, or an ingest address behind
+  it), never to Hetzner directly; the owner reaches the server for its
+  administration through the owner's own VPN.
 - **Closes when** the site answers at `caro.noxioai.com` through
   Cloudflare, a test alert has reached Telegram, and the D-entry exists.
 - **Reopens:** WORKING_AGREEMENT (one person → two).
@@ -165,7 +191,9 @@ overlap phases 3 and 4.
 
 - One image for the API and the workers — a role per command — and one for
   the site; `compose.yml` for a laptop (API, a local Postgres) and
-  `compose.vps.yml` (nginx, API, Postgres or the Neon address).
+  `compose.vps.yml` (nginx, API, Postgres), the origin answering
+  Cloudflare's addresses only: Iran does not reach Hetzner (phase 0's
+  probe), and nothing but Cloudflare needs to.
 - One Hetzner instance holding staging and production as two Compose
   projects; the origin locked to Cloudflare's addresses.
 - Workflows: images to GHCR; deploy to staging on every push to `main`;
@@ -211,7 +239,10 @@ overlap phases 3 and 4.
   its pin, digest and output. One collector per source holds that source's
   lock, so the pause between two requests to a domain is never shared out.
 - The worker on an Iranian VPS (`compose.worker.yml`); `CARO_SELLER_SALT`
-  only there; the daily Khodro45 run on the same pin (`--pages 60`).
+  only there; the daily Khodro45 run on the same pin (`--pages 60`). It
+  writes through Cloudflare -- the private bucket, or an ingest address
+  behind Cloudflare -- since phase 0's probe found Hetzner unreachable
+  from Iran.
 - Promotion stays a deliberate, reviewed step: a pull request carrying the
   corpus, every line read, as today.
 - Alerts: a run that did not arrive, a run that stopped on a block or on a
