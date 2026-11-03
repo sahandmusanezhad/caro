@@ -7471,3 +7471,56 @@ The site changes with neither.
 
 **What this does not settle.** Every phase still waits on the decisions it
 names, and a phase starts only when the one before it is closed.
+
+## D98 — One table of the models CARO reads by name: a buyer who asks for a Samand is shown Samands
+
+Reading the parser for the evidence track found that «سمند زیر ۲ میلیارد»
+was parsed with no model and nothing listed as unread, so the search showed
+every car under two billion, 163 of run17's listings of every model, to a
+buyer who had asked for one. The cause was two tables of model names: the
+search read `caro.ranking.MODEL_ALIASES`, ten models, and the listing parser
+`caro.ingest.divar_car.MAKE_MODEL`, thirteen, the same ten and IKCO's Runna,
+Samand and Tara. Two copies of one rule had drifted. The run17 switch had
+already dropped two search examples on this (D93).
+
+    commit    what it does                                      17 suites    14
+    45563ca   caro/ingest/models.py, one table for both readers        3528   2803
+
+The commit was green on its own, with the site's build, and CI green on the
+pull request's head, #13, and on `main` after the merge.
+
+**Measured before anything was built,** network off, the predictions locked:
+of run17's 492 vehicle listings, 217 (44%) were of a model a query could
+name and 281 (57%) were by the listing parser's table; every listing of the
+Bama runs was by either; and 104 models, 211 listings, by neither. It was put
+to the owner as three builds: one table; a short name the search cannot
+read listed as unread; and Persian names for the 104. On 2026-11-02 the
+owner chose the first alone.
+
+**The table.** `caro/ingest/models.py` is the union of the two, in the
+listing parser's order, since the parser returns the first model whose name
+it finds, and it adds no name neither table held. Both readers take their
+views from it under their old names, so no caller changes. The search gains
+Samand, Tara and Runna, and «کوئیک», «۱۳۲», «سایپا ۱۳۱» and «207i» for models it
+knew; the listing parser gains the Latin names the search held, «پژو207»
+and «دویست و شش». On run17, «سمند زیر ۲ میلیارد» shows the 13 Samands priced
+under two billion and holds apart the one whose price is unread; «تارا زیر ۲
+میلیارد» shows none, since all 20 Taras are above it; «رانا» shows its 6.
+Every suite was green before the rows were added and none changed, as
+predicted.
+
+**Rows and mutants.** The two readers name the same models by the same
+names, as the same objects (MD1); the search reads the three and the other
+table's names (MD2); over HTTP each of the three shows that model alone,
+counted from the served corpus with the site's own rule for a price (MD3).
+Mutants: 5, all killed.
+
+**As merged, and seen.** Merged on 2026-11-02 as `543b705`, and read from
+the outside that night, when the site served it: «سمند زیر ۲ میلیارد» read
+the model `samand`, showed 13 and held 1 apart, as here; `/about` read 84
+decisions, 3528 assertions and 17 suites.
+
+**What this does not settle.** 104 models of run17, 211 listings, are named
+by neither table, and a query cannot name them. A short name the search
+cannot read is still dropped without a word. Both were offered to the owner
+and not chosen, and the roadmap's parser item says so.
