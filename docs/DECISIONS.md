@@ -7103,3 +7103,76 @@ from khodro45, 31 priced, the middle 2,096,250,000 toman.
 are thinner on the corpus served than on the one before; the corpus that is
 served is a choice the owner can make again with `CARO_RUN`. No estimator
 has cleared the gate on run17, so the site shows evidence and no ranking.
+
+## D94 — A price far from its model's middle in its run is held apart
+
+Khodro45's run of 2026-11-01 held a 1401 IKCO Samand at 46,226 km asking
+247,500,000,000 toman: the source's own number, in both of its price fields.
+Nothing here doubted it. A price was judged by a floor alone, ten million
+toman, so this one was plausible, and it would have been published, counted
+as priced and drawn in its model's range. These three commits are the rule
+the owner chose for it on 2026-11-01, landed as this repository's pull
+request #5 and merged as `9fdb533` the same day.
+
+    commit    what it does                                      16 suites     13
+    dae9856   the rule, and far_from_model refused everywhere         3429   2773
+    1a01e7f   promotion holds such a price apart                      3431   2775
+    ee83e14   the run's report prints each one with its numbers       3432   2776
+
+Each was checked on its own when it was made: the suites, the site's
+typecheck, lint and build. CI ran on the pull request's head and on `main`
+after the merge, and both succeeded.
+
+**Measured first,** on the five published corpora, with the site's own rule
+for a priced listing: no priced listing at three times its model's middle or
+more (the largest, run16's 1394 Pride at 1.8 billion, is 2.77 times it), and
+one at a fifth or less, run11's 1396 Pride at 65 million, 0.11 of its
+middle. run17's 31 Samands have a middle of 2,096,250,000, and 247.5 billion
+is 118 times it.
+
+**The owner's choice,** on those numbers: both sides, at five times the
+middle and at a fifth of it; only for a model with three priced listings or
+more in the run; a status, not a deletion; and for runs promoted from now
+on, so that the five already published read as they did.
+
+**The rule** (`dae9856`). A price's status says how much it is worth
+believing, and this one is not, however cleanly it was read; it gains
+`far_from_model`, which every reader of a price's status already refuses:
+the gate, with «price is far_from_model», the site's own count of priced
+listings, and the car's card, which says «دور از میانه‌ی این مدل» and never
+the amount. A middle is made of the run's priced listings above the floor,
+and a model is its make and model as written; the bounds are inclusive. What
+three listings cannot tell is pinned as the rule reads it: of three priced
+where two are wrong alike, the middle is theirs and the right one is held
+apart. The data contract's table of what makes a listing eligible gains the
+requirement and why, as its freeze requires of a change.
+
+**Where it runs** (`1a01e7f`, `ee83e14`). In promotion, where a run becomes
+a corpus, since a middle is a fact about the run and not about a record. A
+row held apart keeps its number and says why, the snapshot it came from is
+not changed, and the corpus's provenance says that the rule ran, at what
+bounds, and how many rows it held apart; a corpus without the key was
+promoted before it. The run's report, read on the machine the run ran on
+before anything is promoted, reads the listings the same way, so its funnel
+does not call a model readier than its corpus will be, and lists each price
+held apart with its numbers. Tried by hand on two published corpora promoted
+again into a scratch directory: run11's would hold apart its 65-million
+Pride, and run17's none; `data/corpora/` was not touched. Replayed on the
+day's snapshot, the report held apart only the 247.5-billion Samand, 153
+times the middle of the 31 Samands of that run.
+
+**Mutants,** with bytecode off: the rule 7 of 7, promotion 3 of 3, the
+report 2 of 2; two of them were added to the planned ones, and one row
+caught a mutant it was not predicted to catch.
+
+**As merged, and seen.** The site serves run17, promoted on 2026-11-01
+before the rule existed, so it carries no `far_from_model`; promoted again
+in a scratch directory under the rule, it holds none apart. Read from the
+outside on 2026-11-02, when the site served `543b705`, a Samand's page held
+32 listings, 31 of them priced, as here. No listing held apart by this rule
+is on the site.
+
+**What this does not settle.** A model with fewer than three priced listings
+in a run is not judged. A price of a model whose run holds two prices wrong
+alike is judged by the wrong two. The five published corpora carry no
+`far_from_model` and read as they did.
