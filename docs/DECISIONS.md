@@ -7013,3 +7013,93 @@ first, then the read of `created_time` against the field as a saved page
 shows it, then the artifact, in that order. When a temporal benchmark
 becomes possible depends on the arrival rate: §11's estimate, after d ≥
 W / (3A) days of arrivals, is marked invented until the rate is measured.
+
+## D93 — run17 is published and served, every line read before it was
+
+run17 is Khodro45's run of 2026-10-30, the first corpus of a second source.
+Reading it before it was published found two things to change in the
+reader, and both were changed before it was promoted (`6762362` here, `239aa09` in
+D87). It was published beside Bama's four runs as this repository's pull
+request #2, on 2026-11-01, and served in place of run16 as pull request #8,
+on 2026-11-02, after the owner had seen what the switch would change.
+
+    commit    what it does                                      16 suites     13
+    6762362   the eighteen other capitals give their province         3403   2762
+    4f747c0   data/corpora/run17.json, the owner's commit                red   2766
+    5d213d4   publish run17, every key of its 492 rows read           3420   2766
+    0de3cc3   pull request #2 merged                                  3420   2766
+    4818544   the rows written for run16 name run16                   3435   2779
+    f0f6375   the site serves run17 instead of run16                  3492   2779
+    ce5dad3   pull request #8 merged                                  3492   2779
+
+The first four were counted as D85 says. `4f747c0` is the one commit of the
+114 that is not green on its own: it adds the corpus, and MKT-3, which
+states the published runs, fails with run17 present until the next commit
+amends it, as its prediction said. The two were meant to land together and
+did, in one pull request. The last three are counted from their messages and
+CI.
+
+**A province from every capital** (`6762362`). 236 of run17's 492 rows
+carried no province, because a city gave its province only where it carries
+the province's own name, the thirteen of D74; Karaj 39, Shiraz 33,
+Mashhad 30, Ahvaz 27, Bandar Abbas 19, Tabriz 18 and Sari 15 were among
+them. Asked with those numbers on 2026-10-30, the owner chose that every
+province's capital gives its province, marked as from the city, and that
+any other city still gives none. The eighteen are a closed table taken from
+the same source as the thirteen, two of them written with a space as well,
+and every adapter reads it, since it reads the first part of a line. The
+published corpora are files and do not change.
+
+**What was read** (`5d213d4`). run17 is promoted from snapshot
+`khodro45-2026-10-30-51454a-9`, the first run read with the thirty-one
+capitals and the fix for the invisible mark; an earlier promotion of the
+same day was not published, because two of its rows carried the make with
+the mark before it. The artifact is 371,633 bytes, sha256 `ad72b16a…c29a`.
+Every key of the 492 rows was read before it was committed: no id twice;
+every address on khodro45.com; 471 provinces, each from the city and each
+one of the thirty-one, and 21 rows with none; no invisible mark at the edge
+of any value; years 1387 to 1405; odometers 15 to 379,440 km, two of them
+suspicious, a 1397 Golf at 1,594 km and a 1399 Pars at 520; asking prices
+606 million to 16.16 billion toman, and ten rows with none, Khodro45's price
+types 3 and 4; 117 models, one Pride among them, 36 Quiks and 9 Tibas.
+
+**Serving it** (`4818544`, `f0f6375`). Asked on 2026-11-02, the owner chose
+to serve run17 after its measurement. Measured on `main`: the site gets 492
+listings for 73, 115 models for 3 and 45 makes for 1, and a year and an
+odometer on every row; it loses the colour, which run17 has on no row, most
+of the body condition (known on 95 rows, where run16 had it on 64 of 73),
+most of the fuel (42) and some of the gearbox (271), and every stated
+province: each of run17's 471 is read from a city's name. With only the
+default changed, 34 rows in three suites went red, and every one read «the
+corpus the site serves» and expected run16's contents; those rows name
+run16 now and nothing else in them changed. The default is run17, and
+`CARO_RUN` still names any other run. The search box's examples are run17's,
+each tried first; «پراید زیر ۳۰۰ میلیون» found nothing in run17's one Pride,
+and two candidates were dropped because the parser did not know «سمند» or
+«تارا» as a model, a finding the parser's own round took up in pull
+request #13.
+
+**Mutants.** The publication changes no code and has none. The switch: 3
+of 3, with bytecode off against the corpus and contract suites: the default
+back to run16, an example that finds nothing, section 20 not pinned to
+run16.
+
+**What the predictions got wrong.** None, of the publication's (13 rows,
+MKT-3 failing before and passing amended, every other suite as it was) or of
+the switch's; its counts moved only the way predicted, by the screens rows
+that now run on two corpora.
+
+**As merged, and seen.** Pull request #2 was merged on 2026-11-01 and #8 on
+2026-11-02; CI succeeded on each head and on `main` after each merge. The
+site did not serve `0de3cc3` when it was read on 2026-11-01, after the
+merge: `/about` read 3407 assertions and «two corpora published» was false,
+so the deployment had not followed by then, and whether it did later that
+day was not read. Read from the outside on 2026-11-02, when the site served
+`543b705`, the corpus was REAL run17, `ad72b16a54cf`, 492 rows; a Samand's
+page held 32 listings; and its history was one point, run17 of 2026-10-30
+from khodro45, 31 priced, the middle 2,096,250,000 toman.
+
+**What this does not settle.** The body condition, the fuel and the colour
+are thinner on the corpus served than on the one before; the corpus that is
+served is a choice the owner can make again with `CARO_RUN`. No estimator
+has cleared the gate on run17, so the site shows evidence and no ranking.
