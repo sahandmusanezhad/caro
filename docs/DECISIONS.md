@@ -7378,3 +7378,96 @@ store, the queue and its collector, Docker and Kubernetes are left, and the
 2026 plan has taken them into its phases. The deployment has no Postgres
 and no catalog, and where Postgres will live was left to that plan's phase
 0.
+
+## D97 — The 2026 plan, accepted as its review amended it, and two people working on CARO
+
+Sobhan wrote a plan for what a public product for buyers in Iran needs under
+the decision core, without touching the core itself: `docs/REARCHITECTURE.md`,
+eight phases, each an issue in `Tecso-Dev/caro`. It was written as a
+proposal and said so, and it named, phase by phase, the lines this record had
+frozen and which of them it asked to reopen, so that each is reopened in the
+open, by the owner, with an entry here, or not at all. On 2026-11-02 the
+owner chose that two people work on CARO, had the plan merged under its
+author's name, and asked for the plan and its nine issues to be reviewed,
+the best of what they propose chosen, and the work to go on that way. This
+entry is the one the plan's phase 0 asks for: what is accepted, and which
+lines it reopens.
+
+    commit    author            what it does                         17 suites    14
+    3a5844e   Sobhan            the plan, as a proposal (#9)             3514   2795
+    b0da14b   the owner         the agreement: two people                3514   2795
+    55c26e3   the owner         the plan as accepted, and its review     3514   2795
+    7561d9c   the owner         the roadmap in two tracks                3514   2795
+    3f720ea   the owner         SERVICES' steps follow the plan          3514   2795
+    fd224aa   the owner         the README: the phases and their state   3514   2795
+
+Documentation only; the counts are those of `main` at `72e7770`, which every
+suite and CI held on each pull request's head and after each merge. The
+owner's commits here were written by a session and authored under the
+owner's name, as the agreement says.
+
+**Two people** (`b0da14b`). The agreement said every commit is authored as
+the owner and under no other name. Sobhan's plan was committed under his own,
+and writing the owner's name on another person's work would misstate who did
+it. So the agreement says who works on CARO: the owner decides, starts every
+live request and keeps `Tecso-Dev/caro` in step; Sobhan builds the platform,
+the plan's phases, and proposes, and what he proposes is the owner's to
+decide; a session builds what the owner has chosen. Work is tracked as issues
+in `Tecso-Dev/caro` and lands only by pull request into `main` here. Each
+person's commits carry that person's name; the rest of the agreement, the
+round, no trailer, no tool's name, credentials, is as it was.
+
+**What is accepted as written** (`55c26e3`). The phase order; Cloudflare in
+front; the environments and the deploys; the read model in D47's direction;
+the edge cache keyed by the corpus's digest; the alerts; the load tests; and
+D56's measurements before any talk of another language.
+
+**What the review changed, and why.** The run queue is a Postgres table
+taken with `FOR UPDATE SKIP LOCKED`, not Arq and Redis: the owner chose
+Postgres alone on 2026-11-02, and a handful of runs a day needs no second
+stateful service. Next.js stays: the design system and the panels are built
+in it, in phase 5, and phase 6 becomes the site in its own image on the
+server with Vercel retired, about a week, instead of seven to ten weeks of a
+second front end that would have to earn again every refusal state the
+suites hold. Kubernetes is later, with the same images, not out of scope, as
+the owner chose; nginx at the origin, not Caddy; one image with a container
+per role, the API, the collection worker and the ingest worker, as SERVICES
+designs it. And a sixth security measure: an error report carries no
+personal data. What was built before the plan was accepted is said where it
+belongs: phase 2's read model, as the catalog (D96), with the store's suite
+on a real Postgres in CI. The plan is about three months, not four.
+
+**The lines it reopens,** each at its phase, as the plan's table says:
+
+    line                                              phase  how
+    the working agreement: one person                     0  two, each under their own name
+    D64: the API as a Vercel service                      1  the API in Compose on a server
+    D47: no queue                                         3  in Postgres, every run with its transcript
+    the agreement: live requests on the owner's machine   3  on a worker the owner controls
+    D47: no cache                                         4  at the edge only, keyed by digest, gate and version
+    D64: the site as a Vercel service                     6  the site's own image on the server
+    D56: one language                                     7  only if its measurements come out so
+
+The first is reopened and settled by `b0da14b`. Each of the others is
+reopened when its phase begins, in the open, and its phase's entry records
+it. D47's Next.js line, which the proposal reopened, stays closed.
+
+**The roadmap, SERVICES and the README** (`7561d9c`, `3f720ea`, `fd224aa`).
+The order of work is two tracks side by side: the evidence track, the
+owner's, which is what CARO is for, and the platform track, the plan as
+accepted; neither waits on the other except where an item says so. SERVICES
+stays the design, and its six steps are scheduled by the plan's phases. The
+README carries the phases and their state.
+
+**The issues.** The nine issues of `Tecso-Dev/caro`, the epic and one per
+phase, were edited to the plan as accepted by a script the owner ran, which
+checked every issue's title before it touched it, and one comment on the
+epic says what the review changed. The session cannot write to that
+repository.
+
+**As merged, and seen.** Pull request #9 merged on 2026-11-02 as `8ce2ba4`,
+and #11 as `8296382`; CI succeeded on each head and on `main` after each.
+The site changes with neither.
+
+**What this does not settle.** Every phase still waits on the decisions it
+names, and a phase starts only when the one before it is closed.
