@@ -6088,3 +6088,127 @@ by trying a build on a phrasing no set held. That is not a reason to stop
 measuring on made phrasings. So from here each build is also tried on
 phrasings outside its sets before its tests are written, and what a rule
 does not read is listed rather than dropped: what is listed can be seen.
+
+## D85 — The floor's other words, two floors that were ceilings, and a decimal mark
+
+D84 left the budget floor tied to «از X به بالا» and «بالای X به بالا», and
+the other words a buyer uses for a floor written down as not built. Four
+rounds of the parser followed between 2026-10-25 and 2026-10-30. Each was
+measured offline on phrasings made for it, since no log of what buyers type
+exists, with its predictions written and locked before the code. The last
+two are rules about Persian, so they were the owner's: each was built on a
+branch of its own, and the owner took both on 2026-10-30, after which they
+were rebased onto `main`. Every commit was prepared away from the owner's
+machine and pushed by the owner.
+
+    commit    what it does                                      15 suites    12
+    0aefed3   «حداقل X» and «X و بالاتر» are a floor                  2714   2168
+    5fef443   the roadmap names the floor's words read and left        2714   2168
+    83a4900   «کمتر از X مدل Y به بالا» is a ceiling, not a floor     2861   2315
+    ed633df   «۱/۵» and «۱٫۵ میلیارد» are 1.5 billion                 3180   2601
+    db512ab   «از X به بالا نباشه» is a ceiling, not a floor          3209   2630
+    ced1694   the docs say the four rules taken are taken            3211   2632
+
+The counts are the ones measured for this entry. The 114 commits from D84
+to this repository's pull request #4 were counted again on 2026-11-01, each
+in a worktree of its own with the network off, with every suite and then
+with the system's Python alone: 113 are green on their own, and the one
+that is not is named where it belongs, in the entry on run17. The messages
+of `ed633df` and `db512ab` give the counts the two had on their own branch
+(2967 and 2996); on `main` they are the counts above, which their README
+and `/about` state.
+
+**Two words for a floor** (`0aefed3`, `5fef443`). «پراید حداقل ۴۰۰ میلیون»
+set no floor and took the amount for the ceiling, and so did «۴۰۰ میلیون و
+بالاتر». Of 192 phrasings of eight forms all 192 were read that way; the
+note «عدد قیمت را سقف بودجه فرض کردیم» was printed on 168, and the 24 written
+«حداقل بودجه X» and the 12 written «حداقل قیمت X» were reversed with
+nothing said. On run16 «پراید حداقل ۴۰۰ میلیون» matched 3 of the 53 Pride
+listings where a floor matches 47. Ten rule sets were measured on 1736
+inputs: 1009 phrasings made for the round, 120 made after its first
+measurement, and the 607 distinct queries the suites hand the parser. The
+one built reads «حداقل», with «قیمت» if it is written, and an amount after
+it; and an amount followed by «و» or «یا» and «بالاتر» or «بیشتر», with no
+«از» after. A phrase one of thirteen negations follows at once is no
+floor. Of the 954 phrasings with a meant reading it repairs 330 and breaks
+none that was right in the sets that hold its words; the 607 suite queries, 56 phrasings with a figure that
+is not money and 119 ordinary sentences are read as before in every field,
+and a separate copy of the rule, kept outside the repository, gives the
+same floor on all 1736. What it leaves is pinned by rows, so that it
+changes only on purpose: «حداقل بودجه X» stays a ceiling, since it may say
+what the buyer has to spend, and that is the owner's rule to make; «بیشتر
+از», «بیش از» and «بالاتر از» stay ceilings, the ambiguity D84 left, with
+the four rules measured for them breaking 96, 144, 240 and 324 right
+readings of negated ceilings; «حداقل ۴۰۰ میلیون پول دارم» is read as a
+floor; a negation outside the thirteen is not seen; a number glued to a
+word is not read.
+
+**A comparative before a year clause** (`83a4900`). «پراید کمتر از ۴۰۰
+میلیون مدل ۹۸ به بالا», with no comma before «مدل», was a floor of 400
+million with no ceiling, and nothing was listed under «نفهمیدیم»: the year
+form's cue is a bare «از», which is also the tail of «کمتر از». It was found
+while the first round was measured and recorded as a known fault. Of 288
+phrasings of it (six comparatives, six amounts, two years, four contexts)
+all 288 were floors; with a floor refused where one of the four
+comparatives stands just before its cue, all 288 are the ceiling they mean
+with the year clause as it was, none of 1104 controls changes, and of 25
+ordinary sentences the one that changes is the same fault. Every prediction
+held.
+
+**A decimal mark** (`ed633df`). «۱/۵ میلیارد», with the slash a Persian
+keyboard types for a decimal point, and «۱٫۵ میلیارد», with the Arabic
+decimal separator, were read as 5 billion, silently. Of 20 phrasings each
+both are now 1.5 billion, and «.» and «,» are 20 of 20 as before. Three
+digits after the slash are no decimal, so «پراید ۱۱۱/۳۰۰ میلیون» is still
+300 million. «،» is not read as a decimal (0 of 20 before and after): it
+also separates clauses and thousands, and reading it so could cost
+«سفید،۵ میلیارد». One prediction missed: a control, «پراید ۱۰/۱۲ میلیون
+کارکرد», changed from a ceiling of 12 million to 10.12 million. Two numbers
+with a slash between them and a scale word are one decimal now, and could
+have been a range; a row holds it as it is, for the owner to see.
+
+**A negated floor** (`db512ab`). «پراید از ۴۰۰ میلیون به بالا نباشه» was a
+floor of 400 million: the guard against a negation after the phrase was on
+the word rules only. Of 408 negated phrasings all 408 were floors; with the
+guard on the «از X به بالا» rule too, all 408 are the ceiling with its note,
+and none of 1609 other phrasings changes. The guard is not put on the year
+form, whose phrase ends before the year clause, where a negation may be
+about the year.
+
+**Mutants,** as each message states, every survivor named with the reason
+no row catches it. `0aefed3`: 41, 33 caught, and eight survive: the unit's
+tail only changes the text recorded as acted on, and the others need a
+number glued to a word, a spelling no row has, or two floors in one query.
+Run again with bytecode off on 2026-10-29, when a stale `.pyc` was found to
+have let a restored file run as its mutant (`013933c` put the remedy in
+the working agreement), 37 of the 41 gave 29 caught and the same eight survivors; four
+patterns no longer matched once. `83a4900`: 13, 10 caught; the three that
+survive need two floors in one query. `ed633df`: 11, 10 caught; the
+survivor removes a guard the regular expression's backtracking already
+keeps. `db512ab`: 15, 14 caught; the survivor puts the guard on the year
+form as well, which changes nothing there.
+
+**What the predictions got wrong.** Of the first round's 88 cells, the five
+on one point: the year form already read «بیشتر از X مدل Y به بالا» as a
+floor (36 phrasings). Beside the cells, the baseline listed 24 «X و بالاتر
+باشه» under «نفهمیدیم» where none was predicted, and the lists beside a
+city differed on 8, 6 and 14 phrasings where 4, 2 and 10 were predicted.
+The decimal round's E1d, above. The other two rounds' predictions held.
+
+**Taken, not optional** (`ced1694`). The owner took all four changes that
+had waited on a branch of their own: the two of this entry,
+«paintless-dent-removal» as minor_paint, and Sheypoor's corner image as a
+shop's badge. What still called them optional, in the code's comments, a
+report's line and the docs, says what they are.
+
+**As pushed, and seen.** The first three were pushed with the 43 commits of
+2026-10-30's first push, ending at `c1cc75e`, and the other three with
+the second, ending at `b972847`; CI ran on each push and both runs succeeded. On 2026-11-01 the
+site served `1e14364`, which holds all five: `/about` read 84 decisions,
+3407 assertions and 16 suites. No query of this entry was read on the live
+site.
+
+**What this does not settle.** «حداقل بودجه X», the three «more than»
+words and «،» are left as the owner's rules about Persian. Every phrasing
+measured here was made for the measurement, so a rule is known only on the
+shapes its author thought of.
