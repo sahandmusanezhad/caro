@@ -7524,3 +7524,107 @@ decisions, 3528 assertions and 17 suites.
 by neither table, and a query cannot name them. A short name the search
 cannot read is still dropped without a word. Both were offered to the owner
 and not chosen, and the roadmap's parser item says so.
+
+## D99 — Phase 0 is closed by the owner's choice, its four account steps carried to an issue of their own
+
+Phase 0 of the 2026 plan (D97), foundation and governance, closes when the
+site answers at `caro.noxioai.com` through Cloudflare, a test alert has
+reached Telegram, and its decision entry exists. Everything in it that a
+session could build was merged by 2026-11-02, in this repository's pull
+requests #12, #14, #15 and #16. What is left is four steps in the owner's
+own accounts, written down in PHASE0_SETUP: `main` protected and the two
+environments; the error reports' DSN set for the API and the site;
+Cloudflare in front of `caro.noxioai.com`; and UptimeRobot alerting to
+Telegram. None of them has been taken, so the first two conditions are not
+met. Asked on 2026-11-03 with that in front of the owner, the owner chose to
+close phase 0 now and to carry the four steps to an issue of their own in
+`Tecso-Dev/caro`. Phase 0 is closed by that choice, not by its conditions,
+and this entry says so; phase 1 may start.
+
+    commit    what it does                                      17 suites    14
+    831d678   scripts/reach_probe.py (#12)                             3520   2801
+    c6f31d9   error reports from the API, nothing personal (#12)       3525   2801
+    7bc345f   CODEOWNERS (#12)                                         3525   2801
+    1c0d121   the probe as the owner ran it, and the hosting (#14)     3525   2801
+    99479f6   the operator's test report (#14)                         3529   2803
+    72ea241   scripts/site_check.py (#14)                              3531   2805
+    c261196   PHASE0_SETUP, the owner's steps (#14)                    3531   2805
+    fe12b00   the site's reports go through /api/report (#15)          3534   2805
+    534e09f   the browser's reports, off without a DSN (#15)           3541   2812
+    43da0fb   phase 0's lists after #15 (#16)                          3541   2812
+    57800e9   the roadmap's Now list after #11 to #15 (#16)            3541   2812
+
+Each was green on its own when it was made, with the site's typecheck, lint
+and build where it touched the site, and CI succeeded on each pull request's
+head and on `main` after each of the four merges, `9d637b0`, `847d0e2`,
+`067f4a8` and `0afbbd6`.
+
+**The probe, and the hosting it decided** (`831d678`, `1c0d121`). D64 had
+raised whether a server in Europe can be reached from Iran, and nobody had
+measured it. The probe goes to each host step by step, a DNS answer, a TCP
+connection, a TLS handshake that names the host and checks its certificate,
+and an HTTPS request, and names each failure by its kind, because filtering
+shows as a reset or a silence at one step for some names and not others. The
+owner ran it on 2026-11-02 at 21:30 UTC from an ordinary connection in Iran,
+five rounds. Hetzner's three sites were reached 0 times in 5 each: every
+handshake that finished carried Hetzner's own certificate, and every request
+after it was met by the connection closing without a word, five times at
+Falkenstein and Nuremberg, four at Helsinki with one reset during the
+handshake. Neon's console, Cloudflare, the site on Vercel, GitHub and its
+container registry were reached 5 times in 5. Every TCP connection took 14
+to 16 ms, to every host, which no path from Iran to Germany allows, so
+something on the path answers for the far side; asked, the owner said the
+VPN was off. The owner chose: Hetzner, reached only through Cloudflare, with
+Postgres beside the API; the collection worker in Iran writes through
+Cloudflare too; and the owner reaches the server through the owner's own
+VPN.
+
+**Error reports with nothing personal in them** (`c6f31d9`, `99479f6`,
+`fe12b00`, `534e09f`). The plan's sixth security measure. Without
+`SENTRY_DSN` the SDK is not imported and nothing behaves differently, which
+is how every suite runs. With it, personal data, local variables and the
+source lines around a raise are off; the last was found by the suite, whose
+first real event carried the numbers written in those lines. Before an event
+or a breadcrumb leaves, the request's cookies, body, query and environment go,
+every header but four, the user and every frame's variables, and every
+Iranian mobile number written in any string, read as the store reads one, so
+that a price beside a number neither hides it nor is taken for it. The
+operator can send a test report and get its id back, or be told reports are
+off. The site loads the browser SDK only where `NEXT_PUBLIC_SENTRY_DSN` was
+set at build, as a chunk of its own; it sends its envelopes to the site's
+own `/api/report`, since the site's policy lets a browser reach its own
+origin and nothing else, and the API forwards only their error events,
+through the same scrubber, to the project its own DSN names, whatever the
+envelope says. Tried in a browser against a made-up DSN: two thrown errors
+went as two envelopes to `/api/report`, both answered 202, nothing went to
+any other host, and neither envelope held a cookie or a user. Without a DSN,
+47 requests across three pages, none to the SDK or `/api/report`.
+
+**The rest.** CODEOWNERS names the owner on everything and Sobhan beside the
+owner on the platform. `scripts/site_check.py` is the read from the outside
+the working agreement asks after every merge, as a script of the repository:
+the owner has run it since. PHASE0_SETUP writes down the four steps, each
+with what to see when it worked and what to send back, and none of them asks
+for a key to be written down or pasted anywhere.
+
+**Mutants,** as each message states: the probe 7, 5 killed, the survivors
+named; the API's reports 9 of 9; the test report 3 of 3; the relay 6 of 6.
+**What the predictions got wrong:** the site's reports were predicted to move
+no page's first-load script; `/search` went from 116 to 117 kB, the loader's
+few hundred bytes crossing a rounding boundary.
+
+**Read from the outside** on 2026-11-03, the site at `0afbbd6`, by the
+owner's `site_check.py`: `/about` 84 decisions, 3541 assertions and 17
+suites; the corpus REAL run17, `ad72b16a54cf`, 492 rows; a Samand's page 32
+listings, its history one point, run17 of 2026-10-30, 31 priced, the middle
+2,096,250,000 toman; «سمند زیر ۲ میلیارد» read as `samand`, 13 shown and 1
+held apart; no link to the seller listings; served by Vercel, with no
+Cloudflare header. The first try stopped with the TLS connection cut before
+anything was read; the second answered.
+
+**What this does not settle.** The four steps, and with them the two
+conditions phase 0 was to close on: the site behind Cloudflare, and an alert
+seen to reach Telegram. Until they are taken the error reports are off on
+the deployment, nothing alerts anyone when the site is down, and `main` is
+protected by the rule that a session merges only on green, not by GitHub.
+The issue that carries them says which is done.
