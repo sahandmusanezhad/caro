@@ -6629,3 +6629,110 @@ live site.
 **What this does not settle.** The demo keeps its flat panes; whether it
 follows the site is the owner's call. Four runs of one source are samples,
 not a market, and the chart's caption says so.
+
+## D89 — The site and the API hardened, the operator's login takes a second factor, and «پیش از خرید»
+
+On 2026-10-30 a read of the API and the site's configuration, and `npm
+audit`, found what an attacker would try first left open; and the owner
+asked for the parts a site like Torob has, an account and a payment among
+them. These 8 commits are what was built and what was written down for the
+owner to choose, and the two choices the owner made the same day: O1, a
+second factor for the operator, and B1, a page for a buyer about to go to a
+seller.
+
+    commit    what it does                                      15/16 suites  12/13
+    b255e1b   Next.js 15.5.28 and PostCSS 8.5.23                        2997   2451
+    2ddeedc   headers, bounded inputs, limits, CORS                     3008   2451
+    5daccf7   the options for accounts, payment and the login           3097   2528
+    3176a1c   the operator's login takes an authenticator code          3224   2635
+    91f5941   CI's actions on v7, their Node 24 releases                3224   2635
+    a1d1341   «پیش از خرید» at /before-buying (B1)                      3241   2649
+    b972847   the roadmap says O1 and B1 are built                      3241   2649
+    4eae09e   next's own PostCSS by an override                         3241   2649
+
+The counts are the tree's at each commit, measured as D85 says.
+
+**The releases** (`b255e1b`, `4eae09e`). `npm audit --omit=dev` reported
+one critical and three high advisories. Next.js 15.5.25 carried four: cache
+poisoning of statically built pages in a self-hosted app, the same leading
+to one user's content served to another, code execution in the image
+endpoint when SVG files are used, and a denial of service through server
+actions. The site uses neither the image component nor server actions and
+is not self-hosted, and the patched release was taken anyway: Next.js
+15.5.28 and the build's PostCSS 8.5.23. Next.js 15 also carries a copy of
+PostCSS 8.4.31 of its own, and only Next.js 16, a major release, moves it;
+an npm override gives it the patched copy instead, and `npm audit` reports
+nothing. The first install with the override kept the nested copy, because
+the lock pinned it; the entry was taken out of the lock.
+
+**The headers and the bounds** (`2ddeedc`). The site sent no security header
+and named its framework; the API sent none; a question, a listing's id and
+a compare's ids had no bound; nothing slowed one address posting to the
+contact form or guessing the admin token; the inbox file had no size cap;
+and CORS allowed credentials, every method and every header. Now the API
+sends `nosniff`, no framing, no referrer and a policy that allows nothing,
+since it answers JSON, and the admin endpoints `no-store`; a question holds
+at most 500 characters, an id 120, a compare 12 ids; one address may post 5
+messages in 10 minutes and fail the token 10 times, and past that is refused
+before the token is compared; the inbox takes nothing past 5 MB; CORS allows
+GET and POST and the headers the site sends, from the origins it is given,
+and no credentials. The site sends a
+content policy allowing its own scripts, styles, fonts and connections, HSTS
+for two years, no framing, a permissions policy that turns off the camera,
+the microphone, location and payment, and no `X-Powered-By`. The limits are
+per process and in memory, and the module says so: on a serverless
+deployment they slow one client and are no wall. Read on the built site, the
+headers were as written and seven pages drew with no policy violation in the
+console.
+
+**The options, before anything was built** (`5daccf7`).
+ACCOUNTS_AND_PAYMENT sets out the way to the seller (B0 as it is, B1 a page
+of what to check before buying, B2 not now; under no option does CARO take a
+buyer's money for a car), accounts (A0 none, A1 a phone and a code by SMS,
+A2 an e-mail link, A3 a passkey), the operator's login (O1, the token and an
+authenticator code, with no store), and payment (P0 until there is a
+product, P1 an Iranian gateway), with the rules each would be built under
+and what the owner and the deploy holder give for it.
+
+**O1** (`3176a1c`). With `CARO_ADMIN_TOTP_SECRET` set, the admin inbox takes
+the token and the six digits of an authenticator app: RFC 6238 as every app
+computes it, a secret of at least 128 bits, the step before, now or after
+accepted, each code once. The token is compared first, so a wrong token
+never spends a code, and a wrong code counts as a failure. With the secret
+unset the token alone opens, so no deployment is locked out before its
+secret is set; with a secret that cannot be read, nothing opens.
+`/api/admin/status` says whether the second factor is off, on or
+unreadable, and nothing of the secret. The admin page sends the digits as
+ASCII, since a header carries no Persian digit. Read in Chromium with a
+throwaway secret: a code typed in Persian digits opened the inbox, and the
+same code again was refused.
+
+**B1** (`a1d1341`, `b972847`). «پیش از خرید», the seven steps of the draft
+the owner approved, at `/before-buying`; the car's file links to it beside
+the way to the seller, and so does the footer. A0 and P0 stand: there is no
+account for a buyer and no payment.
+
+**CI** (`91f5941`). Every run warned that Node 20 is deprecated for
+`actions/checkout`, `setup-node` and `setup-python`. The owner chose to move
+them, and they are on v7, their Node 24 releases; the workflow says what
+their majors changed since and why none of it touches this workflow.
+
+**Mutants,** as each message states: the headers and bounds 17 of 17; O1 9
+of 9 (a window of two steps, the replay check removed, Persian digits not
+read, an unreadable secret taken as none, the code checked before the token,
+a wrong code not counted, SHA-256 for SHA-1, the truncation offset); B1 4 of
+4. The releases, the override and the actions have no row of their own: the
+build, the audit and CI are their checks.
+
+**As pushed, and seen.** The first seven were in the second push of
+2026-10-30, ending at `b972847`, and `4eae09e` in a push of its own; CI
+succeeded on both. On 2026-11-01 the site served
+`1e14364`, which holds all eight. **Not measured** from the outside: the
+headers the live site sends, whether `CARO_ADMIN_TOTP_SECRET` is set on the
+deployment (its status endpoint would say, and was not read), and whether
+CI's runs since `91f5941` carry the deprecation warning.
+
+**What this does not settle.** The limits are a process's, which on
+Vercel's functions slows one client and stops nobody; a limit shared by
+every instance waits on a store, and the plan's phase 4 is where the edge
+takes it. The second factor's memory of spent codes is a process's too.

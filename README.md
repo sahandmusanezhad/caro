@@ -807,7 +807,7 @@ scripts/         setup, live runs, promotion, the catalog's loader, replays, the
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D88) · eval · roadmap · readme/ (the README's images)
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D89) · eval · roadmap · readme/ (the README's images)
 ```
 
 ## Documentation
