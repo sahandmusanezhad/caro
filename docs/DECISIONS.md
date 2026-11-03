@@ -6522,3 +6522,110 @@ served run16, Bama's; run17, Khodro45's, has an entry of its own.
 list page; whether its odometers are typed in thousands is not known from
 seven; its runs are not published. Khodro45's auction history, filled in by
 a browser, is not read.
+
+## D88 — A page per model, a site that reads on a phone, and a history kept by source
+
+On 2026-10-30 the owner asked for a glassy site and for «everything that is
+like Torob», and chose several things about how it reads. These 13 commits
+are what came of it. None moves a number on the decision path: every figure
+they draw is an asking price a listing stated, counted, and nothing is an
+estimate or a claim about the market (D36).
+
+    commit    what it does                                      15/16 suites  12/13
+    7cd2ebf   the panes are glass, in the palette's colours             2997   2451
+    1514f1b   a page per model; listings kept in the browser            3097   2528
+    624b4c2   the glass costs no text its contrast band                 3101   2532
+    f6c62ba   a missing page and a broken one, in Persian               3119   2546
+    60ced4f   a model's page is titled with the model                   3121   2546
+    97e06d1   three orders of a model's listings, a year chip           3125   2546
+    25708a5   the header on a phone is two rows                         3211   2632
+    de7d956   on a phone a model's runs are a list                      3213   2632
+    976f77b   the fonts are the site's own                              3216   2635
+    4dedaf0   the way to the seller says where it goes                  3243   2649
+    5ae13e0   a model's history is each source's own                    3379   2741
+    6ffca98   one line per source, none joining two                     3381   2741
+    c3a1f55   a corpus after Bama's breaks no other row                 3381   2741
+
+The counts are the tree's at each commit, measured as D85 says. Each commit
+that touched the site was built, type-checked and linted before it was
+committed.
+
+**A page per model** (`1514f1b`, `60ced4f`, `97e06d1`). What a
+price-comparison site gives a product, CARO gives a model, from what it has
+published and with no account. `GET /api/models` summarises each make and
+model of the served corpus: how many listings, how many priced by the
+gate's own reading, the smallest, middle and largest asking price, the
+years. `GET /api/model` gives a model's listings, the priced cheapest first;
+its middle by year where three priced listings stand behind it, and the
+count where fewer do; and one point per published run. `/models` and
+`/model/<make>/<model>` draw them, each listing with its file and a link to
+its source. «نشان کن» keeps ids in the browser and sends them nowhere but
+the API's own listing endpoint. On run16 the Pride page held 53 listings, 50
+priced, from 240 million to 1.8 billion toman with the middle at 650
+million, and its four runs 612.5, 600, 635 and 650 million on 54, 52, 53 and
+50 priced listings. The guards of the corpus suite caught one thing before
+it was committed: the model's list drew the body condition, which
+FIELD_PROVENANCE does not allow on a card; the car's file draws it. A model's
+page is titled with the model now, and its listings can be read cheapest,
+newest or least driven, or one year at a time.
+
+**A history kept by source** (`5ae13e0`, `6ffca98`, `c3a1f55`). The owner
+chose the same day to run Khodro45 daily and to have the repository ready
+for its corpus before one was published. A rehearsal in a scratch copy, a
+synthetic Khodro45 run beside the four Bama runs, showed the history giving
+Pride a point «run17: 0 priced» from a site that had never listed one, as if
+the Prides had gone to zero. A run names its source now, from the
+artifact's own `source` key, and a source that never lists the model gives
+no point; the chart draws one line per source, by shape as well as colour,
+and no line joins two sources. Two rows of the contract suite had assumed
+every published run holds a Pride; they hold to what they were about.
+
+**The looks** (`7cd2ebf`, `624b4c2`, `976f77b`). The panes are glass with no
+colour added: every tint is one of the palette's sixteen values mixed with
+transparency, so the palette suite still holds, and a browser without
+`color-mix()` keeps the opaque panes. Measured against WCAG luminance at each
+glow's peak, the light scheme's glows cost two colours their band («warn» on
+a pane 4.95 to 4.41, «ink-3» on the bar 3.43 to 2.97); they are fainter in
+the light scheme now and as they were in the dark. The fonts are the site's
+own files, Vazirmatn and IBM Plex Mono, five of them and 133 KB in all,
+beside their licences: no visitor's browser asks Google any more, which was slower from Iran than
+the site itself, and the one lint warning every CI run carried is gone.
+
+**On a phone** (`25708a5`, `de7d956`). At 390 px the header took 253 px
+and the page's title began at 320; it is two rows now, the logo and the
+badge, then the nav in one row that scrolls sideways. The prediction for 768
+px missed: the first version went to one row from 640 px and the badge
+wrapped, so two rows hold up to 1280 px. Below 640 px a model's runs are a
+list instead of a chart whose labels came out at 6 px.
+
+**In Persian, and the way to the seller** (`f6c62ba`, `4dedaf0`). A
+missing page and a page that broke while it was drawn were Next's own
+English pages; they are the site's, in Persian, with the reference to quote
+and never the error. The link to a listing's source said «دیدن آگهی در منبع»
+and not that it is the way to the seller. CARO keeps no seller's number and
+never will; the sources show it on the listing's own page. The link names
+the source now, «تماس با فروشنده در باما ↗», and the car's file says the
+number is on the listing's page and that CARO neither keeps nor shows it.
+
+**Mutants,** as each message states: the model API 13 (10 caught); the
+title 3 of 3; the orders 7 of 7; the contrast 4, of which the two that
+survive are by design, since the rows hold legibility and not looks; the
+error pages 5 of 5; the phone's runs 4 of 4; the fonts 6 of 6, once a row
+whose policy half was vacuous was fixed (one mutant had survived it, and
+the message says so); the way to the seller 5 of 5; the history by source
+5 of 5 and its chart 3 of 3. The glass and the phone's header have no row:
+the suites draw markup, not layout, and both were read in screenshots, light
+and dark, desktop and phone.
+
+**As pushed, and seen.** `7cd2ebf` and `1514f1b` to `976f77b` were in the
+second push of 2026-10-30, ending at `b972847`; `4dedaf0` in a push of its
+own, and the last three in the push ending at `ad7792a`. CI succeeded on
+each. On 2026-11-01 the site served `1e14364`: the Pride history the API
+gave, read from the outside, was the four Bama runs with their source, 54,
+52, 53 and 50 priced listings and middles of 612.5, 600, 635 and 650 million,
+as on run16 here. No page of this entry was looked at in a browser on the
+live site.
+
+**What this does not settle.** The demo keeps its flat panes; whether it
+follows the site is the owner's call. Four runs of one source are samples,
+not a market, and the chart's caption says so.
