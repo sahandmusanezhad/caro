@@ -7176,3 +7176,99 @@ is on the site.
 in a run is not judged. A price of a model whose run holds two prices wrong
 alike is judged by the wrong two. The five published corpora carry no
 `far_from_model` and read as they did.
+
+## D95 — How the work is done, written down; every task a pull request; a README that says what is true
+
+The owner means to hand the rest of the project to a session, and the
+documents that say how the work is done had fallen behind how it was done.
+These seven commits, from 2026-10-25 to 2026-11-01, bring them up to date:
+the working agreement three times (a fourth change, on whose number is never
+stored, is D90's), the roadmap once, and the README twice,
+the second time at the owner's request as this repository's pull request #6.
+
+    commit    what it does                                      15/16 suites  12/13
+    20b54ac   the README says what CARO is and where it stands         2608   2062
+    227a642   the roadmap lists everything left, in order              2608   2062
+    bce9274   the working agreement says how a session works now       2608   2062
+    013933c   how to run a mutant without stale bytecode               2875   2329
+    7adebcb   every task lands as a pull request (#1)                  3407   2766
+    f456cd5   three charts drawn from data/corpora (#6)                3433   2777
+    949761d   the README for both repositories, as true at main (#6)   3435   2779
+
+The first five were counted as D85 says; the two of pull request #6 from
+their messages and CI.
+
+**The README of 2026-10-25** (`20b54ac`). It described September: it opened
+on Run 3 and Run 5, said nothing of the site, its API or the four published
+corpora, and said a clone has no corpora. It opened then with the live site
+and what it served, a table of where the project stood against the brief,
+and four requests as the site answered them that day. Four statements were
+wrong and were corrected: the confidence policy has three dimensions and an
+overall status, not six; run16 records the fields the ranking reads that the
+README called constant; `data/corpora/` holds the published runs; and the
+ingest suite held 515 assertions, not 355.
+
+**The roadmap** (`227a642`). It listed what was open but not the order, who
+does each item or what closes it. It opens now with who does what, and the
+order of work, each item with what closes it; and two sections are new,
+Operations and the end.
+
+**How a session works** (`bce9274`, `013933c`). The agreement still said a
+session has no shell on the owner's machine, and that the review went out
+through a browser extension to a named reviewer; neither had been true for
+weeks. It writes down the round every change goes through: predictions
+first, with the hashes of their inputs; the measurement, offline and on
+made phrasings said to be made; the owner's decision; the build, one commit
+per change, each tried by hand outside its sets before its tests are
+written, mutated, and green on its own with the published counts moved; the
+push; and the D-entry only after CI and the site have been read. On
+2026-10-26 a restored file still ran as its mutant: Python validates a
+cached `.pyc` by the source's modification time in whole seconds and its
+size, a mutant that turns `return 0` into `return 1` has the same size, and
+the restored copy was written in the same second. It was found only because
+a suite that had passed turned red with the tree unchanged. The agreement
+says now to run each mutant with `python3 -B` and `PYTHONDONTWRITEBYTECODE=1`
+and to restore by moving the copy back, and every mutation result already in
+a message was run again so: nothing in them changed (D85 and D86 give the
+numbers).
+
+**Every task a pull request** (`7adebcb`). On 2026-11-01 the owner chose
+that a session no longer stops before the push: each task ends with its
+commits on a branch, a pull request into `main` that says what changed and
+why, and a merge by the session once CI on it is green, never red, never
+squashed or rebased. Commits still carry the owner's name and address alone,
+with no trailer and no tool's name; the merge commit GitHub writes carries
+the account that merged it. The owner keeps `Tecso-Dev/caro` in step with
+`main`, and credentials never leave the owner's machine. It was itself the
+first such pull request, #1, merged as `1e14364`.
+
+**The README of 2026-11-01** (`f456cd5`, `949761d`). The owner asked for a
+README that says everything completely and correctly and looks far better,
+its charts above all. A number on a chart is a claim like any other, and a
+chart kept by hand beside the files it describes is wrong the day the next
+corpus is published, so the three charts are drawn from `data/corpora/` by
+`scripts/readme_charts.py`, with caro's own reader, in the site's palette,
+for both schemes, and `--check` says whether the committed files are what it
+draws today: the five published runs and the listings each lets inform an
+estimate (76/71, 74/64, 77/64, 73/63 and 492/480); the middle asking price
+of the Bama Prides by run, with the count behind it; and why run16's ten
+held back are held back. The README was read in full first, and was stale
+where the work had moved past it: Sheypoor and Khodro45 «nothing has run
+live», three adapters of four, nothing on the far-price rule, the seller
+listings, the daily series or the two repositories, and a Bama run said to
+need a browser. Each claim kept was checked against the code. Two rows of
+the claims suite hold the charts and the corpora's table to the corpora, and
+each failed by name on the README before.
+
+**Mutants,** where there is code: the charts 2 of 2, the README's rows 2 of
+2, with bytecode off against the claims suite.
+
+**As pushed, and seen.** The first three were pushed on 2026-10-25, with
+D84, ending at `bce9274`, and CI succeeded; `013933c` in the first push of
+2026-10-30. Pull requests #1 and #6 were merged on 2026-11-01; CI succeeded on #6's
+head and on `main` after each merge. On 2026-11-01 the site served `1e14364`.
+A README is not served by the site; both repositories show the one file.
+
+**What this does not settle.** The agreement for two people, and the
+roadmap in two tracks, came with the plan's acceptance, and have their own
+entry.
