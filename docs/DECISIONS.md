@@ -7272,3 +7272,109 @@ A README is not served by the site; both repositories show the one file.
 **What this does not settle.** The agreement for two people, and the
 roadmap in two tracks, came with the plan's acceptance, and have their own
 entry.
+
+## D96 — CARO as services: where one process breaks, measured, and its first step, the catalog
+
+D56 kept CARO in one process until a measurement showed where it breaks. On
+2026-11-01 and 2026-11-02 the owner decided that CARO becomes a set of
+services, because the listings will grow to tens of thousands: Postgres
+alone, for the data and the work queue; Docker now and Kubernetes later;
+collectors on the owner's machine for now. This entry records the
+measurement D56 asked for, the design it led to, and its first step: the
+published runs in a database, read by the site with every answer the same.
+They landed as this repository's pull requests #7 and #10.
+
+    commit    what it does                                      16/17 suites  13/14
+    1d025a1   SERVICES.md: the measurement and the way there (#7)       3435   2779
+    03d5831   caro/sql.py, shared by the store and the catalog          3492   2779
+    4fbb816   the catalog, loaded from data/corpora                    3506   2793
+    2665d4b   under CARO_CATALOG_URL the site reads the catalog        3512   2793
+    e109260   CI's third job, against a real Postgres                  3512   2793
+    2126b6e   a run already loaded is known by its digest              3514   2795
+    dbd26d1   SERVICES.md says step 1 is built (#10)                   3514   2795
+
+Counted from their messages and CI: each green on its own when it was made,
+and CI green on each pull request's head and on `main` after each merge. The
+catalog's suite is the seventeenth from `4fbb816`.
+
+**Where one process breaks** (`1d025a1`). Synthetic corpora drawn from
+run17's 492 rows, said to be synthetic and never committed, at 10,000,
+50,000 and 100,000 listings, each in a process of its own with the network
+off, the predictions locked first:
+
+    size   file     first request  memory   /api/models  search
+    10k    7.6 MB   2.5 s          205 MB    56 ms       14 ms
+    50k    38 MB    11.4 s         712 MB   254 ms       42 ms
+    100k   76 MB    22.1 s         1.36 GB  549 ms       67 ms
+
+The model page's history breaks first: it loads and validates every corpus,
+and ten daily runs of 10,000 took 20.5 s and 508 MB on a cold process; a
+month of them would pass what a serverless function may use. Every read ran
+both guards over the whole text again, which promotion had already done.
+Thirty daily runs would add about 230 MB a month to the repository. The
+parser, the gate, the rules and the search do not break. So the first
+boundary is the data, not the logic. Predicted wrong: the cold load (2.5 s at
+10,000, predicted under one; 22 s at 100,000, predicted 3 to 8), the history
+(20.5 s, predicted 3 to 10), promotion (2.2 s for 10,000 records, predicted 5
+to 20) and the search (67 ms at 100,000, predicted over 300).
+
+**The way there.** SERVICES sets out what does not change: one language
+and one library, every rule about the sources, offline suites,
+`caro.corpus/1` as the published format, migrations that only add. Then the
+services and what each owns, the tables, a `jobs` table taken with `SKIP
+LOCKED` in place of a queue, and six steps, each a pull request, with the
+site never down.
+
+**The catalog** (`03d5831`, `4fbb816`, `2665d4b`, `2126b6e`, `dbd26d1`).
+What SQLite and Postgres do differently moved from the seller store into
+`caro/sql.py`, so that the two stores share one copy of it. The catalog
+keeps each published run as it was published, in the artifact's order, with
+its digest and size, and gives back the bytes it was given; it is loaded
+from `data/corpora/`, which stays the publication. Under `CARO_CATALOG_URL`
+the API reads the served run and a model's history from it, by an index,
+instead of every corpus in memory, and the files are not looked at; a
+catalog that cannot serve the run answers UNUSABLE with a fault of its own,
+`CATALOG_UNAVAILABLE`, never the files, never the synthetic corpus, never a
+500, and no answer holds its address. A database can be down for a minute
+where a file cannot, so that state is asked again after 30 seconds. 740
+questions, every endpoint the site uses, asked of the files and of the
+catalog, with the reader pointed at an empty directory while the catalog
+answers: equal, status and body, field for field, on SQLite and on Postgres
+16. Measuring the loader found a prediction wrong: loading a run the
+catalog already held cost as much as loading it the first time, so a run is
+known by its digest before anything else is done, and `--verify` runs the
+day's guards over every run. As built, the tables are `catalog_runs` and
+`catalog_listings` under `CARO_CATALOG_URL`, not the design's `runs` and
+`listings` under `DATABASE_URL`, because the seller store, which may share
+the database, already has a table called listings and is switched on by that
+variable; the stored middles of the design are left to the step where what
+happens to a stored middle when a rule changes is decided on purpose.
+
+**What the catalog changed.** At 10,000 listings the first request took
+0.33 s from a SQLite catalog and 0.59 s from Postgres, where it took 2.5 s
+from the files; at 100,000, 5.7 s and 6.8 s, where it took 22.1. A model's
+page with ten daily runs of 10,000, first call, 0.18 s and 0.31 s, where it
+took 20.5 s and 508 MB. A warm model page is no faster, and SERVICES says
+why.
+
+**Against a real Postgres** (`e109260`). The suites use SQLite in a
+temporary file, as a laptop has. A third CI job runs the store, the catalog
+and the site served from the catalog against a Postgres 16 service, and
+every pull request since has been merged with it green.
+
+**Mutants,** as each message states: the catalog 7, 5 killed; its reading
+11, 8 killed. Among the survivors, one worth its own round: a catalog
+without the run falling back to the file of that name, which no row reaches,
+since no row has a run that is on disk and not in the catalog.
+
+**As merged, and seen.** Pull request #7 merged on 2026-11-02 as `7198c9b`,
+and #10 the same day as `72e7770`. The catalog is off by default: nothing on
+the deployment names one, so the site the owner read on 2026-11-02 was
+served from the files, as before.
+
+**What this does not settle.** Of the six steps, two are built: the catalog,
+and the third, serving Khodro45's corpus, which is D93's. Ingest into the
+store, the queue and its collector, Docker and Kubernetes are left, and the
+2026 plan has taken them into its phases. The deployment has no Postgres
+and no catalog, and where Postgres will live was left to that plan's phase
+0.
