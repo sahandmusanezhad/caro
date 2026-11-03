@@ -6847,3 +6847,76 @@ own number; the store's address and secret on the deployment; and the flag.
 The Postgres driver is installed in CI's Postgres job and not in the API's
 requirements, so a deployment has none until the owner adds it. Dealers are still the owner's question, and photos wait for a version
 after the first.
+
+## D91 — A second protocol: within one collection, as its own runner
+
+D55 holds that a result carries the question it answers, and that a second
+protocol arrives as a second runner with its own name, its own contract and
+its own entry here. This is that entry. On 2026-10-30 the owner chose to run
+Khodro45 every day and to have a benchmark "within one collection" built
+now. One snapshot cannot be benchmarked in time: it has no first-seen
+history, and the temporal runner refuses it as `missing_temporal_axis`. The
+temporal runner keeps its question; the other is asked here.
+
+    commit    what it does                                      16 suites     13
+    506f9e8   scripts/benchmark_within.py, protocol within_collection   3392   2751
+    ad7792a   a listing read twice is one car in the split               3393   2752
+
+**The question.** Does the frozen estimator hold up on other listings of the
+same collection: one artifact, one source, one day? Not across time, not on
+another source, and nothing about the market (D36). `PROTOCOL =
+"within_collection"` is a constant that no flag switches, and every exit
+prints it with a reason from a closed vocabulary, which does not hold
+`missing_temporal_axis`, beside the run's id and digest and, where the
+artifact was read, its source, its collection date and that scope.
+
+**What is its own, and what is not.** Only the split. A published corpus
+names no car across listings, so listings alike in model, year, odometer and
+asking price are one car and stay on one side; a quarter of the cars, drawn
+with the temporal runner's own seed, are the test side. The hold-out
+fraction, the seed and the baseline are the temporal runner's objects,
+imported; the estimator, the slices and the gate are `caro.hierarchical`'s,
+called as the temporal runner calls them (D35). The refusals come in the
+same order: leakage, an empty side, a comparison below 93 listings a side
+(`shift_unknown`), a shifted one (`severe_shift`), and only then the
+estimator, both errors and the gate's verdict. Since both runners call the
+gate as it is, the held-out trim is never measured, so neither can answer
+ACCEPTED today; were this one to, it says that this is not the temporal
+gate's acceptance, and nothing is served on it. The temporal runner's
+refusal names this runner as the place the other question is asked, and
+that its answer is not this one's; its status, reason and exit are as they
+were.
+
+**A car read twice** (`ad7792a`). Reviewing the first commit found that
+nothing guarantees a listing id once per corpus, and Khodro45 pages by
+offset, so one listing can be read on two pages with its price changed
+between them. The split then made it two cars, free to sit on both sides, and
+ordering them stopped the runner with a TypeError. A car is now a connected
+group of rows that share a car key or a listing id, and no two cars share the
+id they are ordered by.
+
+**What it answers now.** On the rehearsal Khodro45 corpus of 36 listings it
+splits 27 and 9 and refuses, `shift_unknown`. On 480 listings of one
+synthetic stationary collection it splits 360 and 120, runs the estimator,
+and the gate does not accept: no thin or held-out trim was measured. It has
+not been run on run17.
+
+**Rows and mutants.** Eleven rows of the benchmark contract suite, WC1 to
+WC11; each failed before its code. The first commit's 10 mutants were all
+caught after one row was corrected: the scope line taken out of the report
+survived the first run, because two rows also found that sentence in the
+question block at the top of the output, and they read it from the report
+block now. The second's 3: the car key not joined, caught; the listing id not
+joined, which survived the first run, because the row checked one seed and
+under it the wrong grouping happened to put both readings on one side, so
+the row now holds for twenty seeds and catches it; and sorting on the whole
+tuple, which survives and is equivalent, since no two cars share an id. Both
+corrections were made after a mutation run, and both messages say so, as
+the working agreement asks.
+
+**As pushed.** Both in the push of 2026-10-30 ending at `ad7792a`; CI
+succeeded. Nothing of this runner is on the site.
+
+**What this does not settle.** The gate's item stays open: a verdict within
+one collection is not a verdict across time, and the roadmap says this does
+not close it.
