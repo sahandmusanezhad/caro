@@ -30,11 +30,11 @@ intent → explain the best choice**.
 
 | Requirement | State |
 |---|---|
-| crawl offers | ⚠️ **two sources published.** Four `BamaAdapter` runs — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and one of Khodro45's, run17 (2026-10-30), 492 listings; the API serves run17 by default since 2026-11-02, and served run16 until then. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and its category-page extraction (`caro/ingest/divar_page.py`), written offline on 2026-10-26 from what the probe printed (a JSON-LD list of 24 vehicles, and the 24 cards beside it); it has read the owner's saved copy of that page once (24 of 24 listings; see the product gaps, item 1), and its live path has never run. Sheypoor and Khodro45 have adapters since 2026-10-29, and both have run live since 2026-10-30 on the owner's machine — Khodro45 every day (TEMPORAL_CONTRACT §11); none of Sheypoor's runs is published. `scripts/page_probe.py` was the first step for all three. |
+| crawl offers | ⚠️ **two sources published.** Four `BamaAdapter` runs — run11 (2026-09-10), run13 (2026-10-06), run14 (2026-10-11) and run16 (2026-10-15), 76, 74, 77 and 73 listings — and one of Khodro45's, run17 (2026-10-30), 492 listings; the API serves run17 by default since 2026-11-02, and served run16 until then. `DivarCarAdapter` has its robots gate, its pause and its stop on a block, and its category-page extraction (`caro/ingest/divar_page.py`), written offline on 2026-10-26 from what the probe printed (a JSON-LD list of 24 vehicles, and the 24 cards beside it); it has read the owner's saved copy of that page twice, on 2026-10-26 and 2026-10-29 (24 of 24 listings; D86), and its live path has never run. Sheypoor and Khodro45 have adapters since 2026-10-29, and both have run live since 2026-10-30 on the owner's machine — Khodro45 every day (TEMPORAL_CONTRACT §11); none of Sheypoor's runs is published. `scripts/page_probe.py` was the first step for all three. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served the last push, `831b28e`, when it was read on 2026-10-25 (D84); see «Deploying» below. |
+| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `0afbbd6` when it was read on 2026-11-03 (D99); see «Deploying» below. |
 
 ## The order of work
 
@@ -49,16 +49,14 @@ an item says so.
 
 ### Now
 
-- **The decision entries for the merged work since D84** — this
-  repository's pull requests #5 to #15: the price far from its model's
-  middle, the README, the services design, run17 served, the catalog, the
-  plan and its acceptance with the agreement for two, the one table of
-  model names, and phase 0's parts -- the probe and the hosting it decided,
-  error reports. A session, once the owner has read the site from the
-  outside after the last of them (operations, item 2).
-- **`Tecso-Dev/caro` brought to `main`.** The owner; its `main` was last
-  brought in step at this repository's pull request #13, so the site does
-  not run #14 and #15 yet.
+- **Phase 0's four account steps,** carried to an issue of their own when
+  the owner closed phase 0 on 2026-11-03 (D99): `main` protected and the
+  two environments; the error reports' DSN set for the API and the site;
+  `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
+  The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
+  Every merge since D84 has its entry, D85 to D99.
+- **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge; its
+  `main` was last brought in step on 2026-11-02, at pull request #16.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -66,9 +64,10 @@ an item says so.
 
 1. **A first live run of `DivarCarAdapter`** (the product gaps, item 1). The
    owner, on the owner's machine, after the review it names. The probe is
-   done, the extraction is written and has read one saved page; what is left
-   is the odd cases and the brands it lists (`first_run.py --page <the saved
-   file>`), a probe of `?page=2`, and then the run. The run's plan and its
+   done, the extraction is written and has read the saved first page twice,
+   and the owner has probed `?page=2` (D86); what is left is reading the two
+   saved pages together (`first_run.py --page <page 1> <page 2>`), which says
+   whether page 2 adds listings, and then the run. The run's plan and its
    predictions are written: [RUN_PLAN_DIVAR_FIRST](RUN_PLAN_DIVAR_FIRST.md).
 2. **A larger real corpus, and collection over time** (the product gaps, item
    1). The owner runs it; a session writes the run's plan and predictions and
@@ -105,7 +104,9 @@ Each phase is one issue in `Tecso-Dev/caro` — the issue numbers below are
 that repository's — and a phase starts when the one before it is closed, and never before the owner has made the decisions it
 names. Durations are for two people part-time.
 
-0. **Foundation and governance** (issue #3; a week; both). Done: the working
+0. **Foundation and governance** (issue #3; a week; both). **Closed** on
+   2026-11-03 by the owner's choice (D99), with its four account steps
+   carried to an issue of their own. Done: the working
    agreement for two people; the plan accepted and merged; CODEOWNERS;
    error reports from the API and from the site, off until a DSN is set,
    with no personal data in an event -- the site's go through the API's
@@ -114,7 +115,7 @@ names. Durations are for two people part-time.
    2026-11-02 with no VPN -- Hetzner reached 0 times in 15, Cloudflare,
    Vercel, GitHub, its registry and Neon every time -- after which the owner
    chose Hetzner reached only through Cloudflare, Postgres beside the API
-   (REARCHITECTURE, phase 0). Left, all of it in the owner's accounts and
+   (REARCHITECTURE, phase 0). Carried, all of it in the owner's accounts and
    every step written down in [PHASE0_SETUP](PHASE0_SETUP.md): branch
    protection on `main` and the `staging` and `production` environments;
    Sentry's DSN set for the API and the site; `caro.noxioai.com` proxied
@@ -559,7 +560,7 @@ names. Durations are for two people part-time.
    session measures it on photos he provides before anything is shown.
    Closes when its accuracy and its refusals are measured and recorded.
 
-4. **Authenticator-based login.** Built, and waits for the push. The owner
+4. **Authenticator-based login.** Built and deployed (D89). The owner
    chose O1 on 2026-10-30 ([ACCOUNTS_AND_PAYMENT](ACCOUNTS_AND_PAYMENT.md),
    «The operator's login»): the admin view opens with `CARO_ADMIN_TOKEN` and,
    where `CARO_ADMIN_TOTP_SECRET` is set, the six digits of an authenticator
@@ -567,14 +568,15 @@ names. Durations are for two people part-time.
    of the contract suite). With the token unset it does not open at all; with
    the secret unset the token alone opens, as before; with a secret that is
    not a key, nothing opens. Closes when the deploy holder has set the secret
-   and the D-entry after the push records it.
+   and `/api/admin/status`, read from the outside, says its second factor is
+   on.
 
 5. **Deploying.** The Vercel project is in another account than the
    owner's, and its holder deployed `main` from `Tecso-Dev/caro` on
    2026-10-14 (D78). A push to `main` deploys: `1ebbf4a` was on the site
-   within about three minutes of its push on 2026-10-15 (D80), and the last
-   push, `831b28e`, was on the site when it was read on 2026-10-25. Checked
-   there the same day (D84):
+   within about three minutes of its push on 2026-10-15 (D80), and
+   `0afbbd6` was on the site when it was read on 2026-11-03 (D99). Checked
+   there on 2026-10-25 (D84):
    the contact page has its inbox off and links to the repository's Issues
    (`CARO_INBOX=off`, D68), and the car page draws the province with how it
    was read. The inbox is off because a function's disk keeps nothing; it
