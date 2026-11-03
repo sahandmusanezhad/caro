@@ -6736,3 +6736,114 @@ CI's runs since `91f5941` carry the deprecation warning.
 Vercel's functions slows one client and stops nobody; a limit shared by
 every instance waits on a store, and the plan's phase 4 is where the edge
 takes it. The second factor's memory of spent codes is a process's too.
+
+## D90 — Listings sellers post on CARO themselves, built and off
+
+The owner wants a buyer who finds a car to be able to reach its seller, and
+CARO does not collect sellers' numbers from the sources and will not. On
+2026-10-30 the owner chose the other way: listings that sellers post on
+CARO, where the seller decides whether a number is shown. These 17 commits,
+all of that day, are its design, the owner's choices, five of its six steps
+built, and the switch that keeps it out of sight until the store is set.
+
+    commit    what it does                                      15/16 suites  12/13
+    f60190e   the design, before the code                               3244   2650
+    f38fdf5   the agreement: whose number is never stored               3249   2655
+    c19ffcc   the owner's choices; the store designed                   3249   2655
+    4c423c4   the store, SQLite and Postgres in one module              3267   2673
+    c14519c   a phone's form and the login's limits                     3270   2676
+    e6400f3   a seller logs in with a code by SMS                       3282   2676
+    979b514   the docs: the store and the login built                   3282   2676
+    dbb9c53   migration 2 adds a listing's province                     3283   2677
+    b63dd86   a seller's listing, its versions, the reveal              3295   2677
+    9145b4e   the docs: the listing built, its place                    3295   2677
+    18b5d51   the operator's review, and three reports                  3305   2677
+    93301d4   the docs: the operator's view built                       3305   2677
+    87c38fb   the site's own POSTs through its rewrite                  3306   2677
+    7c38bdd   the site's pages for seller listings                      3375   2740
+    f056695   the docs: five of six steps built                         3375   2740
+    71b747e   the links stay out of the nav until turned on             3377   2741
+    a03e2f1   a model page asks only where they are on                  3382   2741
+
+The counts are the tree's at each commit, measured as D85 says; the store's
+suite is the sixteenth from `4c423c4`.
+
+**The design, before the code** (`f60190e`, `f38fdf5`, `c19ffcc`).
+SELLER_LISTINGS sets it out: a second kind of listing, kept apart from the
+corpus, never in `data/corpora/`, never scored, never evidence in a
+decision, and drawn under its own heading; its number the one the seller
+logged in with, shown only where the seller ticked it and only on a press of
+«نمایش شماره», never in a page's HTML, JSON or structured data, and every
+reveal counted and limited; no link and no number in a description; every
+listing waiting for the operator; one active listing per number for a
+private seller, thirty days and renewable, deleted ninety days after its
+end; and «گزارش آگهی». The working agreement says whose number is never
+stored, a source's seller's, and how a number a seller gives CARO is shown.
+The owner answered four of the design's questions the same day: no photos in
+the first version; the operator approves every listing and every edit;
+Postgres in production, SQLite on a laptop and in the suites; the SMS
+provider later, so the login is built against a fake one. Dealers stay the
+owner's question. An approved edit is a new version, and the version before
+it stays public until the edit is approved, so an edit cannot put unreviewed
+words on a page. Python reaches Postgres only through a driver, a new
+dependency and so the owner's to choose; until then it is imported only for
+a Postgres address.
+
+**The store and the login** (`4c423c4`, `c14519c`, `e6400f3`, `dbb9c53`).
+`webapp/api/store.py`, standard library only, holds both databases behind
+one module, with what they do differently in one table; migrations only add,
+each in a transaction under a lock, and the suites hold them to it. With no
+`DATABASE_URL` there is no store and the seller pages say so, as the inbox
+is off where a disk keeps nothing. A phone number is kept in clear in one
+table, and only once its owner has answered the code; codes, the phones that
+asked for one and the addresses the limits count are kept as keyed hashes;
+a session is kept as its SHA-256. The login sends a six-digit code that lives
+120 seconds, answers a member and a stranger with the same bytes, and counts
+its limits in the store, under one lock: per phone 3 in 15 minutes and 6 a
+day, per address 6 an hour and 20 a day, 500 a day in all, proposals the
+owner can move. The session is a cookie, HttpOnly, Secure and SameSite=Lax,
+for 30 days; «حذف حساب» deletes the account and, by cascade, all under it.
+Migration 2, which adds a listing's province, is the first one written after
+a migration was handed over, and the first test that a migration only adds.
+
+**The listing and the operator's view** (`b63dd86`, `18b5d51`, `87c38fb`).
+The server holds the form's rules: no digit run and no link in a
+description, a plausible odometer for the year, one active listing per
+number. A pending version is never public, and the number is in no public
+JSON. The operator approves, rejects with a reason the seller reads, or
+removes; three reports from three addresses take a listing down until it is
+looked at, one address counting once per listing. The site's own POSTs reach
+the API through the site's rewrite, so the Origin a change must come from is
+held against `X-Forwarded-Host` where the rewrite sets one.
+
+**The site's pages, and the switch** (`7c38bdd`, `71b747e`, `a03e2f1`).
+«ورود», «ثبت آگهی», «آگهی‌های من», the public list, a section on a model's
+page after its corpus listings, and the reveal, tried in a browser from the
+login to the number. The owner chose to keep the two links out of the nav
+until the deploy holder sets the store: `NEXT_PUBLIC_SELLER_LISTINGS`, which
+Next.js writes into the site when it is built. A model's page asked for the
+listings sellers post even where they are off, and got 503 STORE_OFF on
+every page: a red line in the browser's console and a request for nothing,
+found in a browser while checking another change. It asks only where the
+flag is on now.
+
+**Mutants,** as each message states: the store 12 of 12, two of which first
+stopped the suite with an integrity error instead of failing a row, and now
+fail by name with no row added; the phone and limits 4 of 4; the login 12 of
+12; migration 2, 2 of 2; the listing 11 of 11; the review 10 of 10; the
+rewrite 2 of 2; the pages 7 of 7; the nav 2 of 2; the model page's request
+2, of which the one that survives is equivalent while both say «on», as
+predicted.
+
+**As pushed, and seen.** In six pushes of 2026-10-30, from `f60190e` to
+`ad7792a`; CI succeeded on each. Read from the outside on 2026-11-01 and on
+2026-11-02, the home page links to neither `/listings` nor `/sell`. Nothing
+of the feature is set on the deployment, so its pages, if visited, say that
+this deployment takes no listings.
+
+**What this does not settle.** Step 6 is the owner's and the deploy
+holder's: an SMS provider behind the interface, tried first on the owner's
+own number; the store's address and secret on the deployment; and the flag.
+The Postgres driver is installed in CI's Postgres job and not in the API's
+requirements, so a deployment has none until the owner adds it. Dealers are still the owner's question, and photos wait for a version
+after the first.
