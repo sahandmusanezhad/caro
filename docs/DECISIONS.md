@@ -6088,3 +6088,1543 @@ by trying a build on a phrasing no set held. That is not a reason to stop
 measuring on made phrasings. So from here each build is also tried on
 phrasings outside its sets before its tests are written, and what a rule
 does not read is listed rather than dropped: what is listed can be seen.
+
+## D85 — The floor's other words, two floors that were ceilings, and a decimal mark
+
+D84 left the budget floor tied to «از X به بالا» and «بالای X به بالا», and
+the other words a buyer uses for a floor written down as not built. Four
+rounds of the parser followed between 2026-10-25 and 2026-10-30. Each was
+measured offline on phrasings made for it, since no log of what buyers type
+exists, with its predictions written and locked before the code. The last
+two are rules about Persian, so they were the owner's: each was built on a
+branch of its own, and the owner took both on 2026-10-30, after which they
+were rebased onto `main`. Every commit was prepared away from the owner's
+machine and pushed by the owner.
+
+    commit    what it does                                      15 suites    12
+    0aefed3   «حداقل X» and «X و بالاتر» are a floor                  2714   2168
+    5fef443   the roadmap names the floor's words read and left        2714   2168
+    83a4900   «کمتر از X مدل Y به بالا» is a ceiling, not a floor     2861   2315
+    ed633df   «۱/۵» and «۱٫۵ میلیارد» are 1.5 billion                 3180   2601
+    db512ab   «از X به بالا نباشه» is a ceiling, not a floor          3209   2630
+    ced1694   the docs say the four rules taken are taken            3211   2632
+
+The counts are the ones measured for this entry. The 114 commits from D84
+to this repository's pull request #4 were counted again on 2026-11-01, each
+in a worktree of its own with the network off, with every suite and then
+with the system's Python alone: 113 are green on their own, and the one
+that is not is named where it belongs, in the entry on run17. The messages
+of `ed633df` and `db512ab` give the counts the two had on their own branch
+(2967 and 2996); on `main` they are the counts above, which their README
+and `/about` state.
+
+**Two words for a floor** (`0aefed3`, `5fef443`). «پراید حداقل ۴۰۰ میلیون»
+set no floor and took the amount for the ceiling, and so did «۴۰۰ میلیون و
+بالاتر». Of 192 phrasings of eight forms all 192 were read that way; the
+note «عدد قیمت را سقف بودجه فرض کردیم» was printed on 168, and the 24 written
+«حداقل بودجه X» and the 12 written «حداقل قیمت X» were reversed with
+nothing said. On run16 «پراید حداقل ۴۰۰ میلیون» matched 3 of the 53 Pride
+listings where a floor matches 47. Ten rule sets were measured on 1736
+inputs: 1009 phrasings made for the round, 120 made after its first
+measurement, and the 607 distinct queries the suites hand the parser. The
+one built reads «حداقل», with «قیمت» if it is written, and an amount after
+it; and an amount followed by «و» or «یا» and «بالاتر» or «بیشتر», with no
+«از» after. A phrase one of thirteen negations follows at once is no
+floor. Of the 954 phrasings with a meant reading it repairs 330 and breaks
+none that was right in the sets that hold its words; the 607 suite queries, 56 phrasings with a figure that
+is not money and 119 ordinary sentences are read as before in every field,
+and a separate copy of the rule, kept outside the repository, gives the
+same floor on all 1736. What it leaves is pinned by rows, so that it
+changes only on purpose: «حداقل بودجه X» stays a ceiling, since it may say
+what the buyer has to spend, and that is the owner's rule to make; «بیشتر
+از», «بیش از» and «بالاتر از» stay ceilings, the ambiguity D84 left, with
+the four rules measured for them breaking 96, 144, 240 and 324 right
+readings of negated ceilings; «حداقل ۴۰۰ میلیون پول دارم» is read as a
+floor; a negation outside the thirteen is not seen; a number glued to a
+word is not read.
+
+**A comparative before a year clause** (`83a4900`). «پراید کمتر از ۴۰۰
+میلیون مدل ۹۸ به بالا», with no comma before «مدل», was a floor of 400
+million with no ceiling, and nothing was listed under «نفهمیدیم»: the year
+form's cue is a bare «از», which is also the tail of «کمتر از». It was found
+while the first round was measured and recorded as a known fault. Of 288
+phrasings of it (six comparatives, six amounts, two years, four contexts)
+all 288 were floors; with a floor refused where one of the four
+comparatives stands just before its cue, all 288 are the ceiling they mean
+with the year clause as it was, none of 1104 controls changes, and of 25
+ordinary sentences the one that changes is the same fault. Every prediction
+held.
+
+**A decimal mark** (`ed633df`). «۱/۵ میلیارد», with the slash a Persian
+keyboard types for a decimal point, and «۱٫۵ میلیارد», with the Arabic
+decimal separator, were read as 5 billion, silently. Of 20 phrasings each
+both are now 1.5 billion, and «.» and «,» are 20 of 20 as before. Three
+digits after the slash are no decimal, so «پراید ۱۱۱/۳۰۰ میلیون» is still
+300 million. «،» is not read as a decimal (0 of 20 before and after): it
+also separates clauses and thousands, and reading it so could cost
+«سفید،۵ میلیارد». One prediction missed: a control, «پراید ۱۰/۱۲ میلیون
+کارکرد», changed from a ceiling of 12 million to 10.12 million. Two numbers
+with a slash between them and a scale word are one decimal now, and could
+have been a range; a row holds it as it is, for the owner to see.
+
+**A negated floor** (`db512ab`). «پراید از ۴۰۰ میلیون به بالا نباشه» was a
+floor of 400 million: the guard against a negation after the phrase was on
+the word rules only. Of 408 negated phrasings all 408 were floors; with the
+guard on the «از X به بالا» rule too, all 408 are the ceiling with its note,
+and none of 1609 other phrasings changes. The guard is not put on the year
+form, whose phrase ends before the year clause, where a negation may be
+about the year.
+
+**Mutants,** as each message states, every survivor named with the reason
+no row catches it. `0aefed3`: 41, 33 caught, and eight survive: the unit's
+tail only changes the text recorded as acted on, and the others need a
+number glued to a word, a spelling no row has, or two floors in one query.
+Run again with bytecode off on 2026-10-29, when a stale `.pyc` was found to
+have let a restored file run as its mutant (`013933c` put the remedy in
+the working agreement), 37 of the 41 gave 29 caught and the same eight survivors; four
+patterns no longer matched once. `83a4900`: 13, 10 caught; the three that
+survive need two floors in one query. `ed633df`: 11, 10 caught; the
+survivor removes a guard the regular expression's backtracking already
+keeps. `db512ab`: 15, 14 caught; the survivor puts the guard on the year
+form as well, which changes nothing there.
+
+**What the predictions got wrong.** Of the first round's 88 cells, the five
+on one point: the year form already read «بیشتر از X مدل Y به بالا» as a
+floor (36 phrasings). Beside the cells, the baseline listed 24 «X و بالاتر
+باشه» under «نفهمیدیم» where none was predicted, and the lists beside a
+city differed on 8, 6 and 14 phrasings where 4, 2 and 10 were predicted.
+The decimal round's E1d, above. The other two rounds' predictions held.
+
+**Taken, not optional** (`ced1694`). The owner took all four changes that
+had waited on a branch of their own: the two of this entry,
+«paintless-dent-removal» as minor_paint, and Sheypoor's corner image as a
+shop's badge. What still called them optional, in the code's comments, a
+report's line and the docs, says what they are.
+
+**As pushed, and seen.** The first three were pushed with the 43 commits of
+2026-10-30's first push, ending at `c1cc75e`, and the other three with
+the second, ending at `b972847`; CI ran on each push and both runs succeeded. On 2026-11-01 the
+site served `1e14364`, which holds all five: `/about` read 84 decisions,
+3407 assertions and 16 suites. No query of this entry was read on the live
+site.
+
+**What this does not settle.** «حداقل بودجه X», the three «more than»
+words and «،» are left as the owner's rules about Persian. Every phrasing
+measured here was made for the measurement, so a rule is known only on the
+shapes its author thought of.
+
+## D86 — Divar's category page is read from what it serves, twice from the owner's disk
+
+When D84 was written, `DivarCarAdapter` had a robots gate, a pause and a stop
+on a block, and no way to read a listing page: `first_run.py --source divar`
+raised NotImplementedError after its first page and wrote no snapshot. The
+roadmap's method for a source whose markup nothing here holds is that the
+owner probes, the pages stay on the owner's machine, and the reader is
+written offline against them. These 24 commits, from 2026-10-26 to
+2026-10-30, are that method done once for Divar's car category, up to the
+first live run, which has not been taken.
+
+    commit    what it does                                          15 suites    12
+    4fb7afb   a probe keeps a few public pages on the owner's disk       2750  2204
+    2919299   the docs say the adapter cannot read a page yet            2750  2204
+    649924f   the probe prints a page's rows and its JSON's shape        2771  2225
+    252b62e   a category page read from its JSON-LD and cards            2812  2266
+    e87da21   the category is car, and plain HTTP reads it               2813  2267
+    134db6c   first_run --source divar, and --page FILE                  2818  2272
+    6674fc1   a price under the floor is held back by the gate           2821  2275
+    8a2e409   the page's damage field is the body condition              2828  2282
+    bcb7e52   the report prints the odd cases as numbers                 2834  2288
+    b474149   the docs say what the first real read showed               2834  2288
+    c01992a   a number in prose is a price only where words say so       2840  2294
+    774adf7   a page that adds no listing stops the run                  2845  2299
+    7dd93b1   the ingest suite no longer sleeps                          2845  2299
+    2655707   the first live run's plan and predictions                  2861  2315
+    e759191   a printed value holds at most four digits                  2863  2317
+    e050f34   400 malformed pages, none raises                           2864  2318
+    5bef171   a Divar listing crosses the survival suite                 2870  2324
+    8c7f407   --replay reads a snapshot                                  2875  2329
+    9942fe0   an odometer the node gives in thousands                    2879  2333
+    2f9d233   two years two or more apart are no year                    2886  2340
+    858e7b1   make and model from the page's own fields                  2895  2349
+    366b7b2   --page reads several pages with one memory                 2906  2360
+    fe43717   itemCondition is counted                                   2972  2426
+    a32b8a6   «paintless-dent-removal» is minor_paint                    3210  2631
+
+The counts are the tree's at each commit, measured as D85 says, so they
+also move with the commits of other entries that sit between these.
+
+**The probe** (`4fb7afb`, `649924f`). `scripts/page_probe.py` asks for at
+most five urls of one origin: robots.txt first, through the gate a
+collection run uses, and nothing the file disallows; the adapters' pause and
+User-Agent; each page kept byte for byte in a folder outside the
+repository, beside a record of its url, status, size and sha256; and a stop
+at the first page that does not return, which is recorded and not retried.
+No login, no cookie, no form, no contact reveal and no proxy. What it prints
+for the conversation is the page's shape and never its values: the groups
+of sibling elements, ranked by the page they take, and the keys and kinds
+of every inline JSON, a key that is a run of digits or a long id masked.
+
+**What the page is** (`252b62e`, `e87da21`, `134db6c`). Probed on
+2026-10-26, `/s/tehran/car` answered 200 with 816,689 bytes and its 24
+listings in them, as one JSON-LD list of vehicles and 24 cards: the page is
+served whole, so a plain GET reads it and no browser is needed. The
+category the adapter had defaulted to, `light`, answered 404; it was taken
+from a url that had been read and never asked for. Both had been assumed in
+the code, and the opposite was measured. `caro/ingest/divar_page.py` reads
+the list, which cannot be mis-anchored, and the cards for what a buyer is
+shown, and checks one against the other: the price's currency label against
+the card's figure, as Bama's is checked; the odometer the same way; a
+deposit or rent word on a card makes the price ambiguous; «توافقی» is
+negotiable and silence is absent. `first_run.py --page FILE` reads a saved
+page with no network and nothing written, and prints counts and short
+categories only.
+
+**The first real read** (`6674fc1`, `8a2e409`, `bcb7e52`, `b474149`). The
+owner's saved page, read on 2026-10-26: 24 of 24 listings; `IRR` and `KMT`
+on all 24; 22 prices equal to the card's toman figure, so the node's number
+is rials, as its label says, and 2 with no displayed price to confirm them;
+the damage field holding intact 18, some-scratches 3, some-paint 2 and
+half-paint 1, where the title alone had given a condition on 1 listing in
+24; a model on 14, because the table of thirteen is domestic only. It also
+showed a report and a gate that disagreed: three prices under the floor were
+called garbage by the report and passed by the gate, which checked that a
+price existed and never its size. The gate now holds such a price back with
+its figure in the reason. The damage field is the body condition now; its
+first two values are plain, and reading half-paint as the worse of its two
+classes is a choice the owner can change. The report prints the odd cases
+as figures and pairs, and nothing of the page's words.
+
+**The second read** (`9942fe0`, `2f9d233`, `858e7b1`, `366b7b2`,
+`fe43717`). Read again on 2026-10-29, the same page printed its odd cases:
+three prices under the floor (1,000, 1,000 and 3,400,000 toman), three years
+on which the node and the title differ ((1405, 1385), (1404, 1405) and
+(1405, 1360)), and one odometer, (280, 280000). The node gives that odometer
+in thousands, so the card's figure is read where the node times 1,000 is the
+card. Two years two or more apart are no year now, and the pair is listed:
+which of the two is wrong is not known from the numbers, and the reader had
+taken the node's, which in two of the three is this year for a car its
+seller puts at twenty and forty-five years old. The page's own brand and
+model now give make and model where the table has none; of the eight brands
+it named, four are makes no table holds. The owner's probe of `?page=2` the
+same day answered 200 with 723,619 bytes; `--page` reads several saved pages
+with one memory of the tokens, so whether page 2 holds other listings than
+page 1 can be read from the two files, and that read has not been sent back.
+The survey of page 2 showed `itemCondition` on every node, UsedCondition on
+20 and NewCondition on 4 of 24; it is counted, and what a new car is in a
+used-car corpus is the owner's to decide.
+
+**Faults found on the way** (`c01992a`, `774adf7`, `8c7f407`, `e759191`).
+`parse_listing` took the first number of a title for a price and an
+odometer whenever the explicit text was empty, so «پژو 206 تیپ 5» was 206
+toman and 206 km; a number in prose is a price or an odometer now only
+where the words around it say so. The adapter asked for every page whatever
+came back; a page that answers and adds no listing now ends the run, with
+the reason. `--replay` could not read the snapshot the same script writes,
+a known defect the docstring recorded; it reads it now. And the report's
+guard on a printed value, no run of five digits, let a number written as
+«0912 345 6789» through; a value may hold four digits in all now. None of
+the eight fields is known to hold one, but the report is pasted into a
+conversation.
+
+**Tests that are not about one rule** (`e050f34`, `5bef171`, `7dd93b1`).
+400 seeded pages, each with fields of the wrong type, cut or torn: none
+raises, and each of 8 type guards removed alone is caught. A listing made by
+the Divar reader crosses the field survival suite, which exists because
+three fields were once dropped between the parsed object and the row. And
+the ingest suite no longer waits out the Bama adapter's pauses: 23.2 of its
+25 to 33 seconds were six real sleeps in one test.
+
+**The first live run** (`2655707`). Its plan and ten predictions are
+written, before the run, in RUN_PLAN_DIVAR_FIRST: the terms reviewed first,
+by the owner, which can end it; one command; three requests with a pause
+after each; a block is a result and is not retried harder; and a search of
+every snapshot for anything that looks like a mobile number, which must
+print 0, and which stops everything if it does not. The verdict at this
+size is NOT READY whatever happens.
+
+**«paintless-dent-removal»** (`a32b8a6`). Page 2 used a fifth value of the
+damage field. The prose table already reads «صافکاری» as minor_paint, and
+dent removal without paint is that: the body was worked on and nothing was
+repainted. It was the owner's call, built on a branch of its own and taken
+on 2026-10-30; its message gives its branch's counts, and on `main` it has
+those above.
+
+**Mutants,** as each message states, every survivor named with its reason:
+the probe 40 (36 caught) and its second commit 32 (26); the reader 44, of
+which 22 survive, among them the two guards of the report's privacy claim,
+a value with a digit or an «@» not counted and the cap of twenty, which
+`bcb7e52` then gave rows; the gate 5 of 5; the damage field 13 of 13; the odd cases 20
+(18); the prose number 13 (10); the stop 5 of 5; the four digits 10 (9);
+the survival row 6 (5); the replay 6 (3); the thousands 7 (6); the years 13
+of 13; the brand 15 (10); the pages 6 of 6; itemCondition 3 of 3;
+paintless 2 of 2. Rerun with bytecode off on 2026-10-29, the probe's 40
+gave 36 caught and the same four survivors, its second commit's 32 gave 26
+and the same six. The reader's first run also found three of its own rows
+wrong: a mileage chosen so that the rule said plausible, a title escaped
+twice, and a token of four characters where a real one has eight.
+
+**As pushed, and seen.** All but `a32b8a6` were pushed in the first push
+of 2026-10-30, ending at `c1cc75e`, and `a32b8a6` in the second, ending at
+`b972847`; CI succeeded on both. The site does not draw a Divar listing, and
+no Divar listing has been published.
+
+**What this does not settle.** The live path has never run. Whether page 2
+adds listings, what a new car is in this corpus, and how half-paint is read
+are open; the first two need the owner's machine, the last two the owner's
+choice. One city's first page is too small to promote, as the plan says.
+
+## D87 — Khodro45 and Sheypoor are read, offline from their pages and then live
+
+Neither had an adapter when D84 was written. Both were built the way D86
+says Divar's reader was: the owner probed, the pages stayed on the owner's
+machine, the readers were written offline against what the probe printed,
+and the owner read the saved pages with them before any live run. Divar had
+taken four round trips to learn what a page holds; the probe was taught
+first to say it in one. These 24 commits run from 2026-10-29 to 2026-10-30,
+when the owner took the first live run of each.
+
+    commit    what it does                                      15/16 suites  12/13
+    f4562ba   the probe's --survey, what a new parser needs             2903   2357
+    dc42589   the probe reads a Next.js page's data stream              2912   2366
+    9ac9919   the probe prints numbers, neighbours, --around            2925   2379
+    b7ba888   --around --show N                                         2927   2381
+    5d156c8   the Next.js reader moves to caro/ingest                   2929   2383
+    e6dfb33   Khodro45: its pages read offline, an adapter              2952   2406
+    89c3b39   first_run --source khodro45, live and --page              2954   2408
+    d9b87e6   Sheypoor: its cards read offline, an adapter              2967   2421
+    bdf82ac   first_run --source sheypoor                               2969   2423
+    b9fad3e   the docs, and the plan of their first reads               2972   2426
+    c8a6e30   Sheypoor's rel=next on a pagination link                  2973   2427
+    a1bc452   Khodro45: a card joined by odometer and year              2978   2432
+    3416b02   Khodro45: the slug in another case, https                 2983   2437
+    f4ef473   Sheypoor: the listing page merged into its card           2994   2448
+    7062ffd   the plan's addendum after the offline reads               2994   2448
+    c1cc75e   a listing page keeps its card's seller type               2994   2448
+    a01372c   Khodro45's address learned segment by segment             2997   2451
+    ec76b47   Sheypoor's corner image is a shop's badge                 3211   2632
+    929d3a1   a live run states its own sample                          3244   2650
+    9e3d580   the next list page is the one the page named              3245   2651
+    68af208   Sheypoor's report names the list's next page              3246   2652
+    ffb8c60   «بدون خط و خش» is intact, not minor_paint                 3249   2655
+    467cf65   a refused odometer is printed, as numbers                 3376   2741
+    239aa09   an invisible mark at a name's end is dropped              3401   2760
+
+The counts are the tree's at each commit, measured as D85 says.
+
+**The probe, taught to say more at once** (`f4562ba`, `dc42589`, `9ac9919`,
+`b7ba888`, `5d156c8`). `--survey` prints in one answer what a parser for a
+new source needs. Sheypoor's home page and Khodro45's list are Next.js
+pages whose data is in a React Server Components stream, which `--scripts`
+had called "not JSON"; the probe reads that stream now, and the reader moved
+to `caro/ingest/nextjs.py` so that an adapter does not import a script.
+Khodro45's auction page showed only loading skeletons: its table is filled
+in by a browser after load, and no adapter reads it. For numbers the probe
+prints a summary, so a price's unit and what `klm` counts could be read
+without a value; for a list, what sits beside it and the next page's
+address; `--around` the parents of the links a page holds.
+
+**Khodro45** (`e6dfb33`, `89c3b39`, `a1bc452`, `3416b02`, `a01372c`). Its
+`/buy-car/` page, 577,043 bytes to a plain GET on 2026-10-29, holds a
+query cache with `count` (1812), `next` (a page of the site's own API,
+twelve at a time), and twelve results with `slug`, `price_type`, `price`,
+`final_price`, brand, model, option, year, city and `klm`; and the same
+twelve as cards. The owner's first offline read refuted the round's
+predictions where it mattered: 24 results and 24 cards where 12 and 12 were
+predicted, since the page holds two lists of twelve and the survey showed
+one of each shape; and none of the 24 cards joined to its result, so no
+listing had a price. A card is joined by its odometer and its year where
+its link does not end in the result's slug. The second read joined 24 of 24,
+showed `final_price` on all 24 cards (23 were predicted; the card of the
+listing whose price is withheld shows it too), 23 eligible, asking prices
+from 0.81 to 8.59 billion toman, and three more things: the slug in another
+case, the next page given as `http://` and now asked for over `https://`,
+and an address rule. The third read, on 2026-10-30, refuted that rule on
+all 24, so the address is now learned from the cards one segment at a
+time.
+
+**Sheypoor** (`d9b87e6`, `bdf82ac`, `c8a6e30`, `f4ef473`, `c1cc75e`).
+`/s/iran/car`, 600,924 bytes on 2026-10-29, is a Next.js page whose stream
+holds only the category tree, so the cards are the source: 26 listings, each
+a title, sometimes the badge «Ad تابلو شده», a figure before the toman icon
+or «توافقی», the place and the time, and a `rel=next` to `page_num=2`. The
+list gives no year and no odometer, so on the owner's offline read none of
+the 26 could be priced. Two listing pages the owner probed, 235,923 and
+222,842 bytes, hold the rest in one JSON-LD object: the odometer with its
+unit, the model year, the gearbox, the damage field and the colour. The
+adapter asks for each new listing's page and merges it into its card, which
+keeps the card's place and seller type. Reading the reader against its own
+survey found that it read `rel=next` on a `<link>` only; had the page put it
+on a button, every run would have ended at page 1.
+
+**The first live runs** (`929d3a1`, `9e3d580`, `68af208`, `467cf65`). On
+2026-10-30 the owner ran both. Each printed, before its first request, the
+sample statement of Bama's sampler, which neither source has; a run states
+its own now. The Sheypoor run (`--pages 3 --limit 40`) read list page 1 and
+its 26 listing pages and stopped, saying page 1 named no next page, though
+the probe had read one there. The cause was here: the next page was read
+from the parser after the listing pages, which reset it. It is read before
+them now, and the report names the next page the last list page named.
+Whether today's page 1 still names page 2 is for the owner's next run to
+show. The same run read seven odometers the quality rule does not call
+plausible: 125 km on a 1400 car, 200 on a 1397, 999999 on a 1386, 450 on a
+1396, 125 on a 1400, 2300 on a 1397, 37 on a 1388. Three look like
+thousands typed as units and two are ambiguous; the owner chose to have the
+report print them as numbers and to keep them refused. Khodro45 ran more
+than once that day, and run17 is promoted from one of those runs.
+
+The same Sheypoor run counted its listing pages' damage field as «سالم بدون
+خط و خش» 15, «یک لکه رنگ» 6, «چند لکه رنگ» 3 and «سالم با خط و خش» 2, while
+the body condition said intact 0 and minor_paint 21 (`ffb8c60`). The
+condition table is tried most severe first, and minor_paint's cue «خط و خش»
+sits inside intact's «بدون خط و خش», so the intact cue was never reached;
+of every pair of cues it is the only one so nested. A cue that is part of a
+longer cue of a milder label no longer counts for the worse one. The table
+is shared, so prose on every source had read it the same way; the published
+corpora keep the class and not the words it came from, so whether any of
+their listings was read so is not known.
+
+**Two choices of the owner, on branches first** (`ec76b47`, and
+`a32b8a6` in D86). The image at the top right of a Sheypoor card's photo:
+`main` counted it and left the seller type unknown, since D26 allows a type
+only from a badge known to be one. On the owner's saved page every card that
+carries it was titled «فروش سازمانی» or «فروش دولتی», company and state
+sales; the owner took it as a shop's badge on 2026-10-30.
+
+**An invisible mark** (`239aa09`). Reading run17 before publishing it found
+two rows whose make was «Beijing» with a zero width non-joiner before it:
+Khodro45 writes the brand's English title so, and the adapter kept it, since
+the mark is a format character and not whitespace. A make with an invisible
+first letter is another make to every comparison. Format characters are
+taken from both ends of every name the adapter reads; inside a value they
+stay, as Persian needs them. A snapshot is not parsed again, so run17 was
+promoted from a later snapshot of the same day, the first collected with
+the fix.
+
+**Mutants,** as each message states, every survivor named with its reason:
+the survey 19 (14 caught), the stream 17 (11), the numbers and neighbours 49
+(32), `--show` 9 (8), the move 7 (4); Khodro45's adapter 49 (36), its command
+7 (6), the join 16 (14), the slug 15 (10), the address 10 (6); Sheypoor's
+reader 28 (19), its command 4 (3), `rel=next` 3 (2, the third equivalent),
+the listing page 31 (26); the badge 2 of 2; the sample 3 of 3; the next page
+4 of 4; the condition 4, of which 3 caught and the fourth equivalent, and one
+more beyond the plan caught; the odometers 2 of 2; the mark 3 of 3. One row was corrected after a
+mutation run, and its message says so: in `9ac9919` the first run showed 18
+survivors, one of them a row that proved nothing because its script was too
+short to be read; the row was fixed so that its control is printed.
+
+**As pushed, and seen.** The commits up to `c1cc75e` were in the first push
+of 2026-10-30 and `a01372c` and `ec76b47` in the second; those that came of
+the live runs, and `239aa09`, in four more pushes the same day, the last at
+22:29 UTC. CI succeeded on every push. While they were pushed the site
+served run16, Bama's; run17, Khodro45's, has an entry of its own.
+
+**What this does not settle.** Sheypoor has not been read past its first
+list page; whether its odometers are typed in thousands is not known from
+seven; its runs are not published. Khodro45's auction history, filled in by
+a browser, is not read.
+
+## D88 — A page per model, a site that reads on a phone, and a history kept by source
+
+On 2026-10-30 the owner asked for a glassy site and for «everything that is
+like Torob», and chose several things about how it reads. These 13 commits
+are what came of it. None moves a number on the decision path: every figure
+they draw is an asking price a listing stated, counted, and nothing is an
+estimate or a claim about the market (D36).
+
+    commit    what it does                                      15/16 suites  12/13
+    7cd2ebf   the panes are glass, in the palette's colours             2997   2451
+    1514f1b   a page per model; listings kept in the browser            3097   2528
+    624b4c2   the glass costs no text its contrast band                 3101   2532
+    f6c62ba   a missing page and a broken one, in Persian               3119   2546
+    60ced4f   a model's page is titled with the model                   3121   2546
+    97e06d1   three orders of a model's listings, a year chip           3125   2546
+    25708a5   the header on a phone is two rows                         3211   2632
+    de7d956   on a phone a model's runs are a list                      3213   2632
+    976f77b   the fonts are the site's own                              3216   2635
+    4dedaf0   the way to the seller says where it goes                  3243   2649
+    5ae13e0   a model's history is each source's own                    3379   2741
+    6ffca98   one line per source, none joining two                     3381   2741
+    c3a1f55   a corpus after Bama's breaks no other row                 3381   2741
+
+The counts are the tree's at each commit, measured as D85 says. Each commit
+that touched the site was built, type-checked and linted before it was
+committed.
+
+**A page per model** (`1514f1b`, `60ced4f`, `97e06d1`). What a
+price-comparison site gives a product, CARO gives a model, from what it has
+published and with no account. `GET /api/models` summarises each make and
+model of the served corpus: how many listings, how many priced by the
+gate's own reading, the smallest, middle and largest asking price, the
+years. `GET /api/model` gives a model's listings, the priced cheapest first;
+its middle by year where three priced listings stand behind it, and the
+count where fewer do; and one point per published run. `/models` and
+`/model/<make>/<model>` draw them, each listing with its file and a link to
+its source. «نشان کن» keeps ids in the browser and sends them nowhere but
+the API's own listing endpoint. On run16 the Pride page held 53 listings, 50
+priced, from 240 million to 1.8 billion toman with the middle at 650
+million, and its four runs 612.5, 600, 635 and 650 million on 54, 52, 53 and
+50 priced listings. The guards of the corpus suite caught one thing before
+it was committed: the model's list drew the body condition, which
+FIELD_PROVENANCE does not allow on a card; the car's file draws it. A model's
+page is titled with the model now, and its listings can be read cheapest,
+newest or least driven, or one year at a time.
+
+**A history kept by source** (`5ae13e0`, `6ffca98`, `c3a1f55`). The owner
+chose the same day to run Khodro45 daily and to have the repository ready
+for its corpus before one was published. A rehearsal in a scratch copy, a
+synthetic Khodro45 run beside the four Bama runs, showed the history giving
+Pride a point «run17: 0 priced» from a site that had never listed one, as if
+the Prides had gone to zero. A run names its source now, from the
+artifact's own `source` key, and a source that never lists the model gives
+no point; the chart draws one line per source, by shape as well as colour,
+and no line joins two sources. Two rows of the contract suite had assumed
+every published run holds a Pride; they hold to what they were about.
+
+**The looks** (`7cd2ebf`, `624b4c2`, `976f77b`). The panes are glass with no
+colour added: every tint is one of the palette's sixteen values mixed with
+transparency, so the palette suite still holds, and a browser without
+`color-mix()` keeps the opaque panes. Measured against WCAG luminance at each
+glow's peak, the light scheme's glows cost two colours their band («warn» on
+a pane 4.95 to 4.41, «ink-3» on the bar 3.43 to 2.97); they are fainter in
+the light scheme now and as they were in the dark. The fonts are the site's
+own files, Vazirmatn and IBM Plex Mono, five of them and 133 KB in all,
+beside their licences: no visitor's browser asks Google any more, which was slower from Iran than
+the site itself, and the one lint warning every CI run carried is gone.
+
+**On a phone** (`25708a5`, `de7d956`). At 390 px the header took 253 px
+and the page's title began at 320; it is two rows now, the logo and the
+badge, then the nav in one row that scrolls sideways. The prediction for 768
+px missed: the first version went to one row from 640 px and the badge
+wrapped, so two rows hold up to 1280 px. Below 640 px a model's runs are a
+list instead of a chart whose labels came out at 6 px.
+
+**In Persian, and the way to the seller** (`f6c62ba`, `4dedaf0`). A
+missing page and a page that broke while it was drawn were Next's own
+English pages; they are the site's, in Persian, with the reference to quote
+and never the error. The link to a listing's source said «دیدن آگهی در منبع»
+and not that it is the way to the seller. CARO keeps no seller's number and
+never will; the sources show it on the listing's own page. The link names
+the source now, «تماس با فروشنده در باما ↗», and the car's file says the
+number is on the listing's page and that CARO neither keeps nor shows it.
+
+**Mutants,** as each message states: the model API 13 (10 caught); the
+title 3 of 3; the orders 7 of 7; the contrast 4, of which the two that
+survive are by design, since the rows hold legibility and not looks; the
+error pages 5 of 5; the phone's runs 4 of 4; the fonts 6 of 6, once a row
+whose policy half was vacuous was fixed (one mutant had survived it, and
+the message says so); the way to the seller 5 of 5; the history by source
+5 of 5 and its chart 3 of 3. The glass and the phone's header have no row:
+the suites draw markup, not layout, and both were read in screenshots, light
+and dark, desktop and phone.
+
+**As pushed, and seen.** `7cd2ebf` and `1514f1b` to `976f77b` were in the
+second push of 2026-10-30, ending at `b972847`; `4dedaf0` in a push of its
+own, and the last three in the push ending at `ad7792a`. CI succeeded on
+each. On 2026-11-01 the site served `1e14364`: the Pride history the API
+gave, read from the outside, was the four Bama runs with their source, 54,
+52, 53 and 50 priced listings and middles of 612.5, 600, 635 and 650 million,
+as on run16 here. No page of this entry was looked at in a browser on the
+live site.
+
+**What this does not settle.** The demo keeps its flat panes; whether it
+follows the site is the owner's call. Four runs of one source are samples,
+not a market, and the chart's caption says so.
+
+## D89 — The site and the API hardened, the operator's login takes a second factor, and «پیش از خرید»
+
+On 2026-10-30 a read of the API and the site's configuration, and `npm
+audit`, found what an attacker would try first left open; and the owner
+asked for the parts a site like Torob has, an account and a payment among
+them. These 8 commits are what was built and what was written down for the
+owner to choose, and the two choices the owner made the same day: O1, a
+second factor for the operator, and B1, a page for a buyer about to go to a
+seller.
+
+    commit    what it does                                      15/16 suites  12/13
+    b255e1b   Next.js 15.5.28 and PostCSS 8.5.23                        2997   2451
+    2ddeedc   headers, bounded inputs, limits, CORS                     3008   2451
+    5daccf7   the options for accounts, payment and the login           3097   2528
+    3176a1c   the operator's login takes an authenticator code          3224   2635
+    91f5941   CI's actions on v7, their Node 24 releases                3224   2635
+    a1d1341   «پیش از خرید» at /before-buying (B1)                      3241   2649
+    b972847   the roadmap says O1 and B1 are built                      3241   2649
+    4eae09e   next's own PostCSS by an override                         3241   2649
+
+The counts are the tree's at each commit, measured as D85 says.
+
+**The releases** (`b255e1b`, `4eae09e`). `npm audit --omit=dev` reported
+one critical and three high advisories. Next.js 15.5.25 carried four: cache
+poisoning of statically built pages in a self-hosted app, the same leading
+to one user's content served to another, code execution in the image
+endpoint when SVG files are used, and a denial of service through server
+actions. The site uses neither the image component nor server actions and
+is not self-hosted, and the patched release was taken anyway: Next.js
+15.5.28 and the build's PostCSS 8.5.23. Next.js 15 also carries a copy of
+PostCSS 8.4.31 of its own, and only Next.js 16, a major release, moves it;
+an npm override gives it the patched copy instead, and `npm audit` reports
+nothing. The first install with the override kept the nested copy, because
+the lock pinned it; the entry was taken out of the lock.
+
+**The headers and the bounds** (`2ddeedc`). The site sent no security header
+and named its framework; the API sent none; a question, a listing's id and
+a compare's ids had no bound; nothing slowed one address posting to the
+contact form or guessing the admin token; the inbox file had no size cap;
+and CORS allowed credentials, every method and every header. Now the API
+sends `nosniff`, no framing, no referrer and a policy that allows nothing,
+since it answers JSON, and the admin endpoints `no-store`; a question holds
+at most 500 characters, an id 120, a compare 12 ids; one address may post 5
+messages in 10 minutes and fail the token 10 times, and past that is refused
+before the token is compared; the inbox takes nothing past 5 MB; CORS allows
+GET and POST and the headers the site sends, from the origins it is given,
+and no credentials. The site sends a
+content policy allowing its own scripts, styles, fonts and connections, HSTS
+for two years, no framing, a permissions policy that turns off the camera,
+the microphone, location and payment, and no `X-Powered-By`. The limits are
+per process and in memory, and the module says so: on a serverless
+deployment they slow one client and are no wall. Read on the built site, the
+headers were as written and seven pages drew with no policy violation in the
+console.
+
+**The options, before anything was built** (`5daccf7`).
+ACCOUNTS_AND_PAYMENT sets out the way to the seller (B0 as it is, B1 a page
+of what to check before buying, B2 not now; under no option does CARO take a
+buyer's money for a car), accounts (A0 none, A1 a phone and a code by SMS,
+A2 an e-mail link, A3 a passkey), the operator's login (O1, the token and an
+authenticator code, with no store), and payment (P0 until there is a
+product, P1 an Iranian gateway), with the rules each would be built under
+and what the owner and the deploy holder give for it.
+
+**O1** (`3176a1c`). With `CARO_ADMIN_TOTP_SECRET` set, the admin inbox takes
+the token and the six digits of an authenticator app: RFC 6238 as every app
+computes it, a secret of at least 128 bits, the step before, now or after
+accepted, each code once. The token is compared first, so a wrong token
+never spends a code, and a wrong code counts as a failure. With the secret
+unset the token alone opens, so no deployment is locked out before its
+secret is set; with a secret that cannot be read, nothing opens.
+`/api/admin/status` says whether the second factor is off, on or
+unreadable, and nothing of the secret. The admin page sends the digits as
+ASCII, since a header carries no Persian digit. Read in Chromium with a
+throwaway secret: a code typed in Persian digits opened the inbox, and the
+same code again was refused.
+
+**B1** (`a1d1341`, `b972847`). «پیش از خرید», the seven steps of the draft
+the owner approved, at `/before-buying`; the car's file links to it beside
+the way to the seller, and so does the footer. A0 and P0 stand: there is no
+account for a buyer and no payment.
+
+**CI** (`91f5941`). Every run warned that Node 20 is deprecated for
+`actions/checkout`, `setup-node` and `setup-python`. The owner chose to move
+them, and they are on v7, their Node 24 releases; the workflow says what
+their majors changed since and why none of it touches this workflow.
+
+**Mutants,** as each message states: the headers and bounds 17 of 17; O1 9
+of 9 (a window of two steps, the replay check removed, Persian digits not
+read, an unreadable secret taken as none, the code checked before the token,
+a wrong code not counted, SHA-256 for SHA-1, the truncation offset); B1 4 of
+4. The releases, the override and the actions have no row of their own: the
+build, the audit and CI are their checks.
+
+**As pushed, and seen.** The first seven were in the second push of
+2026-10-30, ending at `b972847`, and `4eae09e` in a push of its own; CI
+succeeded on both. On 2026-11-01 the site served
+`1e14364`, which holds all eight. **Not measured** from the outside: the
+headers the live site sends, whether `CARO_ADMIN_TOTP_SECRET` is set on the
+deployment (its status endpoint would say, and was not read), and whether
+CI's runs since `91f5941` carry the deprecation warning.
+
+**What this does not settle.** The limits are a process's, which on
+Vercel's functions slows one client and stops nobody; a limit shared by
+every instance waits on a store, and the plan's phase 4 is where the edge
+takes it. The second factor's memory of spent codes is a process's too.
+
+## D90 — Listings sellers post on CARO themselves, built and off
+
+The owner wants a buyer who finds a car to be able to reach its seller, and
+CARO does not collect sellers' numbers from the sources and will not. On
+2026-10-30 the owner chose the other way: listings that sellers post on
+CARO, where the seller decides whether a number is shown. These 17 commits,
+all of that day, are its design, the owner's choices, five of its six steps
+built, and the switch that keeps it out of sight until the store is set.
+
+    commit    what it does                                      15/16 suites  12/13
+    f60190e   the design, before the code                               3244   2650
+    f38fdf5   the agreement: whose number is never stored               3249   2655
+    c19ffcc   the owner's choices; the store designed                   3249   2655
+    4c423c4   the store, SQLite and Postgres in one module              3267   2673
+    c14519c   a phone's form and the login's limits                     3270   2676
+    e6400f3   a seller logs in with a code by SMS                       3282   2676
+    979b514   the docs: the store and the login built                   3282   2676
+    dbb9c53   migration 2 adds a listing's province                     3283   2677
+    b63dd86   a seller's listing, its versions, the reveal              3295   2677
+    9145b4e   the docs: the listing built, its place                    3295   2677
+    18b5d51   the operator's review, and three reports                  3305   2677
+    93301d4   the docs: the operator's view built                       3305   2677
+    87c38fb   the site's own POSTs through its rewrite                  3306   2677
+    7c38bdd   the site's pages for seller listings                      3375   2740
+    f056695   the docs: five of six steps built                         3375   2740
+    71b747e   the links stay out of the nav until turned on             3377   2741
+    a03e2f1   a model page asks only where they are on                  3382   2741
+
+The counts are the tree's at each commit, measured as D85 says; the store's
+suite is the sixteenth from `4c423c4`.
+
+**The design, before the code** (`f60190e`, `f38fdf5`, `c19ffcc`).
+SELLER_LISTINGS sets it out: a second kind of listing, kept apart from the
+corpus, never in `data/corpora/`, never scored, never evidence in a
+decision, and drawn under its own heading; its number the one the seller
+logged in with, shown only where the seller ticked it and only on a press of
+«نمایش شماره», never in a page's HTML, JSON or structured data, and every
+reveal counted and limited; no link and no number in a description; every
+listing waiting for the operator; one active listing per number for a
+private seller, thirty days and renewable, deleted ninety days after its
+end; and «گزارش آگهی». The working agreement says whose number is never
+stored, a source's seller's, and how a number a seller gives CARO is shown.
+The owner answered four of the design's questions the same day: no photos in
+the first version; the operator approves every listing and every edit;
+Postgres in production, SQLite on a laptop and in the suites; the SMS
+provider later, so the login is built against a fake one. Dealers stay the
+owner's question. An approved edit is a new version, and the version before
+it stays public until the edit is approved, so an edit cannot put unreviewed
+words on a page. Python reaches Postgres only through a driver, a new
+dependency and so the owner's to choose; until then it is imported only for
+a Postgres address.
+
+**The store and the login** (`4c423c4`, `c14519c`, `e6400f3`, `dbb9c53`).
+`webapp/api/store.py`, standard library only, holds both databases behind
+one module, with what they do differently in one table; migrations only add,
+each in a transaction under a lock, and the suites hold them to it. With no
+`DATABASE_URL` there is no store and the seller pages say so, as the inbox
+is off where a disk keeps nothing. A phone number is kept in clear in one
+table, and only once its owner has answered the code; codes, the phones that
+asked for one and the addresses the limits count are kept as keyed hashes;
+a session is kept as its SHA-256. The login sends a six-digit code that lives
+120 seconds, answers a member and a stranger with the same bytes, and counts
+its limits in the store, under one lock: per phone 3 in 15 minutes and 6 a
+day, per address 6 an hour and 20 a day, 500 a day in all, proposals the
+owner can move. The session is a cookie, HttpOnly, Secure and SameSite=Lax,
+for 30 days; «حذف حساب» deletes the account and, by cascade, all under it.
+Migration 2, which adds a listing's province, is the first one written after
+a migration was handed over, and the first test that a migration only adds.
+
+**The listing and the operator's view** (`b63dd86`, `18b5d51`, `87c38fb`).
+The server holds the form's rules: no digit run and no link in a
+description, a plausible odometer for the year, one active listing per
+number. A pending version is never public, and the number is in no public
+JSON. The operator approves, rejects with a reason the seller reads, or
+removes; three reports from three addresses take a listing down until it is
+looked at, one address counting once per listing. The site's own POSTs reach
+the API through the site's rewrite, so the Origin a change must come from is
+held against `X-Forwarded-Host` where the rewrite sets one.
+
+**The site's pages, and the switch** (`7c38bdd`, `71b747e`, `a03e2f1`).
+«ورود», «ثبت آگهی», «آگهی‌های من», the public list, a section on a model's
+page after its corpus listings, and the reveal, tried in a browser from the
+login to the number. The owner chose to keep the two links out of the nav
+until the deploy holder sets the store: `NEXT_PUBLIC_SELLER_LISTINGS`, which
+Next.js writes into the site when it is built. A model's page asked for the
+listings sellers post even where they are off, and got 503 STORE_OFF on
+every page: a red line in the browser's console and a request for nothing,
+found in a browser while checking another change. It asks only where the
+flag is on now.
+
+**Mutants,** as each message states: the store 12 of 12, two of which first
+stopped the suite with an integrity error instead of failing a row, and now
+fail by name with no row added; the phone and limits 4 of 4; the login 12 of
+12; migration 2, 2 of 2; the listing 11 of 11; the review 10 of 10; the
+rewrite 2 of 2; the pages 7 of 7; the nav 2 of 2; the model page's request
+2, of which the one that survives is equivalent while both say «on», as
+predicted.
+
+**As pushed, and seen.** In six pushes of 2026-10-30, from `f60190e` to
+`ad7792a`; CI succeeded on each. Read from the outside on 2026-11-01 and on
+2026-11-02, the home page links to neither `/listings` nor `/sell`. Nothing
+of the feature is set on the deployment, so its pages, if visited, say that
+this deployment takes no listings.
+
+**What this does not settle.** Step 6 is the owner's and the deploy
+holder's: an SMS provider behind the interface, tried first on the owner's
+own number; the store's address and secret on the deployment; and the flag.
+The Postgres driver is installed in CI's Postgres job and not in the API's
+requirements, so a deployment has none until the owner adds it. Dealers are still the owner's question, and photos wait for a version
+after the first.
+
+## D91 — A second protocol: within one collection, as its own runner
+
+D55 holds that a result carries the question it answers, and that a second
+protocol arrives as a second runner with its own name, its own contract and
+its own entry here. This is that entry. On 2026-10-30 the owner chose to run
+Khodro45 every day and to have a benchmark "within one collection" built
+now. One snapshot cannot be benchmarked in time: it has no first-seen
+history, and the temporal runner refuses it as `missing_temporal_axis`. The
+temporal runner keeps its question; the other is asked here.
+
+    commit    what it does                                      16 suites     13
+    506f9e8   scripts/benchmark_within.py, protocol within_collection   3392   2751
+    ad7792a   a listing read twice is one car in the split               3393   2752
+
+**The question.** Does the frozen estimator hold up on other listings of the
+same collection: one artifact, one source, one day? Not across time, not on
+another source, and nothing about the market (D36). `PROTOCOL =
+"within_collection"` is a constant that no flag switches, and every exit
+prints it with a reason from a closed vocabulary, which does not hold
+`missing_temporal_axis`, beside the run's id and digest and, where the
+artifact was read, its source, its collection date and that scope.
+
+**What is its own, and what is not.** Only the split. A published corpus
+names no car across listings, so listings alike in model, year, odometer and
+asking price are one car and stay on one side; a quarter of the cars, drawn
+with the temporal runner's own seed, are the test side. The hold-out
+fraction, the seed and the baseline are the temporal runner's objects,
+imported; the estimator, the slices and the gate are `caro.hierarchical`'s,
+called as the temporal runner calls them (D35). The refusals come in the
+same order: leakage, an empty side, a comparison below 93 listings a side
+(`shift_unknown`), a shifted one (`severe_shift`), and only then the
+estimator, both errors and the gate's verdict. Since both runners call the
+gate as it is, the held-out trim is never measured, so neither can answer
+ACCEPTED today; were this one to, it says that this is not the temporal
+gate's acceptance, and nothing is served on it. The temporal runner's
+refusal names this runner as the place the other question is asked, and
+that its answer is not this one's; its status, reason and exit are as they
+were.
+
+**A car read twice** (`ad7792a`). Reviewing the first commit found that
+nothing guarantees a listing id once per corpus, and Khodro45 pages by
+offset, so one listing can be read on two pages with its price changed
+between them. The split then made it two cars, free to sit on both sides, and
+ordering them stopped the runner with a TypeError. A car is now a connected
+group of rows that share a car key or a listing id, and no two cars share the
+id they are ordered by.
+
+**What it answers now.** On the rehearsal Khodro45 corpus of 36 listings it
+splits 27 and 9 and refuses, `shift_unknown`. On 480 listings of one
+synthetic stationary collection it splits 360 and 120, runs the estimator,
+and the gate does not accept: no thin or held-out trim was measured. It has
+not been run on run17.
+
+**Rows and mutants.** Eleven rows of the benchmark contract suite, WC1 to
+WC11; each failed before its code. The first commit's 10 mutants were all
+caught after one row was corrected: the scope line taken out of the report
+survived the first run, because two rows also found that sentence in the
+question block at the top of the output, and they read it from the report
+block now. The second's 3: the car key not joined, caught; the listing id not
+joined, which survived the first run, because the row checked one seed and
+under it the wrong grouping happened to put both readings on one side, so
+the row now holds for twenty seeds and catches it; and sorting on the whole
+tuple, which survives and is equivalent, since no two cars share an id. Both
+corrections were made after a mutation run, and both messages say so, as
+the working agreement asks.
+
+**As pushed.** Both in the push of 2026-10-30 ending at `ad7792a`; CI
+succeeded. Nothing of this runner is on the site.
+
+**What this does not settle.** The gate's item stays open: a verdict within
+one collection is not a verdict across time, and the roadmap says this does
+not close it.
+
+## D92 — Khodro45 every day: what a daily run can give the time axis, and sixty pages
+
+TEMPORAL_CONTRACT is the proposal for the time axis a corpus lacks (D55), and
+its §10 found that a daily clock alone does not open the boundary for Bama: a
+sampler drawing from recency-ordered first pages turned over 13% of its
+sample in an hour. On 2026-10-30 the owner chose to run Khodro45 every day.
+These 8 commits, from 2026-10-30 to 2026-11-01, say what a daily Khodro45
+run can give, record the owner's three decisions about it, keep for audit
+what the source says of a listing and nothing more, and fix the tools that
+compare two runs. The last three landed as this repository's pull requests
+#3 and #4.
+
+    commit    what it does                                         16 suites     13
+    9512786   §11: what a daily Khodro45 run can give                   3392   2751
+    73e89de   the owner's three decisions of §11                        3393   2752
+    43628a7   replicate: absent in both counted apart                   3395   2754
+    efe20ed   created_time to the snapshot, as an audit                 3400   2759
+    58aba5a   the source's two prices kept in the snapshot              3407   2766
+    650ba53   sixty pages a day from 2 November (#3)                    3420   2766
+    b057d7e   a snapshot's name carries a list's depth (#4)             3421   2767
+    1d96e0c   the replicate note compares the pin (#4)                  3422   2768
+
+The counts are the tree's at each commit, measured as D85 says.
+
+**What a daily run can give** (`9512786`). Khodro45's list is its own API,
+newest first, with its size stated (1812 on 2026-10-29), so forty pages read
+about the newest quarter of it in order, not by a sampler. A listing's first day in
+our window then stands within a day for its arrival, as long as a day's
+arrivals fit the window, which is to be measured and not assumed. Day 1's
+window is left-truncated and train-only; absence, time on the market and
+sale stay unclaimed. Not proposed: the platform's `created_time` as the
+axis, since the old listings still up are the ones that did not sell, a
+split shifted by construction.
+
+**The owner's three decisions** (`73e89de`), asked on 2026-10-30 with §11 in
+front of the owner, each the proposal: the axis for a Khodro45 series is our
+own first sighting, `first_seen_on` as §7 defines it, and not the platform's
+`created_time`; `created_time` is read as an audit of left truncation only,
+never a feature and never the split key; and the series artifact is §7's
+optional fields in `caro.corpus/1`, so every existing artifact stays valid,
+with DATA_CONTRACT changed in the commit that builds them and not before.
+
+**Kept for audit, and only there** (`efe20ed`, `58aba5a`). `created_time`
+reaches the snapshot as `listed_at`, where it reads as a time, and stops
+there: promotion does not publish it, and a model that took it as a feature
+is refused. The report counts the listings by creation date, which on a
+newest-first window is the arrival rate §11 asks to measure, read from one
+run. After four prices moved within 3.1 hours, one of them back and forth
+between two numbers 2.0% apart, the owner chose to keep the source's two
+price fields, `price` and `final_price`, in the snapshot, unpublished and
+never a feature: a price that moved with the source's numbers is the source's
+edit, and one that moved without them is our reading.
+
+**Comparing two runs** (`43628a7`, `b057d7e`, `1d96e0c`). The replicate
+check printed «price absent in one 8» where the owner's one-liner over the
+same two snapshots found one price that differed: the eight had no price in
+either run, Khodro45's price types 3 and 4. It counts four things apart now:
+identical, changed, absent in one, absent in both. An empty shell expansion
+for a snapshot not yet written gave it '.', a directory, which stopped it
+with a traceback; a path that is not a file is refused like a missing one. A
+snapshot's name did not carry how deep a list was read, so a run of forty
+pages and one of sixty shared a name; for the three sources that read a list
+it does now, and Bama's names are as they were. And the replicate note called
+every day-to-day comparison two pins, because a name carries its date; it
+compares the name without the date now.
+
+**Sixty pages** (`650ba53`). The owner's runs of 30 October and 1 November
+measured what §11 asked: two runs of the 30th, 3.1 hours apart, drew the
+same 492 listings, and four prices moved; the run of 1 November against the
+last of the 30th drew 204 listings in both and 288 only in each, the
+«created» line counted 287 listings created on Saturday the 31st and none on
+Friday the 30th, and each of the twelve moved prices printed had moved in
+both of the site's fields at once, the site's numbers and not ours. The
+window held a day, but 287 is more than half of what forty pages read, the
+margin §11 asked for. Asked with those numbers on 1 November, the owner chose
+sixty pages from 2 November, at most 732 listings, about two of the busiest
+days measured, and no change after it.
+
+**Mutants,** as each message states: the replicate counts 2 of 2, the
+audit field 5 of 5, the two prices 4 of 4, the name's depth 2 of 2, the
+note 2 of 2. The rest is documentation.
+
+**As pushed, and seen.** The first five in pushes of 2026-10-30, ending at
+`ad7792a`, `efe20ed` and `58aba5a`; the last three as pull requests #3 and
+#4, merged on 2026-11-01 as `360b384` and `9f11449`; CI succeeded on every
+push and on `main` after each merge. None of this is drawn on the site.
+
+**What this does not settle.** No series artifact is built: the measurement
+first, then the read of `created_time` against the field as a saved page
+shows it, then the artifact, in that order. When a temporal benchmark
+becomes possible depends on the arrival rate: §11's estimate, after d ≥
+W / (3A) days of arrivals, is marked invented until the rate is measured.
+
+## D93 — run17 is published and served, every line read before it was
+
+run17 is Khodro45's run of 2026-10-30, the first corpus of a second source.
+Reading it before it was published found two things to change in the
+reader, and both were changed before it was promoted (`6762362` here, `239aa09` in
+D87). It was published beside Bama's four runs as this repository's pull
+request #2, on 2026-11-01, and served in place of run16 as pull request #8,
+on 2026-11-02, after the owner had seen what the switch would change.
+
+    commit    what it does                                      16 suites     13
+    6762362   the eighteen other capitals give their province         3403   2762
+    4f747c0   data/corpora/run17.json, the owner's commit                red   2766
+    5d213d4   publish run17, every key of its 492 rows read           3420   2766
+    0de3cc3   pull request #2 merged                                  3420   2766
+    4818544   the rows written for run16 name run16                   3435   2779
+    f0f6375   the site serves run17 instead of run16                  3492   2779
+    ce5dad3   pull request #8 merged                                  3492   2779
+
+The first four were counted as D85 says. `4f747c0` is the one commit of the
+114 that is not green on its own: it adds the corpus, and MKT-3, which
+states the published runs, fails with run17 present until the next commit
+amends it, as its prediction said. The two were meant to land together and
+did, in one pull request. The last three are counted from their messages and
+CI.
+
+**A province from every capital** (`6762362`). 236 of run17's 492 rows
+carried no province, because a city gave its province only where it carries
+the province's own name, the thirteen of D74; Karaj 39, Shiraz 33,
+Mashhad 30, Ahvaz 27, Bandar Abbas 19, Tabriz 18 and Sari 15 were among
+them. Asked with those numbers on 2026-10-30, the owner chose that every
+province's capital gives its province, marked as from the city, and that
+any other city still gives none. The eighteen are a closed table taken from
+the same source as the thirteen, two of them written with a space as well,
+and every adapter reads it, since it reads the first part of a line. The
+published corpora are files and do not change.
+
+**What was read** (`5d213d4`). run17 is promoted from snapshot
+`khodro45-2026-10-30-51454a-9`, the first run read with the thirty-one
+capitals and the fix for the invisible mark; an earlier promotion of the
+same day was not published, because two of its rows carried the make with
+the mark before it. The artifact is 371,633 bytes, sha256 `ad72b16a…c29a`.
+Every key of the 492 rows was read before it was committed: no id twice;
+every address on khodro45.com; 471 provinces, each from the city and each
+one of the thirty-one, and 21 rows with none; no invisible mark at the edge
+of any value; years 1387 to 1405; odometers 15 to 379,440 km, two of them
+suspicious, a 1397 Golf at 1,594 km and a 1399 Pars at 520; asking prices
+606 million to 16.16 billion toman, and ten rows with none, Khodro45's price
+types 3 and 4; 117 models, one Pride among them, 36 Quiks and 9 Tibas.
+
+**Serving it** (`4818544`, `f0f6375`). Asked on 2026-11-02, the owner chose
+to serve run17 after its measurement. Measured on `main`: the site gets 492
+listings for 73, 115 models for 3 and 45 makes for 1, and a year and an
+odometer on every row; it loses the colour, which run17 has on no row, most
+of the body condition (known on 95 rows, where run16 had it on 64 of 73),
+most of the fuel (42) and some of the gearbox (271), and every stated
+province: each of run17's 471 is read from a city's name. With only the
+default changed, 34 rows in three suites went red, and every one read «the
+corpus the site serves» and expected run16's contents; those rows name
+run16 now and nothing else in them changed. The default is run17, and
+`CARO_RUN` still names any other run. The search box's examples are run17's,
+each tried first; «پراید زیر ۳۰۰ میلیون» found nothing in run17's one Pride,
+and two candidates were dropped because the parser did not know «سمند» or
+«تارا» as a model, a finding the parser's own round took up in pull
+request #13.
+
+**Mutants.** The publication changes no code and has none. The switch: 3
+of 3, with bytecode off against the corpus and contract suites: the default
+back to run16, an example that finds nothing, section 20 not pinned to
+run16.
+
+**What the predictions got wrong.** None, of the publication's (13 rows,
+MKT-3 failing before and passing amended, every other suite as it was) or of
+the switch's; its counts moved only the way predicted, by the screens rows
+that now run on two corpora.
+
+**As merged, and seen.** Pull request #2 was merged on 2026-11-01 and #8 on
+2026-11-02; CI succeeded on each head and on `main` after each merge. The
+site did not serve `0de3cc3` when it was read on 2026-11-01, after the
+merge: `/about` read 3407 assertions and «two corpora published» was false,
+so the deployment had not followed by then, and whether it did later that
+day was not read. Read from the outside on 2026-11-02, when the site served
+`543b705`, the corpus was REAL run17, `ad72b16a54cf`, 492 rows; a Samand's
+page held 32 listings; and its history was one point, run17 of 2026-10-30
+from khodro45, 31 priced, the middle 2,096,250,000 toman.
+
+**What this does not settle.** The body condition, the fuel and the colour
+are thinner on the corpus served than on the one before; the corpus that is
+served is a choice the owner can make again with `CARO_RUN`. No estimator
+has cleared the gate on run17, so the site shows evidence and no ranking.
+
+## D94 — A price far from its model's middle in its run is held apart
+
+Khodro45's run of 2026-11-01 held a 1401 IKCO Samand at 46,226 km asking
+247,500,000,000 toman: the source's own number, in both of its price fields.
+Nothing here doubted it. A price was judged by a floor alone, ten million
+toman, so this one was plausible, and it would have been published, counted
+as priced and drawn in its model's range. These three commits are the rule
+the owner chose for it on 2026-11-01, landed as this repository's pull
+request #5 and merged as `9fdb533` the same day.
+
+    commit    what it does                                      16 suites     13
+    dae9856   the rule, and far_from_model refused everywhere         3429   2773
+    1a01e7f   promotion holds such a price apart                      3431   2775
+    ee83e14   the run's report prints each one with its numbers       3432   2776
+
+Each was checked on its own when it was made: the suites, the site's
+typecheck, lint and build. CI ran on the pull request's head and on `main`
+after the merge, and both succeeded.
+
+**Measured first,** on the five published corpora, with the site's own rule
+for a priced listing: no priced listing at three times its model's middle or
+more (the largest, run16's 1394 Pride at 1.8 billion, is 2.77 times it), and
+one at a fifth or less, run11's 1396 Pride at 65 million, 0.11 of its
+middle. run17's 31 Samands have a middle of 2,096,250,000, and 247.5 billion
+is 118 times it.
+
+**The owner's choice,** on those numbers: both sides, at five times the
+middle and at a fifth of it; only for a model with three priced listings or
+more in the run; a status, not a deletion; and for runs promoted from now
+on, so that the five already published read as they did.
+
+**The rule** (`dae9856`). A price's status says how much it is worth
+believing, and this one is not, however cleanly it was read; it gains
+`far_from_model`, which every reader of a price's status already refuses:
+the gate, with «price is far_from_model», the site's own count of priced
+listings, and the car's card, which says «دور از میانه‌ی این مدل» and never
+the amount. A middle is made of the run's priced listings above the floor,
+and a model is its make and model as written; the bounds are inclusive. What
+three listings cannot tell is pinned as the rule reads it: of three priced
+where two are wrong alike, the middle is theirs and the right one is held
+apart. The data contract's table of what makes a listing eligible gains the
+requirement and why, as its freeze requires of a change.
+
+**Where it runs** (`1a01e7f`, `ee83e14`). In promotion, where a run becomes
+a corpus, since a middle is a fact about the run and not about a record. A
+row held apart keeps its number and says why, the snapshot it came from is
+not changed, and the corpus's provenance says that the rule ran, at what
+bounds, and how many rows it held apart; a corpus without the key was
+promoted before it. The run's report, read on the machine the run ran on
+before anything is promoted, reads the listings the same way, so its funnel
+does not call a model readier than its corpus will be, and lists each price
+held apart with its numbers. Tried by hand on two published corpora promoted
+again into a scratch directory: run11's would hold apart its 65-million
+Pride, and run17's none; `data/corpora/` was not touched. Replayed on the
+day's snapshot, the report held apart only the 247.5-billion Samand, 153
+times the middle of the 31 Samands of that run.
+
+**Mutants,** with bytecode off: the rule 7 of 7, promotion 3 of 3, the
+report 2 of 2; two of them were added to the planned ones, and one row
+caught a mutant it was not predicted to catch.
+
+**As merged, and seen.** The site serves run17, promoted on 2026-11-01
+before the rule existed, so it carries no `far_from_model`; promoted again
+in a scratch directory under the rule, it holds none apart. Read from the
+outside on 2026-11-02, when the site served `543b705`, a Samand's page held
+32 listings, 31 of them priced, as here. No listing held apart by this rule
+is on the site.
+
+**What this does not settle.** A model with fewer than three priced listings
+in a run is not judged. A price of a model whose run holds two prices wrong
+alike is judged by the wrong two. The five published corpora carry no
+`far_from_model` and read as they did.
+
+## D95 — How the work is done, written down; every task a pull request; a README that says what is true
+
+The owner means to hand the rest of the project to a session, and the
+documents that say how the work is done had fallen behind how it was done.
+These seven commits, from 2026-10-25 to 2026-11-01, bring them up to date:
+the working agreement three times (a fourth change, on whose number is never
+stored, is D90's), the roadmap once, and the README twice,
+the second time at the owner's request as this repository's pull request #6.
+
+    commit    what it does                                      15/16 suites  12/13
+    20b54ac   the README says what CARO is and where it stands         2608   2062
+    227a642   the roadmap lists everything left, in order              2608   2062
+    bce9274   the working agreement says how a session works now       2608   2062
+    013933c   how to run a mutant without stale bytecode               2875   2329
+    7adebcb   every task lands as a pull request (#1)                  3407   2766
+    f456cd5   three charts drawn from data/corpora (#6)                3433   2777
+    949761d   the README for both repositories, as true at main (#6)   3435   2779
+
+The first five were counted as D85 says; the two of pull request #6 from
+their messages and CI.
+
+**The README of 2026-10-25** (`20b54ac`). It described September: it opened
+on Run 3 and Run 5, said nothing of the site, its API or the four published
+corpora, and said a clone has no corpora. It opened then with the live site
+and what it served, a table of where the project stood against the brief,
+and four requests as the site answered them that day. Four statements were
+wrong and were corrected: the confidence policy has three dimensions and an
+overall status, not six; run16 records the fields the ranking reads that the
+README called constant; `data/corpora/` holds the published runs; and the
+ingest suite held 515 assertions, not 355.
+
+**The roadmap** (`227a642`). It listed what was open but not the order, who
+does each item or what closes it. It opens now with who does what, and the
+order of work, each item with what closes it; and two sections are new,
+Operations and the end.
+
+**How a session works** (`bce9274`, `013933c`). The agreement still said a
+session has no shell on the owner's machine, and that the review went out
+through a browser extension to a named reviewer; neither had been true for
+weeks. It writes down the round every change goes through: predictions
+first, with the hashes of their inputs; the measurement, offline and on
+made phrasings said to be made; the owner's decision; the build, one commit
+per change, each tried by hand outside its sets before its tests are
+written, mutated, and green on its own with the published counts moved; the
+push; and the D-entry only after CI and the site have been read. On
+2026-10-26 a restored file still ran as its mutant: Python validates a
+cached `.pyc` by the source's modification time in whole seconds and its
+size, a mutant that turns `return 0` into `return 1` has the same size, and
+the restored copy was written in the same second. It was found only because
+a suite that had passed turned red with the tree unchanged. The agreement
+says now to run each mutant with `python3 -B` and `PYTHONDONTWRITEBYTECODE=1`
+and to restore by moving the copy back, and every mutation result already in
+a message was run again so: nothing in them changed (D85 and D86 give the
+numbers).
+
+**Every task a pull request** (`7adebcb`). On 2026-11-01 the owner chose
+that a session no longer stops before the push: each task ends with its
+commits on a branch, a pull request into `main` that says what changed and
+why, and a merge by the session once CI on it is green, never red, never
+squashed or rebased. Commits still carry the owner's name and address alone,
+with no trailer and no tool's name; the merge commit GitHub writes carries
+the account that merged it. The owner keeps `Tecso-Dev/caro` in step with
+`main`, and credentials never leave the owner's machine. It was itself the
+first such pull request, #1, merged as `1e14364`.
+
+**The README of 2026-11-01** (`f456cd5`, `949761d`). The owner asked for a
+README that says everything completely and correctly and looks far better,
+its charts above all. A number on a chart is a claim like any other, and a
+chart kept by hand beside the files it describes is wrong the day the next
+corpus is published, so the three charts are drawn from `data/corpora/` by
+`scripts/readme_charts.py`, with caro's own reader, in the site's palette,
+for both schemes, and `--check` says whether the committed files are what it
+draws today: the five published runs and the listings each lets inform an
+estimate (76/71, 74/64, 77/64, 73/63 and 492/480); the middle asking price
+of the Bama Prides by run, with the count behind it; and why run16's ten
+held back are held back. The README was read in full first, and was stale
+where the work had moved past it: Sheypoor and Khodro45 «nothing has run
+live», three adapters of four, nothing on the far-price rule, the seller
+listings, the daily series or the two repositories, and a Bama run said to
+need a browser. Each claim kept was checked against the code. Two rows of
+the claims suite hold the charts and the corpora's table to the corpora, and
+each failed by name on the README before.
+
+**Mutants,** where there is code: the charts 2 of 2, the README's rows 2 of
+2, with bytecode off against the claims suite.
+
+**As pushed, and seen.** The first three were pushed on 2026-10-25, with
+D84, ending at `bce9274`, and CI succeeded; `013933c` in the first push of
+2026-10-30. Pull requests #1 and #6 were merged on 2026-11-01; CI succeeded on #6's
+head and on `main` after each merge. On 2026-11-01 the site served `1e14364`.
+A README is not served by the site; both repositories show the one file.
+
+**What this does not settle.** The agreement for two people, and the
+roadmap in two tracks, came with the plan's acceptance, and have their own
+entry.
+
+## D96 — CARO as services: where one process breaks, measured, and its first step, the catalog
+
+D56 kept CARO in one process until a measurement showed where it breaks. On
+2026-11-01 and 2026-11-02 the owner decided that CARO becomes a set of
+services, because the listings will grow to tens of thousands: Postgres
+alone, for the data and the work queue; Docker now and Kubernetes later;
+collectors on the owner's machine for now. This entry records the
+measurement D56 asked for, the design it led to, and its first step: the
+published runs in a database, read by the site with every answer the same.
+They landed as this repository's pull requests #7 and #10.
+
+    commit    what it does                                      16/17 suites  13/14
+    1d025a1   SERVICES.md: the measurement and the way there (#7)       3435   2779
+    03d5831   caro/sql.py, shared by the store and the catalog          3492   2779
+    4fbb816   the catalog, loaded from data/corpora                    3506   2793
+    2665d4b   under CARO_CATALOG_URL the site reads the catalog        3512   2793
+    e109260   CI's third job, against a real Postgres                  3512   2793
+    2126b6e   a run already loaded is known by its digest              3514   2795
+    dbd26d1   SERVICES.md says step 1 is built (#10)                   3514   2795
+
+Counted from their messages and CI: each green on its own when it was made,
+and CI green on each pull request's head and on `main` after each merge. The
+catalog's suite is the seventeenth from `4fbb816`.
+
+**Where one process breaks** (`1d025a1`). Synthetic corpora drawn from
+run17's 492 rows, said to be synthetic and never committed, at 10,000,
+50,000 and 100,000 listings, each in a process of its own with the network
+off, the predictions locked first:
+
+    size   file     first request  memory   /api/models  search
+    10k    7.6 MB   2.5 s          205 MB    56 ms       14 ms
+    50k    38 MB    11.4 s         712 MB   254 ms       42 ms
+    100k   76 MB    22.1 s         1.36 GB  549 ms       67 ms
+
+The model page's history breaks first: it loads and validates every corpus,
+and ten daily runs of 10,000 took 20.5 s and 508 MB on a cold process; a
+month of them would pass what a serverless function may use. Every read ran
+both guards over the whole text again, which promotion had already done.
+Thirty daily runs would add about 230 MB a month to the repository. The
+parser, the gate, the rules and the search do not break. So the first
+boundary is the data, not the logic. Predicted wrong: the cold load (2.5 s at
+10,000, predicted under one; 22 s at 100,000, predicted 3 to 8), the history
+(20.5 s, predicted 3 to 10), promotion (2.2 s for 10,000 records, predicted 5
+to 20) and the search (67 ms at 100,000, predicted over 300).
+
+**The way there.** SERVICES sets out what does not change: one language
+and one library, every rule about the sources, offline suites,
+`caro.corpus/1` as the published format, migrations that only add. Then the
+services and what each owns, the tables, a `jobs` table taken with `SKIP
+LOCKED` in place of a queue, and six steps, each a pull request, with the
+site never down.
+
+**The catalog** (`03d5831`, `4fbb816`, `2665d4b`, `2126b6e`, `dbd26d1`).
+What SQLite and Postgres do differently moved from the seller store into
+`caro/sql.py`, so that the two stores share one copy of it. The catalog
+keeps each published run as it was published, in the artifact's order, with
+its digest and size, and gives back the bytes it was given; it is loaded
+from `data/corpora/`, which stays the publication. Under `CARO_CATALOG_URL`
+the API reads the served run and a model's history from it, by an index,
+instead of every corpus in memory, and the files are not looked at; a
+catalog that cannot serve the run answers UNUSABLE with a fault of its own,
+`CATALOG_UNAVAILABLE`, never the files, never the synthetic corpus, never a
+500, and no answer holds its address. A database can be down for a minute
+where a file cannot, so that state is asked again after 30 seconds. 740
+questions, every endpoint the site uses, asked of the files and of the
+catalog, with the reader pointed at an empty directory while the catalog
+answers: equal, status and body, field for field, on SQLite and on Postgres
+16. Measuring the loader found a prediction wrong: loading a run the
+catalog already held cost as much as loading it the first time, so a run is
+known by its digest before anything else is done, and `--verify` runs the
+day's guards over every run. As built, the tables are `catalog_runs` and
+`catalog_listings` under `CARO_CATALOG_URL`, not the design's `runs` and
+`listings` under `DATABASE_URL`, because the seller store, which may share
+the database, already has a table called listings and is switched on by that
+variable; the stored middles of the design are left to the step where what
+happens to a stored middle when a rule changes is decided on purpose.
+
+**What the catalog changed.** At 10,000 listings the first request took
+0.33 s from a SQLite catalog and 0.59 s from Postgres, where it took 2.5 s
+from the files; at 100,000, 5.7 s and 6.8 s, where it took 22.1. A model's
+page with ten daily runs of 10,000, first call, 0.18 s and 0.31 s, where it
+took 20.5 s and 508 MB. A warm model page is no faster, and SERVICES says
+why.
+
+**Against a real Postgres** (`e109260`). The suites use SQLite in a
+temporary file, as a laptop has. A third CI job runs the store, the catalog
+and the site served from the catalog against a Postgres 16 service, and
+every pull request since has been merged with it green.
+
+**Mutants,** as each message states: the catalog 7, 5 killed; its reading
+11, 8 killed. Among the survivors, one worth its own round: a catalog
+without the run falling back to the file of that name, which no row reaches,
+since no row has a run that is on disk and not in the catalog.
+
+**As merged, and seen.** Pull request #7 merged on 2026-11-02 as `7198c9b`,
+and #10 the same day as `72e7770`. The catalog is off by default: nothing on
+the deployment names one, so the site the owner read on 2026-11-02 was
+served from the files, as before.
+
+**What this does not settle.** Of the six steps, two are built: the catalog,
+and the third, serving Khodro45's corpus, which is D93's. Ingest into the
+store, the queue and its collector, Docker and Kubernetes are left, and the
+2026 plan has taken them into its phases. The deployment has no Postgres
+and no catalog, and where Postgres will live was left to that plan's phase
+0.
+
+## D97 — The 2026 plan, accepted as its review amended it, and two people working on CARO
+
+Sobhan wrote a plan for what a public product for buyers in Iran needs under
+the decision core, without touching the core itself: `docs/REARCHITECTURE.md`,
+eight phases, each an issue in `Tecso-Dev/caro`. It was written as a
+proposal and said so, and it named, phase by phase, the lines this record had
+frozen and which of them it asked to reopen, so that each is reopened in the
+open, by the owner, with an entry here, or not at all. On 2026-11-02 the
+owner chose that two people work on CARO, had the plan merged under its
+author's name, and asked for the plan and its nine issues to be reviewed,
+the best of what they propose chosen, and the work to go on that way. This
+entry is the one the plan's phase 0 asks for: what is accepted, and which
+lines it reopens.
+
+    commit    author            what it does                         17 suites    14
+    3a5844e   Sobhan            the plan, as a proposal (#9)             3514   2795
+    b0da14b   the owner         the agreement: two people                3514   2795
+    55c26e3   the owner         the plan as accepted, and its review     3514   2795
+    7561d9c   the owner         the roadmap in two tracks                3514   2795
+    3f720ea   the owner         SERVICES' steps follow the plan          3514   2795
+    fd224aa   the owner         the README: the phases and their state   3514   2795
+
+Documentation only; the counts are those of `main` at `72e7770`, which every
+suite and CI held on each pull request's head and after each merge. The
+owner's commits here were written by a session and authored under the
+owner's name, as the agreement says.
+
+**Two people** (`b0da14b`). The agreement said every commit is authored as
+the owner and under no other name. Sobhan's plan was committed under his own,
+and writing the owner's name on another person's work would misstate who did
+it. So the agreement says who works on CARO: the owner decides, starts every
+live request and keeps `Tecso-Dev/caro` in step; Sobhan builds the platform,
+the plan's phases, and proposes, and what he proposes is the owner's to
+decide; a session builds what the owner has chosen. Work is tracked as issues
+in `Tecso-Dev/caro` and lands only by pull request into `main` here. Each
+person's commits carry that person's name; the rest of the agreement, the
+round, no trailer, no tool's name, credentials, is as it was.
+
+**What is accepted as written** (`55c26e3`). The phase order; Cloudflare in
+front; the environments and the deploys; the read model in D47's direction;
+the edge cache keyed by the corpus's digest; the alerts; the load tests; and
+D56's measurements before any talk of another language.
+
+**What the review changed, and why.** The run queue is a Postgres table
+taken with `FOR UPDATE SKIP LOCKED`, not Arq and Redis: the owner chose
+Postgres alone on 2026-11-02, and a handful of runs a day needs no second
+stateful service. Next.js stays: the design system and the panels are built
+in it, in phase 5, and phase 6 becomes the site in its own image on the
+server with Vercel retired, about a week, instead of seven to ten weeks of a
+second front end that would have to earn again every refusal state the
+suites hold. Kubernetes is later, with the same images, not out of scope, as
+the owner chose; nginx at the origin, not Caddy; one image with a container
+per role, the API, the collection worker and the ingest worker, as SERVICES
+designs it. And a sixth security measure: an error report carries no
+personal data. What was built before the plan was accepted is said where it
+belongs: phase 2's read model, as the catalog (D96), with the store's suite
+on a real Postgres in CI. The plan is about three months, not four.
+
+**The lines it reopens,** each at its phase, as the plan's table says:
+
+    line                                              phase  how
+    the working agreement: one person                     0  two, each under their own name
+    D64: the API as a Vercel service                      1  the API in Compose on a server
+    D47: no queue                                         3  in Postgres, every run with its transcript
+    the agreement: live requests on the owner's machine   3  on a worker the owner controls
+    D47: no cache                                         4  at the edge only, keyed by digest, gate and version
+    D64: the site as a Vercel service                     6  the site's own image on the server
+    D56: one language                                     7  only if its measurements come out so
+
+The first is reopened and settled by `b0da14b`. Each of the others is
+reopened when its phase begins, in the open, and its phase's entry records
+it. D47's Next.js line, which the proposal reopened, stays closed.
+
+**The roadmap, SERVICES and the README** (`7561d9c`, `3f720ea`, `fd224aa`).
+The order of work is two tracks side by side: the evidence track, the
+owner's, which is what CARO is for, and the platform track, the plan as
+accepted; neither waits on the other except where an item says so. SERVICES
+stays the design, and its six steps are scheduled by the plan's phases. The
+README carries the phases and their state.
+
+**The issues.** The nine issues of `Tecso-Dev/caro`, the epic and one per
+phase, were edited to the plan as accepted by a script the owner ran, which
+checked every issue's title before it touched it, and one comment on the
+epic says what the review changed. The session cannot write to that
+repository.
+
+**As merged, and seen.** Pull request #9 merged on 2026-11-02 as `8ce2ba4`,
+and #11 as `8296382`; CI succeeded on each head and on `main` after each.
+The site changes with neither.
+
+**What this does not settle.** Every phase still waits on the decisions it
+names, and a phase starts only when the one before it is closed.
+
+## D98 — One table of the models CARO reads by name: a buyer who asks for a Samand is shown Samands
+
+Reading the parser for the evidence track found that «سمند زیر ۲ میلیارد»
+was parsed with no model and nothing listed as unread, so the search showed
+every car under two billion, 163 of run17's listings of every model, to a
+buyer who had asked for one. The cause was two tables of model names: the
+search read `caro.ranking.MODEL_ALIASES`, ten models, and the listing parser
+`caro.ingest.divar_car.MAKE_MODEL`, thirteen, the same ten and IKCO's Runna,
+Samand and Tara. Two copies of one rule had drifted. The run17 switch had
+already dropped two search examples on this (D93).
+
+    commit    what it does                                      17 suites    14
+    45563ca   caro/ingest/models.py, one table for both readers        3528   2803
+
+The commit was green on its own, with the site's build, and CI green on the
+pull request's head, #13, and on `main` after the merge.
+
+**Measured before anything was built,** network off, the predictions locked:
+of run17's 492 vehicle listings, 217 (44%) were of a model a query could
+name and 281 (57%) were by the listing parser's table; every listing of the
+Bama runs was by either; and 104 models, 211 listings, by neither. It was put
+to the owner as three builds: one table; a short name the search cannot
+read listed as unread; and Persian names for the 104. On 2026-11-02 the
+owner chose the first alone.
+
+**The table.** `caro/ingest/models.py` is the union of the two, in the
+listing parser's order, since the parser returns the first model whose name
+it finds, and it adds no name neither table held. Both readers take their
+views from it under their old names, so no caller changes. The search gains
+Samand, Tara and Runna, and «کوئیک», «۱۳۲», «سایپا ۱۳۱» and «207i» for models it
+knew; the listing parser gains the Latin names the search held, «پژو207»
+and «دویست و شش». On run17, «سمند زیر ۲ میلیارد» shows the 13 Samands priced
+under two billion and holds apart the one whose price is unread; «تارا زیر ۲
+میلیارد» shows none, since all 20 Taras are above it; «رانا» shows its 6.
+Every suite was green before the rows were added and none changed, as
+predicted.
+
+**Rows and mutants.** The two readers name the same models by the same
+names, as the same objects (MD1); the search reads the three and the other
+table's names (MD2); over HTTP each of the three shows that model alone,
+counted from the served corpus with the site's own rule for a price (MD3).
+Mutants: 5, all killed.
+
+**As merged, and seen.** Merged on 2026-11-02 as `543b705`, and read from
+the outside that night, when the site served it: «سمند زیر ۲ میلیارد» read
+the model `samand`, showed 13 and held 1 apart, as here; `/about` read 84
+decisions, 3528 assertions and 17 suites.
+
+**What this does not settle.** 104 models of run17, 211 listings, are named
+by neither table, and a query cannot name them. A short name the search
+cannot read is still dropped without a word. Both were offered to the owner
+and not chosen, and the roadmap's parser item says so.
+
+## D99 — Phase 0 is closed by the owner's choice, its four account steps carried to an issue of their own
+
+Phase 0 of the 2026 plan (D97), foundation and governance, closes when the
+site answers at `caro.noxioai.com` through Cloudflare, a test alert has
+reached Telegram, and its decision entry exists. Everything in it that a
+session could build was merged by 2026-11-02, in this repository's pull
+requests #12, #14, #15 and #16. What is left is four steps in the owner's
+own accounts, written down in PHASE0_SETUP: `main` protected and the two
+environments; the error reports' DSN set for the API and the site;
+Cloudflare in front of `caro.noxioai.com`; and UptimeRobot alerting to
+Telegram. None of them has been taken, so the first two conditions are not
+met. Asked on 2026-11-03 with that in front of the owner, the owner chose to
+close phase 0 now and to carry the four steps to an issue of their own in
+`Tecso-Dev/caro`. Phase 0 is closed by that choice, not by its conditions,
+and this entry says so; phase 1 may start.
+
+    commit    what it does                                      17 suites    14
+    831d678   scripts/reach_probe.py (#12)                             3520   2801
+    c6f31d9   error reports from the API, nothing personal (#12)       3525   2801
+    7bc345f   CODEOWNERS (#12)                                         3525   2801
+    1c0d121   the probe as the owner ran it, and the hosting (#14)     3525   2801
+    99479f6   the operator's test report (#14)                         3529   2803
+    72ea241   scripts/site_check.py (#14)                              3531   2805
+    c261196   PHASE0_SETUP, the owner's steps (#14)                    3531   2805
+    fe12b00   the site's reports go through /api/report (#15)          3534   2805
+    534e09f   the browser's reports, off without a DSN (#15)           3541   2812
+    43da0fb   phase 0's lists after #15 (#16)                          3541   2812
+    57800e9   the roadmap's Now list after #11 to #15 (#16)            3541   2812
+
+Each was green on its own when it was made, with the site's typecheck, lint
+and build where it touched the site, and CI succeeded on each pull request's
+head and on `main` after each of the four merges, `9d637b0`, `847d0e2`,
+`067f4a8` and `0afbbd6`.
+
+**The probe, and the hosting it decided** (`831d678`, `1c0d121`). D64 had
+raised whether a server in Europe can be reached from Iran, and nobody had
+measured it. The probe goes to each host step by step, a DNS answer, a TCP
+connection, a TLS handshake that names the host and checks its certificate,
+and an HTTPS request, and names each failure by its kind, because filtering
+shows as a reset or a silence at one step for some names and not others. The
+owner ran it on 2026-11-02 at 21:30 UTC from an ordinary connection in Iran,
+five rounds. Hetzner's three sites were reached 0 times in 5 each: every
+handshake that finished carried Hetzner's own certificate, and every request
+after it was met by the connection closing without a word, five times at
+Falkenstein and Nuremberg, four at Helsinki with one reset during the
+handshake. Neon's console, Cloudflare, the site on Vercel, GitHub and its
+container registry were reached 5 times in 5. Every TCP connection took 14
+to 16 ms, to every host, which no path from Iran to Germany allows, so
+something on the path answers for the far side; asked, the owner said the
+VPN was off. The owner chose: Hetzner, reached only through Cloudflare, with
+Postgres beside the API; the collection worker in Iran writes through
+Cloudflare too; and the owner reaches the server through the owner's own
+VPN.
+
+**Error reports with nothing personal in them** (`c6f31d9`, `99479f6`,
+`fe12b00`, `534e09f`). The plan's sixth security measure. Without
+`SENTRY_DSN` the SDK is not imported and nothing behaves differently, which
+is how every suite runs. With it, personal data, local variables and the
+source lines around a raise are off; the last was found by the suite, whose
+first real event carried the numbers written in those lines. Before an event
+or a breadcrumb leaves, the request's cookies, body, query and environment go,
+every header but four, the user and every frame's variables, and every
+Iranian mobile number written in any string, read as the store reads one, so
+that a price beside a number neither hides it nor is taken for it. The
+operator can send a test report and get its id back, or be told reports are
+off. The site loads the browser SDK only where `NEXT_PUBLIC_SENTRY_DSN` was
+set at build, as a chunk of its own; it sends its envelopes to the site's
+own `/api/report`, since the site's policy lets a browser reach its own
+origin and nothing else, and the API forwards only their error events,
+through the same scrubber, to the project its own DSN names, whatever the
+envelope says. Tried in a browser against a made-up DSN: two thrown errors
+went as two envelopes to `/api/report`, both answered 202, nothing went to
+any other host, and neither envelope held a cookie or a user. Without a DSN,
+47 requests across three pages, none to the SDK or `/api/report`.
+
+**The rest.** CODEOWNERS names the owner on everything and Sobhan beside the
+owner on the platform. `scripts/site_check.py` is the read from the outside
+the working agreement asks after every merge, as a script of the repository:
+the owner has run it since. PHASE0_SETUP writes down the four steps, each
+with what to see when it worked and what to send back, and none of them asks
+for a key to be written down or pasted anywhere.
+
+**Mutants,** as each message states: the probe 7, 5 killed, the survivors
+named; the API's reports 9 of 9; the test report 3 of 3; the relay 6 of 6.
+**What the predictions got wrong:** the site's reports were predicted to move
+no page's first-load script; `/search` went from 116 to 117 kB, the loader's
+few hundred bytes crossing a rounding boundary.
+
+**Read from the outside** on 2026-11-03, the site at `0afbbd6`, by the
+owner's `site_check.py`: `/about` 84 decisions, 3541 assertions and 17
+suites; the corpus REAL run17, `ad72b16a54cf`, 492 rows; a Samand's page 32
+listings, its history one point, run17 of 2026-10-30, 31 priced, the middle
+2,096,250,000 toman; «سمند زیر ۲ میلیارد» read as `samand`, 13 shown and 1
+held apart; no link to the seller listings; served by Vercel, with no
+Cloudflare header. The first try stopped with the TLS connection cut before
+anything was read; the second answered.
+
+**What this does not settle.** The four steps, and with them the two
+conditions phase 0 was to close on: the site behind Cloudflare, and an alert
+seen to reach Telegram. Until they are taken the error reports are off on
+the deployment, nothing alerts anyone when the site is down, and `main` is
+protected by the rule that a session merges only on green, not by GitHub.
+The issue that carries them says which is done.

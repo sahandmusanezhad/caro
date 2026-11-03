@@ -142,7 +142,7 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 
 | Phase | What | State |
 |---|---|---|
-| 0 | foundation: the agreement for two, `caro.noxioai.com` behind Cloudflare, alerts, branch protection, a reachability probe from Iran | the agreement, the plan, the probe and the hosting it decided, error reports, CODEOWNERS done; left, the owner's accounts ([the steps](docs/PHASE0_SETUP.md)) |
+| 0 | foundation: the agreement for two, `caro.noxioai.com` behind Cloudflare, alerts, branch protection, a reachability probe from Iran | **closed** 2026-11-03 by the owner's choice (D99); the four steps in the owner's accounts carried to an issue of their own ([the steps](docs/PHASE0_SETUP.md)) |
 | 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | next |
 | 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | the catalog built, off by default |
 | 3 | the queue in Postgres, the collection worker | |
@@ -807,7 +807,7 @@ scripts/         setup, live runs, promotion, the catalog's loader, replays, the
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D84) · eval · roadmap · readme/ (the README's images)
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) · eval · roadmap · readme/ (the README's images)
 ```
 
 ## Documentation

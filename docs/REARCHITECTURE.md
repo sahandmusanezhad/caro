@@ -8,8 +8,8 @@ was changed and why, and the stack, the structure and the phases below are
 written as accepted. Each phase names the lines it reopens, because several
 of them are lines this record froze on purpose (D47, D56, D64,
 WORKING_AGREEMENT), and a frozen line is reopened in the open or not at
-all; the decision entry that records them follows the merge, as the working
-agreement requires.
+all; the decision entry that records them is D97, written after the merge,
+as the working agreement requires.
 
 The order of work in [ROADMAP](ROADMAP.md) — the first live Divar run, a
 larger corpus over time, an estimator that clears the gate on real data — is
@@ -143,11 +143,17 @@ overlap phases 3 and 4.
 
 ### Phase 0 — Foundation and governance (about a week; both)
 
+**Closed** on 2026-11-03 by the owner's choice (D99): everything below is
+done but the four steps in the owner's accounts -- branch protection and
+the environments, the error reports' DSN, Cloudflare in front, UptimeRobot
+to Telegram -- which are carried to an issue of their own, so the site is
+not yet behind Cloudflare and no alert has been seen to reach Telegram.
+
 - WORKING_AGREEMENT amended by the owner, in a commit of its own: two
   people, each committing under his own name; the roles; issues in
   `Tecso-Dev/caro`; the pull request still the only way into `main`.
 - This document merged, and the owner's D-entry recording what it accepts
-  and which lines it reopens.
+  and which lines it reopens: D97.
 - `caro.noxioai.com` proxied through Cloudflare to the site as it is;
   managed WAF, bot protection, a first rate-limiting rule on `/api/*`, and a
   cache rule that bypasses `/api/*` until phase 4.

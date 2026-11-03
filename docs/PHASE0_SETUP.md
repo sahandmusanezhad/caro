@@ -1,15 +1,18 @@
 # Phase 0 — the owner's steps, written down
 
 Phase 0 of the plan ([REARCHITECTURE](REARCHITECTURE.md); Tecso-Dev/caro
-issue 3) closes when the site answers at `caro.noxioai.com` through
+issue 3) was to close when the site answers at `caro.noxioai.com` through
 Cloudflare, a test alert has reached Telegram, and its decision entry
 exists. What a session could build is built: the reachability probe, error
 reports from the API and from the site, the operator's test report, the
-site check, CODEOWNERS. What is left is done in four accounts, and only the
-owner can do it. Each step below says what to do, what to see when it
-worked, and what to send back. Steps 2 and 3 test what the site runs, so
-first bring `Tecso-Dev/caro` to `main` (WORKING_AGREEMENT): the test report
-and the site's error reports are in it, and the site is deployed from it.
+site check, CODEOWNERS. What is left is four steps in four accounts, and
+only the owner can take them. On 2026-11-03 the owner closed phase 0 before
+they were taken and carried them to an issue of their own in
+`Tecso-Dev/caro` (D99); they are the steps below, unchanged. Each says what
+to do, what to see when it worked, and what to send back. Steps 2 and 3 test
+what the site runs, so first bring `Tecso-Dev/caro` to `main`
+(WORKING_AGREEMENT): the test report and the site's error reports are in
+it, and the site is deployed from it.
 
 No step asks for a key to be written here or in a conversation: a DSN, a
 token or a password is typed into the service that holds it, and stays
@@ -128,6 +131,6 @@ the site is up, not whether Iran reaches it -- that is the probe's.
 
 ## Then
 
-With the four answers, a session writes phase 0's decision entry -- the
-plan accepted, the agreement for two, the probe and the hosting it
-decided, the four services set up -- and the issue is closed.
+With each answer, a session ticks its step in the issue that carries
+them, and the next decision entry records it. Phase 0's own entry is D99,
+and the plan's acceptance and the agreement for two are D97.
