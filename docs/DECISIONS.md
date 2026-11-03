@@ -6212,3 +6212,163 @@ site.
 words and «،» are left as the owner's rules about Persian. Every phrasing
 measured here was made for the measurement, so a rule is known only on the
 shapes its author thought of.
+
+## D86 — Divar's category page is read from what it serves, twice from the owner's disk
+
+When D84 was written, `DivarCarAdapter` had a robots gate, a pause and a stop
+on a block, and no way to read a listing page: `first_run.py --source divar`
+raised NotImplementedError after its first page and wrote no snapshot. The
+roadmap's method for a source whose markup nothing here holds is that the
+owner probes, the pages stay on the owner's machine, and the reader is
+written offline against them. These 24 commits, from 2026-10-26 to
+2026-10-30, are that method done once for Divar's car category, up to the
+first live run, which has not been taken.
+
+    commit    what it does                                          15 suites    12
+    4fb7afb   a probe keeps a few public pages on the owner's disk       2750  2204
+    2919299   the docs say the adapter cannot read a page yet            2750  2204
+    649924f   the probe prints a page's rows and its JSON's shape        2771  2225
+    252b62e   a category page read from its JSON-LD and cards            2812  2266
+    e87da21   the category is car, and plain HTTP reads it               2813  2267
+    134db6c   first_run --source divar, and --page FILE                  2818  2272
+    6674fc1   a price under the floor is held back by the gate           2821  2275
+    8a2e409   the page's damage field is the body condition              2828  2282
+    bcb7e52   the report prints the odd cases as numbers                 2834  2288
+    b474149   the docs say what the first real read showed               2834  2288
+    c01992a   a number in prose is a price only where words say so       2840  2294
+    774adf7   a page that adds no listing stops the run                  2845  2299
+    7dd93b1   the ingest suite no longer sleeps                          2845  2299
+    2655707   the first live run's plan and predictions                  2861  2315
+    e759191   a printed value holds at most four digits                  2863  2317
+    e050f34   400 malformed pages, none raises                           2864  2318
+    5bef171   a Divar listing crosses the survival suite                 2870  2324
+    8c7f407   --replay reads a snapshot                                  2875  2329
+    9942fe0   an odometer the node gives in thousands                    2879  2333
+    2f9d233   two years two or more apart are no year                    2886  2340
+    858e7b1   make and model from the page's own fields                  2895  2349
+    366b7b2   --page reads several pages with one memory                 2906  2360
+    fe43717   itemCondition is counted                                   2972  2426
+    a32b8a6   «paintless-dent-removal» is minor_paint                    3210  2631
+
+The counts are the tree's at each commit, measured as D85 says, so they
+also move with the commits of other entries that sit between these.
+
+**The probe** (`4fb7afb`, `649924f`). `scripts/page_probe.py` asks for at
+most five urls of one origin: robots.txt first, through the gate a
+collection run uses, and nothing the file disallows; the adapters' pause and
+User-Agent; each page kept byte for byte in a folder outside the
+repository, beside a record of its url, status, size and sha256; and a stop
+at the first page that does not return, which is recorded and not retried.
+No login, no cookie, no form, no contact reveal and no proxy. What it prints
+for the conversation is the page's shape and never its values: the groups
+of sibling elements, ranked by the page they take, and the keys and kinds
+of every inline JSON, a key that is a run of digits or a long id masked.
+
+**What the page is** (`252b62e`, `e87da21`, `134db6c`). Probed on
+2026-10-26, `/s/tehran/car` answered 200 with 816,689 bytes and its 24
+listings in them, as one JSON-LD list of vehicles and 24 cards: the page is
+served whole, so a plain GET reads it and no browser is needed. The
+category the adapter had defaulted to, `light`, answered 404; it was taken
+from a url that had been read and never asked for. Both had been assumed in
+the code, and the opposite was measured. `caro/ingest/divar_page.py` reads
+the list, which cannot be mis-anchored, and the cards for what a buyer is
+shown, and checks one against the other: the price's currency label against
+the card's figure, as Bama's is checked; the odometer the same way; a
+deposit or rent word on a card makes the price ambiguous; «توافقی» is
+negotiable and silence is absent. `first_run.py --page FILE` reads a saved
+page with no network and nothing written, and prints counts and short
+categories only.
+
+**The first real read** (`6674fc1`, `8a2e409`, `bcb7e52`, `b474149`). The
+owner's saved page, read on 2026-10-26: 24 of 24 listings; `IRR` and `KMT`
+on all 24; 22 prices equal to the card's toman figure, so the node's number
+is rials, as its label says, and 2 with no displayed price to confirm them;
+the damage field holding intact 18, some-scratches 3, some-paint 2 and
+half-paint 1, where the title alone had given a condition on 1 listing in
+24; a model on 14, because the table of thirteen is domestic only. It also
+showed a report and a gate that disagreed: three prices under the floor were
+called garbage by the report and passed by the gate, which checked that a
+price existed and never its size. The gate now holds such a price back with
+its figure in the reason. The damage field is the body condition now; its
+first two values are plain, and reading half-paint as the worse of its two
+classes is a choice the owner can change. The report prints the odd cases
+as figures and pairs, and nothing of the page's words.
+
+**The second read** (`9942fe0`, `2f9d233`, `858e7b1`, `366b7b2`,
+`fe43717`). Read again on 2026-10-29, the same page printed its odd cases:
+three prices under the floor (1,000, 1,000 and 3,400,000 toman), three years
+on which the node and the title differ ((1405, 1385), (1404, 1405) and
+(1405, 1360)), and one odometer, (280, 280000). The node gives that odometer
+in thousands, so the card's figure is read where the node times 1,000 is the
+card. Two years two or more apart are no year now, and the pair is listed:
+which of the two is wrong is not known from the numbers, and the reader had
+taken the node's, which in two of the three is this year for a car its
+seller puts at twenty and forty-five years old. The page's own brand and
+model now give make and model where the table has none; of the eight brands
+it named, four are makes no table holds. The owner's probe of `?page=2` the
+same day answered 200 with 723,619 bytes; `--page` reads several saved pages
+with one memory of the tokens, so whether page 2 holds other listings than
+page 1 can be read from the two files, and that read has not been sent back.
+The survey of page 2 showed `itemCondition` on every node, UsedCondition on
+20 and NewCondition on 4 of 24; it is counted, and what a new car is in a
+used-car corpus is the owner's to decide.
+
+**Faults found on the way** (`c01992a`, `774adf7`, `8c7f407`, `e759191`).
+`parse_listing` took the first number of a title for a price and an
+odometer whenever the explicit text was empty, so «پژو 206 تیپ 5» was 206
+toman and 206 km; a number in prose is a price or an odometer now only
+where the words around it say so. The adapter asked for every page whatever
+came back; a page that answers and adds no listing now ends the run, with
+the reason. `--replay` could not read the snapshot the same script writes,
+a known defect the docstring recorded; it reads it now. And the report's
+guard on a printed value, no run of five digits, let a number written as
+«0912 345 6789» through; a value may hold four digits in all now. None of
+the eight fields is known to hold one, but the report is pasted into a
+conversation.
+
+**Tests that are not about one rule** (`e050f34`, `5bef171`, `7dd93b1`).
+400 seeded pages, each with fields of the wrong type, cut or torn: none
+raises, and each of 8 type guards removed alone is caught. A listing made by
+the Divar reader crosses the field survival suite, which exists because
+three fields were once dropped between the parsed object and the row. And
+the ingest suite no longer waits out the Bama adapter's pauses: 23.2 of its
+25 to 33 seconds were six real sleeps in one test.
+
+**The first live run** (`2655707`). Its plan and ten predictions are
+written, before the run, in RUN_PLAN_DIVAR_FIRST: the terms reviewed first,
+by the owner, which can end it; one command; three requests with a pause
+after each; a block is a result and is not retried harder; and a search of
+every snapshot for anything that looks like a mobile number, which must
+print 0, and which stops everything if it does not. The verdict at this
+size is NOT READY whatever happens.
+
+**«paintless-dent-removal»** (`a32b8a6`). Page 2 used a fifth value of the
+damage field. The prose table already reads «صافکاری» as minor_paint, and
+dent removal without paint is that: the body was worked on and nothing was
+repainted. It was the owner's call, built on a branch of its own and taken
+on 2026-10-30; its message gives its branch's counts, and on `main` it has
+those above.
+
+**Mutants,** as each message states, every survivor named with its reason:
+the probe 40 (36 caught) and its second commit 32 (26); the reader 44, of
+which 22 survive, among them the two guards of the report's privacy claim,
+a value with a digit or an «@» not counted and the cap of twenty, which
+`bcb7e52` then gave rows; the gate 5 of 5; the damage field 13 of 13; the odd cases 20
+(18); the prose number 13 (10); the stop 5 of 5; the four digits 10 (9);
+the survival row 6 (5); the replay 6 (3); the thousands 7 (6); the years 13
+of 13; the brand 15 (10); the pages 6 of 6; itemCondition 3 of 3;
+paintless 2 of 2. Rerun with bytecode off on 2026-10-29, the probe's 40
+gave 36 caught and the same four survivors, its second commit's 32 gave 26
+and the same six. The reader's first run also found three of its own rows
+wrong: a mileage chosen so that the rule said plausible, a title escaped
+twice, and a token of four characters where a real one has eight.
+
+**As pushed, and seen.** All but `a32b8a6` were pushed in the first push
+of 2026-10-30, ending at `c1cc75e`, and `a32b8a6` in the second, ending at
+`b972847`; CI succeeded on both. The site does not draw a Divar listing, and
+no Divar listing has been published.
+
+**What this does not settle.** The live path has never run. Whether page 2
+adds listings, what a new car is in this corpus, and how half-paint is read
+are open; the first two need the owner's machine, the last two the owner's
+choice. One city's first page is too small to promote, as the plan says.
