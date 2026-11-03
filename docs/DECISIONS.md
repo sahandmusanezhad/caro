@@ -6372,3 +6372,153 @@ no Divar listing has been published.
 adds listings, what a new car is in this corpus, and how half-paint is read
 are open; the first two need the owner's machine, the last two the owner's
 choice. One city's first page is too small to promote, as the plan says.
+
+## D87 — Khodro45 and Sheypoor are read, offline from their pages and then live
+
+Neither had an adapter when D84 was written. Both were built the way D86
+says Divar's reader was: the owner probed, the pages stayed on the owner's
+machine, the readers were written offline against what the probe printed,
+and the owner read the saved pages with them before any live run. Divar had
+taken four round trips to learn what a page holds; the probe was taught
+first to say it in one. These 24 commits run from 2026-10-29 to 2026-10-30,
+when the owner took the first live run of each.
+
+    commit    what it does                                      15/16 suites  12/13
+    f4562ba   the probe's --survey, what a new parser needs             2903   2357
+    dc42589   the probe reads a Next.js page's data stream              2912   2366
+    9ac9919   the probe prints numbers, neighbours, --around            2925   2379
+    b7ba888   --around --show N                                         2927   2381
+    5d156c8   the Next.js reader moves to caro/ingest                   2929   2383
+    e6dfb33   Khodro45: its pages read offline, an adapter              2952   2406
+    89c3b39   first_run --source khodro45, live and --page              2954   2408
+    d9b87e6   Sheypoor: its cards read offline, an adapter              2967   2421
+    bdf82ac   first_run --source sheypoor                               2969   2423
+    b9fad3e   the docs, and the plan of their first reads               2972   2426
+    c8a6e30   Sheypoor's rel=next on a pagination link                  2973   2427
+    a1bc452   Khodro45: a card joined by odometer and year              2978   2432
+    3416b02   Khodro45: the slug in another case, https                 2983   2437
+    f4ef473   Sheypoor: the listing page merged into its card           2994   2448
+    7062ffd   the plan's addendum after the offline reads               2994   2448
+    c1cc75e   a listing page keeps its card's seller type               2994   2448
+    a01372c   Khodro45's address learned segment by segment             2997   2451
+    ec76b47   Sheypoor's corner image is a shop's badge                 3211   2632
+    929d3a1   a live run states its own sample                          3244   2650
+    9e3d580   the next list page is the one the page named              3245   2651
+    68af208   Sheypoor's report names the list's next page              3246   2652
+    ffb8c60   «بدون خط و خش» is intact, not minor_paint                 3249   2655
+    467cf65   a refused odometer is printed, as numbers                 3376   2741
+    239aa09   an invisible mark at a name's end is dropped              3401   2760
+
+The counts are the tree's at each commit, measured as D85 says.
+
+**The probe, taught to say more at once** (`f4562ba`, `dc42589`, `9ac9919`,
+`b7ba888`, `5d156c8`). `--survey` prints in one answer what a parser for a
+new source needs. Sheypoor's home page and Khodro45's list are Next.js
+pages whose data is in a React Server Components stream, which `--scripts`
+had called "not JSON"; the probe reads that stream now, and the reader moved
+to `caro/ingest/nextjs.py` so that an adapter does not import a script.
+Khodro45's auction page showed only loading skeletons: its table is filled
+in by a browser after load, and no adapter reads it. For numbers the probe
+prints a summary, so a price's unit and what `klm` counts could be read
+without a value; for a list, what sits beside it and the next page's
+address; `--around` the parents of the links a page holds.
+
+**Khodro45** (`e6dfb33`, `89c3b39`, `a1bc452`, `3416b02`, `a01372c`). Its
+`/buy-car/` page, 577,043 bytes to a plain GET on 2026-10-29, holds a
+query cache with `count` (1812), `next` (a page of the site's own API,
+twelve at a time), and twelve results with `slug`, `price_type`, `price`,
+`final_price`, brand, model, option, year, city and `klm`; and the same
+twelve as cards. The owner's first offline read refuted the round's
+predictions where it mattered: 24 results and 24 cards where 12 and 12 were
+predicted, since the page holds two lists of twelve and the survey showed
+one of each shape; and none of the 24 cards joined to its result, so no
+listing had a price. A card is joined by its odometer and its year where
+its link does not end in the result's slug. The second read joined 24 of 24,
+showed `final_price` on all 24 cards (23 were predicted; the card of the
+listing whose price is withheld shows it too), 23 eligible, asking prices
+from 0.81 to 8.59 billion toman, and three more things: the slug in another
+case, the next page given as `http://` and now asked for over `https://`,
+and an address rule. The third read, on 2026-10-30, refuted that rule on
+all 24, so the address is now learned from the cards one segment at a
+time.
+
+**Sheypoor** (`d9b87e6`, `bdf82ac`, `c8a6e30`, `f4ef473`, `c1cc75e`).
+`/s/iran/car`, 600,924 bytes on 2026-10-29, is a Next.js page whose stream
+holds only the category tree, so the cards are the source: 26 listings, each
+a title, sometimes the badge «Ad تابلو شده», a figure before the toman icon
+or «توافقی», the place and the time, and a `rel=next` to `page_num=2`. The
+list gives no year and no odometer, so on the owner's offline read none of
+the 26 could be priced. Two listing pages the owner probed, 235,923 and
+222,842 bytes, hold the rest in one JSON-LD object: the odometer with its
+unit, the model year, the gearbox, the damage field and the colour. The
+adapter asks for each new listing's page and merges it into its card, which
+keeps the card's place and seller type. Reading the reader against its own
+survey found that it read `rel=next` on a `<link>` only; had the page put it
+on a button, every run would have ended at page 1.
+
+**The first live runs** (`929d3a1`, `9e3d580`, `68af208`, `467cf65`). On
+2026-10-30 the owner ran both. Each printed, before its first request, the
+sample statement of Bama's sampler, which neither source has; a run states
+its own now. The Sheypoor run (`--pages 3 --limit 40`) read list page 1 and
+its 26 listing pages and stopped, saying page 1 named no next page, though
+the probe had read one there. The cause was here: the next page was read
+from the parser after the listing pages, which reset it. It is read before
+them now, and the report names the next page the last list page named.
+Whether today's page 1 still names page 2 is for the owner's next run to
+show. The same run read seven odometers the quality rule does not call
+plausible: 125 km on a 1400 car, 200 on a 1397, 999999 on a 1386, 450 on a
+1396, 125 on a 1400, 2300 on a 1397, 37 on a 1388. Three look like
+thousands typed as units and two are ambiguous; the owner chose to have the
+report print them as numbers and to keep them refused. Khodro45 ran more
+than once that day, and run17 is promoted from one of those runs.
+
+The same Sheypoor run counted its listing pages' damage field as «سالم بدون
+خط و خش» 15, «یک لکه رنگ» 6, «چند لکه رنگ» 3 and «سالم با خط و خش» 2, while
+the body condition said intact 0 and minor_paint 21 (`ffb8c60`). The
+condition table is tried most severe first, and minor_paint's cue «خط و خش»
+sits inside intact's «بدون خط و خش», so the intact cue was never reached;
+of every pair of cues it is the only one so nested. A cue that is part of a
+longer cue of a milder label no longer counts for the worse one. The table
+is shared, so prose on every source had read it the same way; the published
+corpora keep the class and not the words it came from, so whether any of
+their listings was read so is not known.
+
+**Two choices of the owner, on branches first** (`ec76b47`, and
+`a32b8a6` in D86). The image at the top right of a Sheypoor card's photo:
+`main` counted it and left the seller type unknown, since D26 allows a type
+only from a badge known to be one. On the owner's saved page every card that
+carries it was titled «فروش سازمانی» or «فروش دولتی», company and state
+sales; the owner took it as a shop's badge on 2026-10-30.
+
+**An invisible mark** (`239aa09`). Reading run17 before publishing it found
+two rows whose make was «Beijing» with a zero width non-joiner before it:
+Khodro45 writes the brand's English title so, and the adapter kept it, since
+the mark is a format character and not whitespace. A make with an invisible
+first letter is another make to every comparison. Format characters are
+taken from both ends of every name the adapter reads; inside a value they
+stay, as Persian needs them. A snapshot is not parsed again, so run17 was
+promoted from a later snapshot of the same day, the first collected with
+the fix.
+
+**Mutants,** as each message states, every survivor named with its reason:
+the survey 19 (14 caught), the stream 17 (11), the numbers and neighbours 49
+(32), `--show` 9 (8), the move 7 (4); Khodro45's adapter 49 (36), its command
+7 (6), the join 16 (14), the slug 15 (10), the address 10 (6); Sheypoor's
+reader 28 (19), its command 4 (3), `rel=next` 3 (2, the third equivalent),
+the listing page 31 (26); the badge 2 of 2; the sample 3 of 3; the next page
+4 of 4; the condition 4, of which 3 caught and the fourth equivalent, and one
+more beyond the plan caught; the odometers 2 of 2; the mark 3 of 3. One row was corrected after a
+mutation run, and its message says so: in `9ac9919` the first run showed 18
+survivors, one of them a row that proved nothing because its script was too
+short to be read; the row was fixed so that its control is printed.
+
+**As pushed, and seen.** The commits up to `c1cc75e` were in the first push
+of 2026-10-30 and `a01372c` and `ec76b47` in the second; those that came of
+the live runs, and `239aa09`, in four more pushes the same day, the last at
+22:29 UTC. CI succeeded on every push. While they were pushed the site
+served run16, Bama's; run17, Khodro45's, has an entry of its own.
+
+**What this does not settle.** Sheypoor has not been read past its first
+list page; whether its odometers are typed in thousands is not known from
+seven; its runs are not published. Khodro45's auction history, filled in by
+a browser, is not read.
