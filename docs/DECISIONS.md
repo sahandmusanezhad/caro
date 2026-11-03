@@ -6920,3 +6920,96 @@ succeeded. Nothing of this runner is on the site.
 **What this does not settle.** The gate's item stays open: a verdict within
 one collection is not a verdict across time, and the roadmap says this does
 not close it.
+
+## D92 — Khodro45 every day: what a daily run can give the time axis, and sixty pages
+
+TEMPORAL_CONTRACT is the proposal for the time axis a corpus lacks (D55), and
+its §10 found that a daily clock alone does not open the boundary for Bama: a
+sampler drawing from recency-ordered first pages turned over 13% of its
+sample in an hour. On 2026-10-30 the owner chose to run Khodro45 every day.
+These 8 commits, from 2026-10-30 to 2026-11-01, say what a daily Khodro45
+run can give, record the owner's three decisions about it, keep for audit
+what the source says of a listing and nothing more, and fix the tools that
+compare two runs. The last three landed as this repository's pull requests
+#3 and #4.
+
+    commit    what it does                                         16 suites     13
+    9512786   §11: what a daily Khodro45 run can give                   3392   2751
+    73e89de   the owner's three decisions of §11                        3393   2752
+    43628a7   replicate: absent in both counted apart                   3395   2754
+    efe20ed   created_time to the snapshot, as an audit                 3400   2759
+    58aba5a   the source's two prices kept in the snapshot              3407   2766
+    650ba53   sixty pages a day from 2 November (#3)                    3420   2766
+    b057d7e   a snapshot's name carries a list's depth (#4)             3421   2767
+    1d96e0c   the replicate note compares the pin (#4)                  3422   2768
+
+The counts are the tree's at each commit, measured as D85 says.
+
+**What a daily run can give** (`9512786`). Khodro45's list is its own API,
+newest first, with its size stated (1812 on 2026-10-29), so forty pages read
+about the newest quarter of it in order, not by a sampler. A listing's first day in
+our window then stands within a day for its arrival, as long as a day's
+arrivals fit the window, which is to be measured and not assumed. Day 1's
+window is left-truncated and train-only; absence, time on the market and
+sale stay unclaimed. Not proposed: the platform's `created_time` as the
+axis, since the old listings still up are the ones that did not sell, a
+split shifted by construction.
+
+**The owner's three decisions** (`73e89de`), asked on 2026-10-30 with §11 in
+front of the owner, each the proposal: the axis for a Khodro45 series is our
+own first sighting, `first_seen_on` as §7 defines it, and not the platform's
+`created_time`; `created_time` is read as an audit of left truncation only,
+never a feature and never the split key; and the series artifact is §7's
+optional fields in `caro.corpus/1`, so every existing artifact stays valid,
+with DATA_CONTRACT changed in the commit that builds them and not before.
+
+**Kept for audit, and only there** (`efe20ed`, `58aba5a`). `created_time`
+reaches the snapshot as `listed_at`, where it reads as a time, and stops
+there: promotion does not publish it, and a model that took it as a feature
+is refused. The report counts the listings by creation date, which on a
+newest-first window is the arrival rate §11 asks to measure, read from one
+run. After four prices moved within 3.1 hours, one of them back and forth
+between two numbers 2.0% apart, the owner chose to keep the source's two
+price fields, `price` and `final_price`, in the snapshot, unpublished and
+never a feature: a price that moved with the source's numbers is the source's
+edit, and one that moved without them is our reading.
+
+**Comparing two runs** (`43628a7`, `b057d7e`, `1d96e0c`). The replicate
+check printed «price absent in one 8» where the owner's one-liner over the
+same two snapshots found one price that differed: the eight had no price in
+either run, Khodro45's price types 3 and 4. It counts four things apart now:
+identical, changed, absent in one, absent in both. An empty shell expansion
+for a snapshot not yet written gave it '.', a directory, which stopped it
+with a traceback; a path that is not a file is refused like a missing one. A
+snapshot's name did not carry how deep a list was read, so a run of forty
+pages and one of sixty shared a name; for the three sources that read a list
+it does now, and Bama's names are as they were. And the replicate note called
+every day-to-day comparison two pins, because a name carries its date; it
+compares the name without the date now.
+
+**Sixty pages** (`650ba53`). The owner's runs of 30 October and 1 November
+measured what §11 asked: two runs of the 30th, 3.1 hours apart, drew the
+same 492 listings, and four prices moved; the run of 1 November against the
+last of the 30th drew 204 listings in both and 288 only in each, the
+«created» line counted 287 listings created on Saturday the 31st and none on
+Friday the 30th, and each of the twelve moved prices printed had moved in
+both of the site's fields at once, the site's numbers and not ours. The
+window held a day, but 287 is more than half of what forty pages read, the
+margin §11 asked for. Asked with those numbers on 1 November, the owner chose
+sixty pages from 2 November, at most 732 listings, about two of the busiest
+days measured, and no change after it.
+
+**Mutants,** as each message states: the replicate counts 2 of 2, the
+audit field 5 of 5, the two prices 4 of 4, the name's depth 2 of 2, the
+note 2 of 2. The rest is documentation.
+
+**As pushed, and seen.** The first five in pushes of 2026-10-30, ending at
+`ad7792a`, `efe20ed` and `58aba5a`; the last three as pull requests #3 and
+#4, merged on 2026-11-01 as `360b384` and `9f11449`; CI succeeded on every
+push and on `main` after each merge. None of this is drawn on the site.
+
+**What this does not settle.** No series artifact is built: the measurement
+first, then the read of `created_time` against the field as a saved page
+shows it, then the artifact, in that order. When a temporal benchmark
+becomes possible depends on the arrival rate: §11's estimate, after d ≥
+W / (3A) days of arrivals, is marked invented until the rate is measured.
