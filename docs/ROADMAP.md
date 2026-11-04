@@ -55,13 +55,14 @@ an item says so.
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
   Every merge since D84 has its entry, D85 to D99.
-- **Phases 1 to 3 on the server and the owner's machine.** Built and merged
-  (this repository's pull requests #18, #19 and #20); what is left is the
-  owner's, every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
-  [PHASE2_SETUP](PHASE2_SETUP.md) and [PHASE3_SETUP](PHASE3_SETUP.md): the
-  server at Hetzner, staging, the first release, the switch from Vercel, an
-  SMS account with its template, the R2 bucket, the alerts' bot, and the
-  worker on the owner's machine.
+- **Phases 1 to 4 on the server and the owner's machine.** Built and merged
+  (this repository's pull requests #18 to #21); what is left is the owner's,
+  every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
+  [PHASE2_SETUP](PHASE2_SETUP.md), [PHASE3_SETUP](PHASE3_SETUP.md) and
+  [PHASE4_SETUP](PHASE4_SETUP.md): the server at Hetzner, staging, the first
+  release, the switch from Vercel, an SMS account with its template, the R2
+  bucket, the alerts' bot, the worker on the owner's machine, the cache
+  rule, the purge's token and Turnstile's widget.
 - **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge; its
   `main` was last brought in step on 2026-11-02, at pull request #16.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
@@ -177,7 +178,16 @@ names. Durations are for two people part-time.
    promotion, keyed as D47 requires; rate limits tuned from what phases 0 to
    3 saw; Turnstile on the seller login and the contact form, on our own
    site only; a k6 baseline on `/api/search` with its p95 target written
-   down. Reopens D47 (no cache), at the edge only.
+   down. Reopens D47 (no cache), at the edge only. **Built** (this
+   repository's pull request #21): the three answers say the edge may keep
+   them, five minutes, by an ETag with the served corpus's digest, and
+   health names that digest; the purge after a deploy that changed the
+   runs; Turnstile on the code request and the contact form, off without
+   its keys; the baseline and its target ([PERF](PERF.md)); the site
+   check's `edge` line. Left, every step in [PHASE4_SETUP](PHASE4_SETUP.md):
+   the cache rule, the purge's token, Turnstile's widget, and the baseline
+   on the server. The limits stay the one process's until traffic says what
+   to tune them to.
 5. **The design system and the panels, in Next.js** (issue #10; one to two
    weeks; Sobhan). Tokens that start from the site's palette and evolve,
    with `tests/test_palette.py`'s contrast checks; the operator and seller
