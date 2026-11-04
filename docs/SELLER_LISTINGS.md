@@ -182,6 +182,9 @@ commits, a delivery.
    provider, from the login to the reveal.
 6. **The provider** -- the one the owner chose, behind the same interface,
    tried by the owner on the owner's own number before anyone else's.
+   *Built 2026-11-04:* Kavenegar, the plan's proposal (`webapp/api/sms.py`;
+   contract suite, section 29), off until its key is set; the owner's steps
+   are [PHASE2_SETUP](PHASE2_SETUP.md).
 
 The corpus guards stay as they are and gain one: no first-party listing, and
 no phone number, ever reaches `data/corpora/` or an answer of the decision

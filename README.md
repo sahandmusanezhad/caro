@@ -143,8 +143,8 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 | Phase | What | State |
 |---|---|---|
 | 0 | foundation: the agreement for two, `caro.noxioai.com` behind Cloudflare, alerts, branch protection, a reachability probe from Iran | **closed** 2026-11-03 by the owner's choice (D99); the four steps in the owner's accounts carried to an issue of their own ([the steps](docs/PHASE0_SETUP.md)) |
-| 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | next |
-| 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | the catalog built, off by default |
+| 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | built (sahandmusanezhad/caro#18); the server's steps wait on the owner ([the steps](docs/PHASE1_SETUP.md)) |
+| 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | built (sahandmusanezhad/caro#19), off until an SMS account and the server ([the steps](docs/PHASE2_SETUP.md)) |
 | 3 | the queue in Postgres, the collection worker | |
 | 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | |
 | 5 | the design system and the panels, in Next.js | |
@@ -831,6 +831,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) ·
 | [REARCHITECTURE](docs/REARCHITECTURE.md) | the 2026 plan for the platform, phases 0 to 7: Sobhan's, accepted with its review's amendments |
 | [PHASE0_SETUP](docs/PHASE0_SETUP.md) | phase 0's steps in the owner's accounts — GitHub, Sentry, Cloudflare, UptimeRobot — each with what to see when it worked |
 | [PHASE1_SETUP](docs/PHASE1_SETUP.md) | phase 1's steps: the server at Hetzner, its certificate and settings, staging, the first release, and the switch from Vercel |
+| [PHASE2_SETUP](docs/PHASE2_SETUP.md) | phase 2's steps: an SMS account and its template, and the seller listings switched on in staging, then production |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |
