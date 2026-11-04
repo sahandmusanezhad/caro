@@ -57,6 +57,10 @@ services:
       # where the env file switches it on (CARO_SELLER_STORE=on, with its
       # secret and its provider: docs/PHASE2_SETUP.md); empty, it is off.
       DATABASE_URL: ${CARO_SELLER_STORE:+postgresql://caro:${POSTGRES_PASSWORD}@postgres:5432/caro}
+      # The collection's records, from the worker (docs/PHASE3_SETUP.md):
+      # kept here, read by the alerts; off until the file sets
+      # CARO_WORKER_TOKEN.
+      CARO_OPS_URL: postgresql://caro:${POSTGRES_PASSWORD}@postgres:5432/caro
       # The edge sets X-Forwarded-For to the address Cloudflare names, and
       # nothing else reaches this container.
       CARO_TRUST_PROXY: "1"
@@ -87,6 +91,29 @@ services:
         aliases: ["site-${CARO_ENV}"]
     read_only: true
     tmpfs: [/tmp, /web/.next/cache]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  # The collection's alerts (webapp/alerts.py), from the records the worker
+  # sent: to Telegram where the file names the bot, to this log otherwise.
+  # It answers nobody, so it is on no network but its own.
+  alerts:
+    image: ${CARO_API_IMAGE:?the env file names CARO_API_IMAGE}
+    command: ["alerts"]
+    restart: unless-stopped
+    env_file:
+      - ${CARO_ENV_FILE:?the env file names its own path, CARO_ENV_FILE}
+    environment:
+      CARO_OPS_URL: postgresql://caro:${POSTGRES_PASSWORD}@postgres:5432/caro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    healthcheck:
+      disable: true
+    read_only: true
+    tmpfs: [/tmp]
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
 

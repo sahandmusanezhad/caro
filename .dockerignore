@@ -9,6 +9,8 @@ venv
 .env
 .env.*
 data/snapshots
+data/transcripts
+data/queue
 data/raw
 data/observations
 data/inbox
