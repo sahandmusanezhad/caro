@@ -1,0 +1,63 @@
+# CARO on a laptop: the site, the API and a Postgres beside them, built from
+# this checkout (docs/REARCHITECTURE.md, phase 1).
+#
+#   docker compose up --build        then http://127.0.0.1:3000
+#   docker compose down -v           and the database with it
+#
+# The API serves the published runs from the catalog in that Postgres, which
+# catalog-load fills from data/corpora/ before the API starts -- the read
+# model the server runs, on the laptop. Nothing is published to a port but
+# on 127.0.0.1. The password is for this machine only; the server's are in
+# its own files (docs/PHASE1_SETUP.md).
+
+name: caro
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: caro
+      POSTGRES_DB: caro
+      POSTGRES_PASSWORD: ${CARO_LOCAL_PG_PASSWORD:-caro-on-this-laptop-only}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caro -d caro"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  catalog-load:
+    build: .
+    command: ["catalog-load"]
+    environment:
+      CARO_CATALOG_URL: postgresql://caro:${CARO_LOCAL_PG_PASSWORD:-caro-on-this-laptop-only}@postgres:5432/caro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: .
+    environment:
+      CARO_CATALOG_URL: postgresql://caro:${CARO_LOCAL_PG_PASSWORD:-caro-on-this-laptop-only}@postgres:5432/caro
+      CARO_INBOX: "off"
+    depends_on:
+      catalog-load:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  site:
+    build:
+      context: webapp/web
+      args:
+        CARO_API: http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  pgdata: {}
