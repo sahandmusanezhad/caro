@@ -7,6 +7,10 @@
 #                     pushed as sha-<commit> and :staging
 #   a tag v*          the same, then pushed as <tag> and :production
 #
+# Only this repository pushes: the server pulls from its packages
+# (deploy/env.example), and a copy of it elsewhere -- Tecso-Dev/caro, kept
+# in step by the owner -- builds and reads both images and stops there.
+#
 # The server pulls :staging and :production every minute (deploy/pull.sh):
 # nothing here reaches the server, and no key to it is kept here. Once the
 # repository variable CARO_STAGING_URL (or CARO_PRODUCTION_URL) names an
@@ -76,7 +80,7 @@ jobs:
         run: docker logs api; docker logs site
 
       - name: Push, and move the environment's tag
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'
         env:
           ENV: ${{ steps.env.outputs.env }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -92,7 +96,7 @@ jobs:
 
   reached:
     needs: images
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: ${{ needs.images.outputs.env }}

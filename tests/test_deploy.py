@@ -308,12 +308,15 @@ check("DP12: a deploy is waited for until /api/health names the commit -- a conn
       and _c2.t == 30, str((_r1, _o1, _r2, _o2, _c2.t)))
 
 _wf = text(".github/workflows/images.yml")
+_only_here = "if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'"
 check("DP13: the images workflow runs the API's suites inside its image and reads both images "
-      "together before it pushes anything, pushes only on a merge or a tag, keeps no key to the "
-      "server, and waits on an environment only where a variable names it",
+      "together before it pushes anything, pushes only on a merge or a tag and only from the "
+      "repository the server pulls from, keeps no key to the server, and waits on an environment "
+      "only where a variable names it",
       _wf.index("docker build --target test") < _wf.index("docker push")
       and _wf.index("scripts/site_check.py --site http://127.0.0.1:3000") < _wf.index("docker push")
-      and "if: github.event_name == 'push'" in _wf and "ssh" not in _wf.lower()
+      and _wf.count(_only_here) == 2 and "if: github.event_name == 'push'\n" not in _wf
+      and "ghcr.io/sahandmusanezhad/" in text("deploy/env.example") and "ssh" not in _wf.lower()
       and "vars.CARO_STAGING_URL" in _wf and "if: env.URL != ''" in _wf
       and "packages: write" in _wf and "contents: read" in _wf, "")
 
