@@ -19,9 +19,11 @@ runs the API's suites inside its image and reads them together.
 """
 import io
 import ipaddress
+import json
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -159,8 +161,11 @@ check("DP5: an environment publishes no port, runs its API, its site and its ale
       "every capability dropped, takes its images from its env file and its password with no default, "
       "joins the edge under api-<env> and site-<env> -- the alerts on no network but its own -- and has "
       "a seller store only where its file switches one on",
-      set(_svc) == {"postgres", "catalog-load", "api", "site", "alerts"}
-      and 'command: ["alerts"]' in _svc["alerts"] and "edge" not in _svc["alerts"]
+      set(_svc) == {"postgres", "catalog-load", "api", "site", "alerts", "edge-purge"}
+      and 'command: ["alerts"]' in _svc["alerts"]
+      and not re.search(r"^\s+(- edge|edge:)\s*$", _svc["alerts"], re.MULTILINE)
+      and 'profiles: ["purge"]' in _svc["edge-purge"] and "read_only: true" in _svc["edge-purge"]
+      and "cap_drop: [ALL]" in _svc["edge-purge"] and "- purge:/var/lib/caro-purge" in _svc["edge-purge"]
       and "CARO_OPS_URL: postgresql://" in _svc["api"] and "CARO_OPS_URL: postgresql://" in _svc["alerts"]
       and not any(re.search(r"^\s+ports:", b, re.MULTILINE) for b in _svc.values())
       and _hard and "${CARO_API_IMAGE:?" in _svc["api"] and "${CARO_SITE_IMAGE:?" in _svc["site"]
@@ -241,7 +246,7 @@ _env = text("deploy/env.example")
 _set = dict(re.findall(r"^([A-Z_]+)=(.*)$", _env, re.MULTILINE))
 _needed = set(re.findall(r"\$\{([A-Z_]+)", _vps))
 _secrets = ("POSTGRES_PASSWORD", "CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET", "SENTRY_DSN",
-            "CARO_STORE_SECRET", "CARO_SMS_KAVENEGAR_KEY", "CARO_SELLER_STORE")
+            "CARO_STORE_SECRET", "CARO_SMS_KAVENEGAR_KEY", "CARO_SELLER_STORE", "CARO_CF_API_TOKEN")
 check("DP10: the env file's template names every variable an environment's compose file reads, "
       "and gives no secret a value and the seller store no switch",
       _needed <= set(_set) and all(_set.get(k) == "" for k in _secrets)
@@ -351,6 +356,77 @@ check("DP16: the image carries the worker -- first_run, the worker and the alert
       and "chown caro data/inbox data/snapshots data/transcripts" in _api
       and "python tests/run_all.py collection" in _df.split("FROM api AS test")[1]
       and all(x in _ignore for x in ("data/transcripts", "data/queue")), str(_sources))
+
+from scripts import edge_purge                                          # noqa: E402
+
+
+class _Answer:
+    def __init__(self, body):
+        self.body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return self.body
+
+
+with tempfile.TemporaryDirectory() as _pd:
+    _pd = Path(_pd)
+    (_pd / "corpora").mkdir()
+    (_pd / "corpora" / "run1.json").write_text('{"a": 1}', encoding="utf-8")
+    _penv = {"CARO_CF_API_TOKEN": "made-up-cloudflare-token-0123", "CARO_CF_ZONE_ID": "zone123",
+             "CARO_SITE_HOST": "caro.example", "CARO_PURGE_STATE": str(_pd / "state" / "key"), "CARO_RUN": ""}
+
+    def _cf(answers, seen):
+        def open_(req, timeout):
+            seen.append(json.loads(req.data))
+            a = answers.pop(0)
+            if isinstance(a, Exception):
+                raise a
+            return _Answer(json.dumps(a).encode())
+        return open_
+
+    _p_out, _p_seen = [], []
+    _p_off = edge_purge.main([], env={}, out=_p_out.append)
+    _p1 = edge_purge.main([], env=_penv, opener=_cf([{"success": True}], _p_seen), corpora=_pd / "corpora",
+                          out=_p_out.append)
+    _p2 = edge_purge.main([], env=_penv, opener=_cf([], _p_seen), corpora=_pd / "corpora", out=_p_out.append)
+    (_pd / "corpora" / "run2.json").write_text('{"b": 2}', encoding="utf-8")
+    _p3 = edge_purge.main([], env=_penv, opener=_cf([{"success": False, "errors": [{"code": 1}]},
+                                                      {"success": True}], _p_seen),
+                          corpora=_pd / "corpora", out=_p_out.append)
+    _p4 = edge_purge.main([], env={**_penv, "CARO_RUN": "run1"},
+                          opener=_cf([TimeoutError("x"), {"success": False}], _p_seen),
+                          corpora=_pd / "corpora", out=_p_out.append)
+    _p5 = edge_purge.main([], env={**_penv, "CARO_RUN": "run1"}, opener=_cf([{"success": True}], _p_seen),
+                          corpora=_pd / "corpora", out=_p_out.append)
+    _keys = (edge_purge.corpus_key(_pd / "corpora", ""), edge_purge.corpus_key(_pd / "corpora", "run1"))
+check("DP17: the edge is purged only when the runs or the served one changed -- off without Cloudflare's "
+      "token and zone, nothing asked when the runs are as they were -- by host, or by the two fixed "
+      "addresses where Cloudflare refuses that; a purge that did not happen is said and tried after the "
+      "next change, and nothing printed holds the token",
+      (_p_off, _p1, _p2, _p3, _p4, _p5) == (0, 0, 0, 0, 1, 0) and "off" in _p_out[0]
+      and _p_seen == [{"hosts": ["caro.example"]},
+                      {"hosts": ["caro.example"]},
+                      {"files": ["https://caro.example/api/models", "https://caro.example/api/corpus"]},
+                      {"hosts": ["caro.example"]}, {"files": ["https://caro.example/api/models",
+                                                               "https://caro.example/api/corpus"]},
+                      {"hosts": ["caro.example"]}]
+      and "nothing purged" in _p_out[2] and "by addresses" in _p_out[3] and "did not purge" in _p_out[4]
+      and _keys[0] != _keys[1] and not any("made-up-cloudflare-token" in o for o in _p_out),
+      str((_p_off, _p1, _p2, _p3, _p4, _p5, _p_out)))
+
+_pull_sh = text("deploy/pull.sh")
+check("DP18: the pull purges the edge after it changed the environment's API, and a purge that fails does "
+      "not undo the deploy",
+      'before=$($C ps -q api' in _pull_sh and 'after=$($C ps -q api' in _pull_sh
+      and _pull_sh.index("before=") < _pull_sh.index("up -d") < _pull_sh.index("after=")
+      and 'if [ "$before" != "$after" ]; then\n    $C --profile purge run --rm edge-purge || true\nfi'
+      in _pull_sh, _pull_sh[-400:])
 
 _wf = text(".github/workflows/images.yml")
 _only_here = "if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'"

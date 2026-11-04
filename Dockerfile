@@ -33,18 +33,18 @@ COPY pyproject.toml ./
 COPY caro/ caro/
 COPY webapp/__init__.py webapp/role.py webapp/worker.py webapp/alerts.py webapp/
 COPY webapp/api/ webapp/api/
-COPY scripts/__init__.py scripts/catalog_load.py scripts/first_run.py scripts/
+COPY scripts/__init__.py scripts/catalog_load.py scripts/first_run.py scripts/edge_purge.py scripts/
 COPY data/corpora/ data/corpora/
 
 # The commit the image was built from; /api/health says it.
 ARG CARO_BUILD=
 ENV CARO_BUILD=${CARO_BUILD}
 
-# A user of its own, with nothing to write but the inbox where it is on, and
-# the worker's snapshots and transcripts.
+# A user of its own, with nothing to write but the inbox where it is on, the
+# worker's snapshots and transcripts, and the edge purge's last key.
 RUN useradd --system --uid 10001 --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin caro \
- && mkdir -p data/inbox data/snapshots data/transcripts \
- && chown caro data/inbox data/snapshots data/transcripts
+ && mkdir -p data/inbox data/snapshots data/transcripts /var/lib/caro-purge \
+ && chown caro data/inbox data/snapshots data/transcripts /var/lib/caro-purge
 USER caro
 
 EXPOSE 8000

@@ -19,7 +19,9 @@ found, a catalog that cannot serve it -- is no-store, so an outage is never
 kept at the edge after it ends. A fault about the claim (nothing gated) or
 the resource is a fact about the corpus read, and is kept like the rest.
 
-A kept answer lives at most CARO_EDGE_TTL seconds.
+When the published runs or the served one change, the deploy purges what
+the edge kept (scripts/edge_purge.py); until it is set up, a kept answer
+lives at most CARO_EDGE_TTL seconds.
 """
 
 from __future__ import annotations
