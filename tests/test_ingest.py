@@ -3132,6 +3132,50 @@ check("first_run --page: offline, with no salt, writes nothing, prints the inven
       and "DIVAR PAGE READ" in _out.getvalue() and _left == [], _out.getvalue()[:300])
 
 
+# The worker runs first_run as the owner does and asks it how the run ended
+# (webapp/worker.py, the plan's phase 3).
+def _reported(fetch, argv, salt="made-up-salt-for-the-suite"):
+    rep, out = {}, _io.StringIO()
+    with _tempfile.TemporaryDirectory() as tmp:
+        old, _first_run.SNAPSHOT_DIR = _first_run.SNAPSHOT_DIR, _Path(tmp)
+        was = os.environ.pop("CARO_SELLER_SALT", None)
+        if salt:
+            os.environ["CARO_SELLER_SALT"] = salt
+        try:
+            with _contextlib.redirect_stdout(out), _contextlib.redirect_stderr(out):
+                rc = _first_run.main(argv, report=rep, fetcher=fetch, sleeper=lambda s: None)
+            written = sorted(p.name for p in _Path(tmp).rglob("*") if p.is_file())
+        finally:
+            _first_run.SNAPSHOT_DIR = old
+            os.environ.pop("CARO_SELLER_SALT", None)
+            if was is not None:
+                os.environ["CARO_SELLER_SALT"] = was
+    return rc, rep, written, out.getvalue()
+
+
+_fetch1, _ = _divar_world(lambda u: _html_ok)
+_rc1, _rep1, _w1, _ = _reported(_fetch1, ["--source", "divar", "--pages", "2"])
+check("FR1: a live run tells the worker it collected: the snapshot it wrote, how many listings, "
+      "and the robots.txt it obeyed, and no stop",
+      _rc1 == 0 and "stop" not in _rep1 and _rep1["listings"] == 3
+      and _rep1["snapshot"].endswith(_w1[0]) and len(_w1) == 1
+      and _rep1["robots"]["http_status"] == 200 and _rep1["robots"]["verdict"] == "rules"
+      and len(_rep1["robots"]["sha256"]) == 64, str((_rc1, _rep1, _w1)))
+
+
+def _robots_down(url):
+    return (503, "") if url.endswith("/robots.txt") else (200, _html_ok)
+
+
+_rc2, _rep2, _w2, _ = _reported(_robots_down, ["--source", "divar", "--pages", "2"])
+_rc3, _rep3, _w3, _ = _reported(_fetch1, ["--source", "divar"], salt="")
+check("FR2: a robots.txt answering 503 stops the run, and the worker is told it stopped on robots.txt, "
+      "with the record that says 503 and nothing written; with no salt, it is told the run could not start",
+      _rc2 == 1 and _rep2.get("stop") == "robots" and _rep2["robots"]["http_status"] == 503
+      and _rep2["robots"]["verdict"] == "deny_all" and _w2 == [] and "snapshot" not in _rep2
+      and _rc3 == 2 and _rep3.get("stop") == "setup" and _w3 == [], str((_rc2, _rep2, _rc3, _rep3)))
+
+
 print("\na price under the floor is not an asking price")
 _low = _one(_node("AbCd1234", price="50000000"),
             _card("AbCd1234", lines=("۱۲۰٬۰۰۰ کیلومتر", "۵٬۰۰۰٬۰۰۰ تومان")))
