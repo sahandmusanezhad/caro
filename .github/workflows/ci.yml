@@ -2,7 +2,7 @@
 #
 # Three jobs, run side by side:
 #
-#   suites    all seventeen suites of tests/run_all.py. The runner exits 0 when
+#   suites    all eighteen suites of tests/run_all.py. The runner exits 0 when
 #             a suite is skipped for a missing dependency, and "skipped is not
 #             passed" is this project's rule, so this job fails on any skip.
 #   web       the site's type check, lint and production build.
@@ -13,8 +13,9 @@
 #             laptop has; production uses Postgres, and the two differ in
 #             exactly the places caro/sql.py exists for.
 #
-# Nothing here deploys. Deploys are the host's job: Vercel builds the site and
-# Railway builds the API image, each from the push to main.
+# Nothing here deploys. Vercel builds the site and the API from each push to
+# main of Tecso-Dev/caro, until the server takes them over; the server's
+# images are images.yml's (docs/PHASE1_SETUP.md).
 #
 # The actions are on their Node 24 releases, v7 of all three (2026-10-30, the
 # owner's choice): v4 and v5 ran on Node 20, which GitHub deprecates and every

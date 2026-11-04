@@ -1,0 +1,8 @@
+[Unit]
+Description=CARO: bring %i to the images its tags name (deploy/pull.sh)
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/caro/deploy/pull.sh %i

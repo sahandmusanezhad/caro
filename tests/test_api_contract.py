@@ -3185,6 +3185,31 @@ check(f"MD3: on {RUN}, «سمند», «تارا» and «رانا زیر ۲ می�
       all(v[0] for v in _md_rows.values()) and any(v[1] for v in _md_rows.values()), str(_md_rows))
 
 
+# ---------------------------------------------------------------------------
+print("\n28 — the build a process runs")
+# ---------------------------------------------------------------------------
+# The server pulls a new image a minute or two after it is pushed, and a
+# deploy is waited for until /api/health names the commit
+# (scripts/deploy_wait.py). The image sets CARO_BUILD when it is built; a
+# laptop and the suites do not, and then nothing is claimed.
+_bh_was = os.environ.pop("CARO_BUILD", None)
+with contextlib.redirect_stdout(io.StringIO()):
+    _bh_c = TestClient(api.app)
+_bh_none = _bh_c.get("/api/health").json()
+os.environ["CARO_BUILD"] = "0123456789abcdef0123456789abcdef01234567"
+_bh_set = _bh_c.get("/api/health").json()
+os.environ["CARO_BUILD"] = ""
+_bh_empty = _bh_c.get("/api/health").json()
+del os.environ["CARO_BUILD"]
+if _bh_was is not None:
+    os.environ["CARO_BUILD"] = _bh_was
+check("BH1: /api/health says the commit the process was built from where CARO_BUILD names one, and "
+      "null where nothing does, an empty value included",
+      _bh_none == {"ok": True, "build": None} and _bh_empty == {"ok": True, "build": None}
+      and _bh_set == {"ok": True, "build": "0123456789abcdef0123456789abcdef01234567"},
+      str((_bh_none, _bh_set, _bh_empty)))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

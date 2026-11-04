@@ -35,3 +35,8 @@ pydantic>=2.10.4,<3
 # only where SENTRY_DSN is set; 2.0 is the API the code uses: init with
 # before_send, before_breadcrumb and include_local_variables.
 sentry-sdk[fastapi]>=2.0,<3
+# The Postgres driver (caro/sql.py), imported only for a postgresql:// address.
+# The owner chose Postgres alone (2026-11-02) and Postgres beside the API on
+# the server (phase 0, D99), so the API's image carries it; 3.2 is the
+# release the code was written against.
+psycopg[binary]>=3.2,<4

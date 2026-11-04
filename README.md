@@ -591,9 +591,9 @@ decision API reads them.
 git clone https://github.com/sahandmusanezhad/caro && cd caro
 ./scripts/setup.sh                  # finds or installs numpy; tells you what to run
 #                                   add --extras, and npm install in
-#                                   webapp/web, for all seventeen suites
+#                                   webapp/web, for all eighteen suites
 
-python3 tests/run_all.py            # 3541 assertions, no API key, no network
+python3 tests/run_all.py            # 3555 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -603,14 +603,14 @@ CARO_CATALOG_URL=sqlite:///data/catalog.sqlite3 python3 scripts/catalog_load.py
 ```
 
 Those run on a clean clone with no network. **numpy is the only hard
-dependency of `caro/`.** Three of the seventeen test suites need more, and the
+dependency of `caro/`.** Three of the eighteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2812 assertions across 14 of 17 suites
+python3 tests/run_all.py            # 2825 assertions across 15 of 18 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3541 across all seventeen
+python3 tests/run_all.py            # 3555 across all eighteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -665,6 +665,13 @@ the Vercel project is set up.
 pip install -r webapp/requirements.txt          # or ./scripts/setup.sh --extras
 uvicorn webapp.api.main:app --reload            # the API, 127.0.0.1:8000
 (cd webapp/web && npm install && npm run dev)   # the site, 127.0.0.1:3000
+```
+
+Or the whole of it as the server runs it, from the two images, with Postgres
+beside them and the published runs loaded into its catalog first:
+
+```
+docker compose up --build                       # http://127.0.0.1:3000
 ```
 
 The API is FastAPI and imports `caro` directly: `/api/search`,
@@ -801,8 +808,11 @@ the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3541 assertions across seventeen suites
-webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind)
+tests/           3555 assertions across eighteen suites
+webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
+Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
+compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
+deploy/          the edge's nginx, Cloudflare's ranges, the server's pull script and timers
 scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
@@ -820,6 +830,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) ·
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
 | [REARCHITECTURE](docs/REARCHITECTURE.md) | the 2026 plan for the platform, phases 0 to 7: Sobhan's, accepted with its review's amendments |
 | [PHASE0_SETUP](docs/PHASE0_SETUP.md) | phase 0's steps in the owner's accounts — GitHub, Sentry, Cloudflare, UptimeRobot — each with what to see when it worked |
+| [PHASE1_SETUP](docs/PHASE1_SETUP.md) | phase 1's steps: the server at Hetzner, its certificate and settings, staging, the first release, and the switch from Vercel |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |

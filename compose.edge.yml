@@ -1,0 +1,31 @@
+# The server's one door (docs/PHASE1_SETUP.md): nginx on 443, answering
+# Cloudflare's addresses and no one else's, sending each host to its
+# environment -- caro.noxioai.com to production, caro-staging.noxioai.com to
+# staging (deploy/nginx/caro.conf).
+#
+#   docker compose -p caro-edge -f compose.edge.yml up -d
+#
+# It makes the network caro_edge the environments join. The origin
+# certificate, Cloudflare's, and the lists of Cloudflare's addresses, which
+# deploy/cloudflare-ips.sh writes, are the server's files in /etc/caro.
+
+name: caro-edge
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/caro.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/caro/nginx:/etc/nginx/caro:ro
+      - /etc/caro/tls:/etc/caro/tls:ro
+    networks:
+      - edge
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run, /tmp]
+
+networks:
+  edge:
+    name: caro_edge

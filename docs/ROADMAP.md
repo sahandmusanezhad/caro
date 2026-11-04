@@ -123,13 +123,17 @@ names. Durations are for two people part-time.
    cached until phase 4); UptimeRobot on `/api/health` and `/`, alerting to
    Telegram. **Waits on the owner:** the accounts and the DNS.
 1. **Containers and environments** (issue #4; one to two weeks; Sobhan, a
-   session). One image for the API and the workers, a role per command, and
-   one for the site; `compose.yml` for a laptop (API, Postgres) and
-   `compose.vps.yml` (nginx, API, Postgres or Neon); images in GHCR; staging
-   on every merge into `main`, production on a tag; the API leaves Vercel for
-   the VPS. Closes when staging and production answer from the VPS through
-   Cloudflare and the contract suite is green against staging. Reopens D64
-   for the API.
+   session). **Built** (this repository's pull request #18): one image for
+   the API and the workers, a role per command, and one for the site;
+   `compose.yml` for a laptop (the site, the API, Postgres) and, for the
+   server, `compose.vps.yml` per environment and `compose.edge.yml`, one
+   nginx answering Cloudflare only; the images to GHCR, `:staging` on every
+   merge into `main` and `:production` on a tag, pulled by the server every
+   minute. The site moves to the server with the API, not after it
+   (REARCHITECTURE, phase 1, «As built»). Left, every step in
+   [PHASE1_SETUP](PHASE1_SETUP.md): the server, its certificate and its
+   settings, the images made public, staging, the first release tag, and the
+   switch of `caro.noxioai.com` from Vercel to the server. Reopens D64.
 2. **The data layer and the seller listings** (issue #5; about two weeks;
    Sobhan, two decisions of the owner's). Done: the listings read model, as
    the catalog (this repository's pull request #10), and the seller store's

@@ -31,6 +31,7 @@ types are the enforcement; `tests/test_api_contract.py` is the proof.
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -318,7 +319,7 @@ def _evidence(c, spec, cands, k: int) -> dict:
 
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    return HealthResponse(ok=True)
+    return HealthResponse(ok=True, build=os.environ.get("CARO_BUILD") or None)
 
 
 @app.get("/api/corpus", response_model=CorpusResponse)

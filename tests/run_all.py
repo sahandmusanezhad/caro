@@ -96,6 +96,9 @@ SUITES = [
     ("--  catalog", "tests/test_catalog.py",
      "the published runs in a database: their bytes come back, and only adds",
      (), "", ()),
+    ("--  deploy", "tests/test_deploy.py",
+     "the images and the server's files keep what the deploy rests on",
+     (), "", ()),
 ]
 
 

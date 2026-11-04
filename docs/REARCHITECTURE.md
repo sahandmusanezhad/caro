@@ -79,7 +79,7 @@ when a server and its traffic warrant it.
 | Hosting | Hetzner CX for the API, Postgres, the site and nginx in Compose, **reached only through Cloudflare**; the worker in Iran, which writes through Cloudflare and never to Hetzner directly; Vercel until phase 6 moves the site; Kubernetes later, with the same images | the owner's choices of 2026-11-02: Docker now, Kubernetes later; Hetzner behind Cloudflare after the probe from Iran found Hetzner unreachable from there and Cloudflare reachable |
 | Observability | Sentry (API and front end); OpenTelemetry to Grafana Cloud; UptimeRobot to Telegram | free tiers |
 | CI/CD | GitHub Actions: PR → preview, `main` → staging, tag `vX.Y.Z` → production; images in GHCR; deploy by SSH and `docker compose` | simple, reviewable |
-| Tests | the seventeen suites, CI's Postgres job; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
+| Tests | the eighteen suites, CI's Postgres job; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
 | Secrets | platform environments and a shared password vault; `CARO_SELLER_SALT` only in the worker's environment | the existing rule |
 
 ## Structure (monorepo)
@@ -211,10 +211,38 @@ not yet behind Cloudflare and no alert has been seen to reach Telegram.
   Cloudflare, `tests/test_api_contract.py` is green against staging, and the
   Vercel API service is gone.
 - **Reopens:** D64 (where the API runs).
+- **As built** (sahandmusanezhad/caro#18; the owner's steps are
+  [PHASE1_SETUP](PHASE1_SETUP.md)). Four points changed where the plan would
+  have been wrong:
+  - **The site moves with the API.** With the site on Vercel and its `/api/*`
+    rewritten to the server, every API request would arrive from Vercel's
+    address, so the per-address limits on the inbox and on the operator's
+    token would be shared by every visitor, and every call would cross from
+    Vercel to Cloudflare to the server and back. Behind one edge on the
+    server, through one Cloudflare hostname, the client is the address
+    Cloudflare names and the API is one hop away. Phase 6's image and its
+    place behind nginx are built here; phase 6 keeps the Vercel project's
+    retirement and the decision entry.
+  - **One edge for both environments.** Two Compose projects cannot both
+    take port 443, so the server runs one nginx (`compose.edge.yml`) and
+    each environment, `compose.vps.yml`, joins its network.
+  - **First-level hostnames.** Cloudflare's free certificate covers
+    `*.noxioai.com` and not `*.caro.noxioai.com`, so staging is
+    `caro-staging.noxioai.com`, beside `caro.noxioai.com`.
+  - **Deploy by pull.** The server pulls `:staging` and `:production` every
+    minute; nothing reaches it to deploy, and no key to it is kept in
+    GitHub. `tests/test_api_contract.py` drives the app in its own process
+    and sets the corpus states it checks, so it cannot be pointed at a
+    server: it runs inside the very image staging runs (the image's `test`
+    stage), and staging is read from the outside after every deploy.
+  - Postgres runs in Compose on the server, beside the API, as the owner
+    chose after phase 0's probe; Neon is not used (phase 2's first line).
 
 ### Phase 2 — Data layer and seller listings (about two weeks; Sobhan, two owner decisions)
 
-- Neon Postgres and `psycopg[binary]` 3 in `webapp/requirements.txt`;
+- Postgres in Compose on the server, beside the API (the owner's choice after
+  phase 0's probe; Neon is not used), and `psycopg[binary]` 3 in
+  `webapp/requirements.txt`, there since phase 1;
   `store.py` unchanged; every later migration still only adds.
 - The listings read model in Postgres, in D47's direction and no other:
   `promote → artifact → projection job → Postgres`. Search keeps reading the
