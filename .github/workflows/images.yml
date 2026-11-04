@@ -1,0 +1,114 @@
+# The images CARO runs on its server, and the environments they reach
+# (docs/PHASE1_SETUP.md):
+#
+#   a pull request    both images built, the API's suites run inside its
+#                     image, both started together and read; nothing pushed
+#   a merge into main the same, then ghcr.io/<owner>/caro-api and caro-site
+#                     pushed as sha-<commit> and :staging
+#   a tag v*          the same, then pushed as <tag> and :production
+#
+# The server pulls :staging and :production every minute (deploy/pull.sh):
+# nothing here reaches the server, and no key to it is kept here. Once the
+# repository variable CARO_STAGING_URL (or CARO_PRODUCTION_URL) names an
+# environment, the job `reached` waits until it runs the new commit
+# (scripts/deploy_wait.py) and reads it from the outside
+# (scripts/site_check.py).
+
+name: images
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  API: ghcr.io/${{ github.repository_owner }}/caro-api
+  SITE: ghcr.io/${{ github.repository_owner }}/caro-site
+
+jobs:
+  images:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      env: ${{ steps.env.outputs.env }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Which environment this is for
+        id: env
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then echo env=production >> "$GITHUB_OUTPUT"
+          else echo env=staging >> "$GITHUB_OUTPUT"; fi
+
+      - name: The API's suites, inside its image
+        run: docker build --target test -t caro-api:test .
+
+      - name: The API's image
+        run: docker build --build-arg CARO_BUILD="$GITHUB_SHA" -t "$API:sha-$GITHUB_SHA" .
+
+      - name: The site's image
+        env:
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          NEXT_PUBLIC_SELLER_LISTINGS: ${{ vars.NEXT_PUBLIC_SELLER_LISTINGS }}
+        run: |
+          docker build --build-arg NEXT_PUBLIC_SENTRY_DSN --build-arg NEXT_PUBLIC_SELLER_LISTINGS \
+            -t "$SITE:sha-$GITHUB_SHA" webapp/web
+
+      - name: Both images, started together and read from the outside
+        run: |
+          docker network create smoke
+          docker run -d --name api --network smoke -e CARO_INBOX=off "$API:sha-$GITHUB_SHA"
+          docker run -d --name site --network smoke -p 127.0.0.1:3000:3000 "$SITE:sha-$GITHUB_SHA"
+          python3 scripts/deploy_wait.py --site http://127.0.0.1:3000 --build "$GITHUB_SHA" --timeout 120 --every 2
+          python3 scripts/site_check.py --site http://127.0.0.1:3000
+
+      - name: The containers' logs, when that failed
+        if: failure()
+        run: docker logs api; docker logs site
+
+      - name: Push, and move the environment's tag
+        if: github.event_name == 'push'
+        env:
+          ENV: ${{ steps.env.outputs.env }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          for IMG in "$API" "$SITE"; do
+            docker push "$IMG:sha-$GITHUB_SHA"
+            docker tag "$IMG:sha-$GITHUB_SHA" "$IMG:$ENV" && docker push "$IMG:$ENV"
+            if [ "$ENV" = production ]; then
+              docker tag "$IMG:sha-$GITHUB_SHA" "$IMG:$GITHUB_REF_NAME" && docker push "$IMG:$GITHUB_REF_NAME"
+            fi
+          done
+
+  reached:
+    needs: images
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: ${{ needs.images.outputs.env }}
+    env:
+      URL: ${{ needs.images.outputs.env == 'production' && vars.CARO_PRODUCTION_URL || vars.CARO_STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: No environment named yet
+        if: env.URL == ''
+        run: echo "::notice::CARO_STAGING_URL and CARO_PRODUCTION_URL are not set, so nothing waits for a deploy (docs/PHASE1_SETUP.md)"
+
+      - name: The environment runs this commit
+        if: env.URL != ''
+        run: python3 scripts/deploy_wait.py --site "$URL" --build "$GITHUB_SHA"
+
+      - name: The environment, read from the outside
+        if: env.URL != ''
+        run: python3 scripts/site_check.py --site "$URL"
