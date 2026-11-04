@@ -79,7 +79,7 @@ when a server and its traffic warrant it.
 | Hosting | Hetzner CX for the API, Postgres, the site and nginx in Compose, **reached only through Cloudflare**; the worker in Iran, which writes through Cloudflare and never to Hetzner directly; Vercel until phase 6 moves the site; Kubernetes later, with the same images | the owner's choices of 2026-11-02: Docker now, Kubernetes later; Hetzner behind Cloudflare after the probe from Iran found Hetzner unreachable from there and Cloudflare reachable |
 | Observability | Sentry (API and front end); OpenTelemetry to Grafana Cloud; UptimeRobot to Telegram | free tiers |
 | CI/CD | GitHub Actions: PR → preview, `main` → staging, tag `vX.Y.Z` → production; images in GHCR; deploy by SSH and `docker compose` | simple, reviewable |
-| Tests | the eighteen suites, CI's Postgres job; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
+| Tests | the nineteen suites, CI's Postgres job; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
 | Secrets | platform environments and a shared password vault; `CARO_SELLER_SALT` only in the worker's environment | the existing rule |
 
 ## Structure (monorepo)
@@ -310,6 +310,31 @@ not yet behind Cloudflare and no alert has been seen to reach Telegram.
   the Arq D47 names) and WORKING_AGREEMENT (live requests on the owner's
   machine → on a worker the owner controls). **Waits on the owner** for the
   second: until then the worker runs on the owner's machine.
+- **As built** (sahandmusanezhad/caro#20; the owner's steps are
+  [PHASE3_SETUP](PHASE3_SETUP.md)):
+  - **The queue is where the worker is.** The worker runs on the owner's
+    machine, or later a server in Iran, and phase 0's probe found the
+    server unreachable from Iran but through Cloudflare, which carries a
+    site's requests and not a database's. So the queue -- `caro/jobs.py`,
+    taken `FOR UPDATE SKIP LOCKED` -- is a Postgres beside the worker
+    (`compose.worker.yml`), or a SQLite file on a laptop, and the server
+    keeps the records: each run's is posted to `POST /api/worker/runs`
+    through Cloudflare, by the worker's token, and kept until it is
+    delivered.
+  - **The alerts are said by the server**, from the records
+    (`webapp/alerts.py`): a worker that stopped cannot say so, and
+    Telegram, where the owner's alerts go, is not reached from Iran.
+  - **How a run ends decides what follows.** A run the source stopped --
+    robots.txt, a block, a source that could not be read -- is done and
+    alerted, not retried around; a failure of ours is tried again after a
+    backoff, three times; a day's run not taken by the end of its day is
+    missed, never run late under the next day's date.
+  - **The bucket is R2, by S3's protocol in the standard library**
+    (`caro/bucket.py`), checked against AWS's three published signature
+    examples, so the worker's image carries no SDK for three requests.
+  - **No scheduler of its own.** The worker queues each day's run itself,
+    once, by a key that makes it once; a second process would be a second
+    thing to keep alive for one row a day.
 
 ### Phase 4 — The edge: cache, rate limiting, Turnstile (about a week; Sobhan)
 

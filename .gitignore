@@ -39,6 +39,14 @@ data/store/
 #                     scripts/catalog_load.py. A copy, never the publication;
 #                     data/corpora is (docs/SERVICES.md).
 data/catalog.sqlite3*
+#   data/transcripts/ OPERATIONAL, as snapshots: what a worker's run printed
+#                     (webapp/worker.py), kept beside its snapshot. Never
+#                     published.
+data/transcripts/
+#   data/queue/       Where a worker on a laptop keeps its queue when
+#                     CARO_QUEUE_URL says sqlite:///data/queue/<file>: jobs
+#                     and their records, nothing published (caro/jobs.py).
+data/queue/
 #   data/derived/     PUBLISHED, and NOT listed here. Written only by an
 #                     explicit --export, and only the fields a document's
 #                     numbers are computed from — never page text. It exists

@@ -133,7 +133,10 @@ and step 6 is decided in phase 7.
    run16, then the switch. The site serves run17 since 2026-11-02.
 4. **The queue and the collector.** The `jobs` table, a worker that runs a
    Khodro45 collection on a schedule on the owner's machine and hands its
-   snapshot to ingest.
+   snapshot to ingest. ✅ Built in the plan's phase 3 (`caro/jobs.py`,
+   `webapp/worker.py`; REARCHITECTURE, phase 3, «As built»): the queue
+   beside the worker, the snapshot to the bucket, its record to the server.
+   Promotion is still the owner's reviewed pull request.
 5. **Docker.** An image for the API and the workers (one image, two
    commands), one for the site, Postgres; `docker-compose.yml` with health
    checks; secrets only in an `.env` that never enters the repository; CI

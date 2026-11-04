@@ -2,13 +2,14 @@
 #
 # Three jobs, run side by side:
 #
-#   suites    all eighteen suites of tests/run_all.py. The runner exits 0 when
+#   suites    all nineteen suites of tests/run_all.py. The runner exits 0 when
 #             a suite is skipped for a missing dependency, and "skipped is not
 #             passed" is this project's rule, so this job fails on any skip.
 #   web       the site's type check, lint and production build.
 #   postgres  the suites that touch a database, once more against a real
-#             Postgres: the seller store, the catalog, and the contract
-#             suite's rows that serve the site from the catalog. On the
+#             Postgres: the seller store, the catalog, the contract suite's
+#             rows that serve the site from the catalog, and the
+#             collection's queue and runs. On the
 #             runner they use SQLite in a temporary file, which is what a
 #             laptop has; production uses Postgres, and the two differ in
 #             exactly the places caro/sql.py exists for.
@@ -139,7 +140,7 @@ jobs:
           python - <<'PY'
           import os, psycopg
           with psycopg.connect(os.environ["PG"] + "/caro", autocommit=True) as c:
-              for db in ("store", "catalog", "api_catalog", "shared"):
+              for db in ("store", "catalog", "api_catalog", "shared", "queue", "runs"):
                   c.execute(f"CREATE DATABASE {db}")
           PY
 
@@ -157,6 +158,14 @@ jobs:
         run: python tests/test_api_contract.py
         env:
           CARO_TEST_API_CATALOG_URL: ${{ env.PG }}/api_catalog
+
+      # Two workers racing for one job is FOR UPDATE SKIP LOCKED's to settle,
+      # and only a real Postgres has it.
+      - name: The collection's queue and runs on Postgres
+        run: python tests/test_collection.py
+        env:
+          CARO_TEST_QUEUE_URL: ${{ env.PG }}/queue
+          CARO_TEST_RUNS_URL: ${{ env.PG }}/runs
 
       - name: The seller store and the catalog in one database
         run: |

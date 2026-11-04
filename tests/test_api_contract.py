@@ -3310,6 +3310,82 @@ for k, v in _sms_was.items():
         os.environ[k] = v
 
 
+# ---------------------------------------------------------------------------
+print("\n30 — the worker's records reach the server, by its token, and nothing personal does")
+# ---------------------------------------------------------------------------
+# The plan's phase 3: the worker reports each run to POST /api/worker/runs
+# (webapp/api/collection.py), which keeps it where the alerts read it.
+from webapp.api import collection as _col                              # noqa: E402
+from webapp.api.main import app as _app30                              # noqa: E402
+
+_col_env = ("CARO_WORKER_TOKEN", "CARO_OPS_URL")
+_col_was = {k: os.environ.pop(k, None) for k in _col_env}
+_c30 = TestClient(_app30)
+_col.WORKER_FAILURES.clear()
+_ops_dir = tempfile.TemporaryDirectory()
+_REC = {"run_id": "collect:khodro45:2026-11-04#1", "job": "collect:khodro45:2026-11-04", "source": "khodro45",
+        "pages": 60, "argv": ["--source", "khodro45", "--pages", "60"], "collected_on": "2026-11-04",
+        "started_at": 1793750400, "finished_at": 1793750700, "outcome": "collected", "message": None,
+        "listings": 492, "stopped": None,
+        "robots": {"url": "https://khodro45.com/robots.txt", "http_status": 200, "sha256": "a" * 64,
+                   "bytes": 120, "verdict": "rules"},
+        "worker": "laptop", "build": None,
+        "snapshot": {"file": "s.json", "sha256": "b" * 64, "bytes": 16, "key": "runs/khodro45/2026-11-04/attempt-1/snapshot.json"},
+        "transcript": {"file": "t.txt", "sha256": "c" * 64, "bytes": 37, "key": None}}
+_auth30 = {"Authorization": "Bearer made-up-worker-token-0123"}
+_off = _c30.post("/api/worker/runs", json=_REC, headers=_auth30)
+os.environ["CARO_WORKER_TOKEN"] = "made-up-worker-token-0123"
+os.environ["CARO_OPS_URL"] = f"sqlite:///{_ops_dir.name}/ops.sqlite3"
+_no = _c30.post("/api/worker/runs", json=_REC)
+_wrong = _c30.post("/api/worker/runs", json={"not": "a record"}, headers={"Authorization": "Bearer guess"})
+check("CW1: the records are off until the token and the runs' database are both set; a caller without "
+      "the token is refused before its body is read",
+      _off.status_code == 503 and _off.json()["detail"] == "RUNS_OFF"
+      and _no.status_code == 401 and _wrong.status_code == 401,
+      str((_off.status_code, _no.status_code, _wrong.status_code)))
+
+_col.WORKER_FAILURES.clear()
+_k30 = [_c30.post("/api/worker/runs", json=_REC, headers=_auth30) for _ in range(2)]
+_other = _c30.post("/api/worker/runs", json={**_REC, "listings": 491}, headers=_auth30)
+_extra = _c30.post("/api/worker/runs", json={**_REC, "seller_phone": "09123456789"}, headers=_auth30)
+_nested = _c30.post("/api/worker/runs", json={**_REC, "robots": {**_REC["robots"], "body": "x"}}, headers=_auth30)
+_disagree = _c30.post("/api/worker/runs", json={**_REC, "collected_on": "2026-11-05"}, headers=_auth30)
+from caro import runs as _runs30                                        # noqa: E402
+_kept30 = _runs30.open_runs(os.environ["CARO_OPS_URL"]).runs()
+check("CW2: a run is kept once and answered again the same; another record under its id is 409; a field "
+      "the shape does not name, at any depth, and an id that disagrees with its day are 422; nothing "
+      "of it is cached",
+      [r.status_code for r in _k30] == [200, 200] and [r.json()["kept"] for r in _k30] == ["kept", "unchanged"]
+      and _other.status_code == 409 and _extra.status_code == 422 and _nested.status_code == 422
+      and _disagree.status_code == 422 and _k30[0].headers.get("cache-control") == "no-store"
+      and len(_kept30) == 1 and _kept30[0]["listings"] == 492,
+      str(([r.status_code for r in _k30], _other.status_code, _extra.status_code, _disagree.status_code)))
+
+_col.WORKER_FAILURES.clear()
+_ten = [_c30.post("/api/worker/runs", json=_REC, headers={"Authorization": "Bearer guess"}).status_code
+        for _ in range(10)]
+_eleventh = _c30.post("/api/worker/runs", json=_REC, headers=_auth30)
+_col.WORKER_FAILURES.clear()
+check("CW3: ten wrong tokens from one address in ten minutes, and the right one is refused too, 429, "
+      "until the window passes",
+      _ten == [401] * 10 and _eleventh.status_code == 429 and "Retry-After" in _eleventh.headers,
+      str((_ten, _eleventh.status_code)))
+
+_fields = set(_col.RunRecord.model_fields)
+check("CW4: the record's shape names the run and nothing of a listing or a person -- its fields are these "
+      "and no others, and every model in it forbids the rest",
+      _fields == {"run_id", "job", "source", "pages", "argv", "collected_on", "started_at", "finished_at",
+                  "outcome", "message", "listings", "stopped", "robots", "worker", "build", "snapshot",
+                  "transcript"}
+      and all(m.model_config.get("extra") == "forbid" for m in (_col.RunRecord, _col.Robots, _col.Kept)),
+      str(sorted(_fields)))
+
+for k, v in _col_was.items():
+    os.environ.pop(k, None)
+    if v is not None:
+        os.environ[k] = v
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

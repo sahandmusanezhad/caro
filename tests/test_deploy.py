@@ -154,12 +154,14 @@ print("\nthe server's compose files")
 _vps = text("compose.vps.yml")
 _svc = blocks(_vps)
 _hard = all(("read_only: true" in _svc[s] and "cap_drop: [ALL]" in _svc[s]
-             and "no-new-privileges:true" in _svc[s]) for s in ("api", "site", "catalog-load"))
-check("DP5: an environment publishes no port, runs its API and site read-only with every "
-      "capability dropped, takes its images from its env file and its password with no default, "
-      "joins the edge under api-<env> and site-<env>, and has a seller store only where its file "
-      "switches one on",
-      set(_svc) == {"postgres", "catalog-load", "api", "site"}
+             and "no-new-privileges:true" in _svc[s]) for s in ("api", "site", "catalog-load", "alerts"))
+check("DP5: an environment publishes no port, runs its API, its site and its alerts read-only with "
+      "every capability dropped, takes its images from its env file and its password with no default, "
+      "joins the edge under api-<env> and site-<env> -- the alerts on no network but its own -- and has "
+      "a seller store only where its file switches one on",
+      set(_svc) == {"postgres", "catalog-load", "api", "site", "alerts"}
+      and 'command: ["alerts"]' in _svc["alerts"] and "edge" not in _svc["alerts"]
+      and "CARO_OPS_URL: postgresql://" in _svc["api"] and "CARO_OPS_URL: postgresql://" in _svc["alerts"]
       and not any(re.search(r"^\s+ports:", b, re.MULTILINE) for b in _svc.values())
       and _hard and "${CARO_API_IMAGE:?" in _svc["api"] and "${CARO_SITE_IMAGE:?" in _svc["site"]
       and "POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?" in _svc["postgres"]
@@ -306,6 +308,49 @@ check("DP12: a deploy is waited for until /api/health names the commit -- a conn
                            "deploy-wait: https://x runs old", "deploy-wait: https://x runs new"]
       and _r2 == 1 and _o2[0] == "deploy-wait: https://x runs old" and "did not answer within 25 s" in _o2[-1]
       and _c2.t == 30, str((_r1, _o1, _r2, _o2, _c2.t)))
+
+_wk = text("compose.worker.yml")
+_wsvc = blocks(_wk)
+check("DP14: the worker's compose file is a queue and a worker, and publishes no port; the queue is on a "
+      "network that reaches nothing outside, the worker on it and on one that reaches the sources; the "
+      "worker runs read-only with every capability dropped, from the image and with the password its "
+      "env file names and no default, keeps its snapshots and transcripts in volumes, and asks its own "
+      "queue",
+      set(_wsvc) == {"queue", "worker"}
+      and not any(re.search(r"^\s+ports:", b, re.MULTILINE) for b in _wsvc.values())
+      and re.search(r"^  queue:\n    internal: true", _wk.split("\nnetworks:\n", 1)[1], re.MULTILINE) is not None
+      and "- queue" in _wsvc["queue"] and "- out" not in _wsvc["queue"]
+      and "- queue" in _wsvc["worker"] and "- out" in _wsvc["worker"]
+      and all(x in _wsvc["worker"] for x in ("read_only: true", "cap_drop: [ALL]", "no-new-privileges:true",
+                                              'command: ["worker"]', "${CARO_API_IMAGE:?",
+                                              "${CARO_WORKER_ENV_FILE:?", "snapshots:/app/data/snapshots",
+                                              "transcripts:/app/data/transcripts",
+                                              "CARO_QUEUE_URL: postgresql://caro:${CARO_QUEUE_PASSWORD}@queue:5432/caro"))
+      and "POSTGRES_PASSWORD: ${CARO_QUEUE_PASSWORD:?" in _wsvc["queue"], str(sorted(_wsvc)))
+
+_wenv = text("deploy/worker.env.example")
+_wset = dict(re.findall(r"^([A-Z_]+)=(.*)$", _wenv, re.MULTILINE))
+_wneeded = set(re.findall(r"\$\{([A-Z_]+)", _wk))
+_wsecrets = ("CARO_QUEUE_PASSWORD", "CARO_SELLER_SALT", "CARO_WORKER_TOKEN", "CARO_BUCKET_KEY_ID",
+             "CARO_BUCKET_SECRET")
+check("DP15: the worker's env template names every variable its compose file reads, gives no secret a "
+      "value, reports to the server over https and pulls the image this repository pushes; the "
+      "server's template names the worker's token, the expected runs and the bot, with no value",
+      _wneeded <= set(_wset) and all(_wset.get(k) == "" for k in _wsecrets)
+      and _wset.get("CARO_INGEST_URL", "").startswith("https://")
+      and _wset.get("CARO_API_IMAGE", "").startswith("ghcr.io/sahandmusanezhad/caro-api:")
+      and _wset.get("CARO_COLLECT") == "03:30 --source khodro45 --pages 60"
+      and all(_set.get(k) == "" for k in ("CARO_WORKER_TOKEN", "CARO_ALERT_EXPECT", "CARO_ALERT_TELEGRAM_TOKEN",
+                                          "CARO_ALERT_TELEGRAM_CHAT")),
+      str((sorted(_wneeded - set(_wset)), {k: _wset.get(k) for k in _wsecrets})))
+
+check("DP16: the image carries the worker -- first_run, the worker and the alerts, and a snapshots and a "
+      "transcripts directory its user owns -- runs the collection suite in its test stage, and keeps a "
+      "laptop's transcripts and queue out of its context",
+      all(x in _sources for x in ("scripts/first_run.py", "webapp/worker.py", "webapp/alerts.py"))
+      and "chown caro data/inbox data/snapshots data/transcripts" in _api
+      and "python tests/run_all.py collection" in _df.split("FROM api AS test")[1]
+      and all(x in _ignore for x in ("data/transcripts", "data/queue")), str(_sources))
 
 _wf = text(".github/workflows/images.yml")
 _only_here = "if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'"

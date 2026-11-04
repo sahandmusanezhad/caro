@@ -48,6 +48,7 @@ from caro.ranking import diversify, retrieve                       # noqa: E402
 from webapp.api import constraints                                 # noqa: E402
 from webapp.api import corpus as corpus_mod                        # noqa: E402
 from webapp.api.accounts import router as accounts_router          # noqa: E402
+from webapp.api.collection import router as collection_router      # noqa: E402
 from webapp.api.contact import router as contact_router            # noqa: E402
 from webapp.api.listings import router as listings_router          # noqa: E402
 from webapp.api.market import router as market_router              # noqa: E402
@@ -88,6 +89,9 @@ app.include_router(listings_router)
 app.include_router(review_router)
 # The operator's test of the error reports (webapp/api/observability.py).
 app.include_router(observability_router)
+# The collection's records, from the worker (webapp/api/collection.py); off
+# until its token and the runs' database are set.
+app.include_router(collection_router)
 
 # CORS is for development (webapp/api/security.py): production serves the
 # site and the API from one origin. No cookie is used, so no credentials.

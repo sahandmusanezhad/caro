@@ -1,0 +1,66 @@
+# The collection worker (docs/PHASE3_SETUP.md), wherever it runs -- the
+# owner's machine today, a server in Iran when the owner moves it -- with
+# its queue in a Postgres of its own. It reads the sources and writes
+# through Cloudflare: its records to the server, its files to the bucket.
+# Its settings are one file on that machine, never in this repository
+# (deploy/worker.env.example):
+#
+#   docker compose -p caro-worker --env-file /etc/caro/worker.env -f compose.worker.yml up -d
+#
+# Nothing here publishes a port, and nothing reaches the worker: it asks.
+
+services:
+  queue:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: caro
+      POSTGRES_DB: caro
+      POSTGRES_PASSWORD: ${CARO_QUEUE_PASSWORD:?the env file names CARO_QUEUE_PASSWORD}
+    volumes:
+      - queue:/var/lib/postgresql/data
+    networks:
+      - queue
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caro -d caro"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    image: ${CARO_API_IMAGE:?the env file names CARO_API_IMAGE}
+    command: ["worker"]
+    restart: unless-stopped
+    env_file:
+      - ${CARO_WORKER_ENV_FILE:?the env file names its own path, CARO_WORKER_ENV_FILE}
+    environment:
+      CARO_QUEUE_URL: postgresql://caro:${CARO_QUEUE_PASSWORD}@queue:5432/caro
+    depends_on:
+      queue:
+        condition: service_healthy
+    volumes:
+      - snapshots:/app/data/snapshots
+      - transcripts:/app/data/transcripts
+    networks:
+      - queue
+      - out
+    # The image's health check asks for the API, which this is not; whether
+    # the worker works is whether its runs arrive, which the server's alerts
+    # say.
+    healthcheck:
+      disable: true
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+networks:
+  # The queue reaches nothing outside; the worker reaches the sources.
+  queue:
+    internal: true
+  out: {}
+
+volumes:
+  queue: {}
+  snapshots: {}
+  transcripts: {}

@@ -5,6 +5,8 @@
 #
 #   docker run <image>                         serves the API on :8000
 #   docker run <image> catalog-load --verify   checks the catalog
+#   docker run <image> worker                  the collection's daily runs
+#   docker run <image> alerts                  the collection's alerts
 #
 # Every setting comes from the environment; nothing secret is built in. The
 # corpora the API serves are the published ones, data/corpora/, copied as
@@ -29,18 +31,20 @@ RUN --mount=type=secret,id=extra_ca,required=false \
 
 COPY pyproject.toml ./
 COPY caro/ caro/
-COPY webapp/__init__.py webapp/role.py webapp/
+COPY webapp/__init__.py webapp/role.py webapp/worker.py webapp/alerts.py webapp/
 COPY webapp/api/ webapp/api/
-COPY scripts/__init__.py scripts/catalog_load.py scripts/
+COPY scripts/__init__.py scripts/catalog_load.py scripts/first_run.py scripts/
 COPY data/corpora/ data/corpora/
 
 # The commit the image was built from; /api/health says it.
 ARG CARO_BUILD=
 ENV CARO_BUILD=${CARO_BUILD}
 
-# A user of its own, with nothing to write but the inbox, where it is on.
+# A user of its own, with nothing to write but the inbox where it is on, and
+# the worker's snapshots and transcripts.
 RUN useradd --system --uid 10001 --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin caro \
- && mkdir -p data/inbox && chown caro data/inbox
+ && mkdir -p data/inbox data/snapshots data/transcripts \
+ && chown caro data/inbox data/snapshots data/transcripts
 USER caro
 
 EXPOSE 8000
@@ -51,9 +55,9 @@ CMD ["api"]
 
 # The suites that speak for this image, run inside its environment: the
 # contract suite (every endpoint, in every corpus state, against the site's
-# types), the catalog and the seller store. `docker build --target test .`
-# fails when one of them does; nothing of this stage is in the image the API
-# runs, which is the stage above.
+# types), the catalog, the seller store and the collection.
+# `docker build --target test .` fails when one of them does; nothing of
+# this stage is in the image the API runs, which is the stage above.
 FROM api AS test
 USER root
 RUN --mount=type=secret,id=extra_ca,required=false \
@@ -62,7 +66,8 @@ RUN --mount=type=secret,id=extra_ca,required=false \
 COPY --chown=caro . /src
 WORKDIR /src
 USER caro
-RUN python tests/run_all.py contract && python tests/run_all.py catalog && python tests/run_all.py store
+RUN python tests/run_all.py contract && python tests/run_all.py catalog && python tests/run_all.py store \
+ && python tests/run_all.py collection
 
 # The image the API runs, named last so that a build with no target is it.
 FROM api

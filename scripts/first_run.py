@@ -574,7 +574,23 @@ def outcomes_from_snapshot(raw: dict) -> list[FetchOutcome]:
     return out
 
 
-def main() -> int:
+def main(argv: list[str] | None = None, report: dict | None = None, *,
+         fetcher=None, sleeper=None) -> int:
+    """The command. `argv` is the command line (sys.argv's, by default);
+    `report`, where given, is filled with how a live run ended, for the
+    worker that runs this on a schedule (webapp/worker.py): `stop` --
+    robots, unavailable, blocked or setup -- and its `message`; `snapshot`,
+    the path written; `listings`, how many; `robots`, the robots.txt record
+    the run obeyed; `stopped`, where the adapter stopped early and why.
+    `fetcher` and `sleeper` are collect()'s, for the suites."""
+    report = {} if report is None else report
+    args = parser().parse_args(argv)
+    return _main(args, report, fetcher=fetcher, sleeper=sleeper)
+
+
+def parser() -> argparse.ArgumentParser:
+    """The command's arguments; the worker reads a scheduled run's with it
+    before the run is due."""
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--source", choices=["bama", "divar", *NEXT_LINK_SOURCES],
                     default="bama")
@@ -613,8 +629,10 @@ def main() -> int:
                          "--source khodro45 Khodro45's (its list page or a page "
                          "of its API), or with --source sheypoor Sheypoor's. "
                          "No network, no salt, nothing written")
-    args = ap.parse_args()
+    return ap
 
+
+def _main(args: argparse.Namespace, report: dict, *, fetcher=None, sleeper=None) -> int:
     if args.page:
         # One parser for all the files, so that it remembers the tokens it has
         # returned: the second of two saved pages answers, offline, whether
@@ -648,6 +666,7 @@ def main() -> int:
         return 0
 
     if not args.replay and not os.environ.get("CARO_SELLER_SALT"):
+        report.update(stop="setup", message="CARO_SELLER_SALT is not set")
         print("CARO_SELLER_SALT is not set.\n"
               "  export CARO_SELLER_SALT=\"$(head -c 24 /dev/urandom | base64)\"\n"
               "An unsalted hash of a phone number is a phone number, so the "
@@ -674,8 +693,11 @@ def main() -> int:
         print(sampling_spec(args))
         print()
         try:
-            listings, snapshot_path = collect(args, traces)
+            listings, snapshot_path = collect(args, traces, fetcher=fetcher, sleeper=sleeper,
+                                              report=report)
+            report["snapshot"] = str(snapshot_path) if snapshot_path else None
         except RobotsViolation as e:
+            report.update(stop="robots", message=str(e))
             # Not a block and not an outage to wait out by retrying: the
             # source's own policy, or our failure to read one.
             print(f"\nHALTED by robots.txt: {e}\n"
@@ -683,12 +705,14 @@ def main() -> int:
                   "written.", file=sys.stderr)
             return 1
         except DiscoveryUnavailable as e:
+            report.update(stop="unavailable", message=str(e))
             # We could not look. That is emphatically not "there is nothing".
             print(f"\nDISCOVERY UNAVAILABLE: {e}\n"
                   "No corpus was collected, and no conclusion about the "
                   "market follows from that. Try again later.", file=sys.stderr)
             return 1
         except SourceBlocked as e:
+            report.update(stop="blocked", message=str(e))
             # Not a failure to work around. It is the designed behaviour and
             # it belongs in the run log.
             print(f"\nHALTED: {e}\n"
@@ -698,11 +722,13 @@ def main() -> int:
             if not listings:
                 return 1
         except ImportError:
+            report.update(stop="setup", message="playwright is not installed")
             print("playwright is not installed. In your venv:\n"
                   "  pip install playwright && playwright install chromium",
                   file=sys.stderr)
             return 2
 
+    report["listings"] = len(listings)
     print(inventory(listings, traces, fetched=len(traces) or None,
                     snapshot_path=snapshot_path))
     return 0
@@ -793,8 +819,16 @@ def sampling_spec(args) -> str:
     return "\n".join(L)
 
 
+def _kept(report: dict | None, ad) -> None:
+    """What a run's adapter read of robots.txt, and where it stopped early,
+    into the worker's report -- kept even when the run stops."""
+    if report is not None:
+        report["robots"] = getattr(getattr(ad, "robots", None), "record", None)
+        report["stopped"] = getattr(ad, "stopped", None) or None
+
+
 def collect(args, traces: list | None = None,
-            fetcher=None, sleeper=None) -> tuple[list, object]:
+            fetcher=None, sleeper=None, report: dict | None = None) -> tuple[list, object]:
     """Live collection. Returns (listings, snapshot path or None).
 
     The path comes back because the survival report re-reads what was
@@ -822,7 +856,10 @@ def collect(args, traces: list | None = None,
                              robots_fetcher=http,
                              salt=os.environ["CARO_SELLER_SALT"],
                              **({"sleeper": sleeper} if sleeper else {}))
-        records = list(ad.fetch_all(date.today()))
+        try:
+            records = list(ad.fetch_all(date.today()))
+        finally:
+            _kept(report, ad)
         print("\n".join(divar_report(parser.traces)))
         if ad.stopped:
             print(f"  stopped early: {ad.stopped}")
@@ -850,7 +887,10 @@ def collect(args, traces: list | None = None,
                           **({"city": args.city or city} if city else {}),
                           **extra(args),
                           **({"sleeper": sleeper} if sleeper else {}))
-        records = list(ad.fetch_all(date.today()))
+        try:
+            records = list(ad.fetch_all(date.today()))
+        finally:
+            _kept(report, ad)
         out.extend(parser.listings)
         print("\n".join(page_report(parser.traces)))
         if getattr(ad, "listing_pages", None):
@@ -881,7 +921,10 @@ def collect(args, traces: list | None = None,
                      on_listing=out.append,
                      **({"sleeper": sleeper} if sleeper else {}))
 
-    records = list(ad.fetch_all(date.today()))
+    try:
+        records = list(ad.fetch_all(date.today()))
+    finally:
+        _kept(report, ad)
     if traces is not None:
         traces.extend(ad.traces)
     print(ad.stats.report())

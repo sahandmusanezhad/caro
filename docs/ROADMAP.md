@@ -55,11 +55,13 @@ an item says so.
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
   Every merge since D84 has its entry, D85 to D99.
-- **Phases 1 and 2 on the server.** Built and merged (this repository's pull
-  requests #18 and #19); what is left is the owner's, every step written
-  down in [PHASE1_SETUP](PHASE1_SETUP.md) and [PHASE2_SETUP](PHASE2_SETUP.md):
-  the server at Hetzner, staging, the first release, the switch from Vercel,
-  and an SMS account with its template.
+- **Phases 1 to 3 on the server and the owner's machine.** Built and merged
+  (this repository's pull requests #18, #19 and #20); what is left is the
+  owner's, every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
+  [PHASE2_SETUP](PHASE2_SETUP.md) and [PHASE3_SETUP](PHASE3_SETUP.md): the
+  server at Hetzner, staging, the first release, the switch from Vercel, an
+  SMS account with its template, the R2 bucket, the alerts' bot, and the
+  worker on the owner's machine.
 - **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge; its
   `main` was last brought in step on 2026-11-02, at pull request #16.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
@@ -161,7 +163,15 @@ names. Durations are for two people part-time.
    block or a robots.txt answering 5xx, or counted far from its usual range.
    The worker runs on the owner's machine until the owner decides that a VPS
    the owner controls counts as that machine. Reopens D47 (no queue) and the
-   working agreement's live-request rule.
+   working agreement's live-request rule. **Built** (this repository's pull
+   request #20): the queue, beside the worker, in Postgres or a laptop's
+   SQLite; the worker, a role of the image, running first_run with the
+   owner's own arguments each day; the bucket, R2 by S3's protocol; the
+   records, posted to the server through Cloudflare; the alerts, said by the
+   server to Telegram; `compose.worker.yml`. Left, every step in
+   [PHASE3_SETUP](PHASE3_SETUP.md): the bucket, the worker's token and the
+   bot on the server, the worker on the owner's machine, and seven days of
+   runs. **Waits on the owner:** the R2 bucket and the bot.
 4. **The edge** (issue #7; about a week; Sobhan). `ETag` carrying the corpus
    digest on the three pure reads, cached at the edge and purged on
    promotion, keyed as D47 requires; rate limits tuned from what phases 0 to
