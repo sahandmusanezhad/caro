@@ -51,9 +51,9 @@ TOO_MANY_FA = "درخواست‌های این نشانی زیاد بوده اس�
 
 def private(path: str) -> bool:
     """An answer that is one person's, or holds a seller's number: the
-    operator's view, a seller's account and listings, and a reveal. No cache
-    keeps it, shared or the browser's own."""
-    return (path.startswith(("/api/admin", "/api/account", "/api/listings/mine"))
+    operator's view, a seller's account and listings, and a reveal; and the
+    worker's own. No cache keeps it, shared or the browser's own."""
+    return (path.startswith(("/api/admin", "/api/account", "/api/listings/mine", "/api/worker"))
             or (path.startswith("/api/listings/") and path.endswith("/reveal")))
 
 

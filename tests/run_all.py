@@ -100,7 +100,7 @@ SUITES = [
      "the images and the server's files keep what the deploy rests on",
      (), "", ()),
     ("--  collection", "tests/test_collection.py",
-     "the queue takes each job once, and the bucket signs as S3 does",
+     "the queue, the bucket, and the server's record of each run",
      (), "", ()),
 ]
 

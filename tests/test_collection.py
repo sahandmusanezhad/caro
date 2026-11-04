@@ -1,14 +1,15 @@
-"""The collection's queue and its bucket (the plan's phase 3) do what they
-say.
+"""The collection's queue, its bucket and the server's record of each run
+(the plan's phase 3) do what they say.
 
     python tests/test_collection.py
 
-It needs nothing beyond Python: the queue is SQLite here, in a temporary
-directory, and nothing leaves the process -- the bucket is an opener that
-keeps what it is handed and answers as R2 would. The queue's rows run
-against Postgres as well when CARO_TEST_QUEUE_URL names an empty database
-made for them, with psycopg installed, as CI's postgres job does: that is
-where two workers racing for one job is FOR UPDATE SKIP LOCKED's to settle.
+It needs nothing beyond Python: the queue and the runs are SQLite here, in a
+temporary directory, and nothing leaves the process -- the bucket is an
+opener that keeps what it is handed and answers as R2 would. The rows run
+against Postgres as well when CARO_TEST_QUEUE_URL and CARO_TEST_RUNS_URL
+name empty databases made for them, with psycopg installed, as CI's
+postgres job does: that is where two workers racing for one job is FOR
+UPDATE SKIP LOCKED's to settle.
 """
 import contextlib
 import io
@@ -24,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from caro import bucket as bucket_mod  # noqa: E402
+from caro import runs as runs_mod  # noqa: E402
 from caro.jobs import Job, backoff, open_queue  # noqa: E402
 from caro.sql import DIALECTS  # noqa: E402
 
@@ -304,6 +306,26 @@ check("B5: `python -m caro.bucket get KEY FILE` writes one object into a new fil
       _cli == (0, 2, 1, 2) and _cli_out.read_bytes() == b'{"run":1}' and not (TMP / "missing.json").exists()
       and not (TMP / "none.json").exists() and len(_seen_c) == 2 and "no bucket is named" in _cli_err.getvalue(),
       str((_cli, _cli_err.getvalue())))
+
+# ---------------------------------------------------------------------------
+# The server's runs
+# ---------------------------------------------------------------------------
+print("\nthe runs")
+_db = runs_mod.open_runs(os.environ.get("CARO_TEST_RUNS_URL") or f"sqlite:///{TMP}/ops.sqlite3")
+
+
+def _rec_of(day, listings=490, outcome="collected", sha="a" * 64, status=200, msg=None, attempt=1, pages=60,
+            source="khodro45"):
+    return {"run_id": f"collect:{source}:{day}#{attempt}", "job": f"collect:{source}:{day}", "source": source,
+            "pages": pages, "collected_on": day, "finished_at": runs_mod.at_tehran(day, "03:40") + attempt,
+            "outcome": outcome, "listings": listings, "message": msg,
+            "robots": {"http_status": status, "sha256": sha}}
+
+
+_k1 = (_db.keep(_rec_of("2026-11-01", 480)), _db.keep(_rec_of("2026-11-01", 480)))
+_conflict = raises(lambda: _db.keep(_rec_of("2026-11-01", 481)), runs_mod.RunsError)
+check("R1: a run is kept once; the same record again is unchanged; another under its id is refused",
+      _k1 == ("kept", "unchanged") and _conflict is not None and len(_db.runs()) == 1, str((_k1, _conflict)))
 
 Q.close()
 print()
