@@ -5254,6 +5254,32 @@ check("SC2: a site that does not answer stops the check with exit 1 and says wha
       _sc_rc == 1 and _sc_out.getvalue() == "" and "stopped" in _sc_err.getvalue(), _sc_err.getvalue())
 
 
+def _sc_site(health, kept, status="HIT"):
+    def get(base, path, timeout=30):
+        if path == "/api/health":
+            return 200, {}, json.dumps({"ok": True, "build": None, **({} if health is None else {"corpus": health})})
+        h = {} if kept is None else {"x-caro-corpus": kept, "cf-cache-status": status,
+                                      "cache-control": "public, max-age=60, s-maxage=300"}
+        return 200, h, "{}"
+    return get
+
+
+_sc_get = _sc.get
+_sc_lines = []
+try:
+    for _h, _k in (("a" * 64, "a" * 64), ("a" * 64, "b" * 64), (None, None)):
+        _sc.get = _sc_site(_h, _k)
+        _sc_lines.append(_sc.edge_line("https://caro.example"))
+finally:
+    _sc.get = _sc_get
+check("SC3: the edge line says what Cloudflare kept of the models, for how long, and whether its corpus is "
+      "the one health names -- and says so when it is not, or when the API names no digest at all",
+      _sc_lines[0] == "edge     models HIT, public, max-age=60, s-maxage=300; its corpus aaaaaaaaaaaa, "
+                      "health's aaaaaaaaaaaa: the same"
+      and _sc_lines[1].endswith("its corpus bbbbbbbbbbbb, health's aaaaaaaaaaaa: NOT the same")
+      and "before phase 4" in _sc_lines[2], str(_sc_lines))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

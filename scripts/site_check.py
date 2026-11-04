@@ -14,6 +14,9 @@ it prints. Every line is one fact a merge can change:
     model     a model's page: its listings, and its history, run by run
     search    one question, the model it read and how many listings it shows
     home      whether the seller pages are linked from the home page
+    edge      what the edge kept of /api/models -- Cloudflare's cache status,
+              for how long -- and whether its corpus is the one health
+              names, which no cache keeps (phase 4)
     headers   who answered: Cloudflare or Vercel
 
 Standard library only; a dozen requests to our own site, nothing else.
@@ -45,6 +48,19 @@ def about_counts(html: str) -> list[str]:
     return list(dict.fromkeys(f"{n}={w}" for n, w in re.findall(r"([۰-۹]+) (تصمیم|گزاره|مجموعه)", text)))
 
 
+def edge_line(base: str) -> str:
+    """The models' answer as the edge gives it, held against health's digest."""
+    _, _, body = get(base, "/api/health")
+    served = json.loads(body).get("corpus")
+    _, h, _ = get(base, "/api/models")
+    kept = h.get("x-caro-corpus")
+    if served is None and kept is None:
+        return "edge     no corpus digest on health or the models: an API from before phase 4"
+    same = "the same" if kept == served else "NOT the same"
+    return (f"edge     models {h.get('cf-cache-status', '-')}, {h.get('cache-control', '-')}; "
+            f"its corpus {(kept or '-')[:12]}, health's {(served or '-')[:12]}: {same}")
+
+
 def report(base: str, model: tuple[str, str], question: str) -> list[str]:
     out = []
     s, h, html = get(base, "/about")
@@ -68,6 +84,7 @@ def report(base: str, model: tuple[str, str], question: str) -> list[str]:
     s, h, html = get(base, "/")
     listings, sell = 'href="/listings"' in html, 'href="/sell"' in html
     out.append(f"home     {s} seller links: {listings} {sell}")
+    out.append(edge_line(base))
     out.append(f"headers  server: {h.get('server', '-')}  cf-ray: {'yes' if 'cf-ray' in h else 'no'}")
     return out
 
