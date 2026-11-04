@@ -65,9 +65,9 @@ export default function SearchResults() {
       <div className="flex flex-col gap-6">
         <div>
           <p className="eyebrow">جست‌وجو</p>
-          <h1 className="text-[26px] font-bold m-0 mb-5">
+          <h2 className="text-[26px] font-bold m-0 mb-5">
             پرسشت را به فارسی بنویس
-          </h1>
+          </h2>
           <SearchBox autoFocus />
         </div>
       </div>
