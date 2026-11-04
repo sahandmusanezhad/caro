@@ -141,8 +141,8 @@ Then, in GitHub, open **Settings → Secrets and variables → Actions →
 Variables** and add `CARO_STAGING_URL` = `https://caro-staging.noxioai.com`.
 From then on every merge waits until staging runs the new commit, and reads
 it from the outside (the job `reached`). If Cloudflare's Bot Fight Mode
-challenges that job, add a WAF rule that skips it for the user agents
-`caro-deploy-wait` and the site check's.
+challenges that job, turn Bot Fight Mode off (PHASE0_SETUP, step 7): on the
+free plan no rule can skip it.
 
 ## 7. Production
 
