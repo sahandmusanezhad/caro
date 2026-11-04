@@ -41,6 +41,7 @@ that differs by one digit.
 """
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -590,6 +591,42 @@ check("no font and no stylesheet from another origin: globals.css, layout.tsx an
       "the CSP's font-src and style-src", not _ff["f2"], " · ".join(_ff["f2"]))
 check("each family's licence is beside its files: the SIL OFL and its holder",
       not _ff["f3"], " · ".join(_ff["f3"]))
+
+
+# The plan's phase 5: the public pages and the panels share one system,
+# and the system is the palette's tokens (tailwind.config.ts names them,
+# globals.css defines them, the rows above hold them to their bands). A
+# colour written into a component -- a hex, an rgb(), or one of Tailwind's
+# own named colours -- is a colour no scheme redefines and no row above
+# checks, so none is allowed.
+_RAW = re.compile(r"#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\("
+                  r"|\b(?:text|bg|border|ring|outline|from|to|via|fill|stroke|divide|shadow|decoration|"
+                  r"placeholder|caret|accent)-(?:red|blue|green|gray|grey|slate|zinc|neutral|stone|orange|"
+                  r"amber|yellow|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose|"
+                  r"black|white)(?:-\d{2,3})?\b")
+
+
+def raw_colours(files) -> list[str]:
+    """`path:line: what` for every colour a component writes for itself."""
+    out = []
+    for f in files:
+        for i, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            for m in _RAW.finditer(line):
+                where = f.relative_to(WEB) if f.is_relative_to(WEB) else f.name
+                out.append(f"{where}:{i}: {m.group(0)}")
+    return out
+
+
+_tsx = sorted([*(WEB / "app").rglob("*.tsx"), *(WEB / "components").rglob("*.tsx")])
+_raw = raw_colours(_tsx)
+with tempfile.TemporaryDirectory() as _pd:
+    _probe = Path(_pd) / "Probe.tsx"
+    _probe.write_text("export const X = () => <b className=\"text-red-500 bg-[#ff0000]\" style={{color: 'rgb(1,2,3)'}} />;\n",
+                      encoding="utf-8")
+    _caught = raw_colours([_probe])
+check("every page and every panel draws with the palette's tokens: no component writes a colour of its "
+      "own -- a hex, an rgb(), or one of Tailwind's named colours -- and a component that did is named",
+      len(_tsx) > 40 and _raw == [] and len(_caught) == 3, " · ".join(_raw) or str(_caught))
 
 print()
 if FAILS:
