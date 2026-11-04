@@ -55,9 +55,9 @@ an item says so.
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
   Every merge since D84 has its entry, D85 to D99.
-- **Phases 1 to 4 on the server and the owner's machine.** Built and merged
-  (this repository's pull requests #18 to #21); what is left is the owner's,
-  every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
+- **Phases 1 to 5 built and merged** (this repository's pull requests #18
+  to #22); phase 5 needs nothing more, and what is left of the rest is the
+  owner's, every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
   [PHASE2_SETUP](PHASE2_SETUP.md), [PHASE3_SETUP](PHASE3_SETUP.md) and
   [PHASE4_SETUP](PHASE4_SETUP.md): the server at Hetzner, staging, the first
   release, the switch from Vercel, an SMS account with its template, the R2
@@ -192,6 +192,13 @@ names. Durations are for two people part-time.
    weeks; Sobhan). Tokens that start from the site's palette and evolve,
    with `tests/test_palette.py`'s contrast checks; the operator and seller
    panels brought into it; Playwright end-to-end on the key routes, in CI.
+   **Built** (this repository's pull request #22): the system written down
+   ([DESIGN_SYSTEM](DESIGN_SYSTEM.md)) and every component held to its
+   tokens; the operator's panel at `/admin` -- the inbox, the review queue,
+   the listings reports took down, the corpus served -- where it was the
+   inbox alone; the key routes and the seller listings walked in a browser
+   in CI's `e2e` job. Nothing is left in the owner's accounts: the phase
+   closes on its merge.
 6. **The site in its own image, Vercel retired** (issue #8; about a week;
    Sobhan, reviewed by the owner). The site's standalone build beside the API
    behind nginx, through Cloudflare, every suite run against the same code.

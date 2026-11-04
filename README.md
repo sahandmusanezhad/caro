@@ -147,7 +147,7 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 | 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | built (sahandmusanezhad/caro#19), off until an SMS account and the server ([the steps](docs/PHASE2_SETUP.md)) |
 | 3 | the queue in Postgres, the collection worker | built (sahandmusanezhad/caro#20), waiting on the owner's machine, a bucket and a bot ([the steps](docs/PHASE3_SETUP.md)) |
 | 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | built (sahandmusanezhad/caro#21), waiting on Cloudflare's settings ([the steps](docs/PHASE4_SETUP.md)) |
-| 5 | the design system and the panels, in Next.js | |
+| 5 | the design system and the panels, in Next.js | built (sahandmusanezhad/caro#22): the system held, the operator's panel whole, the browser run in CI ([the system](docs/DESIGN_SYSTEM.md)) |
 | 6 | the site in its own image, Vercel retired | |
 | 7 | observability, ten times the load, D56's measurements, Kubernetes decided | |
 
@@ -835,6 +835,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) ·
 | [PHASE3_SETUP](docs/PHASE3_SETUP.md) | phase 3's steps: the R2 bucket, the worker's token and the alerts' bot on the server, the worker on the owner's machine, and seven days of runs |
 | [PHASE4_SETUP](docs/PHASE4_SETUP.md) | phase 4's steps: the cache rule, the purge's token, Turnstile's widget, and the search's baseline on the server |
 | [PERF](docs/PERF.md) | the search under load: the k6 script, the target, and each run with what it ran on |
+| [DESIGN_SYSTEM](docs/DESIGN_SYSTEM.md) | what every page and panel is drawn with -- the tokens, the type, the classes -- and what holds each rule |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |
