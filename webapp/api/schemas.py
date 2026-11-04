@@ -345,6 +345,10 @@ class HealthResponse(BaseModel):
     # a laptop, the suites. A deploy waits for it to say the new commit
     # before it checks anything else (docs/PHASE1_SETUP.md).
     build: str | None = None
+    # The sha256 of the corpus being served, or None where none is known by
+    # its bytes. No cache keeps this answer, so an answer the edge kept can be
+    # held against it (webapp/api/edge.py, X-Caro-Corpus).
+    corpus: str | None = None
 
 
 # ---------------------------------------------------------------------------

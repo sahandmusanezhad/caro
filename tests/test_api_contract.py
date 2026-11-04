@@ -3205,8 +3205,9 @@ if _bh_was is not None:
     os.environ["CARO_BUILD"] = _bh_was
 check("BH1: /api/health says the commit the process was built from where CARO_BUILD names one, and "
       "null where nothing does, an empty value included",
-      _bh_none == {"ok": True, "build": None} and _bh_empty == {"ok": True, "build": None}
-      and _bh_set == {"ok": True, "build": "0123456789abcdef0123456789abcdef01234567"},
+      all({k: h.get(k) for k in ("ok", "build")} == want for h, want in (
+          (_bh_none, {"ok": True, "build": None}), (_bh_empty, {"ok": True, "build": None}),
+          (_bh_set, {"ok": True, "build": "0123456789abcdef0123456789abcdef01234567"}))),
       str((_bh_none, _bh_set, _bh_empty)))
 
 
@@ -3384,6 +3385,72 @@ for k, v in _col_was.items():
     os.environ.pop(k, None)
     if v is not None:
         os.environ[k] = v
+
+
+# ---------------------------------------------------------------------------
+print("\n31 — what the edge may keep: three answers, by the served corpus's digest")
+# ---------------------------------------------------------------------------
+# The plan's phase 4 (webapp/api/edge.py): /api/models, /api/model and
+# /api/corpus say a shared cache may keep them, with an ETag and the served
+# corpus's digest; nothing else does, and no fault about the source is kept.
+from webapp.api import edge as _edge                                  # noqa: E402
+
+_ttl_was = os.environ.pop("CARO_EDGE_TTL", None)
+corpus_mod.active.cache_clear()
+_h31 = _c30.get("/api/health").json()
+_three = {p: _c30.get(p) for p in ("/api/models", "/api/corpus", "/api/model?make=IKCO&model=Samand")}
+_others = {p: _c30.get(p) for p in ("/api/search?q=سمند", "/api/health", "/api/model?make=x&model=nothing")}
+_served = _h31["corpus"]
+check("EC1: the three answers may be kept by a shared cache for five minutes and a browser for one, each "
+      "with an ETag that begins with the served corpus's digest and the digest itself, which /api/health "
+      "names; a search, health and a model not found say nothing of the kind",
+      isinstance(_served, str) and len(_served) == 64
+      and all(r.status_code == 200 and r.headers.get("cache-control") == "public, max-age=60, s-maxage=300"
+              and r.headers.get("etag", "").startswith(f'"{_served[:12]}-')
+              and r.headers.get("x-caro-corpus") == _served for r in _three.values())
+      and all("x-caro-corpus" not in r.headers and "etag" not in r.headers for r in _others.values())
+      and _others["/api/model?make=x&model=nothing"].headers.get("cache-control") == "no-store"
+      and "public" not in (_others["/api/search?q=سمند"].headers.get("cache-control") or ""),
+      str({p: (r.status_code, r.headers.get("cache-control"), r.headers.get("etag")) for p, r in
+           {**_three, **_others}.items()}))
+
+_tag = _three["/api/models"].headers["etag"]
+_304 = [_c30.get("/api/models", headers={"If-None-Match": v}) for v in (_tag, f'W/{_tag}', f'"x", {_tag}', "*")]
+_200 = _c30.get("/api/models", headers={"If-None-Match": '"not-this-one"'})
+check("EC2: an If-None-Match that names the answer's ETag -- strong, weak, in a list, or * -- is 304 with "
+      "nothing in its body and the same ETag; another is the whole answer again, the same bytes",
+      all(r.status_code == 304 and r.content == b"" and r.headers.get("etag") == _tag for r in _304)
+      and _200.status_code == 200 and _200.content == _three["/api/models"].content,
+      str([(r.status_code, len(r.content)) for r in _304]))
+
+os.environ["CARO_EDGE_TTL"] = "3600"
+_long = _c30.get("/api/corpus").headers.get("cache-control")
+os.environ["CARO_EDGE_TTL"] = "a week"
+_bad_ttl = _c30.get("/api/corpus").headers.get("cache-control")
+os.environ.pop("CARO_EDGE_TTL", None)
+if _ttl_was is not None:
+    os.environ["CARO_EDGE_TTL"] = _ttl_was
+with corpus_dir(None, run_env="run_gone"):
+    _gone = {p: _c30.get(p) for p in ("/api/models", "/api/corpus")}
+    _gone_health = _c30.get("/api/health").json()
+check("EC3: the edge's time is CARO_EDGE_TTL where it is a number of seconds, five minutes otherwise; and "
+      "while no corpus can be served, the three are kept by nobody and health names no digest",
+      _long == "public, max-age=60, s-maxage=3600" and _bad_ttl == "public, max-age=60, s-maxage=300"
+      and all(r.headers.get("cache-control") == "no-store" and "etag" not in r.headers
+              and r.json()["fault"]["code"] == "RUN_NOT_FOUND" for r in _gone.values())
+      and _gone_health["corpus"] is None, str(({p: r.headers.get("cache-control") for p, r in _gone.items()},
+                                               _gone_health)))
+check("EC4: a fault about the source is never kept; one about the claim or the resource, read from a "
+      "corpus known by its digest, is; an answer that is not a 200, not JSON, or not an envelope is not",
+      all(_edge.keepable(200, json.dumps({"corpus": {"identity": {"sha256": "a" * 64}},
+                                          "fault": {"code": c}}).encode()) is None
+          for c in ("CORPUS_INVALID", "RUN_NOT_FOUND", "CATALOG_UNAVAILABLE"))
+      and _edge.keepable(200, json.dumps({"corpus": {"identity": {"sha256": "a" * 64}},
+                                          "fault": {"code": "ESTIMATOR_NOT_GATED"}}).encode()) == "a" * 64
+      and _edge.keepable(404, json.dumps({"corpus": {"identity": {"sha256": "a" * 64}}}).encode()) is None
+      and _edge.keepable(200, b"<html>") is None and _edge.keepable(200, b"[1]") is None
+      and _edge.keepable(200, json.dumps({"corpus": {"identity": None}}).encode()) is None)
+corpus_mod.active.cache_clear()
 
 
 print()
