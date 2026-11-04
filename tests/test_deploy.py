@@ -141,12 +141,16 @@ check("DP3: the API's image is its last stage, runs as a user of its own with a 
 _sdf = text("webapp/web/Dockerfile")
 _final = _sdf.rsplit("FROM node:22-bookworm-slim\n", 1)[1]
 check("DP4: the site's image runs Next.js's standalone server as the uid that owns nothing, its "
-      "health check asks the port it serves, and the three settings Next.js writes at build time "
-      "are build arguments with nothing given by default but the API's container",
+      "health check asks the port it serves, and the four settings Next.js writes at build time "
+      "are build arguments with nothing given by default but the API's container, the workflow "
+      "handing each the repository's variable",
       "USER node" in _final and 'CMD ["node", "server.js"]' in _final
       and "process.env.PORT" in _final and "CARO_SITE_STANDALONE=1" in _sdf
       and "ARG CARO_API=http://api:8000" in _sdf and "ARG NEXT_PUBLIC_SENTRY_DSN=\n" in _sdf
-      and "ARG NEXT_PUBLIC_SELLER_LISTINGS=\n" in _sdf
+      and "ARG NEXT_PUBLIC_SELLER_LISTINGS=\n" in _sdf and "ARG NEXT_PUBLIC_TURNSTILE_SITE_KEY=\n" in _sdf
+      and all(f"{k}: ${{{{ vars.{k} }}}}" in text(".github/workflows/images.yml")
+              and f"--build-arg {k}" in text(".github/workflows/images.yml")
+              for k in ("NEXT_PUBLIC_SENTRY_DSN", "NEXT_PUBLIC_SELLER_LISTINGS", "NEXT_PUBLIC_TURNSTILE_SITE_KEY"))
       and "CARO_SITE_STANDALONE === '1'" in text("webapp/web/next.config.mjs"),
       _final[:200])
 
@@ -246,7 +250,8 @@ _env = text("deploy/env.example")
 _set = dict(re.findall(r"^([A-Z_]+)=(.*)$", _env, re.MULTILINE))
 _needed = set(re.findall(r"\$\{([A-Z_]+)", _vps))
 _secrets = ("POSTGRES_PASSWORD", "CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET", "SENTRY_DSN",
-            "CARO_STORE_SECRET", "CARO_SMS_KAVENEGAR_KEY", "CARO_SELLER_STORE", "CARO_CF_API_TOKEN")
+            "CARO_STORE_SECRET", "CARO_SMS_KAVENEGAR_KEY", "CARO_SELLER_STORE", "CARO_CF_API_TOKEN",
+            "CARO_TURNSTILE_SECRET")
 check("DP10: the env file's template names every variable an environment's compose file reads, "
       "and gives no secret a value and the seller store no switch",
       _needed <= set(_set) and all(_set.get(k) == "" for k in _secrets)

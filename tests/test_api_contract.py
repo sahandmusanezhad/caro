@@ -3452,6 +3452,105 @@ check("EC4: a fault about the source is never kept; one about the claim or the r
       and _edge.keepable(200, json.dumps({"corpus": {"identity": None}}).encode()) is None)
 corpus_mod.active.cache_clear()
 
+# ---------------------------------------------------------------------------
+print("\n32 — Turnstile, where its secret is set, before a code is sent or a message kept")
+# ---------------------------------------------------------------------------
+# The plan's phase 4 (webapp/api/turnstile.py): every code the login sends
+# spends the SMS account's credit, and the contact form writes the inbox.
+# Cloudflare is an opener of the suite's, answering as siteverify would.
+from webapp.api import contact as _contact32                          # noqa: E402
+from webapp.api import turnstile as _ts                               # noqa: E402
+
+_ENV32 = ("DATABASE_URL", "CARO_STORE_SECRET", "CARO_SMS_PROVIDER", "CARO_SITE_ORIGINS",
+          "CARO_TURNSTILE_SECRET", "CARO_INBOX")
+_kept32 = ({k: os.environ.get(k) for k in _ENV32}, accounts_mod.CLOCK, _ts.OPENER, _contact32.MESSAGES)
+_seen32 = []
+
+
+def _cf32(answers):
+    def open_(req, timeout):
+        _seen32.append((req.full_url, dict(_up.parse_qsl(req.data.decode())), timeout))
+        a = answers.pop(0)
+        if isinstance(a, Exception):
+            raise a
+        return _Answer(json.dumps(a).encode())
+    return open_
+
+
+import urllib.parse as _up                                            # noqa: E402
+
+try:
+    with tempfile.TemporaryDirectory() as _tmp32:
+        for _k in _ENV32:
+            os.environ.pop(_k, None)
+        _now32 = [1_800_000_000]
+        accounts_mod.CLOCK = lambda: _now32[0]
+        os.environ.update({"DATABASE_URL": f"sqlite:///{_tmp32}/store.sqlite3",
+                           "CARO_STORE_SECRET": "made-up-for-the-suites-0123456789abcdef",
+                           "CARO_SMS_PROVIDER": "fake"})
+        with contextlib.redirect_stdout(io.StringIO()):
+            _c32 = TestClient(api.app, base_url="https://testserver", raise_server_exceptions=False)
+        _O32 = {"origin": "https://testserver"}
+
+        def _code32(phone, token=None):
+            _now32[0] += 2 * 86400
+            body = {"phone": phone} if token is None else {"phone": phone, "turnstile": token}
+            return _c32.post("/api/account/code", json=body, headers=_O32)
+
+        _n0 = len(sms_mod.FAKE.outbox)
+        _off32 = _code32("09120000321")
+        _n1 = len(sms_mod.FAKE.outbox)
+        os.environ["CARO_TURNSTILE_SECRET"] = "made-up-turnstile-secret-0123"
+        _ts.OPENER = _cf32([{"success": False, "error-codes": ["invalid-input-response"]},
+                            {"success": True}, TimeoutError("slow")])
+        _none32 = _code32("09120000322")
+        _bad32 = _code32("09120000323", "a-token-cloudflare-refuses")
+        _n2 = len(sms_mod.FAKE.outbox)
+        _good32 = _code32("09120000324", "a-token-cloudflare-takes")
+        _n3 = len(sms_mod.FAKE.outbox)
+        _slow32 = _code32("09120000325", "a-token-nobody-answers-for")
+        _n4 = len(sms_mod.FAKE.outbox)
+        check("TS1: without Turnstile's secret the code is sent as before; with it, a request without a token "
+              "is refused 403 TURNSTILE, in Persian, before Cloudflare is asked, and so are a token "
+              "Cloudflare refuses and one it does not answer for -- no message sent for any of them -- and "
+              "a token it takes sends the code",
+              _off32.status_code == 200 and _n1 == _n0 + 1
+              and all(r.status_code == 403 and r.json()["detail"]["code"] == "TURNSTILE"
+                      and r.json()["detail"]["fa"] == _ts.REFUSED_FA for r in (_none32, _bad32, _slow32))
+              and _n2 == _n1 and _good32.status_code == 200 and _n3 == _n2 + 1 and _n4 == _n3
+              and len(_seen32) == 3,
+              str((_off32.status_code, _none32.status_code, _bad32.status_code, _good32.status_code,
+                   _slow32.status_code, _n0, _n1, _n2, _n3, _n4)))
+        check("TS2: Cloudflare is asked by one POST to siteverify with the secret, the token and the client's "
+              "address, ten seconds at most",
+              all(u == "https://challenges.cloudflare.com/turnstile/v0/siteverify" and t == 10
+                  and f["secret"] == "made-up-turnstile-secret-0123" and "remoteip" in f
+                  for u, f, t in _seen32)
+              and [f["response"] for _, f, _ in _seen32]
+              == ["a-token-cloudflare-refuses", "a-token-cloudflare-takes", "a-token-nobody-answers-for"],
+              str(_seen32))
+
+        os.environ["CARO_INBOX"] = "on"
+        _contact32.MESSAGES = Path(_tmp32) / "messages.jsonl"
+        _contact32.CONTACT_LIMIT.clear()
+        _msg = {"name": "سهند", "email": "someone@example.com", "subject": "یک پرسش", "body": "این یک پیام آزمایشی است."}
+        _ts.OPENER = _cf32([{"success": True}])
+        _c_none = _c32.post("/api/contact", json=_msg)
+        _kept_none = _contact32.MESSAGES.exists()
+        _c_good = _c32.post("/api/contact", json={**_msg, "turnstile": "a-token-cloudflare-takes"})
+        check("TS3: with Turnstile's secret, a message without a token is refused 403 TURNSTILE and nothing is "
+              "written; with a token Cloudflare takes, it is kept",
+              _c_none.status_code == 403 and _c_none.json()["detail"]["code"] == "TURNSTILE" and not _kept_none
+              and _c_good.status_code == 200 and _contact32.MESSAGES.exists(),
+              str((_c_none.status_code, _c_good.status_code, _kept_none)))
+finally:
+    for _k, _v in _kept32[0].items():
+        os.environ.pop(_k, None)
+        if _v is not None:
+            os.environ[_k] = _v
+    accounts_mod.CLOCK, _ts.OPENER, _contact32.MESSAGES = _kept32[1], _kept32[2], _kept32[3]
+    _contact32.CONTACT_LIMIT.clear()
+
 
 print()
 if FAILS:

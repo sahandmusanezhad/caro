@@ -63,8 +63,10 @@ jobs:
         env:
           NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
           NEXT_PUBLIC_SELLER_LISTINGS: ${{ vars.NEXT_PUBLIC_SELLER_LISTINGS }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY }}
         run: |
           docker build --build-arg NEXT_PUBLIC_SENTRY_DSN --build-arg NEXT_PUBLIC_SELLER_LISTINGS \
+            --build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY \
             -t "$SITE:sha-$GITHUB_SHA" webapp/web
 
       - name: Both images, started together and read from the outside

@@ -5,15 +5,19 @@
 // which the App Router's hydration needs -- its own fonts (public/fonts; no
 // longer Google's), images from itself and data: URLs, connections to itself
 // (the API is behind the same origin), and no frame, plugin or base
-// elsewhere. It is sent in production only: the development server evaluates
-// code it is sent, which the policy forbids.
+// elsewhere -- but Cloudflare's Turnstile, its script and its frame, where
+// the build was given its site key (components/Turnstile.tsx). It is sent in
+// production only: the development server evaluates code it is sent, which
+// the policy forbids.
+const TURNSTILE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? ' https://challenges.cloudflare.com' : '';
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${TURNSTILE}`,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob:",
   "connect-src 'self'",
+  `frame-src 'self'${TURNSTILE}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

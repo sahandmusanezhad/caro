@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { asciiDigits } from '@/lib/format';
 import { OFF_FA, sellerApi } from '@/lib/seller';
+import Turnstile, { TURNSTILE_SITE_KEY } from '@/components/Turnstile';
 
 /* A seller's login: the number, then the six digits the SMS brought
  * (webapp/api/accounts.py). The number is sent in whichever digits it was
@@ -22,6 +23,8 @@ export default function SellerLogin() {
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [token, setToken] = useState('');
+  const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
     sellerApi.status().then((r) => setOn(Boolean(r.ok && r.data?.store === 'on' && r.data?.sms !== 'off'
@@ -32,8 +35,9 @@ export default function SellerLogin() {
   async function send(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setMsg(null);
-    const r = await sellerApi.sendCode(phone.trim());
+    const r = await sellerApi.sendCode(phone.trim(), token);
     setBusy(false);
+    setResetKey((k) => k + 1);
     if (r.ok) { setStep('code'); setMsg('کد فرستاده شد. اگر نرسید، دو دقیقه بعد دوباره بگیر.'); }
     else setMsg(r.message);
   }
@@ -65,9 +69,11 @@ export default function SellerLogin() {
                      className="w-full bg-ground border border-line rounded-2xl px-3.5 py-2.5 text-[15px] num
                                 focus:border-accent transition-colors" />
             </div>
-            <button type="submit" className="btn-solid" disabled={busy || !phone.trim()}>
+            <button type="submit" className="btn-solid"
+                    disabled={busy || !phone.trim() || (TURNSTILE_SITE_KEY !== '' && !token)}>
               {busy ? 'در حال فرستادن…' : 'بفرست'}
             </button>
+            <div className="basis-full"><Turnstile onToken={setToken} resetKey={resetKey} /></div>
           </form>
         ) : (
           <form onSubmit={enter} className="panel flex gap-2 flex-wrap items-end" data-step="code">

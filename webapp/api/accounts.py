@@ -47,6 +47,7 @@ from pydantic import BaseModel, Field
 
 from webapp.api import sms
 from webapp.api.security import client_address, too_many
+from webapp.api import turnstile
 from webapp.api.store import Store, StoreError, open_store, phone_09
 
 router = APIRouter()
@@ -158,6 +159,8 @@ def session_of(request: Request, st: Store) -> dict | None:
 
 class PhoneIn(BaseModel):
     phone: str = Field(min_length=1, max_length=40)
+    # The Turnstile widget's token, where the site draws one (webapp/api/turnstile.py).
+    turnstile: str | None = Field(default=None, max_length=2048)
 
 
 class LoginIn(BaseModel):
@@ -190,6 +193,9 @@ def send_code(body: PhoneIn, request: Request, st: Store = Depends(the_store)) -
     phone = phone_09(body.phone)
     if phone is None:
         raise HTTPException(422, PHONE_FA)
+    # Every code sent spends the SMS account's credit: where Turnstile is on,
+    # a bot is turned away before a limit is counted or a message sent.
+    turnstile.require(body.turnstile, request)
     pk, ak = st.key("phone", phone), st.key("address", client_address(request))
     tries = (("code_phone", pk), ("code_address", ak), ("code_all", "all"))
     code = None
