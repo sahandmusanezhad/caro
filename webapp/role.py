@@ -2,6 +2,7 @@
 
     python -m webapp.role api                 serve webapp.api.main:app
     python -m webapp.role catalog-load [...]  scripts/catalog_load.py, into CARO_CATALOG_URL
+    python -m webapp.role worker [--once]     the collection's daily runs (webapp/worker.py)
     python -m webapp.role healthcheck         exit 0 when this container's API answers /api/health
 
 The image's entrypoint is this module and its default command is `api`, so
@@ -24,7 +25,7 @@ import os
 import sys
 import urllib.request
 
-ROLES = ("api", "catalog-load", "healthcheck")
+ROLES = ("api", "catalog-load", "worker", "healthcheck")
 
 
 def _port(env) -> int:
@@ -65,6 +66,9 @@ def main(argv: list[str] | None = None, env=None, execvp=os.execvp) -> int:
     if role == "catalog-load":
         from scripts import catalog_load
         return catalog_load.main(argv[1:])
+    if role == "worker":
+        from webapp import worker
+        return worker.main(argv[1:])
     if role == "healthcheck":
         return 0 if healthy(_port(env)) else 1
     print(f"unknown role {role!r}; the roles are {', '.join(ROLES)}", file=sys.stderr)

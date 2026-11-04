@@ -1,18 +1,20 @@
-"""The collection's queue, its bucket and the server's record of each run
+"""The collection's queue, its worker, its bucket and the server's records
 (the plan's phase 3) do what they say.
 
     python tests/test_collection.py
 
 It needs nothing beyond Python: the queue and the runs are SQLite here, in a
-temporary directory, and nothing leaves the process -- the bucket is an
-opener that keeps what it is handed and answers as R2 would. The rows run
-against Postgres as well when CARO_TEST_QUEUE_URL and CARO_TEST_RUNS_URL
-name empty databases made for them, with psycopg installed, as CI's
-postgres job does: that is where two workers racing for one job is FOR
-UPDATE SKIP LOCKED's to settle.
+temporary directory, and nothing leaves the process -- the bucket and the
+server are openers that keep what they are handed and answer as the real
+ones would, and the run is a stand-in for first_run that prints and writes
+as one does. The rows run against Postgres as well when
+CARO_TEST_QUEUE_URL and CARO_TEST_RUNS_URL name empty databases made for
+them, with psycopg installed, as CI's postgres job does: that is where two
+workers racing for one job is FOR UPDATE SKIP LOCKED's to settle.
 """
 import contextlib
 import io
+import json
 import os
 import sys
 import tempfile
@@ -28,6 +30,7 @@ from caro import bucket as bucket_mod  # noqa: E402
 from caro import runs as runs_mod  # noqa: E402
 from caro.jobs import Job, backoff, open_queue  # noqa: E402
 from caro.sql import DIALECTS  # noqa: E402
+from webapp import worker as worker_mod  # noqa: E402
 
 FAILS = []
 
@@ -308,6 +311,176 @@ check("B5: `python -m caro.bucket get KEY FILE` writes one object into a new fil
       str((_cli, _cli_err.getvalue())))
 
 # ---------------------------------------------------------------------------
+# The worker
+# ---------------------------------------------------------------------------
+print("\nthe worker")
+_ent = worker_mod.entries("03:30 --source khodro45 --pages 60 ; 6:05 --source divar --pages 3")
+_bad = [raises(lambda s=s: worker_mod.entries(s), worker_mod.WorkerError) for s in (
+    "3h30 --source khodro45", "03:30 --source khodro45 --replay x.json", "03:30 --source nowhere",
+    "03:30 --source khodro45 --pages many", "03:30 --source khodro45; 04:00 --source khodro45 --pages 2",
+    "25:00 --source khodro45")]
+check("W1: CARO_COLLECT gives each run its time in Tehran and first_run's own arguments, read by "
+      "first_run's parser; a time that is not one, a run that reads a file, arguments first_run refuses, "
+      "and a source named twice are refused when the worker starts",
+      [(e.at, e.source, e.pages, e.argv) for e in _ent]
+      == [("03:30", "khodro45", 60, ("--source", "khodro45", "--pages", "60")),
+          ("06:05", "divar", 3, ("--source", "divar", "--pages", "3"))]
+      and all(b is not None for b in _bad) and worker_mod.entries("") == [], str((_ent, _bad)))
+
+_wq = open_queue(f"sqlite:///{TMP}/worker.sqlite3")
+_one = worker_mod.entries("03:30 --source khodro45 --pages 60")
+_t_day = runs_mod.at_tehran("2026-11-04", "00:10")
+_made1 = worker_mod.schedule(_wq, _one, _t_day)
+_made2 = worker_mod.schedule(_wq, _one, _t_day + 60)
+_job1 = _wq.job("collect:khodro45:2026-11-04")
+_made3 = worker_mod.schedule(_wq, _one, runs_mod.at_tehran("2026-11-05", "00:10"))
+check("W2: a day's run is queued once, for its time of day in Tehran (+03:30); the next day's is a job "
+      "of its own, and a day that passed without its run is missed, never run under the next day's date",
+      _made1 == ["collect:khodro45:2026-11-04"] and _made2 == []
+      and _job1["run_after"] == 1793750400 and _job1["payload"]["day"] == "2026-11-04"
+      and _job1["payload"]["argv"] == ["--source", "khodro45", "--pages", "60"]
+      and _made3 == ["collect:khodro45:2026-11-05"] and _wq.job("collect:khodro45:2026-11-04")["state"] == "missed",
+      str((_made1, _made2, _job1 and _job1["run_after"], _made3)))
+
+
+def _a_run(outcome="collected", listings=492, crash=None):
+    """A stand-in for first_run.main: prints, writes a snapshot, and reports as it does."""
+    calls = []
+
+    def run(argv, report):
+        calls.append(list(argv))
+        print("collecting from khodro45 -- politely, and stopping if asked to.")
+        robots = {"url": "https://khodro45.com/robots.txt", "http_status": 200, "sha256": "a" * 64,
+                  "bytes": 120, "verdict": "rules", "why": "http 200: read", "token": "CARO-research"}
+        report["robots"] = robots
+        if crash:
+            raise crash
+        if outcome != "collected":
+            report.update(stop=outcome, message=f"HALTED: the source said {outcome}")
+            print(f"HALTED: {outcome}", file=sys.stderr)
+            return 1 if outcome != "setup" else 2
+        snap = TMP / "snapshots" / "khodro45-2026-11-04-abc123.json"
+        snap.parent.mkdir(exist_ok=True)
+        snap.write_text('{"listings": []}', encoding="utf-8")
+        report.update(snapshot=str(snap), listings=listings)
+        return 0
+    return run, calls
+
+
+def _worker(run, queue, bucket_answers=(), server_answers=(), with_bucket=True, ingest=True):
+    puts, posts = [], []
+    clock = [runs_mod.at_tehran("2026-11-04", "03:00")]
+    logs = []
+    w = worker_mod.Worker(
+        queue, _one, "w-test",
+        bucket_mod.Bucket("https://acc123.r2.cloudflarestorage.com", "caro-runs", "kid", _SECRET,
+                          opener=_opener(list(bucket_answers), puts)) if with_bucket else None,
+        "https://caro.example" if ingest else "", "worker-token-123" if ingest else "",
+        collect=run, opener=_opener(list(server_answers), posts), clock=lambda: clock[0],
+        out=logs.append, transcripts=TMP / "transcripts")
+    return w, clock, puts, posts, logs
+
+
+_run, _calls = _a_run()
+_q1 = open_queue(f"sqlite:///{TMP}/w3.sqlite3")
+_w, _clock, _puts, _posts, _logs = _worker(_run, _q1, server_answers=[(200, b"{}")])
+_before = _w.turn()
+_clock[0] = runs_mod.at_tehran("2026-11-04", "03:31")
+_buf = io.StringIO()
+with contextlib.redirect_stdout(_buf):
+    _ran = _w.turn()
+_rec = json.loads(_posts[0].data) if _posts else {}
+_tfile = TMP / "transcripts" / "khodro45-2026-11-04-attempt-1.txt"
+check("W3: before its time the worker runs nothing; at its time it runs first_run with the run's own "
+      "arguments, and keeps what the run printed as its transcript",
+      _before is False and _ran is True and _calls == [["--source", "khodro45", "--pages", "60"]]
+      and _tfile.read_text(encoding="utf-8") == "collecting from khodro45 -- politely, and stopping if asked to.\n"
+      and "collecting from khodro45" in _buf.getvalue(), str((_before, _ran, _calls)))
+check("W4: the snapshot and the transcript go to the bucket under the run's day and attempt, and the "
+      "record goes to the server once, by the worker's token, saying what the run collected and where "
+      "its files are, by their digests",
+      [p.full_url.rsplit("caro-runs/", 1)[1] for p in _puts]
+      == ["runs/khodro45/2026-11-04/attempt-1/transcript.txt", "runs/khodro45/2026-11-04/attempt-1/snapshot.json"]
+      and len(_posts) == 1 and _posts[0].full_url == "https://caro.example/api/worker/runs"
+      and _posts[0].get_header("Authorization") == "Bearer worker-token-123"
+      and _rec["run_id"] == "collect:khodro45:2026-11-04#1" and _rec["outcome"] == "collected"
+      and _rec["listings"] == 492 and _rec["pages"] == 60 and _rec["collected_on"] == "2026-11-04"
+      and _rec["snapshot"]["key"] == "runs/khodro45/2026-11-04/attempt-1/snapshot.json"
+      and _rec["snapshot"]["sha256"] == bucket_mod.hashlib.sha256(b'{"listings": []}').hexdigest()
+      and _rec["robots"] == {"url": "https://khodro45.com/robots.txt", "http_status": 200, "sha256": "a" * 64,
+                             "bytes": 120, "verdict": "rules"}
+      and _q1.job("collect:khodro45:2026-11-04")["state"] == "done" and _q1.unreported() == [],
+      str((_rec, [p.full_url for p in _puts])))
+check("W5: a record holds the fields the server's shape names and no other",
+      set(_rec) == {"run_id", "job", "source", "pages", "argv", "collected_on", "started_at", "finished_at",
+                    "outcome", "message", "listings", "stopped", "robots", "worker", "build", "snapshot",
+                    "transcript"}, str(sorted(_rec)))
+
+_outs = {}
+for _oc in ("robots", "blocked", "unavailable", "setup", "crash"):
+    _r, _ = _a_run(_oc, crash=RuntimeError("disk full") if _oc == "crash" else None)
+    _qq = open_queue(f"sqlite:///{TMP}/w-{_oc}.sqlite3")
+    _ww, _cl, _, _pp, _ = _worker(_r, _qq, server_answers=[(200, b"{}")] * 3, with_bucket=False)
+    _cl[0] = runs_mod.at_tehran("2026-11-04", "03:31")
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        _ww.turn()
+    _jj = _qq.job("collect:khodro45:2026-11-04")
+    _outs[_oc] = (_jj["state"], json.loads(_pp[0].data)["outcome"] if _pp else None,
+                  (json.loads(_pp[0].data)["message"] or "")[:40] if _pp else None)
+check("W6: a run the source stopped -- robots.txt, a block, a source that could not be read -- is done "
+      "and not retried around; a run that could not start fails at once; a failure of ours is tried "
+      "again later; each says so in its record",
+      _outs["robots"][:2] == ("done", "robots") and _outs["blocked"][:2] == ("done", "blocked")
+      and _outs["unavailable"][:2] == ("done", "unavailable") and _outs["setup"][:2] == ("failed", "error")
+      and _outs["crash"][:2] == ("queued", "error") and _outs["crash"][2].startswith("RuntimeError: disk full"),
+      str(_outs))
+
+_r7, _c7 = _a_run()
+_q7 = open_queue(f"sqlite:///{TMP}/w7.sqlite3")
+_w7, _cl7, _, _, _l7 = _worker(_r7, _q7, ingest=False, with_bucket=False)
+_q7.acquire("source:khodro45", "another-collector", ttl=3600, now=runs_mod.at_tehran("2026-11-04", "03:00"))
+_cl7[0] = runs_mod.at_tehran("2026-11-04", "03:31")
+_w7.turn()
+_j7 = _q7.job("collect:khodro45:2026-11-04")
+check("W7: while another collector holds the source, the run waits five minutes and spends no attempt",
+      _c7 == [] and _j7["state"] == "queued" and _j7["attempts"] == 0
+      and _j7["run_after"] == _cl7[0] + 300 and any("held by another collector" in s for s in _l7), str(_j7))
+
+_r8, _ = _a_run()
+_q8 = open_queue(f"sqlite:///{TMP}/w8.sqlite3")
+_w8, _cl8, _p8b, _p8, _l8 = _worker(_r8, _q8, bucket_answers=[500, 500],
+                                    server_answers=[ConnectionResetError(), 401, 409])
+_cl8[0] = runs_mod.at_tehran("2026-11-04", "03:31")
+with contextlib.redirect_stdout(io.StringIO()):
+    _w8.turn()
+_owed1 = len(_q8.unreported())
+_w8.report()
+_owed2 = len(_q8.unreported())
+_w8.report()
+_owed3 = len(_q8.unreported())
+_r8rec = json.loads(_p8[0].data)
+check("W8: a bucket that refuses leaves the run recorded with no key and nothing raised; a server that "
+      "does not answer, or refuses the token, is asked again on the next turn; one that will never take "
+      "the record is not",
+      _r8rec["snapshot"]["key"] is None and _r8rec["transcript"]["key"] is None
+      and _r8rec["outcome"] == "collected" and (_owed1, _owed2, _owed3) == (1, 1, 0) and len(_p8) == 3
+      and any("the bucket did not keep" in s for s in _l8) and _SECRET not in " ".join(_l8),
+      str((_owed1, _owed2, _owed3, _l8)))
+
+_env_ok = {"CARO_SELLER_SALT": "s", "CARO_COLLECT": "03:30 --source khodro45 --pages 60",
+           "CARO_QUEUE_URL": f"sqlite:///{TMP}/env.sqlite3"}
+_env_bad = [raises(lambda e=e: worker_mod.from_env(e), worker_mod.WorkerError) for e in (
+    {**_env_ok, "CARO_SELLER_SALT": ""}, {**_env_ok, "CARO_COLLECT": ""},
+    {**_env_ok, "CARO_INGEST_URL": "https://caro.example"},
+    {**_env_ok, "CARO_INGEST_URL": "http://caro.example", "CARO_WORKER_TOKEN": "t"},
+    {**_env_ok, "CARO_QUEUE_URL": "mysql://x"})]
+_wenv = worker_mod.from_env({**_env_ok, "CARO_WORKER_NAME": "laptop"})
+check("W9: the worker refuses to start without the salt, without a run, with a server and no token, with "
+      "a server not on https, or with a queue it cannot use; with them it starts, its bucket off",
+      all(e is not None for e in _env_bad) and _wenv.name == "laptop" and _wenv.bucket is None
+      and [e.source for e in _wenv.runs] == ["khodro45"], str(_env_bad))
+
+# ---------------------------------------------------------------------------
 # The server's runs
 # ---------------------------------------------------------------------------
 print("\nthe runs")
@@ -327,6 +500,7 @@ _conflict = raises(lambda: _db.keep(_rec_of("2026-11-01", 481)), runs_mod.RunsEr
 check("R1: a run is kept once; the same record again is unchanged; another under its id is refused",
       _k1 == ("kept", "unchanged") and _conflict is not None and len(_db.runs()) == 1, str((_k1, _conflict)))
 
+_q8.close()
 Q.close()
 print()
 if FAILS:
