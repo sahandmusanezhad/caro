@@ -1,0 +1,97 @@
+# One environment of CARO on the server -- production or staging -- as a
+# Compose project of its own, run from the images the workflow publishes
+# (docs/PHASE1_SETUP.md):
+#
+#   docker compose -p caro-production --env-file /etc/caro/production.env -f compose.vps.yml up -d
+#   docker compose -p caro-staging    --env-file /etc/caro/staging.env    -f compose.vps.yml up -d
+#
+# deploy/pull.sh runs exactly that, every minute, from a timer. Nothing here
+# publishes a port: the edge (compose.edge.yml) reaches the site and the API
+# on the shared network caro_edge, by the names this file gives them there,
+# site-<env> and api-<env>. The env file names the images, the environment
+# and every secret; none is in this repository.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: caro
+      POSTGRES_DB: caro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?the env file names POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caro -d caro"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Loads data/corpora/ of the image into the catalog, idempotently, before
+  # the API starts: a run already there is known by its digest.
+  catalog-load:
+    image: ${CARO_API_IMAGE:?the env file names CARO_API_IMAGE}
+    command: ["catalog-load"]
+    environment:
+      CARO_CATALOG_URL: postgresql://caro:${POSTGRES_PASSWORD}@postgres:5432/caro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  api:
+    image: ${CARO_API_IMAGE:?the env file names CARO_API_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - ${CARO_ENV_FILE:?the env file names its own path, CARO_ENV_FILE}
+    environment:
+      CARO_CATALOG_URL: postgresql://caro:${POSTGRES_PASSWORD}@postgres:5432/caro
+      # The edge sets X-Forwarded-For to the address Cloudflare names, and
+      # nothing else reaches this container.
+      CARO_TRUST_PROXY: "1"
+      CARO_INBOX: ${CARO_INBOX:-off}
+    depends_on:
+      catalog-load:
+        condition: service_completed_successfully
+    volumes:
+      - inbox:/app/data/inbox
+    networks:
+      internal: {}
+      edge:
+        aliases: ["api-${CARO_ENV:?the env file names CARO_ENV, production or staging}"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  site:
+    image: ${CARO_SITE_IMAGE:?the env file names CARO_SITE_IMAGE}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      internal: {}
+      edge:
+        aliases: ["site-${CARO_ENV}"]
+    read_only: true
+    tmpfs: [/tmp, /web/.next/cache]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+networks:
+  internal: {}
+  edge:
+    external: true
+    name: caro_edge
+
+volumes:
+  pgdata: {}
+  inbox: {}

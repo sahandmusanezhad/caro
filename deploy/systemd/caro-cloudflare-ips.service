@@ -1,0 +1,8 @@
+[Unit]
+Description=CARO: refresh Cloudflare's address lists for the edge (deploy/cloudflare-ips.sh)
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/caro/deploy/cloudflare-ips.sh
