@@ -256,7 +256,11 @@ reference and the expected digest. Either satisfies D46. What does not satisfy
 it is an artifact that exists only on the machine that made it.
 
 For CARO at its current size, `data/corpora/` in git is the default, and the
-external-store path is not yet exercised.
+external-store path is not yet exercised. **The bound is 50 MB** (the plan's
+phase 2): GitHub warns at 50 MB and refuses a file over 100 MB, so an
+artifact larger than 50 MB is not written into `data/corpora/` --
+`scripts/promote_corpus.py` refuses it and names the two ways above. The
+largest published today, run17, is 371,633 bytes.
 
 ### The seller-text rule is semantic, not a field list
 

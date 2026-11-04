@@ -234,7 +234,22 @@ def promote_record(rec: dict) -> tuple[dict | None, str | None]:
     return {k: v for k, v in out.items() if v is not None}, None
 
 
-def main() -> int:
+# The most a published corpus in data/corpora/ may hold: 50 MB, where GitHub
+# starts to warn, and half of where it refuses a file.
+MAX_ARTIFACT_BYTES = 50 * 1024 * 1024
+
+
+def _in_corpora(path: Path) -> bool:
+    """Whether a path lands in this repository's data/corpora/."""
+    corpora = (Path(__file__).resolve().parent.parent / "data" / "corpora").resolve()
+    try:
+        path.resolve().relative_to(corpora)
+    except ValueError:
+        return False
+    return True
+
+
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--input", type=Path, required=True)
     ap.add_argument("--run-id", required=True)
@@ -242,7 +257,7 @@ def main() -> int:
     ap.add_argument("--source", default="bama")
     ap.add_argument("--collected-on", default=None,
                     help="ISO date the snapshot was taken; read from it if absent")
-    a = ap.parse_args()
+    a = ap.parse_args(argv)
 
     if not a.input.exists():
         print(f"no such snapshot: {a.input}", file=sys.stderr)
@@ -316,11 +331,20 @@ def main() -> int:
               "can commit.", file=sys.stderr)
         return 1
 
-    a.output.parent.mkdir(parents=True, exist_ok=True)
     # Bytes, as written: len() of the text counts characters, and every
     # Persian letter is two bytes in UTF-8 — run14 printed 62,207 "bytes"
     # for a file of 63,952.
     data = serialized.encode("utf-8")
+    # DATA_CONTRACT, «Bounded and addressable»: an artifact the repository
+    # would refuse is a storage decision, made before it is written into
+    # data/corpora/ -- GitHub warns at 50 MB and refuses a file over 100 MB.
+    if len(data) > MAX_ARTIFACT_BYTES and _in_corpora(a.output):
+        print(f"\nREFUSING TO WRITE — {len(data):,} bytes is over the {MAX_ARTIFACT_BYTES:,} a corpus in "
+              "data/corpora/ may hold (DATA_CONTRACT, «Bounded and addressable»): reduce it by a "
+              "sampling policy declared before the run, or store it in the content-addressed store "
+              "with the repository holding its reference and digest.", file=sys.stderr)
+        return 1
+    a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_bytes(data)
     print(f"\nwrote {a.output} ({len(data):,} bytes, both guards clean)")
     return 0
