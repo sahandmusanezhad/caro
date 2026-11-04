@@ -24,8 +24,10 @@ cd webapp/web && npm install && npm run dev     # 127.0.0.1:3000
 `CARO_API` says otherwise, so client code writes `/api/...` in development
 and behind one origin in production alike.
 
-For production: `npm run build && npm run start`, with both processes behind
-one nginx (or equivalent) so the browser sees a single origin.
+For production, both are images (`Dockerfile`, `webapp/web/Dockerfile`)
+behind one nginx, so the browser sees a single origin: `docker compose up
+--build` runs them on a laptop, and the server runs `compose.vps.yml` per
+environment behind `compose.edge.yml` ([PHASE1_SETUP](../docs/PHASE1_SETUP.md)).
 
 ### Environment
 
@@ -37,6 +39,9 @@ one nginx (or equivalent) so the browser sees a single origin.
 | `CARO_RUN` | which corpus the API serves, by run id. Unset means `webapp.api.corpus.DEFAULT_RUN`. **Set it and get it wrong and the site serves nothing** — see below; that is the point of setting it. |
 | `CARO_CORPORA` | where corpora are read from. For pointing the reader at a directory a test controls, and for nothing else. |
 | `CARO_CATALOG_URL` | serve the published runs from the catalog, `sqlite:///<path>` or `postgresql://...`, loaded by `scripts/catalog_load.py` (docs/SERVICES.md). Unset, the files are read. **Set and unable to serve the run, the site serves nothing** (`CATALOG_UNAVAILABLE`), asked again every 30 s. |
+| `CARO_BUILD` | the commit the process was built from, which `/api/health` names; the API's image sets it at build time, and a deploy waits until it names the new commit (`scripts/deploy_wait.py`). Unset, health says `null`. |
+| `CARO_API_PORT` | the port the image's `api` role listens on inside its container, 8000 by default (`webapp/role.py`). |
+| `CARO_FORWARDED_ALLOW_IPS` | the addresses whose `X-Forwarded-*` headers uvicorn believes, for the image's `api` role. Unset, none: on the server the edge sets `X-Forwarded-For` and the API reads it under `CARO_TRUST_PROXY=1`. |
 | `SENTRY_DSN` | error reports to Sentry (`webapp/api/observability.py`). Unset, the SDK is not even imported. Set, an event carries an exception's type, message and frames, and no cookie, body, query, address, user, variable, source line or mobile number. `SENTRY_ENVIRONMENT` (default `production`), `SENTRY_RELEASE` and `SENTRY_TRACES_SAMPLE_RATE` (default 0) beside it. `POST /api/admin/report-test`, with the operator's token and code, sends one test message and gives back its id, or says `off`. |
 | `NEXT_PUBLIC_SENTRY_DSN` | the site's error reports, read at **build** time. Unset, the site loads no Sentry script at all. Set, a browser sends its reports to `/api/report`, where the API cleans each with its own rule and forwards it to the project `SENTRY_DSN` names; nothing goes from a browser to Sentry directly (the site's `connect-src 'self'`). |
 
