@@ -79,7 +79,7 @@ when a server and its traffic warrant it.
 | Hosting | Hetzner CX for the API, Postgres, the site and nginx in Compose, **reached only through Cloudflare**; the worker in Iran, which writes through Cloudflare and never to Hetzner directly; Vercel until phase 6 moves the site; Kubernetes later, with the same images | the owner's choices of 2026-11-02: Docker now, Kubernetes later; Hetzner behind Cloudflare after the probe from Iran found Hetzner unreachable from there and Cloudflare reachable |
 | Observability | Sentry (API and front end); OpenTelemetry to Grafana Cloud; UptimeRobot to Telegram | free tiers |
 | CI/CD | GitHub Actions: PR → preview, `main` → staging, tag `vX.Y.Z` → production; images in GHCR; deploy by SSH and `docker compose` | simple, reviewable |
-| Tests | the eighteen suites, CI's Postgres job; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
+| Tests | the nineteen suites, CI's Postgres job; Playwright end-to-end on the key routes; k6 on `/api/search` | the contract suites carry the architecture |
 | Secrets | platform environments and a shared password vault; `CARO_SELLER_SALT` only in the worker's environment | the existing rule |
 
 ## Structure (monorepo)

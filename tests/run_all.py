@@ -99,6 +99,9 @@ SUITES = [
     ("--  deploy", "tests/test_deploy.py",
      "the images and the server's files keep what the deploy rests on",
      (), "", ()),
+    ("--  collection", "tests/test_collection.py",
+     "the queue takes each job once, tries it again later, and locks a source",
+     (), "", ()),
 ]
 
 
