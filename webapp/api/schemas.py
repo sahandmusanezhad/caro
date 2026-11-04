@@ -340,6 +340,11 @@ class HealthResponse(BaseModel):
     """No envelope. Health is about the process, not about the evidence."""
 
     ok: bool
+    # The build this process runs: the commit an image was built from
+    # (CARO_BUILD, set by the image's build), or None where nothing set it --
+    # a laptop, the suites. A deploy waits for it to say the new commit
+    # before it checks anything else (docs/PHASE1_SETUP.md).
+    build: str | None = None
 
 
 # ---------------------------------------------------------------------------
