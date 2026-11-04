@@ -54,6 +54,7 @@ from webapp.api.listings import router as listings_router          # noqa: E402
 from webapp.api.market import router as market_router              # noqa: E402
 from webapp.api.review import router as review_router              # noqa: E402
 from webapp.api.security import SecurityHeaders, cors_origins      # noqa: E402
+from webapp.api.edge import EdgeCache                              # noqa: E402
 from webapp.api.schemas import (                                   # noqa: E402
     CompareRequest, CompareResponse, CorpusMeta, CorpusResponse, Envelope,
     EvidenceItem, Fault, HealthResponse, Intent, ListingResponse,
@@ -99,6 +100,9 @@ app.add_middleware(
     CORSMiddleware, allow_origins=cors_origins(), allow_credentials=False,
     allow_methods=["GET", "POST"], allow_headers=["Content-Type", "X-Admin-Token", "X-Admin-Code"])
 app.add_middleware(SecurityHeaders)
+# What the edge may keep: three GETs, by the served corpus's digest
+# (webapp/api/edge.py, the plan's phase 4).
+app.add_middleware(EdgeCache)
 
 # The longest question the search reads, and the longest id a listing has.
 # An unbounded string is work an attacker chooses the size of.
@@ -323,7 +327,9 @@ def _evidence(c, spec, cands, k: int) -> dict:
 
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
-    return HealthResponse(ok=True, build=os.environ.get("CARO_BUILD") or None)
+    c = corpus_mod.active()
+    return HealthResponse(ok=True, build=os.environ.get("CARO_BUILD") or None,
+                          corpus=c.identity.sha256 if c.identity is not None else None)
 
 
 @app.get("/api/corpus", response_model=CorpusResponse)

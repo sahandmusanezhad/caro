@@ -147,7 +147,8 @@ export function listingState(item: Pick<MineItem, 'ended' | 'held' | 'live' | 'p
 
 export const sellerApi = {
   status: () => call<{ store: string; sms: string }>('/api/account/status'),
-  sendCode: (phone: string) => call<{ sent: boolean; seconds: number }>('/api/account/code', 'POST', { phone }),
+  sendCode: (phone: string, turnstile = '') =>
+    call<{ sent: boolean; seconds: number }>('/api/account/code', 'POST', turnstile ? { phone, turnstile } : { phone }),
   login: (phone: string, code: string) =>
     call<{ phone: string; created: boolean }>('/api/account/login', 'POST', { phone, code }),
   me: () => call<{ phone: string }>('/api/account/me'),

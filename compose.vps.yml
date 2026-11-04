@@ -117,6 +117,25 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
 
+  # Purges what Cloudflare keeps of the API's answers when the runs changed
+  # (scripts/edge_purge.py). Not started by `up`: deploy/pull.sh runs it
+  # once after each change it makes.
+  edge-purge:
+    image: ${CARO_API_IMAGE:?the env file names CARO_API_IMAGE}
+    command: ["edge-purge"]
+    profiles: ["purge"]
+    env_file:
+      - ${CARO_ENV_FILE:?the env file names its own path, CARO_ENV_FILE}
+    volumes:
+      - purge:/var/lib/caro-purge
+    networks:
+      - internal
+    healthcheck:
+      disable: true
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
 networks:
   internal: {}
   edge:
@@ -126,3 +145,4 @@ networks:
 volumes:
   pgdata: {}
   inbox: {}
+  purge: {}

@@ -146,7 +146,7 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 | 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | built (sahandmusanezhad/caro#18); the server's steps wait on the owner ([the steps](docs/PHASE1_SETUP.md)) |
 | 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | built (sahandmusanezhad/caro#19), off until an SMS account and the server ([the steps](docs/PHASE2_SETUP.md)) |
 | 3 | the queue in Postgres, the collection worker | built (sahandmusanezhad/caro#20), waiting on the owner's machine, a bucket and a bot ([the steps](docs/PHASE3_SETUP.md)) |
-| 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | |
+| 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | built (sahandmusanezhad/caro#21), waiting on Cloudflare's settings ([the steps](docs/PHASE4_SETUP.md)) |
 | 5 | the design system and the panels, in Next.js | |
 | 6 | the site in its own image, Vercel retired | |
 | 7 | observability, ten times the load, D56's measurements, Kubernetes decided | |
@@ -593,7 +593,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 3599 assertions, no API key, no network
+python3 tests/run_all.py            # 3616 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -607,10 +607,10 @@ dependency of `caro/`.** Three of the nineteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2862 assertions across 16 of 19 suites
+python3 tests/run_all.py            # 2872 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3599 across all nineteen
+python3 tests/run_all.py            # 3616 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -808,7 +808,7 @@ the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3599 assertions across nineteen suites
+tests/           3616 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
@@ -833,6 +833,8 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) ·
 | [PHASE1_SETUP](docs/PHASE1_SETUP.md) | phase 1's steps: the server at Hetzner, its certificate and settings, staging, the first release, and the switch from Vercel |
 | [PHASE2_SETUP](docs/PHASE2_SETUP.md) | phase 2's steps: an SMS account and its template, and the seller listings switched on in staging, then production |
 | [PHASE3_SETUP](docs/PHASE3_SETUP.md) | phase 3's steps: the R2 bucket, the worker's token and the alerts' bot on the server, the worker on the owner's machine, and seven days of runs |
+| [PHASE4_SETUP](docs/PHASE4_SETUP.md) | phase 4's steps: the cache rule, the purge's token, Turnstile's widget, and the search's baseline on the server |
+| [PERF](docs/PERF.md) | the search under load: the k6 script, the target, and each run with what it ran on |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |

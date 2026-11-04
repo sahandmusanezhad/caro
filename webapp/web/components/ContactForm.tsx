@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Turnstile, { TURNSTILE_SITE_KEY } from '@/components/Turnstile';
 
 /* The form is validated on the client and again on the server, and the server
    is the one that counts. Client validation here exists to give an immediate,
@@ -25,6 +26,8 @@ export default function ContactForm() {
   const [f, setF] = useState(EMPTY);
   const [state, setState] = useState<State>({ k: 'idle' });
   const [inbox, setInbox] = useState<Inbox | null>(null);
+  const [token, setToken] = useState('');
+  const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
     let live = true;
@@ -52,7 +55,8 @@ export default function ContactForm() {
   const ready = f.name.trim().length >= 2
     && /^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$/.test(f.email.trim())
     && f.subject.trim().length >= 2
-    && f.body.trim().length >= 10;
+    && f.body.trim().length >= 10
+    && (TURNSTILE_SITE_KEY === '' || token !== '');
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -62,11 +66,14 @@ export default function ContactForm() {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(f),
+        body: JSON.stringify(TURNSTILE_SITE_KEY ? { ...f, turnstile: token } : f),
       });
+      setResetKey((k) => k + 1);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setState({ k: 'failed', msg: String(body?.detail ?? `خطای ${res.status}`) });
+        const detail = body?.detail;
+        const said = detail && typeof detail === 'object' && 'fa' in detail ? detail.fa : detail;
+        setState({ k: 'failed', msg: String(said ?? `خطای ${res.status}`) });
         return;
       }
       setState({ k: 'sent', ref: String(body.ref ?? '') });
@@ -129,13 +136,17 @@ export default function ContactForm() {
                         rounded-lg px-3 py-2">{state.msg}</p>
         )}
 
+        <Turnstile onToken={setToken} resetKey={resetKey} />
+
         <div className="flex items-center gap-3 flex-wrap">
           <button type="submit" className="btn-solid"
                   disabled={!ready || state.k === 'sending'}>
             {state.k === 'sending' ? 'در حال ارسال…' : 'بفرست'}
           </button>
           <span className="text-[12px] text-ink-3">
-            هیچ داده‌ای جز همین چهار فیلد ارسال نمی‌شود.
+            {TURNSTILE_SITE_KEY
+              ? 'جز همین چهار فیلد، فقط نشانه‌ی بررسی «ربات نیستم» کلادفلر ارسال می‌شود.'
+              : 'هیچ داده‌ای جز همین چهار فیلد ارسال نمی‌شود.'}
           </span>
         </div>
       </form>

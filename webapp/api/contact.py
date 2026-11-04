@@ -41,6 +41,7 @@ from pathlib import Path
 from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from webapp.api import turnstile
 from webapp.api.security import RateLimiter, client_address, too_many
 from webapp.api.totp import SecretError, Verifier, decode_secret
 
@@ -83,6 +84,8 @@ class Message(BaseModel):
     email: str = Field(min_length=5, max_length=120)
     subject: str = Field(min_length=2, max_length=120)
     body: str = Field(min_length=10, max_length=4000)
+    # The Turnstile widget's token, where the site draws one (webapp/api/turnstile.py).
+    turnstile: str | None = Field(default=None, max_length=2048)
 
 
 @router.get("/api/contact/status")
@@ -102,6 +105,7 @@ def submit(msg: Message, request: Request) -> dict:
         raise HTTPException(503, CLOSED_FA)
     if not _EMAIL.match(msg.email.strip()):
         raise HTTPException(422, "نشانی ایمیل معتبر نیست")
+    turnstile.require(msg.turnstile, request)
     wait = CONTACT_LIMIT.hit(client_address(request))
     if wait is not None:
         raise too_many(wait)

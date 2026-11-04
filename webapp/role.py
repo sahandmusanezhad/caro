@@ -4,6 +4,7 @@
     python -m webapp.role catalog-load [...]  scripts/catalog_load.py, into CARO_CATALOG_URL
     python -m webapp.role worker [--once]     the collection's daily runs (webapp/worker.py)
     python -m webapp.role alerts [--once]     the collection's alerts, from the server (webapp/alerts.py)
+    python -m webapp.role edge-purge          the edge's kept answers purged when the runs changed
     python -m webapp.role healthcheck         exit 0 when this container's API answers /api/health
 
 The image's entrypoint is this module and its default command is `api`, so
@@ -26,7 +27,7 @@ import os
 import sys
 import urllib.request
 
-ROLES = ("api", "catalog-load", "worker", "alerts", "healthcheck")
+ROLES = ("api", "catalog-load", "worker", "alerts", "edge-purge", "healthcheck")
 
 
 def _port(env) -> int:
@@ -73,6 +74,9 @@ def main(argv: list[str] | None = None, env=None, execvp=os.execvp) -> int:
     if role == "alerts":
         from webapp import alerts
         return alerts.main(argv[1:])
+    if role == "edge-purge":
+        from scripts import edge_purge
+        return edge_purge.main(argv[1:])
     if role == "healthcheck":
         return 0 if healthy(_port(env)) else 1
     print(f"unknown role {role!r}; the roles are {', '.join(ROLES)}", file=sys.stderr)

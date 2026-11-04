@@ -349,6 +349,27 @@ not yet behind Cloudflare and no alert has been seen to reach Telegram.
   the time, the p95 target holds, and no cached answer ever carries a digest
   other than the corpus being served.
 - **Reopens:** D47 (no cache — at the edge only, keyed as D47 requires).
+- **As built** (sahandmusanezhad/caro#21; the owner's steps are
+  [PHASE4_SETUP](PHASE4_SETUP.md)):
+  - **The key is the address, and the corpus is checked by its digest.**
+    Cloudflare's free plan keys its cache by the address and cannot add a
+    header to the key, so a kept answer is bounded instead: five minutes
+    at the edge, one in a browser, its ETag beginning with the served
+    corpus's digest and the digest itself in `X-Caro-Corpus`, held against
+    `/api/health`, which no cache keeps. A fault about the source is never
+    kept.
+  - **The purge is the deploy's, not promotion's.** A corpus reaches the
+    server in an image (phase 1), so the purge runs when an environment's
+    API was recreated and the published runs or the served one changed --
+    by host where Cloudflare allows it, by the two fixed addresses where it
+    does not.
+  - **No limits moved into the store.** The API runs one process on
+    purpose (phase 1); its limits are that process's, and a restart, a
+    deploy, is when they start again. Tuning them waits for traffic to
+    tune them from: none has reached the server yet.
+  - **The baseline** ([PERF](PERF.md)): 28 ms at the 95th percentile with
+    ten users, 278 ms with a hundred, in the sandbox; the target is 300 ms
+    with ten users on the server.
 
 ### Phase 5 — The design system and the panels, in Next.js (one to two weeks; Sobhan)
 
