@@ -1,16 +1,16 @@
-"""The collection's queue, its worker, its bucket and the server's records
-(the plan's phase 3) do what they say.
+"""The collection's queue, its worker, its bucket and its alerts (the plan's
+phase 3) do what they say.
 
     python tests/test_collection.py
 
 It needs nothing beyond Python: the queue and the runs are SQLite here, in a
-temporary directory, and nothing leaves the process -- the bucket and the
-server are openers that keep what they are handed and answer as the real
-ones would, and the run is a stand-in for first_run that prints and writes
-as one does. The rows run against Postgres as well when
-CARO_TEST_QUEUE_URL and CARO_TEST_RUNS_URL name empty databases made for
-them, with psycopg installed, as CI's postgres job does: that is where two
-workers racing for one job is FOR UPDATE SKIP LOCKED's to settle.
+temporary directory, and nothing leaves the process -- the bucket, the
+server and Telegram are openers that keep what they are handed and answer
+as the real ones would, and the run is a stand-in for first_run that
+prints and writes as one does. The queue's rows run against Postgres as
+well when CARO_TEST_QUEUE_URL names an empty database made for them, with
+psycopg installed, as CI's postgres job does: that is where two workers
+racing for one job is FOR UPDATE SKIP LOCKED's to settle.
 """
 import contextlib
 import io
@@ -30,6 +30,7 @@ from caro import bucket as bucket_mod  # noqa: E402
 from caro import runs as runs_mod  # noqa: E402
 from caro.jobs import Job, backoff, open_queue  # noqa: E402
 from caro.sql import DIALECTS  # noqa: E402
+from webapp import alerts as alerts_mod  # noqa: E402
 from webapp import worker as worker_mod  # noqa: E402
 
 FAILS = []
@@ -481,9 +482,9 @@ check("W9: the worker refuses to start without the salt, without a run, with a s
       and [e.source for e in _wenv.runs] == ["khodro45"], str(_env_bad))
 
 # ---------------------------------------------------------------------------
-# The server's runs
+# The server's runs, and the alerts
 # ---------------------------------------------------------------------------
-print("\nthe runs")
+print("\nthe runs, and the alerts")
 _db = runs_mod.open_runs(os.environ.get("CARO_TEST_RUNS_URL") or f"sqlite:///{TMP}/ops.sqlite3")
 
 
@@ -499,6 +500,70 @@ _k1 = (_db.keep(_rec_of("2026-11-01", 480)), _db.keep(_rec_of("2026-11-01", 480)
 _conflict = raises(lambda: _db.keep(_rec_of("2026-11-01", 481)), runs_mod.RunsError)
 check("R1: a run is kept once; the same record again is unchanged; another under its id is refused",
       _k1 == ("kept", "unchanged") and _conflict is not None and len(_db.runs()) == 1, str((_k1, _conflict)))
+
+for _d, _n in (("2026-11-02", 500), ("2026-11-03", 492), ("2026-11-04", 510)):
+    _db.keep(_rec_of(_d, _n))
+_db.keep(_rec_of("2026-11-05", 120))
+_db.keep(_rec_of("2026-11-06", None, outcome="robots", sha=None, status=503, msg="robots.txt: deny_all"))
+_db.keep(_rec_of("2026-11-07", 495, sha="b" * 64))
+_db.keep(_rec_of("2026-11-07", 30, pages=2, source="divar"))
+_db.keep(_rec_of("2026-11-07", None, outcome="blocked", source="sheypoor", sha=None, msg="HALTED: 403"))
+_expect = runs_mod.expected("khodro45@05:00, divar@06:30")
+_at = runs_mod.at_tehran("2026-11-08", "05:01")
+_al = runs_mod.alerts(_db.runs(), _expect, _at)
+_keys = [a.key for a in _al]
+check("R2: the runs raise each alert once by its key: a count far below the runs before it as deep, a "
+      "run stopped on robots.txt that answered 503, robots.txt changed, a run stopped on a block, and "
+      "today's run not arrived after its time and not before",
+      _keys == ["count:collect:khodro45:2026-11-05#1", "stopped:collect:khodro45:2026-11-06#1",
+                "robots:collect:khodro45:2026-11-07#1", "stopped:collect:sheypoor:2026-11-07#1",
+                "missing:khodro45:2026-11-08"]
+      and "robots.txt answered 503" in _al[1].text and "a middle of 496" in _al[0].text
+      and [a.key for a in runs_mod.alerts(_db.runs(), _expect, runs_mod.at_tehran("2026-11-08", "04:59"))
+           if a.key.startswith("missing")] == [], str(_keys))
+check("R3: a count is judged against at least three runs before it read as deeply, and within half to "
+      "one and a half times their middle it raises nothing",
+      not any(k.startswith("count:") and "divar" in k for k in _keys)
+      and not any(k == "count:collect:khodro45:2026-11-07#1" for k in _keys)
+      and runs_mod.alerts([_rec_of("2026-11-0" + str(i), 100) for i in (1, 2)] + [_rec_of("2026-11-03", 10)],
+                          [], _at) == [])
+_ex_bad = [raises(lambda s=s: runs_mod.expected(s), ValueError) for s in ("khodro45", "khodro45@5", "@05:00",
+                                                                           "khodro45@24:00")]
+check("R4: the expected runs are source@HH:MM, comma between two; anything else is refused",
+      [(e.source, e.by) for e in _expect] == [("khodro45", "05:00"), ("divar", "06:30")]
+      and runs_mod.expected("") == [] and all(e is not None for e in _ex_bad), str(_ex_bad))
+
+
+class _Bot:
+    def __init__(self, answers):
+        self.answers, self.sent = list(answers), []
+
+    def send(self, text):
+        self.sent.append(text)
+        return self.answers.pop(0) if self.answers else True
+
+
+_bot = _Bot([True, False, True, True, True])
+_out = []
+_said1 = alerts_mod.look(_db, _expect, _bot, _at, out=_out.append)
+_said2 = alerts_mod.look(_db, _expect, _bot, _at, out=_out.append)
+_said3 = alerts_mod.look(_db, _expect, _bot, _at, out=_out.append)
+check("R5: each alert is sent once; one the bot did not take is sent again on the next look, and kept as "
+      "said once it is; each message says it is CARO's",
+      len(_said1) == 4 and _said2 == [_keys[1]] and _said3 == [] and len(_bot.sent) == 6
+      and all(t.startswith("CARO: ") for t in _bot.sent), str((_said1, _said2, _said3)))
+
+_tg_seen = []
+_tg = alerts_mod.Telegram("123:made-up-bot-token", "-1009", opener=_opener([200, TimeoutError("x")], _tg_seen))
+_errb = io.StringIO()
+with contextlib.redirect_stderr(_errb):
+    _tg_ok = (_tg.send("CARO: one"), _tg.send("CARO: two"))
+check("R6: Telegram is sent a POST to the bot's sendMessage with the chat and the text; a message not "
+      "taken is said by its kind, never by the address, which holds the token",
+      _tg_ok == (True, False) and _tg_seen[0].full_url == "https://api.telegram.org/bot123:made-up-bot-token/sendMessage"
+      and _tg_seen[0].get_method() == "POST" and b"chat_id=-1009" in _tg_seen[0].data
+      and "TimeoutError" in _errb.getvalue() and "made-up-bot-token" not in _errb.getvalue(),
+      _errb.getvalue())
 
 _q8.close()
 Q.close()

@@ -5,9 +5,9 @@ phase 3).
 
 The worker collects where it runs -- the owner's machine, or a server in
 Iran -- and reports each run here, through Cloudflare. The record is kept
-in the runs' database (caro/runs.py). It holds nothing personal: the shape
-below has no field for a listing, a seller or a number, and anything else
-is refused.
+in the runs' database (caro/runs.py), where the alerts read it. It holds
+nothing personal: the shape below has no field for a listing, a seller or
+a number, and anything else is refused.
 
 Off unless both CARO_WORKER_TOKEN and CARO_OPS_URL are set: 503 RUNS_OFF.
 A wrong token is 401, and ten of them from one address in ten minutes are

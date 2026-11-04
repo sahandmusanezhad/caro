@@ -1,12 +1,22 @@
-"""What the server knows of the collection: one record per run.
+"""What the server knows of the collection: one record per run, and the
+alerts the records raise.
 
 The plan's phase 3: a worker collects, wherever it runs, and reports each
 run -- its pin, what it collected, where its snapshot and transcript were
-kept, and how it ended -- to the server, through Cloudflare, and the
-server keeps the records:
+kept, and how it ended -- to the server, through Cloudflare. The server
+keeps the records, and from them, on a clock of its own, says what went
+wrong, because a worker that stopped cannot say that it stopped:
+
+    missing    a run expected by a time of day did not arrive
+    stopped    a run stopped on robots.txt, on a block, on a source that
+               could not be read, or on an error of ours
+    robots     robots.txt is not the file the run before read
+    count      a run collected far fewer or far more listings than the
+               runs before it, read as deeply
 
     runs_collection   a run: its id, its source, its day, how it ended, its
                       counts, its robots.txt, and the record as reported
+    runs_alerts       an alert said, by a key that makes it once
 
 A record holds nothing personal: no listing, no seller, no number. The day
 is Tehran's, at +03:30 (the container has no time zone database, and Iran
@@ -17,9 +27,11 @@ from __future__ import annotations
 
 import importlib
 import json
+import statistics
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Iterable
 
 from caro.sql import Database, connect
 
@@ -42,6 +54,13 @@ MIGRATIONS: tuple[tuple[int, tuple[str, ...]], ...] = (
             received_at BIGINT NOT NULL,
             record TEXT NOT NULL)""",
         "CREATE INDEX IF NOT EXISTS runs_collection_source ON runs_collection(source, finished_at)",
+    )),
+    # The alerts said, each once (webapp/alerts.py).
+    (2, (
+        """CREATE TABLE IF NOT EXISTS runs_alerts (
+            key TEXT PRIMARY KEY,
+            text TEXT NOT NULL,
+            sent_at BIGINT NOT NULL)""",
     )),
 )
 
@@ -104,6 +123,20 @@ class Runs(Database):
             f"SELECT record FROM runs_collection {where}ORDER BY finished_at DESC, run_id DESC LIMIT ?",
             (*params, int(limit)))]
 
+    def said(self, key: str) -> bool:
+        return self.row("SELECT key FROM runs_alerts WHERE key = ?", (key,)) is not None
+
+    def say(self, key: str, text: str, now: int | None = None) -> bool:
+        """Records an alert as said; False where it was said before."""
+        now = self.now() if now is None else int(now)
+        with self.transaction():
+            self.lock("runs-alert:" + key)
+            if self.said(key):
+                return False
+            self.execute("INSERT INTO runs_alerts (key, text, sent_at) VALUES (?, ?, ?)",
+                         (key, text, now))
+        return True
+
 
 def open_runs(url: str, *, clock: Callable[[], float] = time.time,
               importer: Callable[[str], Any] = importlib.import_module,
@@ -116,3 +149,88 @@ def open_runs(url: str, *, clock: Callable[[], float] = time.time,
     if migrate:
         r.migrate()
     return r
+
+
+# ---------------------------------------------------------------------------
+# What the records say
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Expected:
+    source: str
+    by: str             # HH:MM, Tehran
+
+
+@dataclass(frozen=True)
+class Alert:
+    key: str
+    text: str
+
+
+def expected(spec: str) -> list[Expected]:
+    """`khodro45@05:00, divar@06:30`: each source whose run is expected
+    every day, and the time of day in Tehran by which it should have
+    arrived. Anything else is refused, by what it is."""
+    out = []
+    for part in (p.strip() for p in (spec or "").split(",")):
+        if not part:
+            continue
+        source, at, by = part.partition("@")
+        hh, colon, mm = by.partition(":")
+        if (not at or not source.strip() or not colon or not (hh.isdigit() and mm.isdigit())
+                or not (0 <= int(hh) < 24 and 0 <= int(mm) < 60)):
+            raise ValueError(f"not a source and a time of day, source@HH:MM: {part!r}")
+        out.append(Expected(source.strip(), f"{int(hh):02d}:{int(mm):02d}"))
+    return out
+
+
+COUNT_LOW, COUNT_HIGH, COUNT_RUNS, COUNT_AT_LEAST = 0.5, 1.5, 7, 3
+
+
+def alerts(runs: Iterable[dict], expect: list[Expected], now: float) -> list[Alert]:
+    """Every alert the runs raise at `now`, oldest run first; the caller
+    says each once, by its key. `runs` are records as reported, any order."""
+    by_source: dict[str, list[dict]] = {}
+    for r in sorted(runs, key=lambda r: (r["finished_at"], r["run_id"])):
+        by_source.setdefault(r["source"], []).append(r)
+    out: list[Alert] = []
+    for source, rs in by_source.items():
+        for i, r in enumerate(rs):
+            before = rs[:i]
+            out += _of_run(r, before)
+    today = tehran_day(now)
+    clock = datetime.fromtimestamp(now, TEHRAN).strftime("%H:%M")
+    for e in expect:
+        arrived = any(r["collected_on"] == today for r in by_source.get(e.source, []))
+        if clock >= e.by and not arrived:
+            out.append(Alert(f"missing:{e.source}:{today}",
+                             f"no {e.source} run has arrived for {today}, expected by {e.by} Tehran"))
+    return out
+
+
+def _of_run(r: dict, before: list[dict]) -> list[Alert]:
+    out = []
+    rid, src = r["run_id"], r["source"]
+    robots = r.get("robots") or {}
+    if r["outcome"] != "collected":
+        why = {"robots": "on robots.txt", "blocked": "on a block", "unavailable":
+               "on a source it could not read", "error": "on an error of ours"}.get(r["outcome"], r["outcome"])
+        status = robots.get("http_status")
+        tail = f" (robots.txt answered {status})" if r["outcome"] == "robots" and status else ""
+        msg = (r.get("message") or "").strip().splitlines()
+        out.append(Alert(f"stopped:{rid}", f"{src} run {rid} stopped {why}{tail}"
+                         + (f": {msg[0][:300]}" if msg else "")))
+    sha = robots.get("sha256")
+    if sha:
+        last = next((b for b in reversed(before) if (b.get("robots") or {}).get("sha256")), None)
+        if last is not None and last["robots"]["sha256"] != sha:
+            out.append(Alert(f"robots:{rid}", f"{src}'s robots.txt changed before run {rid}: "
+                             f"{last['robots']['sha256'][:12]} -> {sha[:12]}; read it before the next run"))
+    if r["outcome"] == "collected" and isinstance(r.get("listings"), int):
+        alike = [b["listings"] for b in before if b["outcome"] == "collected"
+                 and b.get("pages") == r.get("pages") and isinstance(b.get("listings"), int)][-COUNT_RUNS:]
+        if len(alike) >= COUNT_AT_LEAST:
+            mid = statistics.median(alike)
+            if not (COUNT_LOW * mid <= r["listings"] <= COUNT_HIGH * mid):
+                out.append(Alert(f"count:{rid}", f"{src} run {rid} collected {r['listings']} listings; "
+                                 f"the {len(alike)} runs before it as deep, a middle of {mid:g}"))
+    return out

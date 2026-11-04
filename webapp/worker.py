@@ -9,8 +9,9 @@ the owner runs it, with the same arguments, under its source's lock, so two
 collectors never share a domain's pause. What the run printed is its
 transcript; its snapshot is what it wrote. Both go to the private bucket
 where one is named (caro/bucket.py), and one record of the run goes to the
-server through Cloudflare (CARO_INGEST_URL), which keeps it (caro/runs.py).
-A record holds nothing personal: no listing, no seller, no number.
+server through Cloudflare (CARO_INGEST_URL), which keeps it and says when
+something went wrong (caro/runs.py). A record holds nothing personal: no
+listing, no seller, no number.
 
     CARO_COLLECT        the runs, `HH:MM <first_run's arguments>`, `;` between two:
                         `03:30 --source khodro45 --pages 60`
@@ -22,8 +23,8 @@ A record holds nothing personal: no listing, no seller, no number.
 
 How a run ends decides what follows. A run that collected, or that the
 source stopped -- robots.txt, a block, a source that could not be read --
-is done: the source's answer is not retried around, and its record says
-how it stopped. A run that failed on our side (an exception, a disk) is tried
+is done: the source's answer is not retried around, and the server says it
+stopped. A run that failed on our side (an exception, a disk) is tried
 again after a backoff, three times in all. A day's run not taken by the end
 of its day is missed, never run late under the next day's date. A record
 that cannot be delivered is kept and sent again on the next turn.

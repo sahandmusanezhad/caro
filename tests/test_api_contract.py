@@ -3314,7 +3314,7 @@ for k, v in _sms_was.items():
 print("\n30 — the worker's records reach the server, by its token, and nothing personal does")
 # ---------------------------------------------------------------------------
 # The plan's phase 3: the worker reports each run to POST /api/worker/runs
-# (webapp/api/collection.py), which keeps it.
+# (webapp/api/collection.py), which keeps it where the alerts read it.
 from webapp.api import collection as _col                              # noqa: E402
 from webapp.api.main import app as _app30                              # noqa: E402
 
