@@ -53,6 +53,10 @@ services:
       - ${CARO_ENV_FILE:?the env file names its own path, CARO_ENV_FILE}
     environment:
       CARO_CATALOG_URL: postgresql://caro:${POSTGRES_PASSWORD}@postgres:5432/caro
+      # The seller listings' store, in the same database as the catalog,
+      # where the env file switches it on (CARO_SELLER_STORE=on, with its
+      # secret and its provider: docs/PHASE2_SETUP.md); empty, it is off.
+      DATABASE_URL: ${CARO_SELLER_STORE:+postgresql://caro:${POSTGRES_PASSWORD}@postgres:5432/caro}
       # The edge sets X-Forwarded-For to the address Cloudflare names, and
       # nothing else reaches this container.
       CARO_TRUST_PROXY: "1"
