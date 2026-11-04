@@ -1058,6 +1058,37 @@ if _doc_rows:
               f"{sorted(_PRICE_GATES - _u)}")
 
 
+# SZ1 (the plan's phase 2, DATA_CONTRACT «Bounded and addressable»): an
+# artifact over the bound is not written into data/corpora/, and the bound
+# is about that directory only. The bound is lowered for the row, in this
+# process, so that a small snapshot crosses it.
+import contextlib as _ctx                                               # noqa: E402
+import io as _io                                                        # noqa: E402
+import scripts.promote_corpus as _pc                                    # noqa: E402
+
+_was = _pc.MAX_ARTIFACT_BYTES
+_pc.MAX_ARTIFACT_BYTES = 100
+_inside = ROOT / "data" / "corpora" / "zz-sz1-not-a-run.json"
+try:
+    with tempfile.TemporaryDirectory() as d:
+        _src = Path(d) / "in.json"
+        _src.write_text(json.dumps(CLEAN, ensure_ascii=False), encoding="utf-8")
+        _err, _out = _io.StringIO(), _io.StringIO()
+        with _ctx.redirect_stderr(_err), _ctx.redirect_stdout(_out):
+            _rc_in = _pc.main(["--input", str(_src), "--run-id", "t", "--output", str(_inside)])
+            _rc_out = _pc.main(["--input", str(_src), "--run-id", "t", "--output", str(Path(d) / "out.json")])
+        _written_out = (Path(d) / "out.json").exists()
+    _written_in = _inside.exists()
+finally:
+    _pc.MAX_ARTIFACT_BYTES = _was
+    if _inside.exists():
+        _inside.unlink()
+check("SZ1: an artifact over the bound is refused for data/corpora/ and names the rule; the same one "
+      "elsewhere is written; and the bound is 50 MB",
+      _rc_in == 1 and not _written_in and "Bounded and addressable" in _err.getvalue()
+      and _rc_out == 0 and _written_out and _was == 50 * 1024 * 1024,
+      str((_rc_in, _written_in, _rc_out, _written_out, _err.getvalue()[-160:])))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

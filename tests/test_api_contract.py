@@ -3210,6 +3210,106 @@ check("BH1: /api/health says the commit the process was built from where CARO_BU
       str((_bh_none, _bh_set, _bh_empty)))
 
 
+# ---------------------------------------------------------------------------
+print("\n29 — Kavenegar sends the code, and says nothing of its key")
+# ---------------------------------------------------------------------------
+# The plan's phase 2: the provider the owner chooses behind the interface the
+# login already uses, tried by the owner on the owner's own number first. No
+# request leaves this suite: the provider is given an opener that keeps what
+# it is handed and answers as Kavenegar would.
+from webapp.api import sms as _sms_mod                                     # noqa: E402
+
+_KEY = "made-up-kavenegar-key-0123456789/abc"
+_SMS_ENV = ("CARO_SMS_PROVIDER", "CARO_SMS_KAVENEGAR_KEY", "CARO_SMS_KAVENEGAR_TEMPLATE",
+            "CARO_SMS_KAVENEGAR_SENDER", "DATABASE_URL")
+_sms_was = {k: os.environ.pop(k, None) for k in _SMS_ENV}
+
+
+def _sms_state(**env):
+    for k in _SMS_ENV:
+        os.environ.pop(k, None)
+    os.environ.update(env)
+    return _sms_mod.state()
+
+
+_states = (_sms_state(), _sms_state(CARO_SMS_PROVIDER="kavenegar"),
+           _sms_state(CARO_SMS_PROVIDER="kavenegar", CARO_SMS_KAVENEGAR_KEY=_KEY),
+           _sms_state(CARO_SMS_PROVIDER="fake", DATABASE_URL="postgresql://x/y"))
+_from_env = _sms_mod.provider() if _sms_state(CARO_SMS_PROVIDER="kavenegar", CARO_SMS_KAVENEGAR_KEY=_KEY,
+                                         CARO_SMS_KAVENEGAR_TEMPLATE="caro-login") == "kavenegar" else None
+check("SMS1: Kavenegar is the provider only with its key; without one it is refused, and so is the fake "
+      "in front of Postgres; the provider takes its template and line from the environment",
+      _states == ("off", "refused", "kavenegar", "refused") and isinstance(_from_env, _sms_mod.KavenegarProvider)
+      and _from_env.template == "caro-login" and _from_env.sender == "", str((_states, _from_env)))
+
+_lk = _sms_mod.KavenegarProvider(_KEY, template="caro-login")
+_tx = _sms_mod.KavenegarProvider(_KEY, sender="10004346")
+check("SMS2: with a template the code goes alone by verify/lookup; without one the whole text goes by "
+      "sms/send, from the line where one is named",
+      _lk.request("09123456789", "کد ورود کارو: 123456", "123456")
+      == ("verify/lookup.json", {"receptor": "09123456789", "token": "123456", "template": "caro-login"})
+      and _tx.request("09123456789", "کد ورود کارو: 123456", "123456")
+      == ("sms/send.json", {"receptor": "09123456789", "message": "کد ورود کارو: 123456", "sender": "10004346"})
+      and _sms_mod.KavenegarProvider(_KEY).request("09123456789", "t", None)
+      == ("sms/send.json", {"receptor": "09123456789", "message": "t"}), "")
+
+
+class _Answer:
+    def __init__(self, body):
+        self.body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return self.body
+
+
+def _opener(answer, seen):
+    def open_(req, timeout):
+        seen.append((req.get_method(), req.full_url, req.data.decode(), timeout))
+        if isinstance(answer, Exception):
+            raise answer
+        return _Answer(answer)
+    return open_
+
+
+_seen, _outs = [], []
+_results = []
+import urllib.error as _ue                                              # noqa: E402
+for _ans in (b'{"return":{"status":200,"message":"ok"},"entries":[]}',
+             b'{"return":{"status":411,"message":"receptor"},"entries":null}',
+             b"<html>not json</html>",
+             b'{"return":[200]}',
+             _ue.HTTPError("u", 401, "Unauthorized", {}, None),
+             TimeoutError("slow")):
+    _buf = io.StringIO()
+    with contextlib.redirect_stdout(_buf), contextlib.redirect_stderr(_buf):
+        _results.append(_sms_mod.KavenegarProvider(_KEY, template="caro-login", opener=_opener(_ans, _seen))
+                        .send("09123456789", "کد ورود کارو: 654321", "654321"))
+    _outs.append(_buf.getvalue())
+_sms_lines = ["", "kavenegar: not sent (status 411)\n", "kavenegar: not sent (JSONDecodeError)\n",
+          "kavenegar: not sent (no status in the answer)\n", "kavenegar: not sent (status 401)\n",
+          "kavenegar: not sent (TimeoutError)\n"]
+check("SMS3: one POST, form-encoded, to the account's key quoted into Kavenegar's path, ten seconds at most; "
+      "handed over only on Kavenegar's own status 200 -- another status, a page that is no answer, an answer "
+      "without a status, a refusal or no answer is not sent -- nothing is raised, and each failure leaves one "
+      "line that names Kavenegar's status or the kind of failure, never the key or the number",
+      _results == [True, False, False, False, False, False] and _outs == _sms_lines
+      and all(m == "POST" for m, *_ in _seen) and all(t == 10 for *_, t in _seen)
+      and _seen[0][1] == "https://api.kavenegar.com/v1/made-up-kavenegar-key-0123456789%2Fabc/verify/lookup.json"
+      and _seen[0][2] == "receptor=09123456789&token=654321&template=caro-login",
+      str((_results, _outs, _seen[:1])))
+
+for k, v in _sms_was.items():
+    os.environ.pop(k, None)
+    if v is not None:
+        os.environ[k] = v
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

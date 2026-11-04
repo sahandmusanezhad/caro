@@ -263,6 +263,27 @@ not yet behind Cloudflare and no alert has been seen to reach Telegram.
   a real Postgres — which CI's `postgres` job has done since sahandmusanezhad/caro#10.
 - **Waits on the owner:** the driver, the provider.
 - **Risk:** Neon unreachable from Iran → Postgres in Compose on the VPS.
+- **As built** (sahandmusanezhad/caro#19; the owner's steps are
+  [PHASE2_SETUP](PHASE2_SETUP.md)):
+  - **The projection runs at deploy.** «Promotion writing into the catalog»
+    became catalog-load, run by every environment before its API starts
+    (phase 1): a corpus is still promoted on the owner's machine and merged
+    by pull request, and the server loads what was merged. Writing into
+    production's database from the machine that promotes would skip the
+    review a corpus gets, and from Iran the server is reached only through
+    Cloudflare, which carries a site's requests and not a database's.
+  - **Production on the catalog** is `compose.vps.yml`'s, from phase 1.
+  - **The per-model summaries are not built.** Measured, a model's page
+    with ten daily runs of 10,000 listings answers from Postgres in 0.31 s
+    at its first call and 254 ms warm (SERVICES, «The catalog, as built»).
+    Phase 7's measurement at ten times the load decides whether a stored
+    summary is worth what it costs: a middle stored is a middle that a
+    changed rule leaves stale.
+  - **Kavenegar,** behind the provider interface: the code by verify/lookup
+    and the template the owner makes, or the whole text by sms/send.
+  - **The seller store** lives in each environment's own Postgres, beside
+    the catalog, switched on by its env file.
+  - **The bucket** for snapshots belongs to phase 3, its first user.
 
 ### Phase 3 — Collection worker and scheduler (about two weeks; both)
 

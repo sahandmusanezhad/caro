@@ -205,7 +205,7 @@ def send_code(body: PhoneIn, request: Request, st: Store = Depends(the_store)) -
                       "VALUES (?, ?, ?, ?)", (pk, _code_key(st, pk, code), now, now + CODE_SECONDS))
     if waits:
         raise too_many(max(waits))
-    if not provider.send(phone, TEMPLATE.format(code=code)):
+    if not provider.send(phone, TEMPLATE.format(code=code), code=code):
         st.execute("DELETE FROM login_codes WHERE phone_key = ?", (pk,))
         raise HTTPException(503, SMS_FAILED_FA)
     return {"sent": True, "seconds": CODE_SECONDS}

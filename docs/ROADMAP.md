@@ -55,6 +55,11 @@ an item says so.
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
   Every merge since D84 has its entry, D85 to D99.
+- **Phases 1 and 2 on the server.** Built and merged (this repository's pull
+  requests #18 and #19); what is left is the owner's, every step written
+  down in [PHASE1_SETUP](PHASE1_SETUP.md) and [PHASE2_SETUP](PHASE2_SETUP.md):
+  the server at Hetzner, staging, the first release, the switch from Vercel,
+  and an SMS account with its template.
 - **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge; its
   `main` was last brought in step on 2026-11-02, at pull request #16.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
@@ -137,14 +142,16 @@ names. Durations are for two people part-time.
 2. **The data layer and the seller listings** (issue #5; about two weeks;
    Sobhan, two decisions of the owner's). Done: the listings read model, as
    the catalog (this repository's pull request #10), and the seller store's
-   suite on a real Postgres in CI. Left: promotion writing into the catalog, with the per-model
-   summaries ([SERVICES](SERVICES.md), step 2); production on Postgres beside
-   the API on the Hetzner server (the owner's choice after phase 0's probe)
-   and the site served from the catalog;
-   the SMS provider behind the existing interface, tried by the owner on the
-   owner's own number first; the seller listings switched on in production;
-   a private bucket for snapshots; the 50 MB rule for corpora written into
-   DATA_CONTRACT. **Waits on the owner:** the provider, the database.
+   suite on a real Postgres in CI. **Built** (this repository's pull request
+   #19): Kavenegar behind the login's provider interface; the seller store
+   in each environment's Postgres, switched on by its env file; the 50 MB
+   bound for a corpus, in DATA_CONTRACT and in promotion; the projection
+   into the catalog at every deploy and production served from it, which
+   phase 1 built. The per-model summaries wait for phase 7's measurement
+   (REARCHITECTURE, phase 2, «As built»). Left, every step in
+   [PHASE2_SETUP](PHASE2_SETUP.md): an SMS account and its template, and the
+   seller listings switched on in staging, tried on the owner's own number,
+   then in production. **Waits on the owner:** the provider's account.
 3. **The queue and the collection worker** (issue #6; about two weeks; both).
    The queue in Postgres — SERVICES.md's `jobs` table, taken with
    `FOR UPDATE SKIP LOCKED` — and a worker of the same package that runs

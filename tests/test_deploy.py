@@ -157,7 +157,8 @@ _hard = all(("read_only: true" in _svc[s] and "cap_drop: [ALL]" in _svc[s]
              and "no-new-privileges:true" in _svc[s]) for s in ("api", "site", "catalog-load"))
 check("DP5: an environment publishes no port, runs its API and site read-only with every "
       "capability dropped, takes its images from its env file and its password with no default, "
-      "and joins the edge under api-<env> and site-<env>",
+      "joins the edge under api-<env> and site-<env>, and has a seller store only where its file "
+      "switches one on",
       set(_svc) == {"postgres", "catalog-load", "api", "site"}
       and not any(re.search(r"^\s+ports:", b, re.MULTILINE) for b in _svc.values())
       and _hard and "${CARO_API_IMAGE:?" in _svc["api"] and "${CARO_SITE_IMAGE:?" in _svc["site"]
@@ -165,7 +166,8 @@ check("DP5: an environment publishes no port, runs its API and site read-only wi
       and ":-" not in _vps.split("POSTGRES_PASSWORD")[1].split("\n")[0]
       and 'aliases: ["api-${CARO_ENV:?' in _svc["api"] and 'aliases: ["site-${CARO_ENV}"]' in _svc["site"]
       and re.search(r"edge:\n\s+external: true\n\s+name: caro_edge", _vps) is not None
-      and 'CARO_TRUST_PROXY: "1"' in _svc["api"],
+      and 'CARO_TRUST_PROXY: "1"' in _svc["api"]
+      and "DATABASE_URL: ${CARO_SELLER_STORE:+postgresql://" in _svc["api"],
       str(sorted(_svc)))
 
 _edge = text("compose.edge.yml")
@@ -236,9 +238,10 @@ print("\nthe server's settings and timers")
 _env = text("deploy/env.example")
 _set = dict(re.findall(r"^([A-Z_]+)=(.*)$", _env, re.MULTILINE))
 _needed = set(re.findall(r"\$\{([A-Z_]+)", _vps))
-_secrets = ("POSTGRES_PASSWORD", "CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET", "SENTRY_DSN")
+_secrets = ("POSTGRES_PASSWORD", "CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET", "SENTRY_DSN",
+            "CARO_STORE_SECRET", "CARO_SMS_KAVENEGAR_KEY", "CARO_SELLER_STORE")
 check("DP10: the env file's template names every variable an environment's compose file reads, "
-      "and gives no secret a value",
+      "and gives no secret a value and the seller store no switch",
       _needed <= set(_set) and all(_set.get(k) == "" for k in _secrets)
       and _set.get("CARO_ENV") in ("production", "staging"),
       str((sorted(_needed - set(_set)), {k: _set.get(k) for k in _secrets})))
@@ -305,12 +308,15 @@ check("DP12: a deploy is waited for until /api/health names the commit -- a conn
       and _c2.t == 30, str((_r1, _o1, _r2, _o2, _c2.t)))
 
 _wf = text(".github/workflows/images.yml")
+_only_here = "if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'"
 check("DP13: the images workflow runs the API's suites inside its image and reads both images "
-      "together before it pushes anything, pushes only on a merge or a tag, keeps no key to the "
-      "server, and waits on an environment only where a variable names it",
+      "together before it pushes anything, pushes only on a merge or a tag and only from the "
+      "repository the server pulls from, keeps no key to the server, and waits on an environment "
+      "only where a variable names it",
       _wf.index("docker build --target test") < _wf.index("docker push")
       and _wf.index("scripts/site_check.py --site http://127.0.0.1:3000") < _wf.index("docker push")
-      and "if: github.event_name == 'push'" in _wf and "ssh" not in _wf.lower()
+      and _wf.count(_only_here) == 2 and "if: github.event_name == 'push'\n" not in _wf
+      and "ghcr.io/sahandmusanezhad/" in text("deploy/env.example") and "ssh" not in _wf.lower()
       and "vars.CARO_STAGING_URL" in _wf and "if: env.URL != ''" in _wf
       and "packages: write" in _wf and "contents: read" in _wf, "")
 

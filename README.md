@@ -143,8 +143,8 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 | Phase | What | State |
 |---|---|---|
 | 0 | foundation: the agreement for two, `caro.noxioai.com` behind Cloudflare, alerts, branch protection, a reachability probe from Iran | **closed** 2026-11-03 by the owner's choice (D99); the four steps in the owner's accounts carried to an issue of their own ([the steps](docs/PHASE0_SETUP.md)) |
-| 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | next |
-| 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | the catalog built, off by default |
+| 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | built (sahandmusanezhad/caro#18); the server's steps wait on the owner ([the steps](docs/PHASE1_SETUP.md)) |
+| 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | built (sahandmusanezhad/caro#19), off until an SMS account and the server ([the steps](docs/PHASE2_SETUP.md)) |
 | 3 | the queue in Postgres, the collection worker | |
 | 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | |
 | 5 | the design system and the panels, in Next.js | |
@@ -593,7 +593,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all eighteen suites
 
-python3 tests/run_all.py            # 3555 assertions, no API key, no network
+python3 tests/run_all.py            # 3559 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -607,10 +607,10 @@ dependency of `caro/`.** Three of the eighteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2825 assertions across 15 of 18 suites
+python3 tests/run_all.py            # 2826 assertions across 15 of 18 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3555 across all eighteen
+python3 tests/run_all.py            # 3559 across all eighteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -808,7 +808,7 @@ the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3555 assertions across eighteen suites
+tests/           3559 assertions across eighteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
@@ -831,6 +831,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) ·
 | [REARCHITECTURE](docs/REARCHITECTURE.md) | the 2026 plan for the platform, phases 0 to 7: Sobhan's, accepted with its review's amendments |
 | [PHASE0_SETUP](docs/PHASE0_SETUP.md) | phase 0's steps in the owner's accounts — GitHub, Sentry, Cloudflare, UptimeRobot — each with what to see when it worked |
 | [PHASE1_SETUP](docs/PHASE1_SETUP.md) | phase 1's steps: the server at Hetzner, its certificate and settings, staging, the first release, and the switch from Vercel |
+| [PHASE2_SETUP](docs/PHASE2_SETUP.md) | phase 2's steps: an SMS account and its template, and the seller listings switched on in staging, then production |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
 | [DATA_CONTRACT](docs/DATA_CONTRACT.md) | what a published corpus holds, what it may never hold, and what the gate refuses |
 | [TEMPORAL_CONTRACT](docs/TEMPORAL_CONTRACT.md) | what a series of runs may claim in time, and the daily Khodro45 runs |

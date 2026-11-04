@@ -39,6 +39,8 @@ environment behind `compose.edge.yml` ([PHASE1_SETUP](../docs/PHASE1_SETUP.md)).
 | `CARO_RUN` | which corpus the API serves, by run id. Unset means `webapp.api.corpus.DEFAULT_RUN`. **Set it and get it wrong and the site serves nothing** — see below; that is the point of setting it. |
 | `CARO_CORPORA` | where corpora are read from. For pointing the reader at a directory a test controls, and for nothing else. |
 | `CARO_CATALOG_URL` | serve the published runs from the catalog, `sqlite:///<path>` or `postgresql://...`, loaded by `scripts/catalog_load.py` (docs/SERVICES.md). Unset, the files are read. **Set and unable to serve the run, the site serves nothing** (`CATALOG_UNAVAILABLE`), asked again every 30 s. |
+| `CARO_SMS_PROVIDER` | who sends a seller's login code: `kavenegar`, or `fake` on a laptop's SQLite store only (`webapp/api/sms.py`). Unset, the login is off. |
+| `CARO_SMS_KAVENEGAR_KEY`, `_TEMPLATE`, `_SENDER` | Kavenegar's API key, the one-time-code template the code goes by (its `%token` is the six digits), and the line an ordinary message goes from when no template is set. The key is typed into the server's env file and nowhere else (docs/PHASE2_SETUP.md). |
 | `CARO_BUILD` | the commit the process was built from, which `/api/health` names; the API's image sets it at build time, and a deploy waits until it names the new commit (`scripts/deploy_wait.py`). Unset, health says `null`. |
 | `CARO_API_PORT` | the port the image's `api` role listens on inside its container, 8000 by default (`webapp/role.py`). |
 | `CARO_FORWARDED_ALLOW_IPS` | the addresses whose `X-Forwarded-*` headers uvicorn believes, for the image's `api` role. Unset, none: on the server the edge sets `X-Forwarded-For` and the API reads it under `CARO_TRUST_PROXY=1`. |
