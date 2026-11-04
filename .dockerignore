@@ -1,0 +1,19 @@
+# What the API's image is built from is listed in Dockerfile, file by file;
+# this keeps the rest out of the build context, and above all anything a
+# machine holds that the repository does not publish.
+.git
+**/__pycache__
+**/*.pyc
+.venv
+venv
+.env
+.env.*
+data/snapshots
+data/raw
+data/observations
+data/inbox
+data/catalog.sqlite3
+data/store.sqlite3
+webapp/web/node_modules
+webapp/web/.next
+webapp/web/tsconfig.tsbuildinfo
