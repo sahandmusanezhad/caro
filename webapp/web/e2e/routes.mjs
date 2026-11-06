@@ -23,7 +23,10 @@
 // CARO_API_LOG, and CARO_E2E_ADMIN_TOKEN names the operator's token, it also
 // walks the seller listings from end to end, as PHASE2_SETUP asks the owner
 // to on staging: a code that arrives and logs in, a car posted, approved in
-// /admin, on /listings, and its number shown.
+// /admin, on /listings, and its number shown. CI runs it on the tree (the
+// e2e job) and on the two images before they are pushed (the images
+// workflow), where the log is a container's, written a moment after the
+// answer: the code is waited for.
 // Playwright is installed for this check alone (CI's e2e job), never into
 // the site's dependencies.
 import { readFileSync } from 'node:fs';
@@ -103,10 +106,27 @@ async function visit(browser, view, path) {
 const LOG = process.env.CARO_API_LOG || '';
 const ADMIN = process.env.CARO_E2E_ADMIN_TOKEN || '';
 
-function codeFor(phone) {
-  const lines = readFileSync(LOG, 'utf-8').split('\n').filter((l) => l.includes(`] ${phone}:`));
-  const m = lines.length ? lines[lines.length - 1].match(/(\d{6})\s*$/) : null;
-  return m ? m[1] : null;
+function codeLines(phone) {
+  try {
+    return readFileSync(LOG, 'utf-8').split('\n').filter((l) => l.includes(`] ${phone}:`));
+  } catch {
+    return [];
+  }
+}
+
+/* The code echoed for the request made after `before` lines were in the log:
+   waited for, five seconds at most, since a container's log reaches its file
+   a moment after the answer -- and never an earlier request's. */
+async function codeAfter(phone, before) {
+  for (let i = 0; i < 50; i++) {
+    const lines = codeLines(phone);
+    if (lines.length > before) {
+      const m = lines[lines.length - 1].match(/(\d{6})\s*$/);
+      return m ? m[1] : null;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return null;
 }
 
 /* The seller listings, from the seller's number to the buyer's press. */
@@ -118,9 +138,10 @@ async function sellerFlow(browser) {
   try {
     await page.goto(`${SITE}/login`, { waitUntil: 'networkidle' });
     await page.getByLabel('شماره‌ی همراه').fill(phone);
+    const before = codeLines(phone).length;
     await page.getByRole('button', { name: 'بفرست' }).click();
     await page.locator('form[data-step="code"]').waitFor();
-    const code = codeFor(phone);
+    const code = await codeAfter(phone, before);
     if (!code) { fail('the seller listings', 'no code reached the log'); return; }
     await page.getByLabel('کد شش‌رقمی').fill(code);
     await page.getByRole('button', { name: 'ورود', exact: true }).click();

@@ -187,4 +187,5 @@ until it is retired, which waits until the server has served for a week.
 ## Then
 
 Send back what steps 1, 6, 7 and 8 printed. With them a session records the
-phase in its decision entry, and the Vercel project is retired.
+phase in its decision entry, and the Vercel project is retired
+([PHASE6_SETUP](PHASE6_SETUP.md)).
