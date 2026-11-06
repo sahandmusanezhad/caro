@@ -593,7 +593,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 3619 assertions, no API key, no network
+python3 tests/run_all.py            # 3625 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -610,7 +610,7 @@ runner says so rather than failing:
 python3 tests/run_all.py            # 2875 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3619 across all nineteen
+python3 tests/run_all.py            # 3625 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -677,7 +677,8 @@ docker compose up --build                       # http://127.0.0.1:3000
 The API is FastAPI and imports `caro` directly: `/api/search`,
 `/api/search/reweight`, `/api/listing/{id}`, `/api/compare`, `/api/models`,
 `/api/model`, `/api/corpus`, `/api/health`, and the contact, admin, account
-and listings endpoints. The site is Next.js, TypeScript and Tailwind, in
+and listings endpoints; and `/metrics`, its own numbers, for the server's
+collector alone (`webapp/api/metrics.py`). The site is Next.js, TypeScript and Tailwind, in
 right-to-left Persian, its panes glass over the palette: `/`, `/search`,
 `/models`, `/model/[make]/[model]`, `/car/[id]`, `/compare`, `/saved`,
 `/before-buying`, `/how-it-works`, `/about`, `/contact` and `/admin`, and
@@ -808,7 +809,7 @@ the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3619 assertions across nineteen suites
+tests/           3625 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
