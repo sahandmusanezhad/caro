@@ -224,6 +224,32 @@ check("DP21: every alert reads only what /metrics says, carries a severity and a
       and 'le="0.3"' in _rules and "0.3" in _metrics_src.split("BUCKETS = (")[1].split(")")[0],
       str((_alerts, sorted(_used - _exposed))))
 
+_dash = json.loads(text("deploy/grafana/caro.json"))
+_targets = [t for pnl in _dash["panels"] for t in pnl["targets"]]
+_dexprs = [t["expr"] for t in _targets]
+_dused = set(re.findall(r"\b(caro_[a-z_]+)", " ".join(_dexprs)))
+_dvars = {v["name"]: v for v in _dash["templating"]["list"]}
+_titles = {pnl["title"]: pnl for pnl in _dash["panels"]}
+_steps = lambda pnl: [st.get("value") for st in
+                      pnl["fieldConfig"]["defaults"].get("thresholds", {}).get("steps", [])]
+check("DP22: the dashboard reads only what /metrics says, each expression for the environment chosen and "
+      "from the Prometheus chosen; it shows the three SLOs against their targets -- 99.5% of the public "
+      "reads, the alerts' own, and 95% of searches within the bucket at 300 ms -- and the API's answer to "
+      "its collector",
+      _dash.get("uid") == "caro" and _dused <= _exposed and len(_dexprs) >= 10
+      and all('env="$env"' in e for e in _dexprs)
+      and all(t["datasource"] == {"type": "prometheus", "uid": "${datasource}"} for t in _targets)
+      and _dvars["datasource"]["type"] == "datasource" and _dvars["datasource"]["query"] == "prometheus"
+      and _dvars["env"]["definition"] == 'label_values(up{job="caro-api"}, env)'
+      and 0.995 in _steps(_titles["Availability, 30 days (SLO 99.5%)"])
+      and 0.95 in _steps(_titles["Searches within 300 ms, 30 days (SLO 95%)"])
+      and 'le="0.3"' in _titles["Searches within 300 ms, 30 days (SLO 95%)"]["targets"][0]["expr"]
+      and 'route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)"'
+      in _titles["Availability, 30 days (SLO 99.5%)"]["targets"][0]["expr"]
+      and any("since the last collected run" in tl.lower() for tl in _titles)
+      and 'up{job="caro-api", env="$env"}' in _titles["The API answers its collector"]["targets"][0]["expr"],
+      str(sorted(_dused - _exposed)))
+
 _edge = text("compose.edge.yml")
 _esvc = blocks(_edge)
 check("DP6: the edge is nginx alone, the only thing on the server that publishes a port -- 443 -- "
