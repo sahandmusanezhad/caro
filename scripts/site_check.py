@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The site, read from the outside, after a merge.
 
-    python3 scripts/site_check.py                               the site on Vercel
-    python3 scripts/site_check.py --site https://caro.noxioai.com
+    python3 scripts/site_check.py                               the site, caro.noxioai.com
+    python3 scripts/site_check.py --site https://caro-staging.noxioai.com --cloudflare
 
 The working agreement asks for the site to be read from the outside after
 every merge, and the decision entry to say what was read. A session's
@@ -107,7 +107,7 @@ def report(base: str, model: tuple[str, str], question: str, home: dict | None =
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--site", default="https://caro-rho.vercel.app")
+    ap.add_argument("--site", default="https://caro.noxioai.com")
     ap.add_argument("--model", default="IKCO/Samand", help="MAKE/MODEL for the model line")
     ap.add_argument("--question", default="سمند زیر ۲ میلیارد")
     ap.add_argument("--cloudflare", action="store_true",
