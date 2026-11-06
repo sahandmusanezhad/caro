@@ -21,7 +21,8 @@ write, so it is believed only where the operator says a proxy sets it
 (`CARO_TRUST_PROXY=1`), and then only its first entry.
 
 **CORS is for development.** The site and the API share an origin in
-production (vercel.json's rewrite), so no cross-origin call is needed there.
+production (the server's nginx, deploy/nginx/caro.conf), so no cross-origin
+call is needed there.
 `CARO_CORS_ORIGINS` names the origins that may call it from elsewhere;
 unset, it is the development server's. No cookie is used, so no credentials
 are allowed.
