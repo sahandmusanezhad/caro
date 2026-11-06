@@ -19,6 +19,10 @@ it prints. Every line is one fact a merge can change:
               names, which no cache keeps (phase 4)
     headers   who answered: Cloudflare or Vercel
 
+With --cloudflare it also exits 1 unless the home page came through
+Cloudflare and Vercel served no part of it: the origin answers Cloudflare
+alone, so that is the site served from the server (phase 6).
+
 Standard library only; a dozen requests to our own site, nothing else.
 """
 
@@ -61,7 +65,17 @@ def edge_line(base: str) -> str:
             f"its corpus {(kept or '-')[:12]}, health's {(served or '-')[:12]}: {same}")
 
 
-def report(base: str, model: tuple[str, str], question: str) -> list[str]:
+def through_cloudflare(h: dict) -> str | None:
+    """Why a home page's headers are not Cloudflare's alone, or None."""
+    if "cf-ray" not in h:
+        return "no cf-ray: Cloudflare did not answer"
+    if "x-vercel-id" in h or "vercel" in h.get("server", "").lower():
+        return f"Vercel served it (server: {h.get('server', '-')})"
+    return None
+
+
+def report(base: str, model: tuple[str, str], question: str, home: dict | None = None) -> list[str]:
+    """The lines, one fact each; `home`, where given, gets the home page's headers."""
     out = []
     s, h, html = get(base, "/about")
     out.append(f"about    {s} " + " ".join(about_counts(html)))
@@ -82,6 +96,8 @@ def report(base: str, model: tuple[str, str], question: str) -> list[str]:
     out.append(f"search   {s} «{question}»: models {r['intent']['models']}, "
                f"{r.get('evidence_total')} shown, {r.get('evidence_unchecked_total')} apart")
     s, h, html = get(base, "/")
+    if home is not None:
+        home.update(h)
     listings, sell = 'href="/listings"' in html, 'href="/sell"' in html
     out.append(f"home     {s} seller links: {listings} {sell}")
     out.append(edge_line(base))
@@ -94,14 +110,22 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--site", default="https://caro-rho.vercel.app")
     ap.add_argument("--model", default="IKCO/Samand", help="MAKE/MODEL for the model line")
     ap.add_argument("--question", default="سمند زیر ۲ میلیارد")
+    ap.add_argument("--cloudflare", action="store_true",
+                    help="exit 1 unless Cloudflare answered and Vercel served nothing")
     a = ap.parse_args(argv)
     make, _, model = a.model.partition("/")
+    home: dict = {}
     try:
-        for line in report(a.site, (make, model), a.question):
+        for line in report(a.site, (make, model), a.question, home):
             print(line)
     except Exception as e:                       # noqa: BLE001 — say what failed, and where
         print(f"the site check stopped: {type(e).__name__}: {e}", file=sys.stderr)
         return 1
+    if a.cloudflare:
+        why = through_cloudflare(home)
+        if why:
+            print(f"the site is not served through Cloudflare alone: {why}", file=sys.stderr)
+            return 1
     return 0
 
 

@@ -5280,6 +5280,46 @@ check("SC3: the edge line says what Cloudflare kept of the models, for how long,
       and "before phase 4" in _sc_lines[2], str(_sc_lines))
 
 
+def _sc_whole(home_headers):
+    """A site that answers every line of the report; its home page carries `home_headers`."""
+    def get(base, path, timeout=30):
+        if path == "/about" or path == "/":
+            return 200, dict(home_headers) if path == "/" else {}, "<p>۸۴ تصمیم</p>"
+        if path == "/api/corpus":
+            return 200, {}, json.dumps({"status": {"kind": "REAL"}, "corpus": {"identity": None, "rows": 1}})
+        if path.startswith("/api/model?"):
+            return 200, {}, json.dumps({"summary": {"listings": 1}, "history": []})
+        if path.startswith("/api/search?"):
+            return 200, {}, json.dumps({"intent": {"models": []}, "evidence_total": 0, "evidence_unchecked_total": 0})
+        if path == "/api/health":
+            return 200, {}, json.dumps({"ok": True, "corpus": None})
+        return 200, {}, "{}"
+    return get
+
+
+_sc_through = {"server": "cloudflare", "cf-ray": "8f00000000000000-FRA"}
+_sc_vercel = {"server": "Vercel", "x-vercel-id": "fra1::made-up"}
+_sc_both = {**_sc_through, "x-vercel-id": "fra1::made-up"}
+_sc_runs = []
+try:
+    for _hh, _args in ((_sc_through, ["--cloudflare"]), (_sc_vercel, ["--cloudflare"]),
+                       (_sc_both, ["--cloudflare"]), (_sc_vercel, [])):
+        _sc.get = _sc_whole(_hh)
+        _o, _e = _io.StringIO(), _io.StringIO()
+        with _contextlib.redirect_stdout(_o), _contextlib.redirect_stderr(_e):
+            _rc = _sc.main(["--site", "https://caro.example", *_args])
+        _sc_runs.append((_rc, _o.getvalue(), _e.getvalue()))
+finally:
+    _sc.get = _sc_get
+check("SC4: with --cloudflare the check exits 1 unless the home page came through Cloudflare and Vercel "
+      "served no part of it -- Vercel alone, or Cloudflare in front of Vercel -- and says which; every "
+      "line is printed first, and without the flag who answered is a line, not a condition",
+      _sc_runs[0][0] == 0 and _sc_runs[0][2] == ""
+      and _sc_runs[1][0] == 1 and "no cf-ray" in _sc_runs[1][2] and "headers  server: Vercel" in _sc_runs[1][1]
+      and _sc_runs[2][0] == 1 and "Vercel served it" in _sc_runs[2][2]
+      and _sc_runs[3][0] == 0 and _sc_runs[3][2] == "", str(_sc_runs))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

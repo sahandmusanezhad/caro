@@ -117,4 +117,4 @@ jobs:
 
       - name: The environment, read from the outside
         if: env.URL != ''
-        run: python3 scripts/site_check.py --site "$URL"
+        run: python3 scripts/site_check.py --site "$URL" --cloudflare
