@@ -136,6 +136,39 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
 
+  # What the API counts (webapp/api/metrics.py), read every 30 s on this
+  # environment's own network and written to Grafana Cloud, where the
+  # dashboard and the SLOs are read (docs/SLO.md, docs/PHASE7_SETUP.md).
+  # Started only where the env file's COMPOSE_PROFILES names `observe`.
+  # Metrics alone leave the server -- no log, since a log holds addresses --
+  # and Alloy's own usage reports are off. It runs as the user its image
+  # gives its storage to (473), which, with every capability dropped, root
+  # could not write.
+  observe:
+    image: grafana/alloy:v1.21.3
+    profiles: ["observe"]
+    user: "473:473"
+    command: ["run", "/etc/alloy/config.alloy", "--storage.path=/var/lib/alloy/data", "--disable-reporting"]
+    restart: unless-stopped
+    environment:
+      CARO_ENV: ${CARO_ENV}
+      CARO_METRICS_TARGET: api:8000
+      GRAFANA_CLOUD_PROM_URL: ${GRAFANA_CLOUD_PROM_URL:-}
+      GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER:-}
+      GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN:-}
+    volumes:
+      - ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - observe:/var/lib/alloy
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
 networks:
   internal: {}
   edge:
@@ -146,3 +179,4 @@ volumes:
   pgdata: {}
   inbox: {}
   purge: {}
+  observe: {}

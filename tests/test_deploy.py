@@ -165,7 +165,7 @@ check("DP5: an environment publishes no port, runs its API, its site and its ale
       "every capability dropped, takes its images from its env file and its password with no default, "
       "joins the edge under api-<env> and site-<env> -- the alerts on no network but its own -- and has "
       "a seller store only where its file switches one on",
-      set(_svc) == {"postgres", "catalog-load", "api", "site", "alerts", "edge-purge"}
+      set(_svc) == {"postgres", "catalog-load", "api", "site", "alerts", "edge-purge", "observe"}
       and 'command: ["alerts"]' in _svc["alerts"]
       and not re.search(r"^\s+(- edge|edge:)\s*$", _svc["alerts"], re.MULTILINE)
       and 'profiles: ["purge"]' in _svc["edge-purge"] and "read_only: true" in _svc["edge-purge"]
@@ -180,6 +180,28 @@ check("DP5: an environment publishes no port, runs its API, its site and its ale
       and 'CARO_TRUST_PROXY: "1"' in _svc["api"]
       and "DATABASE_URL: ${CARO_SELLER_STORE:+postgresql://" in _svc["api"],
       str(sorted(_svc)))
+
+_obs = _svc.get("observe", "")
+_alloy = text("deploy/alloy/config.alloy")
+_alloy_code = "\n".join(l for l in _alloy.splitlines() if not l.lstrip().startswith("//"))
+check("DP20: the collector is Alloy at a version, started only where the env file names its profile, "
+      "as its own user, read-only with every capability dropped, on the environment's own network alone, its usage "
+      "reports off; it reads /metrics at the API and writes to the address, user and token the env file "
+      "gives it, with nothing of theirs in a file and no log read -- and without them the environment "
+      "still starts",
+      'profiles: ["observe"]' in _obs and re.search(r"image: grafana/alloy:v\d+\.\d+\.\d+\n", _obs) is not None
+      and 'user: "473:473"' in _obs
+      and "--disable-reporting" in _obs and "- ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro" in _obs
+      and "read_only: true" in _obs and "cap_drop: [ALL]" in _obs and "no-new-privileges:true" in _obs
+      and re.search(r"networks:\n\s+- internal\n", _obs) is not None and "edge" not in _obs
+      and "CARO_METRICS_TARGET: api:8000" in _obs
+      and all(f"{k}: ${{{k}:-}}" in _obs for k in ("GRAFANA_CLOUD_PROM_URL", "GRAFANA_CLOUD_PROM_USER",
+                                                    "GRAFANA_CLOUD_TOKEN"))
+      and 'metrics_path    = "/metrics"' in _alloy_code and 'sys.env("CARO_METRICS_TARGET")' in _alloy_code
+      and 'url = sys.env("GRAFANA_CLOUD_PROM_URL")' in _alloy_code
+      and 'password = sys.env("GRAFANA_CLOUD_TOKEN")' in _alloy_code
+      and "loki" not in _alloy_code and "http" not in _alloy_code.replace("prometheus", ""),
+      _obs[:400])
 
 _edge = text("compose.edge.yml")
 _esvc = blocks(_edge)
@@ -251,7 +273,7 @@ _set = dict(re.findall(r"^([A-Z_]+)=(.*)$", _env, re.MULTILINE))
 _needed = set(re.findall(r"\$\{([A-Z_]+)", _vps))
 _secrets = ("POSTGRES_PASSWORD", "CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET", "SENTRY_DSN",
             "CARO_STORE_SECRET", "CARO_SMS_KAVENEGAR_KEY", "CARO_SELLER_STORE", "CARO_CF_API_TOKEN",
-            "CARO_TURNSTILE_SECRET")
+            "CARO_TURNSTILE_SECRET", "GRAFANA_CLOUD_TOKEN")
 check("DP10: the env file's template names every variable an environment's compose file reads, "
       "and gives no secret a value and the seller store no switch",
       _needed <= set(_set) and all(_set.get(k) == "" for k in _secrets)

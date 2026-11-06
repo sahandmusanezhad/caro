@@ -1,0 +1,31 @@
+// What the API counts (webapp/api/metrics.py), read on this environment's
+// own network every 30 seconds and written to Grafana Cloud, where the
+// dashboard (deploy/grafana/caro.json) and the SLOs (docs/SLO.md) are read.
+// The `observe` service of compose.vps.yml runs it; its settings come from
+// the environment's file (deploy/env.example), and no key is in this file.
+//
+// Metrics alone leave the server. A log holds addresses and questions, so
+// no log is read here.
+
+prometheus.scrape "api" {
+	targets = [{
+		__address__ = sys.env("CARO_METRICS_TARGET"),
+		env         = sys.env("CARO_ENV"),
+	}]
+	job_name        = "caro-api"
+	metrics_path    = "/metrics"
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+	forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.remote_write "grafana_cloud" {
+	endpoint {
+		url = sys.env("GRAFANA_CLOUD_PROM_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_CLOUD_PROM_USER")
+			password = sys.env("GRAFANA_CLOUD_TOKEN")
+		}
+	}
+}
