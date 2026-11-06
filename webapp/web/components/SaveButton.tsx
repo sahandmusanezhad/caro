@@ -19,7 +19,7 @@ export default function SaveButton({ id, compact = false }: { id: string; compac
       onClick={() => setSaved(toggleSaved(id))}
       aria-pressed={saved}
       title={saved ? 'برداشتن از نشان‌شده‌ها' : 'نگه داشتن در نشان‌شده‌ها، فقط در همین مرورگر'}
-      className={`btn ${compact ? 'px-3 py-1 text-[12.5px]' : ''} ${saved ? '!bg-accent !text-white' : ''}`}
+      className={`${saved ? 'btn-solid' : 'btn'} ${compact ? 'px-3 py-1 text-[12.5px]' : ''}`}
     >
       {saved ? '★ نشان‌شده' : '☆ نشان کن'}
     </button>

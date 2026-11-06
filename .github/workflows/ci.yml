@@ -1,11 +1,15 @@
 # What a change has to pass before it merges.
 #
-# Three jobs, run side by side:
+# Four jobs, run side by side:
 #
 #   suites    all nineteen suites of tests/run_all.py. The runner exits 0 when
 #             a suite is skipped for a missing dependency, and "skipped is not
 #             passed" is this project's rule, so this job fails on any skip.
 #   web       the site's type check, lint and production build.
+#   e2e       the site and the API side by side, every key route in a
+#             browser, at a desk and on a phone, light and dark, and the
+#             seller listings from a code to a number shown
+#             (webapp/web/e2e/routes.mjs, docs/DESIGN_SYSTEM.md).
 #   postgres  the suites that touch a database, once more against a real
 #             Postgres: the seller store, the catalog, the contract suite's
 #             rows that serve the site from the catalog, and the
@@ -98,6 +102,71 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: webapp/requirements.txt
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webapp/web/package-lock.json
+
+      - name: Install Python packages
+        run: pip install numpy -r webapp/requirements.txt
+
+      - name: The site, built as production builds it
+        working-directory: webapp/web
+        env:
+          CARO_API: http://127.0.0.1:8000
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm ci --no-audit --no-fund && npm run build
+
+      # Playwright for this job alone: never one of the site's dependencies,
+      # so neither its lock file nor any build of it carries a browser.
+      - name: Playwright and its Chromium
+        working-directory: webapp/web
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+
+      # The seller store in a file of the job's, the fake SMS echoing each code
+      # into the API's log for the check to read, and an operator's token made
+      # up for the job: the seller listings walked from end to end.
+      - name: The API and the site, side by side
+        env:
+          CARO_INBOX: "off"
+          DATABASE_URL: sqlite:///${{ runner.temp }}/store.sqlite3
+          CARO_STORE_SECRET: made-up-for-the-e2e-job-0123456789abcdef
+          CARO_SMS_PROVIDER: fake
+          CARO_SMS_FAKE_ECHO: "1"
+          CARO_ADMIN_TOKEN: made-up-for-the-e2e-job-operator
+        run: |
+          nohup python -m uvicorn webapp.api.main:app --port 8000 > api.log 2>&1 &
+          (cd webapp/web && CARO_API=http://127.0.0.1:8000 nohup npx next start -p 3000 > ../../site.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:3000/api/health && exit 0; sleep 1; done
+          exit 1
+
+      - name: Every key route, at a desk and on a phone, light and dark, and the seller listings
+        working-directory: webapp/web
+        env:
+          CARO_SITE: http://127.0.0.1:3000
+          CARO_API_LOG: ${{ github.workspace }}/api.log
+          CARO_E2E_ADMIN_TOKEN: made-up-for-the-e2e-job-operator
+        run: node e2e/routes.mjs
+
+      - name: The servers' logs, when that failed
+        if: failure()
+        run: tail -n 100 api.log site.log
 
   postgres:
     runs-on: ubuntu-24.04

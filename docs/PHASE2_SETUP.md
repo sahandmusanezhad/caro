@@ -59,7 +59,9 @@ Worked when, on `https://caro-staging.noxioai.com`, with your own number:
 
 1. `/login` sends a code that arrives, and logs you in.
 2. `/sell` posts a car.
-3. `/admin` shows it pending, and you approve it.
+3. `/admin` shows it pending, and you approve it: the token (and the
+   authenticator's code, where it is on -- a fresh one for each request),
+   «در انتظار تأیید», «در انتظار تأیید را باز کن», «تأیید و انتشار».
 4. `/listings` shows it, and «نمایش شماره» shows your number.
 
 If the login says the code was not sent, the API wrote one line saying why,

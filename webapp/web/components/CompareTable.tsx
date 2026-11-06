@@ -255,9 +255,9 @@ export default function CompareTable() {
       <div>
         <p className="eyebrow">مقایسه‌ی <span className="fig">
           {faPlain(rows.length)}</span> خودرو</p>
-        <h1 className="m-0 text-[24px] font-bold">
+        <h2 className="m-0 text-[24px] font-bold">
           ارزان‌ترین ستون، لزوماً بهترین ستون نیست
-        </h1>
+        </h2>
         <p className="mt-2 mb-0 text-[13px] text-ink-3 max-w-[70ch]">
           نشانه‌ی ✓ یعنی بهترین مقدار در همان سطر — نه بهترین خودرو. «بهترین
           خودرو» به وزن‌هایی بستگی دارد که خودت در صفحه‌ی نتایج تنظیم کردی.

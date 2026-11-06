@@ -27,9 +27,14 @@ export default function SellerLogin() {
   const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
-    sellerApi.status().then((r) => setOn(Boolean(r.ok && r.data?.store === 'on' && r.data?.sms !== 'off'
-                                                  && r.data?.sms !== 'refused')));
-    sellerApi.me().then((r) => { if (r.ok) router.replace('/my-listings'); });
+    // The session is asked for only where there is a store to hold one: off,
+    // the answer is a 503 the browser would print as an error.
+    sellerApi.status().then((r) => {
+      setOn(Boolean(r.ok && r.data?.store === 'on' && r.data?.sms !== 'off' && r.data?.sms !== 'refused'));
+      if (r.ok && r.data?.store === 'on') {
+        sellerApi.me().then((m) => { if (m.ok) router.replace('/my-listings'); });
+      }
+    });
   }, [router]);
 
   async function send(e: React.FormEvent) {

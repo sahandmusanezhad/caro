@@ -383,6 +383,25 @@ not yet behind Cloudflare and no alert has been seen to reach Telegram.
   suites are green, and the end-to-end run is part of CI.
 - **Reopens:** nothing. (Proposed as Nuxt 4 panels; see «What the review
   changed».)
+- **As built** (sahandmusanezhad/caro#22; [DESIGN_SYSTEM](DESIGN_SYSTEM.md)):
+  - **The system was there; it is written down and held.** The site has
+    drawn with the palette's sixteen tokens, the glass and a handful of
+    classes since 2026-10-30. One component wrote a colour of its own (a
+    saved car's button); it is the system's solid button now, and the
+    palette suite refuses any component that writes one.
+  - **The operator's panel was the inbox alone.** The review of the
+    listings sellers post had its endpoints and no screen, so PHASE2_SETUP's
+    third check could not have been made. `/admin` is now the inbox, the
+    listings waiting for review, the ones reports took down, and the corpus
+    being served, behind the one door; a code where TOTP is on opens one
+    request, so each list and each decision asks for the next.
+  - **The end-to-end run is a script of its own, not a test runner.**
+    `webapp/web/e2e/routes.mjs`, with Playwright installed for CI's `e2e`
+    job alone, never into the site's dependencies: every key route at a
+    desk and on a phone, light and dark, and the seller listings walked
+    from a code to a number shown -- the fake SMS echoing its code into the
+    API's log. Its first run found two pages without a heading and a login
+    page asking for a session it could not have; all three are mended.
 
 ### Phase 6 — The site in its own image, Vercel retired (about a week; Sobhan, reviewed by the owner)
 
