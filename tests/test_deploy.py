@@ -203,6 +203,27 @@ check("DP20: the collector is Alloy at a version, started only where the env fil
       and "loki" not in _alloy_code and "http" not in _alloy_code.replace("prometheus", ""),
       _obs[:400])
 
+_rules = text("deploy/grafana/alerts.yml")
+_rtest = text("deploy/grafana/alerts_test.yml")
+_ci = text(".github/workflows/ci.yml")
+_metrics_src = text("webapp/api/metrics.py")
+_alerts = re.findall(r"^\s+- alert: (\w+)$", _rules, re.MULTILINE)
+_used = set(re.findall(r"\b(caro_[a-z_]+)", _rules))
+_exposed = {m for m in re.findall(r"\b(caro_[a-z_]+)", _metrics_src)}
+_exposed |= {f"caro_request_seconds_{s}" for s in ("bucket", "sum", "count")}
+_blocks_r = re.split(r"\n\s+- alert: ", _rules)[1:]
+check("DP21: every alert reads only what /metrics says, carries a severity and a summary, and is tried by "
+      "the alerts' own tests, which CI runs by promtool at a version; the availability alerts count the "
+      "public reads alone and the search's the bucket at 300 ms",
+      len(_alerts) == 7 and _used <= _exposed
+      and all("severity: page" in b or "severity: ticket" in b for b in _blocks_r)
+      and all("summary:" in b for b in _blocks_r)
+      and all(re.search(rf"^\s+alertname: {a}$", _rtest, re.MULTILINE) for a in _alerts)
+      and re.search(r"prom/prometheus:v\d+\.\d+\.\d+ test rules alerts_test\.yml", _ci) is not None
+      and _rules.count('route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)"') == 8
+      and 'le="0.3"' in _rules and "0.3" in _metrics_src.split("BUCKETS = (")[1].split(")")[0],
+      str((_alerts, sorted(_used - _exposed))))
+
 _edge = text("compose.edge.yml")
 _esvc = blocks(_edge)
 check("DP6: the edge is nginx alone, the only thing on the server that publishes a port -- 443 -- "

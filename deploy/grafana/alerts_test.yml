@@ -1,0 +1,177 @@
+# The alerts' own tests (deploy/grafana/alerts.yml), made series in and the
+# alerts that must and must not fire out:
+#
+#   promtool test rules deploy/grafana/alerts_test.yml
+#
+# CI runs it (.github/workflows/ci.yml, the suites job).
+
+rule_files:
+  - alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # The API stops answering its collector: an alert after five minutes.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="caro-api", env="production", instance="api:8000"}'
+        values: '1 1 1 0x20'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: CaroApiDown
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: CaroApiDown
+        exp_alerts:
+          - exp_labels: {severity: page, job: caro-api, env: production, instance: "api:8000"}
+            exp_annotations:
+              summary: "production: the API has not answered its collector for five minutes"
+
+  # One public read in ten fails: the fast burn, by environment, and the
+  # slow one with it. A 503 the seller listings answer while off is not
+  # counted.
+  - interval: 1m
+    input_series:
+      - series: 'caro_requests_total{route="/api/search", method="GET", code="200", env="production"}'
+        values: '0+90x120'
+      - series: 'caro_requests_total{route="/api/search", method="GET", code="503", env="production"}'
+        values: '0+10x120'
+      - series: 'caro_requests_total{route="/api/listings", method="GET", code="503", env="staging"}'
+        values: '0+50x120'
+      - series: 'caro_requests_total{route="/api/model", method="GET", code="200", env="staging"}'
+        values: '0+50x120'
+    alert_rule_test:
+      - eval_time: 70m
+        alertname: CaroErrorBudgetFastBurn
+        exp_alerts:
+          - exp_labels: {severity: page, env: production}
+            exp_annotations:
+              summary: "production: the public reads fail fast enough to spend a month's budget in two days"
+      - eval_time: 70m
+        alertname: CaroErrorBudgetSlowBurn
+        exp_alerts:
+          - exp_labels: {severity: ticket, env: production}
+            exp_annotations:
+              summary: "production: the public reads fail fast enough to spend a month's budget in five days"
+
+  # One in a hundred fails: within the fast burn's threshold, not the slow
+  # one's either (6 times 0.5% is 3%).
+  - interval: 1m
+    input_series:
+      - series: 'caro_requests_total{route="/api/listing/{listing_id}", method="GET", code="200", env="production"}'
+        values: '0+99x500'
+      - series: 'caro_requests_total{route="/api/listing/{listing_id}", method="GET", code="500", env="production"}'
+        values: '0+1x500'
+    alert_rule_test:
+      - eval_time: 7h
+        alertname: CaroErrorBudgetFastBurn
+        exp_alerts: []
+      - eval_time: 7h
+        alertname: CaroErrorBudgetSlowBurn
+        exp_alerts: []
+
+  # Five in a hundred fail for hours: the slow burn and not the fast one.
+  - interval: 1m
+    input_series:
+      - series: 'caro_requests_total{route="/api/corpus", method="GET", code="200", env="staging"}'
+        values: '0+95x500'
+      - series: 'caro_requests_total{route="/api/corpus", method="GET", code="503", env="staging"}'
+        values: '0+5x500'
+    alert_rule_test:
+      - eval_time: 7h
+        alertname: CaroErrorBudgetSlowBurn
+        exp_alerts:
+          - exp_labels: {severity: ticket, env: staging}
+            exp_annotations:
+              summary: "staging: the public reads fail fast enough to spend a month's budget in five days"
+      - eval_time: 7h
+        alertname: CaroErrorBudgetFastBurn
+        exp_alerts: []
+
+  # Four searches in five within 300 ms, 300 an hour: slow. Fewer than a
+  # hundred in the hour, all slow: too few to say.
+  - interval: 1m
+    input_series:
+      - series: 'caro_request_seconds_bucket{route="/api/search", le="0.3", env="production"}'
+        values: '0+4x120'
+      - series: 'caro_request_seconds_count{route="/api/search", env="production"}'
+        values: '0+5x120'
+      - series: 'caro_request_seconds_bucket{route="/api/search", le="0.3", env="staging"}'
+        values: '0+0x120'
+      - series: 'caro_request_seconds_count{route="/api/search", env="staging"}'
+        values: '0+1x120'
+    alert_rule_test:
+      - eval_time: 90m
+        alertname: CaroSearchSlow
+        exp_alerts:
+          - exp_labels: {severity: ticket, env: production}
+            exp_annotations:
+              summary: "production: fewer than 95% of the last hour's searches were answered within 300 ms"
+
+  # Production answers and serves the synthetic corpus: an alert. Staging's
+  # corpus is not production's business.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="caro-api", env="production", instance="api:8000"}'
+        values: '1x30'
+      - series: 'caro_corpus_info{env="production", kind="SYNTHETIC", run_id="synthetic", sha256="s"}'
+        values: '1x30'
+      - series: 'caro_corpus_info{env="staging", kind="SYNTHETIC", run_id="synthetic", sha256="s"}'
+        values: '1x30'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: CaroCorpusNotReal
+        exp_alerts:
+          - exp_labels: {severity: page, env: production, kind: REAL}
+            exp_annotations:
+              summary: "production serves no REAL corpus: the site shows a refusal or the synthetic one"
+
+  # Production serves run17, REAL: nothing.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="caro-api", env="production", instance="api:8000"}'
+        values: '1x30'
+      - series: 'caro_corpus_info{env="production", kind="REAL", run_id="run17", sha256="ad72b16a54cf"}'
+        values: '1x30'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: CaroCorpusNotReal
+        exp_alerts: []
+
+  # Only staging observed: nothing about production, rather than an alert
+  # nobody can clear.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="caro-api", env="staging", instance="api:8000"}'
+        values: '1x30'
+      - series: 'caro_corpus_info{env="staging", kind="REAL", run_id="run17", sha256="ad72b16a54cf"}'
+        values: '1x30'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: CaroCorpusNotReal
+        exp_alerts: []
+
+  # The runs' database unread for half an hour; a source whose last
+  # collected run finished 27 hours ago.
+  - interval: 1m
+    input_series:
+      - series: 'caro_collection_up{env="production", instance="api:8000", job="caro-api"}'
+        values: '0x40'
+      - series: 'caro_collection_last_run_timestamp_seconds{source="khodro45", env="production", instance="api:8000", job="caro-api"}'
+        values: '0x1700'
+    alert_rule_test:
+      - eval_time: 35m
+        alertname: CaroCollectionUnread
+        exp_alerts:
+          - exp_labels: {severity: ticket, env: production, instance: "api:8000", job: caro-api}
+            exp_annotations:
+              summary: "production: the API cannot read the runs' database"
+      - eval_time: 25h
+        alertname: CaroCollectionStale
+        exp_alerts: []
+      - eval_time: 27h
+        alertname: CaroCollectionStale
+        exp_alerts:
+          - exp_labels: {severity: ticket, env: production, source: khodro45, instance: "api:8000", job: caro-api}
+            exp_annotations:
+              summary: "production: khodro45 has collected no run for more than 26 hours"

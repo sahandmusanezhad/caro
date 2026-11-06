@@ -5,6 +5,7 @@
 #   suites    all nineteen suites of tests/run_all.py. The runner exits 0 when
 #             a suite is skipped for a missing dependency, and "skipped is not
 #             passed" is this project's rule, so this job fails on any skip.
+#             Then the alerts' own tests, by promtool (docs/SLO.md).
 #   web       the site's type check, lint and production build.
 #   e2e       the site and the API side by side, every key route in a
 #             browser, at a desk and on a phone, light and dark, and the
@@ -82,6 +83,14 @@ jobs:
             echo "::error::a suite was skipped; skipped is not passed"
             exit 1
           fi
+
+      # Made series in, the alerts that must and must not fire out
+      # (deploy/grafana/alerts_test.yml); promtool loads and checks the rules
+      # as it goes.
+      - name: The alerts' own tests
+        run: |
+          docker run --rm --entrypoint promtool -v "$PWD/deploy/grafana:/g:ro" -w /g \
+            prom/prometheus:v3.16.0 test rules alerts_test.yml
 
   web:
     runs-on: ubuntu-24.04
