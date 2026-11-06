@@ -55,16 +55,18 @@ an item says so.
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
   Every merge since D84 has its entry, D85 to D99.
-- **Phases 1 to 5 built and merged** (this repository's pull requests #18
-  to #22); phase 5 needs nothing more, and what is left of the rest is the
+- **Phases 1 to 6 built and merged** (this repository's pull requests #18
+  to #23); phase 5 needs nothing more, and what is left of the rest is the
   owner's, every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
-  [PHASE2_SETUP](PHASE2_SETUP.md), [PHASE3_SETUP](PHASE3_SETUP.md) and
-  [PHASE4_SETUP](PHASE4_SETUP.md): the server at Hetzner, staging, the first
-  release, the switch from Vercel, an SMS account with its template, the R2
-  bucket, the alerts' bot, the worker on the owner's machine, the cache
-  rule, the purge's token and Turnstile's widget.
+  [PHASE2_SETUP](PHASE2_SETUP.md), [PHASE3_SETUP](PHASE3_SETUP.md),
+  [PHASE4_SETUP](PHASE4_SETUP.md) and [PHASE6_SETUP](PHASE6_SETUP.md): the
+  server at Hetzner, staging, the first release, the switch from Vercel, an
+  SMS account with its template, the R2 bucket, the alerts' bot, the worker
+  on the owner's machine, the cache rule, the purge's token, Turnstile's
+  widget, and the Vercel project deleted by its holder.
 - **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge; its
-  `main` was last brought in step on 2026-11-02, at pull request #16.
+  `main` is at pull request #17's merge, `1940296`, read on 2026-11-06, so
+  phases 1 to 5 are not on the site yet.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -202,7 +204,15 @@ names. Durations are for two people part-time.
 6. **The site in its own image, Vercel retired** (issue #8; about a week;
    Sobhan, reviewed by the owner). The site's standalone build beside the API
    behind nginx, through Cloudflare, every suite run against the same code.
-   Reopens D64 for the site.
+   Reopens D64 for the site. **Built** (this repository's pull request #23):
+   the image and its place behind nginx, phase 1's; both images walked in a
+   browser before either is pushed, every key route and the seller
+   listings; the read after each deploy failing unless Cloudflare served the
+   environment and Vercel did not; the repository's side of the retirement
+   in a draft pull request, `phase6-vercel-gone`, to merge once the project
+   is deleted. Left, every step in [PHASE6_SETUP](PHASE6_SETUP.md): the site
+   served from the server, a week of it, and the Vercel project deleted by
+   its holder.
 7. **Observability, scale, and the D56 review** (issue #9; about two weeks;
    both). OpenTelemetry to Grafana, dashboards and SLOs, the full alert
    catalogue; k6 at ten times the target; D56's three conditions measured,

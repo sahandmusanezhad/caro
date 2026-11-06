@@ -417,6 +417,26 @@ not yet behind Cloudflare and no alert has been seen to reach Telegram.
   left Vercel.
 - **Reopens:** D64 (the site as a Vercel service). (Proposed as the public
   site on Nuxt with Next.js retired; see «What the review changed».)
+- **As built** (sahandmusanezhad/caro#23; the owner's steps are
+  [PHASE6_SETUP](PHASE6_SETUP.md)):
+  - **The image and its place were phase 1's.** The site moved with the API
+    in phase 1, so that every request reaches the API from the address
+    Cloudflare names; its standalone image, nginx in front of both and the
+    switch were built there. Phase 6 keeps what the plan left it: the suites
+    against the image, the retirement and the decision entry.
+  - **The suites against it, before it is pushed.** The two images the
+    server pulls are walked in a browser in the images workflow, every key
+    route in four views and the seller listings, as CI's `e2e` job walks the
+    tree; the contract runs inside the API's image. After each deploy the
+    `reached` job reads the environment and fails unless Cloudflare served it
+    and Vercel served no part of it.
+  - **Turnstile is walked around, not through.** Its widget answers only on
+    the hostnames Cloudflare was given, so where the pushed site draws it
+    the browser walks an image built without that one argument.
+  - **The retirement is a pull request kept as a draft**
+    (`phase6-vercel-gone`). It may merge only once the project is deleted:
+    until then `main` of `Tecso-Dev/caro` deploys to Vercel from
+    `vercel.json`, and putting the CNAME back undoes the switch.
 
 ### Phase 7 — Observability, scale, and the D56 review (about two weeks; both)
 

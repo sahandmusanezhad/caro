@@ -148,7 +148,7 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 | 3 | the queue in Postgres, the collection worker | built (sahandmusanezhad/caro#20), waiting on the owner's machine, a bucket and a bot ([the steps](docs/PHASE3_SETUP.md)) |
 | 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | built (sahandmusanezhad/caro#21), waiting on Cloudflare's settings ([the steps](docs/PHASE4_SETUP.md)) |
 | 5 | the design system and the panels, in Next.js | built (sahandmusanezhad/caro#22): the system held, the operator's panel whole, the browser run in CI ([the system](docs/DESIGN_SYSTEM.md)) |
-| 6 | the site in its own image, Vercel retired | |
+| 6 | the site in its own image, Vercel retired | built (sahandmusanezhad/caro#23): both images walked in a browser before they are pushed, the deploy's read held to Cloudflare; the Vercel project's deletion waits on its holder ([the steps](docs/PHASE6_SETUP.md)) |
 | 7 | observability, ten times the load, D56's measurements, Kubernetes decided | |
 
 How the work is done, and the rules every session keeps, are in
@@ -834,6 +834,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) ·
 | [PHASE2_SETUP](docs/PHASE2_SETUP.md) | phase 2's steps: an SMS account and its template, and the seller listings switched on in staging, then production |
 | [PHASE3_SETUP](docs/PHASE3_SETUP.md) | phase 3's steps: the R2 bucket, the worker's token and the alerts' bot on the server, the worker on the owner's machine, and seven days of runs |
 | [PHASE4_SETUP](docs/PHASE4_SETUP.md) | phase 4's steps: the cache rule, the purge's token, Turnstile's widget, and the search's baseline on the server |
+| [PHASE6_SETUP](docs/PHASE6_SETUP.md) | phase 6's steps: the site served from the server, a week of it, and the Vercel project deleted by its holder |
 | [PERF](docs/PERF.md) | the search under load: the k6 script, the target, and each run with what it ran on |
 | [DESIGN_SYSTEM](docs/DESIGN_SYSTEM.md) | what every page and panel is drawn with -- the tokens, the type, the classes -- and what holds each rule |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |
