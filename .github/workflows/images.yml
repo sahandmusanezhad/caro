@@ -2,7 +2,8 @@
 # (docs/PHASE1_SETUP.md):
 #
 #   a pull request    both images built, the API's suites run inside its
-#                     image, both started together and read; nothing pushed
+#                     image, both started together, read, and walked in a
+#                     browser (webapp/web/e2e/routes.mjs); nothing pushed
 #   a merge into main the same, then ghcr.io/<owner>/caro-api and caro-site
 #                     pushed as sha-<commit> and :staging
 #   a tag v*          the same, then pushed as <tag> and :production
@@ -69,17 +70,67 @@ jobs:
             --build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY \
             -t "$SITE:sha-$GITHUB_SHA" webapp/web
 
+      # The API with a seller store in a file of its container's, the fake SMS
+      # echoing each code into its log, and an operator's token made up for
+      # this job, so that the browser below can walk the seller listings.
       - name: Both images, started together and read from the outside
         run: |
           docker network create smoke
-          docker run -d --name api --network smoke -e CARO_INBOX=off "$API:sha-$GITHUB_SHA"
+          docker run -d --name api --network smoke -e CARO_INBOX=off \
+            -e DATABASE_URL=sqlite:////tmp/store.sqlite3 \
+            -e CARO_STORE_SECRET=made-up-for-the-images-job-0123456789abcdef \
+            -e CARO_SMS_PROVIDER=fake -e CARO_SMS_FAKE_ECHO=1 \
+            -e CARO_ADMIN_TOKEN=made-up-for-the-images-job-operator \
+            "$API:sha-$GITHUB_SHA"
           docker run -d --name site --network smoke -p 127.0.0.1:3000:3000 "$SITE:sha-$GITHUB_SHA"
           python3 scripts/deploy_wait.py --site http://127.0.0.1:3000 --build "$GITHUB_SHA" --timeout 120 --every 2
           python3 scripts/site_check.py --site http://127.0.0.1:3000
 
+      # Turnstile's widget answers only on the hostnames Cloudflare was given,
+      # so no browser here can pass it. Where the site's image draws it, the
+      # browser walks one built without that one argument, beside it.
+      - name: The site's image for the browser, where the one pushed draws Turnstile
+        if: vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY != ''
+        env:
+          NEXT_PUBLIC_SENTRY_DSN: ${{ vars.NEXT_PUBLIC_SENTRY_DSN }}
+          NEXT_PUBLIC_SELLER_LISTINGS: ${{ vars.NEXT_PUBLIC_SELLER_LISTINGS }}
+        run: |
+          docker build --build-arg NEXT_PUBLIC_SENTRY_DSN --build-arg NEXT_PUBLIC_SELLER_LISTINGS \
+            -t caro-site:browser webapp/web
+          docker run -d --name site-browser --network smoke -p 127.0.0.1:3001:3000 caro-site:browser
+          python3 scripts/deploy_wait.py --site http://127.0.0.1:3001 --build "$GITHUB_SHA" --timeout 120 --every 2
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: webapp/web/package-lock.json
+
+      # Playwright for this job alone, as for CI's e2e job: never one of the
+      # site's dependencies, and in neither image.
+      - name: Playwright and its Chromium
+        working-directory: webapp/web
+        run: |
+          npm ci --no-audit --no-fund
+          npm install --no-save --no-audit --no-fund playwright@1.63.0
+          npx playwright install --with-deps chromium
+
+      # What CI's e2e job checks on the tree, against the images: the site's
+      # standalone server, its fonts and scripts and its policy, and the
+      # API's image behind it, the code read from the container's log.
+      - name: Every key route in a browser, against the two images, and the seller listings
+        working-directory: webapp/web
+        env:
+          CARO_SITE: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY != '' && 'http://127.0.0.1:3001' || 'http://127.0.0.1:3000' }}
+          CARO_API_LOG: ${{ runner.temp }}/api.log
+          CARO_E2E_ADMIN_TOKEN: made-up-for-the-images-job-operator
+        run: |
+          docker logs -f api > "$CARO_API_LOG" 2>&1 &
+          node e2e/routes.mjs
+
       - name: The containers' logs, when that failed
         if: failure()
-        run: docker logs api; docker logs site
+        run: docker logs api; docker logs site; docker logs site-browser 2>/dev/null || true
 
       - name: Push, and move the environment's tag
         if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'

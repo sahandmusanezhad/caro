@@ -446,6 +446,44 @@ check("DP13: the images workflow runs the API's suites inside its image and read
       and "vars.CARO_STAGING_URL" in _wf and "if: env.URL != ''" in _wf
       and "packages: write" in _wf and "contents: read" in _wf, "")
 
+
+def _step(wf: str, name: str) -> str:
+    """One step of a workflow, from its name to the next step; "" where there is none."""
+    at = wf.find(f"- name: {name}")
+    if at < 0:
+        return ""
+    nxt = wf.find("\n      - ", at)
+    return wf[at:] if nxt < 0 else wf[at:nxt]
+
+
+def _before(text: str, first: str, then: str) -> bool:
+    """Both are in `text`, `first` before `then`."""
+    a, b = text.find(first), text.find(then)
+    return 0 <= a < b
+
+
+_browser_img = _step(_wf, "The site's image for the browser")
+_pushed_img = _step(_wf, "The site's image")
+_walk = _step(_wf, "Every key route in a browser")
+_smoke = _step(_wf, "Both images, started together")
+check("DP19: the images workflow walks both images in a browser before it pushes anything -- every key "
+      "route and the seller listings, the code read from the API container's log, the fake SMS against "
+      "a SQLite store -- and where the pushed site draws Turnstile, which no browser here can pass, "
+      "the browser walks one built without that one argument",
+      _before(_wf, "node e2e/routes.mjs", "docker push")
+      and "if: vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY != ''" in _browser_img
+      and "run:" in _browser_img and "NEXT_PUBLIC_TURNSTILE_SITE_KEY" not in _browser_img.split("run:", 1)[1]
+      and "--build-arg NEXT_PUBLIC_TURNSTILE_SITE_KEY" in _pushed_img
+      and "--build-arg NEXT_PUBLIC_SENTRY_DSN --build-arg NEXT_PUBLIC_SELLER_LISTINGS" in _browser_img
+      and "CARO_SITE: ${{ vars.NEXT_PUBLIC_TURNSTILE_SITE_KEY != '' && 'http://127.0.0.1:3001' "
+          "|| 'http://127.0.0.1:3000' }}" in _walk
+      and "-p 127.0.0.1:3001:3000 caro-site:browser" in _browser_img
+      and _before(_walk, 'docker logs -f api > "$CARO_API_LOG"', "node e2e/routes.mjs")
+      and "CARO_SMS_PROVIDER=fake" in _smoke and "DATABASE_URL=sqlite:////tmp/" in _smoke
+      and "CARO_ADMIN_TOKEN=made-up-for-the-images-job-operator" in _smoke
+      and "CARO_E2E_ADMIN_TOKEN: made-up-for-the-images-job-operator" in _walk
+      and "npm install --no-save" in _wf, "")
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
