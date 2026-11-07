@@ -5405,15 +5405,35 @@ for _sn in (_snap_dm("2026-11-02", "s1", present=("a", "b")),
             _snap_dm("2026-11-03", "s2", present=("a", "b", "c", "d")),
             _snap_dm("2026-11-04", "s3", present=("a", "d"), absent=("b", "c"))):
     _write_dm(_sdir_dm, _sn)
-_d1 = _main_dm("durations", "--snapshots", str(_sdir_dm))
-_d0 = _main_dm("durations", "--snapshots", str(_Path_dm(_tmp_dm.name) / "none"))
+_nowatch_dm = str(_Path_dm(_tmp_dm.name) / "no-watch.jsonl")
+_d1 = _main_dm("durations", "--snapshots", str(_sdir_dm), "--watch", _nowatch_dm)
+_d0 = _main_dm("durations", "--snapshots", str(_Path_dm(_tmp_dm.name) / "none"), "--watch", _nowatch_dm)
 check("DM3: condition 2 folds the snapshots day by day, a listing gone kept as gone: of four listings, the two "
       "listed when tracking began are left out, one that appeared and went is a disappearance, one still "
-      "listed is censored -- 1 of D56's 30, not met; no snapshot is exit 2",
-      _d1[0] == 0 and "3 snapshot(s) over 3 day(s), 2026-11-02 to 2026-11-04" in _d1[1]
+      "listed is censored -- 1 of D56's 30, not met; no snapshot and no watch is exit 2",
+      _d1[0] == 0 and "3 snapshot(s) and 0 day(s) of the watch, over 3 day(s), 2026-11-02 to 2026-11-04" in _d1[1]
       and "usable 2: disappeared 1, still listed (censored) 1; listed before tracking began (left out) 2" in _d1[1]
       and "condition 2: not met: 1 of the 30 observed disappearances D56 asks for" in _d1[1]
       and _d0[0] == 2, str((_d1, _d0)))
+
+_watch_dm = _Path_dm(_tmp_dm.name) / "date_watch.jsonl"
+_watch_dm.write_text("\n".join(json.dumps(r) for r in (
+    {"listing_id": "w1", "observed_at": "2026-11-02T08:00:00+00:00", "fetch": "ok"},
+    {"listing_id": "w1", "observed_at": "2026-11-03T08:00:00+00:00", "fetch": "ok"},
+    {"listing_id": "w2", "observed_at": "2026-11-03T08:00:00+00:00", "fetch": "ok"},
+    {"listing_id": "w3", "observed_at": "2026-11-03T08:00:00+00:00", "fetch": "ok"},
+    {"listing_id": "w2", "observed_at": "2026-11-04T08:00:00+00:00", "fetch": "absent"},
+    {"listing_id": "w3", "observed_at": "2026-11-04T09:00:00+00:00", "fetch": "absent"},
+    {"listing_id": "w3", "observed_at": "2026-11-04T08:00:00+00:00", "fetch": "unknown"},
+)) + "\nnot a line of json\n", encoding="utf-8")
+_d2 = _main_dm("durations", "--snapshots", str(_Path_dm(_tmp_dm.name) / "none"), "--watch", str(_watch_dm))
+check("DM5: a run of list pages never sees a listing go, so the watch's observations are folded too, a "
+      "snapshot a day by the day's last word on each page: w1 was there when the watch began and is left "
+      "out; w2 and w3 appeared and went -- the second gone by its later fetch, not by the unknown one "
+      "written after it in the file",
+      _d2[0] == 0 and "0 snapshot(s) and 3 day(s) of the watch, over 3 day(s), 2026-11-02 to 2026-11-04" in _d2[1]
+      and "usable 2: disappeared 2, still listed (censored) 0; listed before tracking began (left out) 1" in _d2[1]
+      and "condition 2: not met: 2 of the 30" in _d2[1], str(_d2))
 
 _art_dm = {"run_id": "r", "listings": [{"listing_id": "x", "make": "IKCO"}, {"listing_id": "y", "make": "SAIPA"}]}
 _g_dm = _dm.grown(_art_dm, 5)

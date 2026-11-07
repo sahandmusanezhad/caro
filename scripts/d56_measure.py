@@ -10,10 +10,10 @@ a subcommand here, and none of them sends a request anywhere:
                   --ops), how long each source's took, and how long the day
                   took run one after another and side by side.
     durations  2. Whether duration_stats is genuinely running: the snapshots
-                  under a directory folded into tracking state day by day,
-                  the observed disappearances against D56's thirty, the
-                  censored and the left-truncated apart, and what folding
-                  them cost.
+                  under a directory and date_watch's observations folded
+                  into tracking state day by day, the observed
+                  disappearances against D56's thirty, the censored and the
+                  left-truncated apart, and what folding them cost.
     stages     3. Which stage, if any, is a bottleneck: the free-text parser,
                   canonicalisation, the index build, serialisation, the
                   comparison of two runs and the search, timed on the served
@@ -141,10 +141,39 @@ def load_snapshot(path: Path):
                     notes=list(raw.get("notes") or []))
 
 
-def fold(paths: list[Path]):
+def watch_snapshots(path: Path) -> list:
+    """date_watch's observations (data/observations/date_watch.jsonl), one
+    snapshot a day: each listing whose own page was fetched that day, as the
+    watch classified the fetch -- present, gone, or learned nothing -- by
+    the day's last word on it, the day being UTC's. A run of list pages
+    never sees a listing go; the watch is what does, so condition 2 is
+    counted from both. Each day is judged as any snapshot is
+    (assess_integrity): a day of mostly unknown fetches is no evidence of
+    absence."""
+    from caro.tracking import FetchOutcome, FetchStatus, Snapshot, assess_integrity
+    statuses = {s.value for s in FetchStatus}
+    days: dict[str, dict[str, tuple[str, object]]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        at, lid, fetch = str(rec.get("observed_at") or ""), rec.get("listing_id"), rec.get("fetch")
+        if not lid or fetch not in statuses or len(at) < 10:
+            continue
+        day = days.setdefault(at[:10], {})
+        if str(lid) not in day or at >= day[str(lid)][0]:
+            day[str(lid)] = (at, FetchStatus(fetch))
+    return [assess_integrity(Snapshot(snapshot_id=f"date-watch-{d}", taken_on=date.fromisoformat(d),
+                                      outcomes=[FetchOutcome(listing_id=k, status=v)
+                                                for k, (_at, v) in sorted(by.items())]))
+            for d, by in sorted(days.items())]
+
+
+def fold(snapshots: list):
     """The snapshots, oldest day first, folded into one tracking state."""
     from caro.tracking import TrackingState, apply_snapshot
-    snaps = sorted((load_snapshot(p) for p in paths), key=lambda s: (s.taken_on, s.snapshot_id))
+    snaps = sorted(snapshots, key=lambda s: (s.taken_on, s.snapshot_id))
     state = TrackingState()
     for i, s in enumerate(snaps):
         apply_snapshot(state, s, is_first=(i == 0))
@@ -153,20 +182,26 @@ def fold(paths: list[Path]):
 
 def cmd_durations(a) -> int:
     from caro.tracking import duration_stats
-    root = Path(a.snapshots)
+    root, watch = Path(a.snapshots), Path(a.watch)
     paths = snapshots_under(root) if root.is_dir() else []
-    if not paths:
-        print(f"durations: no snapshot under {root}", file=sys.stderr)
+    watched = watch.is_file()
+    if not paths and not watched:
+        print(f"durations: no snapshot under {root} and no watch at {watch}", file=sys.stderr)
         return 2
     t0 = time.perf_counter()
-    state, snaps = fold(paths)
+    from_files = [load_snapshot(p) for p in paths]
+    from_watch = watch_snapshots(watch) if watched else []
+    state, snaps = fold(from_files + from_watch)
+    if not snaps:
+        print("durations: nothing in them to fold", file=sys.stderr)
+        return 2
     as_of = snaps[-1].taken_on
     st = duration_stats(state, as_of)
     took = time.perf_counter() - t0
-    size = sum(p.stat().st_size for p in paths)
+    size = sum(p.stat().st_size for p in paths) + (watch.stat().st_size if watched else 0)
     days = sorted({s.taken_on for s in snaps})
-    print(f"durations {len(snaps)} snapshot(s) over {len(days)} day(s), {days[0]} to {days[-1]}; "
-          f"{size / 1e6:.1f} MB, folded in {took:.2f} s")
+    print(f"durations {len(from_files)} snapshot(s) and {len(from_watch)} day(s) of the watch, over "
+          f"{len(days)} day(s), {days[0]} to {days[-1]}; {size / 1e6:.1f} MB, folded in {took:.2f} s")
     print(f"  usable {st.n_usable}: disappeared {st.n_disappeared}, still listed (censored) {st.n_censored}; "
           f"listed before tracking began (left out) {st.n_excluded_left_truncated}")
     print(f"  Kaplan-Meier median {st.km_median_days if st.km_median_days is not None else '-'} day(s)")
@@ -338,6 +373,7 @@ def parser() -> argparse.ArgumentParser:
     w.add_argument("--window-hours", type=float, default=6.0)
     d = sub.add_parser("durations", help="2: duration_stats over the snapshots")
     d.add_argument("--snapshots", default=str(ROOT / "data" / "snapshots"))
+    d.add_argument("--watch", default=str(ROOT / "data" / "observations" / "date_watch.jsonl"))
     s = sub.add_parser("stages", help="3: each stage on the corpus grown")
     s.add_argument("--sizes", default=",".join(str(n) for n in SIZES))
     p = sub.add_parser("profile", help="the search's hot path")
