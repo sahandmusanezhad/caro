@@ -1,0 +1,111 @@
+# CARO's alerts on what the API counts (docs/SLO.md), in Prometheus's rule
+# format, for the Grafana Cloud stack the `observe` service writes to
+# (docs/PHASE7_SETUP.md):
+#
+#   mimirtool rules load deploy/grafana/alerts.yml \
+#     --address=<the stack's Prometheus address> --id=<its user> --key=<a token with rules:write>
+#
+# Each alert names its environment. The public reads are the routes whose
+# 5xx is always a fault: a 503 elsewhere -- the seller listings or the
+# worker's records switched off -- is a state the site was built to show.
+# `promtool check rules deploy/grafana/alerts.yml` checks the file.
+
+groups:
+  - name: caro-availability
+    rules:
+      - alert: CaroApiDown
+        expr: up{job="caro-api"} == 0
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "{{ $labels.env }}: the API has not answered its collector for five minutes"
+
+      # The error budget of 0.5% of the public reads in 30 days, spent 14.4
+      # times as fast as it lasts: 2% of it in an hour.
+      - alert: CaroErrorBudgetFastBurn
+        expr: |
+          (
+            sum by (env) (rate(caro_requests_total{route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)", code=~"5.."}[1h]))
+            / sum by (env) (rate(caro_requests_total{route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)"}[1h]))
+          ) > (14.4 * 0.005)
+          and
+          (
+            sum by (env) (rate(caro_requests_total{route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)", code=~"5.."}[5m]))
+            / sum by (env) (rate(caro_requests_total{route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)"}[5m]))
+          ) > (14.4 * 0.005)
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "{{ $labels.env }}: the public reads fail fast enough to spend a month's budget in two days"
+
+      # The same budget, 6 times as fast: 10% of it in six hours.
+      - alert: CaroErrorBudgetSlowBurn
+        expr: |
+          (
+            sum by (env) (rate(caro_requests_total{route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)", code=~"5.."}[6h]))
+            / sum by (env) (rate(caro_requests_total{route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)"}[6h]))
+          ) > (6 * 0.005)
+          and
+          (
+            sum by (env) (rate(caro_requests_total{route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)", code=~"5.."}[30m]))
+            / sum by (env) (rate(caro_requests_total{route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)"}[30m]))
+          ) > (6 * 0.005)
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.env }}: the public reads fail fast enough to spend a month's budget in five days"
+
+  - name: caro-search
+    rules:
+      # 95% of searches within 300 ms, read from the bucket at 0.3 s.
+      - alert: CaroSearchSlow
+        expr: |
+          (
+            sum by (env) (rate(caro_request_seconds_bucket{route="/api/search", le="0.3"}[1h]))
+            / sum by (env) (rate(caro_request_seconds_count{route="/api/search"}[1h]))
+          ) < 0.95
+          and sum by (env) (increase(caro_request_seconds_count{route="/api/search"}[1h])) >= 100
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.env }}: fewer than 95% of the last hour's searches were answered within 300 ms"
+
+  - name: caro-corpus
+    rules:
+      # Where production's API answers its collector and names no REAL
+      # corpus: the synthetic one served, or none at all. Where it does not
+      # answer, CaroApiDown says so.
+      - alert: CaroCorpusNotReal
+        expr: |
+          absent(caro_corpus_info{env="production", kind="REAL"})
+          and on () count(up{job="caro-api", env="production"} == 1) > 0
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: "production serves no REAL corpus: the site shows a refusal or the synthetic one"
+
+  - name: caro-collection
+    rules:
+      - alert: CaroCollectionUnread
+        expr: caro_collection_up == 0
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.env }}: the API cannot read the runs' database"
+
+      # A day and two hours: the alerts role says a missing run at its own
+      # time on the server (webapp/alerts.py); this says it from outside,
+      # should the server's alerts have stopped with it.
+      - alert: CaroCollectionStale
+        expr: time() - caro_collection_last_run_timestamp_seconds > 26 * 3600
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $labels.env }}: {{ $labels.source }} has collected no run for more than 26 hours"

@@ -5320,6 +5320,132 @@ check("SC4: with --cloudflare the check exits 1 unless the home page came throug
       and _sc_runs[3][0] == 0 and _sc_runs[3][2] == "", str(_sc_runs))
 
 
+# ---------------------------------------------------------------------------
+print("\nd56_measure: D56's three conditions, measured rather than anticipated")
+# The window from the runs' records, duration_stats from snapshots on disk,
+# and the corpus grown for the stages -- all on made data, nothing fetched.
+import tempfile as _tempfile_dm                                        # noqa: E402
+from pathlib import Path as _Path_dm                                   # noqa: E402
+from datetime import date as _date_dm                                  # noqa: E402
+
+from caro import runs as _runs_dm                                      # noqa: E402
+from caro.tracking import (FetchOutcome as _FO_dm, FetchStatus as _FS_dm,  # noqa: E402
+                           Snapshot as _Snap_dm, write_snapshot as _write_dm)
+from scripts import d56_measure as _dm                                  # noqa: E402
+
+
+def _run_dm(source, day, started, took, outcome="collected", attempt=1):
+    return {"run_id": f"collect:{source}:{day}#{attempt}", "job": f"collect:{source}:{day}", "source": source,
+            "pages": 10, "argv": [], "collected_on": day, "started_at": started, "finished_at": started + took,
+            "outcome": outcome, "message": None, "listings": 100, "stopped": None, "robots": None,
+            "worker": "laptop", "build": None, "snapshot": None, "transcript": None}
+
+
+_recs_dm = [_run_dm("khodro45", "2026-11-04", 1000, 600), _run_dm("khodro45", "2026-11-04", 2000, 900, attempt=2),
+            _run_dm("divar", "2026-11-04", 1000, 3000), _run_dm("sheypoor", "2026-11-04", 1000, 9000, "blocked"),
+            _run_dm("khodro45", "2026-11-05", 90000, 600)]
+_days_dm = _dm.window_days(_recs_dm)
+check("DM1: the window, day by day: each source's longest collected run, the day's sources one after another "
+      "and side by side, and a run that did not collect left out",
+      _days_dm == [{"day": "2026-11-04", "sources": {"divar": 3000, "khodro45": 900},
+                    "one_after_another": 3900, "side_by_side": 3000},
+                   {"day": "2026-11-05", "sources": {"khodro45": 600}, "one_after_another": 600,
+                    "side_by_side": 600}], str(_days_dm))
+
+_tmp_dm = _tempfile_dm.TemporaryDirectory()
+_url_dm = f"sqlite:///{_tmp_dm.name}/ops.sqlite3"
+_db_dm = _runs_dm.open_runs(_url_dm)
+for _r in _recs_dm:
+    _db_dm.keep(_r)
+_db_dm.close()
+_url1_dm = f"sqlite:///{_tmp_dm.name}/one.sqlite3"
+_db1_dm = _runs_dm.open_runs(_url1_dm)
+_db1_dm.keep(_run_dm("khodro45", "2026-11-04", 1000, 600))
+_db1_dm.close()
+
+
+def _main_dm(*argv):
+    _o, _e = _io.StringIO(), _io.StringIO()
+    with _contextlib.redirect_stdout(_o), _contextlib.redirect_stderr(_e):
+        rc = _dm.main(list(argv))
+    return rc, _o.getvalue(), _e.getvalue()
+
+
+_ops_was_dm = os.environ.pop("CARO_OPS_URL", None)
+try:
+    _w1 = _main_dm("window", "--ops", _url_dm, "--window-hours", "1")
+    _w2 = _main_dm("window", "--ops", _url_dm, "--window-hours", "0.5")
+    _w3 = _main_dm("window", "--ops", _url1_dm)
+    _w4 = _main_dm("window")
+    _w5 = _main_dm("window", "--ops", "postgresql://nobody:a-made-up-word@127.0.0.1:1/none")
+finally:
+    if _ops_was_dm is not None:
+        os.environ["CARO_OPS_URL"] = _ops_was_dm
+check("DM2: condition 1 is met only where a day's sources, side by side, did not finish in the window: two "
+      "sources within an hour side by side are not, though one after another they are over it; in half an "
+      "hour they are; one source a day is not a multi-source crawl; no database is exit 2, and one that "
+      "cannot be read exit 1, its address unsaid",
+      _w1[0] == 0 and "condition 1: not met: every day's sources finished in the window" in _w1[1]
+      and "one after another 65.0 min, side by side 50.0 min OVER" in _w1[1]
+      and "condition 1: MET" in _w2[1]
+      and "condition 1: not met: no day has collected more than one source" in _w3[1]
+      and _w4[0] == 2 and _w5[0] == 1 and "a-made-up-word" not in _w5[2] and "nobody" not in _w5[2],
+      str((_w1, _w2[1][-80:], _w3[1][-80:], _w4, _w5)))
+
+
+def _snap_dm(day, sid, present=(), absent=()):
+    outs = [_FO_dm(listing_id=i, status=_FS_dm.OK, asking_price_toman=1_000_000_000, make="IKCO", model="Samand",
+                   year_jalali=1398, province="tehran") for i in present]
+    outs += [_FO_dm(listing_id=i, status=_FS_dm.ABSENT) for i in absent]
+    return _Snap_dm(snapshot_id=sid, taken_on=_date_dm.fromisoformat(day), outcomes=outs)
+
+
+_sdir_dm = _Path_dm(_tmp_dm.name) / "snapshots"
+for _sn in (_snap_dm("2026-11-02", "s1", present=("a", "b")),
+            _snap_dm("2026-11-03", "s2", present=("a", "b", "c", "d")),
+            _snap_dm("2026-11-04", "s3", present=("a", "d"), absent=("b", "c"))):
+    _write_dm(_sdir_dm, _sn)
+_nowatch_dm = str(_Path_dm(_tmp_dm.name) / "no-watch.jsonl")
+_d1 = _main_dm("durations", "--snapshots", str(_sdir_dm), "--watch", _nowatch_dm)
+_d0 = _main_dm("durations", "--snapshots", str(_Path_dm(_tmp_dm.name) / "none"), "--watch", _nowatch_dm)
+check("DM3: condition 2 folds the snapshots day by day, a listing gone kept as gone: of four listings, the two "
+      "listed when tracking began are left out, one that appeared and went is a disappearance, one still "
+      "listed is censored -- 1 of D56's 30, not met; no snapshot and no watch is exit 2",
+      _d1[0] == 0 and "3 snapshot(s) and 0 day(s) of the watch, over 3 day(s), 2026-11-02 to 2026-11-04" in _d1[1]
+      and "usable 2: disappeared 1, still listed (censored) 1; listed before tracking began (left out) 2" in _d1[1]
+      and "condition 2: not met: 1 of the 30 observed disappearances D56 asks for" in _d1[1]
+      and _d0[0] == 2, str((_d1, _d0)))
+
+_watch_dm = _Path_dm(_tmp_dm.name) / "date_watch.jsonl"
+_watch_dm.write_text("\n".join(json.dumps(r) for r in (
+    {"listing_id": "w1", "observed_at": "2026-11-02T08:00:00+00:00", "fetch": "ok"},
+    {"listing_id": "w1", "observed_at": "2026-11-03T08:00:00+00:00", "fetch": "ok"},
+    {"listing_id": "w2", "observed_at": "2026-11-03T08:00:00+00:00", "fetch": "ok"},
+    {"listing_id": "w3", "observed_at": "2026-11-03T08:00:00+00:00", "fetch": "ok"},
+    {"listing_id": "w2", "observed_at": "2026-11-04T08:00:00+00:00", "fetch": "absent"},
+    {"listing_id": "w3", "observed_at": "2026-11-04T09:00:00+00:00", "fetch": "absent"},
+    {"listing_id": "w3", "observed_at": "2026-11-04T08:00:00+00:00", "fetch": "unknown"},
+)) + "\nnot a line of json\n", encoding="utf-8")
+_d2 = _main_dm("durations", "--snapshots", str(_Path_dm(_tmp_dm.name) / "none"), "--watch", str(_watch_dm))
+check("DM5: a run of list pages never sees a listing go, so the watch's observations are folded too, a "
+      "snapshot a day by the day's last word on each page: w1 was there when the watch began and is left "
+      "out; w2 and w3 appeared and went -- the second gone by its later fetch, not by the unknown one "
+      "written after it in the file",
+      _d2[0] == 0 and "0 snapshot(s) and 3 day(s) of the watch, over 3 day(s), 2026-11-02 to 2026-11-04" in _d2[1]
+      and "usable 2: disappeared 2, still listed (censored) 0; listed before tracking began (left out) 1" in _d2[1]
+      and "condition 2: not met: 2 of the 30" in _d2[1], str(_d2))
+
+_art_dm = {"run_id": "r", "listings": [{"listing_id": "x", "make": "IKCO"}, {"listing_id": "y", "make": "SAIPA"}]}
+_g_dm = _dm.grown(_art_dm, 5)
+check("DM4: the corpus is grown by copying its own listings under new ids, each copy the listing it copies "
+      "but for its id; and a stage's growth is the log-log slope between two sizes",
+      [l["listing_id"] for l in _g_dm["listings"]] == ["x~0", "y~0", "x~1", "y~1", "x~2"]
+      and [l["make"] for l in _g_dm["listings"]] == ["IKCO", "SAIPA", "IKCO", "SAIPA", "IKCO"]
+      and _g_dm["run_id"] == "r" and len(_art_dm["listings"]) == 2
+      and abs(_dm.slope(1.0, 10.0, 10, 100) - 1.0) < 1e-9 and abs(_dm.slope(1.0, 100.0, 10, 100) - 2.0) < 1e-9
+      and _dm.slope(0.0, 1.0, 10, 100) is None, str(_g_dm))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

@@ -33,7 +33,7 @@ COPY pyproject.toml ./
 COPY caro/ caro/
 COPY webapp/__init__.py webapp/role.py webapp/worker.py webapp/alerts.py webapp/
 COPY webapp/api/ webapp/api/
-COPY scripts/__init__.py scripts/catalog_load.py scripts/first_run.py scripts/edge_purge.py scripts/
+COPY scripts/__init__.py scripts/catalog_load.py scripts/first_run.py scripts/edge_purge.py scripts/d56_measure.py scripts/
 COPY data/corpora/ data/corpora/
 
 # The commit the image was built from; /api/health says it.

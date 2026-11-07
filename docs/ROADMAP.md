@@ -55,15 +55,18 @@ an item says so.
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
   Every merge since D84 has its entry, D85 to D99.
-- **Phases 1 to 6 built and merged** (this repository's pull requests #18
-  to #23); phase 5 needs nothing more, and what is left of the rest is the
-  owner's, every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
+- **Phases 1 to 7 built and merged** (this repository's pull requests #18
+  to #23 and #25; #24, the repository's side of Vercel's retirement, waits
+  as a draft); phase 5 needs nothing more, and what is left of the rest is
+  the owner's, every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
   [PHASE2_SETUP](PHASE2_SETUP.md), [PHASE3_SETUP](PHASE3_SETUP.md),
-  [PHASE4_SETUP](PHASE4_SETUP.md) and [PHASE6_SETUP](PHASE6_SETUP.md): the
-  server at Hetzner, staging, the first release, the switch from Vercel, an
-  SMS account with its template, the R2 bucket, the alerts' bot, the worker
-  on the owner's machine, the cache rule, the purge's token, Turnstile's
-  widget, and the Vercel project deleted by its holder.
+  [PHASE4_SETUP](PHASE4_SETUP.md), [PHASE6_SETUP](PHASE6_SETUP.md) and
+  [PHASE7_SETUP](PHASE7_SETUP.md): the server at Hetzner, staging, the first
+  release, the switch from Vercel, an SMS account with its template, the R2
+  bucket, the alerts' bot, the worker on the owner's machine, the cache
+  rule, the purge's token, Turnstile's widget, the Vercel project deleted by
+  its holder, the Grafana Cloud stack with the collector, the dashboard and
+  the alerts, and D56's decision.
 - **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge; its
   `main` is at pull request #17's merge, `1940296`, read on 2026-11-06, so
   phases 1 to 5 are not on the site yet.
@@ -218,7 +221,16 @@ names. Durations are for two people part-time.
    catalogue; k6 at ten times the target; D56's three conditions measured,
    and then a written decision on Go for the collector, on any boundary
    inside the decision core, and on Kubernetes — whether one VPS still holds
-   ten times the target — each its own D-entry.
+   ten times the target — each its own D-entry. **Built** (this repository's
+   pull request #25): `/metrics` and Alloy writing it to Grafana Cloud; the
+   SLOs and the whole alert catalogue ([SLO](SLO.md)), the new alerts tested
+   in CI; the dashboard; a hundred users held in the sandbox; the hot path
+   timed and its largest part of CARO's own made a tenth of its cost; D56's
+   stages measured, none a bottleneck ([D56_REVIEW](D56_REVIEW.md)). Left,
+   every step in [PHASE7_SETUP](PHASE7_SETUP.md): the stack, the collector
+   on the server, the dashboard and the alerts loaded, the hundred users on
+   the server, D56's first two conditions from the owner's data, and the
+   decision itself, the owner's.
 
 ## The parser — open, recorded
 

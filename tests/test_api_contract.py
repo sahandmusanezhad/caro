@@ -3552,6 +3552,126 @@ finally:
     _contact32.CONTACT_LIMIT.clear()
 
 
+# ---------------------------------------------------------------------------
+print("\n33 — the API's own numbers, for the server's collector and nobody else")
+# ---------------------------------------------------------------------------
+# The plan's phase 7 (webapp/api/metrics.py): GET /metrics, Prometheus's text
+# format, counted by route template; refused through the edge.
+import re as _re33                                                      # noqa: E402
+
+from starlette.applications import Starlette as _Starlette33           # noqa: E402
+from starlette.middleware import Middleware as _Middleware33           # noqa: E402
+from starlette.routing import Route as _Route33                        # noqa: E402
+
+from webapp.api import metrics as _mt                                   # noqa: E402
+from webapp.api.main import app as _app33                              # noqa: E402
+
+_c33 = TestClient(_app33, raise_server_exceptions=False)
+
+
+def _count33(text: str, route: str, code: str | None = None) -> int:
+    """caro_requests_total for a route (and a status), summed over methods."""
+    total = 0
+    for line in text.splitlines():
+        m = _re33.match(r'caro_requests_total\{route="([^"]*)",method="([^"]*)",code="([^"]*)"\} (\d+)$', line)
+        if m and m.group(1) == route and (code is None or m.group(3) == code):
+            total += int(m.group(4))
+    return total
+
+
+def _value33(text: str, name: str) -> float | None:
+    for line in text.splitlines():
+        if line.startswith(name + " "):
+            return float(line.split()[-1])
+    return None
+
+
+_q33 = "سمند زیر ۲ میلیارد"
+_b33 = _c33.get("/metrics").text
+_c33.get("/api/search", params={"q": _q33})
+_c33.get("/api/listing/bama:q571duyy", headers={"X-Real-IP": "203.0.113.9"})
+_c33.get("/nothing/here/0912345")
+_r33 = _c33.get("/metrics")
+_a33 = _r33.text
+check("MT1: /metrics answers in Prometheus's text format and counts each answer by its route's template -- "
+      "a listing under /api/listing/{listing_id}, never its id; a path no route has under «unmatched» -- "
+      "and each route's histogram counts what its counter counts; the question, the id and the address "
+      "are nowhere in it",
+      _r33.status_code == 200 and _r33.headers["content-type"] == "text/plain; version=0.0.4; charset=utf-8"
+      and _count33(_a33, "/api/search", "200") == _count33(_b33, "/api/search", "200") + 1
+      and _count33(_a33, "/api/listing/{listing_id}") == _count33(_b33, "/api/listing/{listing_id}") + 1
+      and _count33(_a33, "unmatched", "404") == _count33(_b33, "unmatched", "404") + 1
+      and _value33(_a33, 'caro_request_seconds_count{route="/api/search"}') == _count33(_a33, "/api/search")
+      and _value33(_a33, 'caro_request_seconds_bucket{route="/api/search",le="+Inf"}')
+      == _count33(_a33, "/api/search")
+      and _q33 not in _a33 and "سمند" not in _a33 and "q571duyy" not in _a33 and "203.0.113.9" not in _a33
+      and "0912345" not in _a33,
+      _a33[:600])
+
+_edge33 = [_c33.get("/metrics", headers={h: "198.51.100.7"}).status_code
+           for h in ("X-Forwarded-For", "CF-Connecting-IP")]
+check("MT2: a request that came through the edge -- it carries nginx's X-Forwarded-For or Cloudflare's "
+      "CF-Connecting-IP -- is answered 404: only the collector, on the environment's own network, reads it",
+      _edge33 == [404, 404], str(_edge33))
+
+_reg33 = _mt.Registry(clock=lambda: 1793750400.0)
+for _sec in (0.25, 0.3, 0.31, 20.0):
+    _reg33.observe("/api/search", "GET", 200, _sec)
+_reg33.observe("/api/search", "BREW", 405, 0.001)
+_l33 = "\n".join(_reg33.lines())
+check("MT3: the histogram is cumulative, with a bucket at the search's 300 ms target: 0.25 and 0.3 are "
+      "within it, 0.31 is not, 20 s only in +Inf; a method no route takes is «other», so a client cannot "
+      "add labels",
+      'caro_request_seconds_bucket{route="/api/search",le="0.2"} 1' in _l33
+      and 'caro_request_seconds_bucket{route="/api/search",le="0.3"} 3' in _l33
+      and 'caro_request_seconds_bucket{route="/api/search",le="0.5"} 4' in _l33
+      and 'caro_request_seconds_bucket{route="/api/search",le="10"} 4' in _l33
+      and 'caro_request_seconds_bucket{route="/api/search",le="+Inf"} 5' in _l33
+      and 'caro_request_seconds_count{route="/api/search"} 5' in _l33
+      and 'caro_requests_total{route="/api/search",method="other",code="405"} 1' in _l33
+      and "BREW" not in _l33 and "caro_process_start_time_seconds 1793750400.0" in _l33, _l33)
+
+
+async def _boom33(request):
+    raise RuntimeError("an error of ours")
+
+_bc33 = TestClient(_Starlette33(routes=[_Route33("/boom", _boom33)],
+                                middleware=[_Middleware33(_mt.Measure)]), raise_server_exceptions=False)
+_before500 = _mt.REGISTRY.requests.get(("/boom", "GET", 500), 0)
+_boom_status = _bc33.get("/boom").status_code
+check("MT4: an answer that ended in an error of ours is counted, as a 500, by its route",
+      _boom_status == 500 and _mt.REGISTRY.requests.get(("/boom", "GET", 500), 0) == _before500 + 1,
+      str((_boom_status, _mt.REGISTRY.requests.get(("/boom", "GET", 500)))))
+
+_h33 = _c33.get("/api/health").json()
+_cp33 = _c33.get("/api/corpus").json()
+check("MT5: the corpus served is named by its run, its kind and the digest /api/health names",
+      f'caro_corpus_info{{run_id="{_cp33["corpus"]["identity"]["run_id"]}",kind="{_cp33["status"]["kind"]}",'
+      f'sha256="{_h33["corpus"]}"}} 1' in _a33 and _cp33["status"]["kind"] == "REAL",
+      str([l for l in _a33.splitlines() if l.startswith("caro_corpus_info")]))
+
+_ops33 = tempfile.TemporaryDirectory()
+_url33 = f"sqlite:///{_ops33.name}/ops.sqlite3"
+_db33 = _runs30.open_runs(_url33)
+for _rid, _day, _out, _fin, _n in (("#1", "2026-11-03", "collected", 1793664300, 488),
+                                   ("#1", "2026-11-04", "collected", 1793750700, 492),
+                                   ("#2", "2026-11-05", "blocked", 1793837100, None)):
+    _db33.keep({**_REC, "run_id": f"collect:khodro45:{_day}{_rid}", "job": f"collect:khodro45:{_day}",
+                "collected_on": _day, "outcome": _out, "finished_at": _fin, "listings": _n})
+_db33.close()
+_col33 = _mt.collection_lines(_url33)
+_bad33 = _mt.collection_lines("postgresql://nobody:a-made-up-word@127.0.0.1:1/none")
+_unset33 = _mt.collection_lines("")
+check("MT6: where the runs' database is named, each source's last collected run is said -- when it "
+      "finished and what it collected, a later blocked run not taken for one; a database that cannot be "
+      "read is caro_collection_up 0 and nothing of its address; unnamed, nothing is said",
+      "caro_collection_up 1" in _col33
+      and 'caro_collection_last_run_timestamp_seconds{source="khodro45"} 1793750700' in _col33
+      and 'caro_collection_last_listings{source="khodro45"} 492' in _col33
+      and _bad33[-1] == "caro_collection_up 0" and not any("a-made-up-word" in l or "nobody" in l for l in _bad33)
+      and _unset33 == [], str((_col33, _bad33)))
+
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

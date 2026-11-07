@@ -165,7 +165,7 @@ check("DP5: an environment publishes no port, runs its API, its site and its ale
       "every capability dropped, takes its images from its env file and its password with no default, "
       "joins the edge under api-<env> and site-<env> -- the alerts on no network but its own -- and has "
       "a seller store only where its file switches one on",
-      set(_svc) == {"postgres", "catalog-load", "api", "site", "alerts", "edge-purge"}
+      set(_svc) == {"postgres", "catalog-load", "api", "site", "alerts", "edge-purge", "observe"}
       and 'command: ["alerts"]' in _svc["alerts"]
       and not re.search(r"^\s+(- edge|edge:)\s*$", _svc["alerts"], re.MULTILINE)
       and 'profiles: ["purge"]' in _svc["edge-purge"] and "read_only: true" in _svc["edge-purge"]
@@ -180,6 +180,75 @@ check("DP5: an environment publishes no port, runs its API, its site and its ale
       and 'CARO_TRUST_PROXY: "1"' in _svc["api"]
       and "DATABASE_URL: ${CARO_SELLER_STORE:+postgresql://" in _svc["api"],
       str(sorted(_svc)))
+
+_obs = _svc.get("observe", "")
+_alloy = text("deploy/alloy/config.alloy")
+_alloy_code = "\n".join(l for l in _alloy.splitlines() if not l.lstrip().startswith("//"))
+check("DP20: the collector is Alloy at a version, started only where the env file names its profile, "
+      "as its own user, read-only with every capability dropped, on the environment's own network alone, its usage "
+      "reports off; it reads /metrics at the API and writes to the address, user and token the env file "
+      "gives it, with nothing of theirs in a file and no log read -- and without them the environment "
+      "still starts",
+      'profiles: ["observe"]' in _obs and re.search(r"image: grafana/alloy:v\d+\.\d+\.\d+\n", _obs) is not None
+      and 'user: "473:473"' in _obs
+      and "--disable-reporting" in _obs and "- ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro" in _obs
+      and "read_only: true" in _obs and "cap_drop: [ALL]" in _obs and "no-new-privileges:true" in _obs
+      and re.search(r"networks:\n\s+- internal\n", _obs) is not None and "edge" not in _obs
+      and "CARO_METRICS_TARGET: api:8000" in _obs
+      and all(f"{k}: ${{{k}:-}}" in _obs for k in ("GRAFANA_CLOUD_PROM_URL", "GRAFANA_CLOUD_PROM_USER",
+                                                    "GRAFANA_CLOUD_TOKEN"))
+      and 'metrics_path    = "/metrics"' in _alloy_code and 'sys.env("CARO_METRICS_TARGET")' in _alloy_code
+      and 'url = sys.env("GRAFANA_CLOUD_PROM_URL")' in _alloy_code
+      and 'password = sys.env("GRAFANA_CLOUD_TOKEN")' in _alloy_code
+      and "loki" not in _alloy_code and "http" not in _alloy_code.replace("prometheus", ""),
+      _obs[:400])
+
+_rules = text("deploy/grafana/alerts.yml")
+_rtest = text("deploy/grafana/alerts_test.yml")
+_ci = text(".github/workflows/ci.yml")
+_metrics_src = text("webapp/api/metrics.py")
+_alerts = re.findall(r"^\s+- alert: (\w+)$", _rules, re.MULTILINE)
+_used = set(re.findall(r"\b(caro_[a-z_]+)", _rules))
+_exposed = {m for m in re.findall(r"\b(caro_[a-z_]+)", _metrics_src)}
+_exposed |= {f"caro_request_seconds_{s}" for s in ("bucket", "sum", "count")}
+_blocks_r = re.split(r"\n\s+- alert: ", _rules)[1:]
+check("DP21: every alert reads only what /metrics says, carries a severity and a summary, and is tried by "
+      "the alerts' own tests, which CI runs by promtool at a version; the availability alerts count the "
+      "public reads alone and the search's the bucket at 300 ms",
+      len(_alerts) == 7 and _used <= _exposed
+      and all("severity: page" in b or "severity: ticket" in b for b in _blocks_r)
+      and all("summary:" in b for b in _blocks_r)
+      and all(re.search(rf"^\s+alertname: {a}$", _rtest, re.MULTILINE) for a in _alerts)
+      and re.search(r"prom/prometheus:v\d+\.\d+\.\d+ test rules alerts_test\.yml", _ci) is not None
+      and _rules.count('route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)"') == 8
+      and 'le="0.3"' in _rules and "0.3" in _metrics_src.split("BUCKETS = (")[1].split(")")[0],
+      str((_alerts, sorted(_used - _exposed))))
+
+_dash = json.loads(text("deploy/grafana/caro.json"))
+_targets = [t for pnl in _dash["panels"] for t in pnl["targets"]]
+_dexprs = [t["expr"] for t in _targets]
+_dused = set(re.findall(r"\b(caro_[a-z_]+)", " ".join(_dexprs)))
+_dvars = {v["name"]: v for v in _dash["templating"]["list"]}
+_titles = {pnl["title"]: pnl for pnl in _dash["panels"]}
+_steps = lambda pnl: [st.get("value") for st in
+                      pnl["fieldConfig"]["defaults"].get("thresholds", {}).get("steps", [])]
+check("DP22: the dashboard reads only what /metrics says, each expression for the environment chosen and "
+      "from the Prometheus chosen; it shows the three SLOs against their targets -- 99.5% of the public "
+      "reads, the alerts' own, and 95% of searches within the bucket at 300 ms -- and the API's answer to "
+      "its collector",
+      _dash.get("uid") == "caro" and _dused <= _exposed and len(_dexprs) >= 10
+      and all('env="$env"' in e for e in _dexprs)
+      and all(t["datasource"] == {"type": "prometheus", "uid": "${datasource}"} for t in _targets)
+      and _dvars["datasource"]["type"] == "datasource" and _dvars["datasource"]["query"] == "prometheus"
+      and _dvars["env"]["definition"] == 'label_values(up{job="caro-api"}, env)'
+      and 0.995 in _steps(_titles["Availability, 30 days (SLO 99.5%)"])
+      and 0.95 in _steps(_titles["Searches within 300 ms, 30 days (SLO 95%)"])
+      and 'le="0.3"' in _titles["Searches within 300 ms, 30 days (SLO 95%)"]["targets"][0]["expr"]
+      and 'route=~"/api/(search|search/reweight|models|model|corpus|compare|health|listing/.+)"'
+      in _titles["Availability, 30 days (SLO 99.5%)"]["targets"][0]["expr"]
+      and any("since the last collected run" in tl.lower() for tl in _titles)
+      and 'up{job="caro-api", env="$env"}' in _titles["The API answers its collector"]["targets"][0]["expr"],
+      str(sorted(_dused - _exposed)))
 
 _edge = text("compose.edge.yml")
 _esvc = blocks(_edge)
@@ -251,7 +320,7 @@ _set = dict(re.findall(r"^([A-Z_]+)=(.*)$", _env, re.MULTILINE))
 _needed = set(re.findall(r"\$\{([A-Z_]+)", _vps))
 _secrets = ("POSTGRES_PASSWORD", "CARO_ADMIN_TOKEN", "CARO_ADMIN_TOTP_SECRET", "SENTRY_DSN",
             "CARO_STORE_SECRET", "CARO_SMS_KAVENEGAR_KEY", "CARO_SELLER_STORE", "CARO_CF_API_TOKEN",
-            "CARO_TURNSTILE_SECRET")
+            "CARO_TURNSTILE_SECRET", "GRAFANA_CLOUD_TOKEN")
 check("DP10: the env file's template names every variable an environment's compose file reads, "
       "and gives no secret a value and the seller store no switch",
       _needed <= set(_set) and all(_set.get(k) == "" for k in _secrets)

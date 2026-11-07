@@ -149,7 +149,7 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 | 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | built (sahandmusanezhad/caro#21), waiting on Cloudflare's settings ([the steps](docs/PHASE4_SETUP.md)) |
 | 5 | the design system and the panels, in Next.js | built (sahandmusanezhad/caro#22): the system held, the operator's panel whole, the browser run in CI ([the system](docs/DESIGN_SYSTEM.md)) |
 | 6 | the site in its own image, Vercel retired | built (sahandmusanezhad/caro#23): both images walked in a browser before they are pushed, the deploy's read held to Cloudflare; the Vercel project's deletion waits on its holder ([the steps](docs/PHASE6_SETUP.md)) |
-| 7 | observability, ten times the load, D56's measurements, Kubernetes decided | |
+| 7 | observability, ten times the load, D56's measurements, Kubernetes decided | built (sahandmusanezhad/caro#25): `/metrics`, Alloy to Grafana Cloud, the SLOs and every alert, the dashboard, D56's stages measured; the stack, the server's run and the decision wait on the owner ([the steps](docs/PHASE7_SETUP.md), [D56, reviewed](docs/D56_REVIEW.md)) |
 
 How the work is done, and the rules every session keeps, are in
 [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md).
@@ -593,7 +593,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 3619 assertions, no API key, no network
+python3 tests/run_all.py            # 3633 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -607,10 +607,10 @@ dependency of `caro/`.** Three of the nineteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2875 assertions across 16 of 19 suites
+python3 tests/run_all.py            # 2883 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3619 across all nineteen
+python3 tests/run_all.py            # 3633 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -677,7 +677,8 @@ docker compose up --build                       # http://127.0.0.1:3000
 The API is FastAPI and imports `caro` directly: `/api/search`,
 `/api/search/reweight`, `/api/listing/{id}`, `/api/compare`, `/api/models`,
 `/api/model`, `/api/corpus`, `/api/health`, and the contact, admin, account
-and listings endpoints. The site is Next.js, TypeScript and Tailwind, in
+and listings endpoints; and `/metrics`, its own numbers, for the server's
+collector alone (`webapp/api/metrics.py`). The site is Next.js, TypeScript and Tailwind, in
 right-to-left Persian, its panes glass over the palette: `/`, `/search`,
 `/models`, `/model/[make]/[model]`, `/car/[id]`, `/compare`, `/saved`,
 `/before-buying`, `/how-it-works`, `/about`, `/contact` and `/admin`, and
@@ -808,7 +809,7 @@ the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3619 assertions across nineteen suites
+tests/           3633 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
@@ -835,6 +836,9 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) ·
 | [PHASE3_SETUP](docs/PHASE3_SETUP.md) | phase 3's steps: the R2 bucket, the worker's token and the alerts' bot on the server, the worker on the owner's machine, and seven days of runs |
 | [PHASE4_SETUP](docs/PHASE4_SETUP.md) | phase 4's steps: the cache rule, the purge's token, Turnstile's widget, and the search's baseline on the server |
 | [PHASE6_SETUP](docs/PHASE6_SETUP.md) | phase 6's steps: the site served from the server, a week of it, and the Vercel project deleted by its holder |
+| [PHASE7_SETUP](docs/PHASE7_SETUP.md) | phase 7's steps: a Grafana Cloud stack, the collector on the server, the dashboard and the alerts loaded, a hundred users on the server, and D56's first two conditions from the owner's data |
+| [SLO](docs/SLO.md) | the three SLOs -- availability, the search's speed, the daily run -- and every alert CARO raises, wherever it lives |
+| [D56_REVIEW](docs/D56_REVIEW.md) | D56's three conditions measured: the stages and the hot path in the sandbox, what waits on the owner's data, and what D56's own rule says |
 | [PERF](docs/PERF.md) | the search under load: the k6 script, the target, and each run with what it ran on |
 | [DESIGN_SYSTEM](docs/DESIGN_SYSTEM.md) | what every page and panel is drawn with -- the tokens, the type, the classes -- and what holds each rule |
 | [SERVICES](docs/SERVICES.md) | CARO as services: where the single process breaks at tens of thousands of listings, measured, the way there, and step 1 — the catalog in SQLite or Postgres — as built and measured |

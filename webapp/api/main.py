@@ -55,6 +55,8 @@ from webapp.api.market import router as market_router              # noqa: E402
 from webapp.api.review import router as review_router              # noqa: E402
 from webapp.api.security import SecurityHeaders, cors_origins      # noqa: E402
 from webapp.api.edge import EdgeCache                              # noqa: E402
+from webapp.api.metrics import Measure                             # noqa: E402
+from webapp.api.metrics import router as metrics_router            # noqa: E402
 from webapp.api.schemas import (                                   # noqa: E402
     CompareRequest, CompareResponse, CorpusMeta, CorpusResponse, Envelope,
     EvidenceItem, Fault, HealthResponse, Intent, ListingResponse,
@@ -93,6 +95,8 @@ app.include_router(observability_router)
 # The collection's records, from the worker (webapp/api/collection.py); off
 # until its token and the runs' database are set.
 app.include_router(collection_router)
+# The API's own numbers, for the server's collector alone (webapp/api/metrics.py).
+app.include_router(metrics_router)
 
 # CORS is for development (webapp/api/security.py): production serves the
 # site and the API from one origin. No cookie is used, so no credentials.
@@ -103,6 +107,9 @@ app.add_middleware(SecurityHeaders)
 # What the edge may keep: three GETs, by the served corpus's digest
 # (webapp/api/edge.py, the plan's phase 4).
 app.add_middleware(EdgeCache)
+# Every answer counted and timed by its route; added last, so it is the
+# outermost and times the others too (webapp/api/metrics.py).
+app.add_middleware(Measure)
 
 # The longest question the search reads, and the longest id a listing has.
 # An unbounded string is work an attacker chooses the size of.
