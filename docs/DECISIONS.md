@@ -7938,3 +7938,90 @@ views and the seller listings.
 - a site image built with a made-up Turnstile key failed the walk 8 times,
   on `/login` and `/contact` in each view.
 
+## D106 — Phase 7 is closed by the owner's choice: the API's numbers to Grafana Cloud, the SLOs and every alert, D56 measured
+
+Phase 7, observability, scale and D56's review, closes when two things
+hold: the dashboards and the SLOs are live, and the D56 decision is
+written. Merged on 2026-11-07 in #25:
+- **`/metrics`:** every answer counted by its route's template, with a
+  histogram bucket at the search's 300 ms. It gives the corpus served and
+  each source's last collected run. Nothing personal is in it, and a
+  request through the edge gets a 404.
+- **The collector:** Grafana Alloy, the `observe` service of each
+  environment, writes those numbers to Grafana Cloud. It sends metrics
+  only, no log, and runs read-only with no capability, as its own user.
+- **The SLOs** (docs/SLO.md): 99.5% of the public reads, 95% of searches
+  within 300 ms, and a collected run of each source every Tehran day.
+- **Every alert CARO raises,** in one catalogue. The seven new ones are in
+  Prometheus's rule format, tested by promtool in CI.
+- **A dashboard** of the three SLOs against their targets.
+- **D56's conditions measured** (docs/D56_REVIEW.md, with
+  `scripts/d56_measure.py`).
+
+Left:
+- the Grafana Cloud stack, the collector on the server, the dashboard and
+  the alerts loaded;
+- a hundred users on the server;
+- D56's first two conditions from the owner's data.
+
+Neither condition is met, and the phase is closed by the owner's choice
+(D100), its steps in #12.
+
+    commit    what it does                                          suites    bare
+    32cdbff   /metrics, for the server's collector and nobody else      3625   2875
+    98edfaf   Alloy on the server, writing to Grafana Cloud             3626   2876
+    24d3d1d   the SLOs, and alerted on, with tests CI runs              3627   2877
+    3fa874f   the dashboard                                             3628   2878
+    480a359   scripts/d56_measure.py                                    3632   2882
+    03091e2   the count's middleware in plain ASGI                      3632   2882
+    770b2f1   the measurement script in the API's image                 3632   2882
+    7c17b35   condition 2 counts the watch's observations               3633   2883
+    66cc84f   D56_REVIEW, PHASE7_SETUP, PERF, and the docs as built     3633   2883
+
+Each commit was green on its own. CI succeeded on the head and on `main`
+after `7ee3256`, and promtool's tests passed there.
+
+**Where it differs from the plan:**
+- **Prometheus's text, not OpenTelemetry.** No dependency is added, and
+  there are no calls between services to trace.
+- **Metrics leave the server, logs do not.** A log holds addresses and
+  questions.
+- **The plan's «a published count disagrees with the suites»** was already
+  CI's.
+
+**Found by trying it.** Four faults were found by hand before they could be
+merged:
+- Alloy, run as root with no capability, could not write its own storage,
+  which belongs to its image's user.
+- The first alert on production's corpus could never fire: promtool's tests
+  found it.
+- `durations` was blind to every disappearance, since a run of list pages
+  never records a listing gone. It now counts the watch's observations.
+- The hot path's profile named the four middlewares the largest part of a
+  search, CARO's own code a small one. The counting middleware, this
+  phase's own, cost 0.34 to 0.42 ms an answer; as plain ASGI it costs 0.02
+  to 0.04.
+
+**Measured** (D56_REVIEW), with the predictions locked before the code:
+- the stages grow linearly on run17 grown to 50,000 listings;
+- the slowest is the free-text parser, 24 s, which is 0.2% of what
+  collecting those listings takes;
+- a hundred users, ten times the target, held at p95 278 ms in one process.
+
+**What the predictions got wrong:**
+- the evidence, not the intent parser, is CARO's larger stage of a search;
+- the middlewares were not foreseen at all;
+- the parser takes 24 s at 50,000, not under 10.
+
+**Mutants:** 70, 63 caught. One row was corrected after its run, as its
+commit says. #25's description says two; it was one.
+
+**What this does not settle.** D56. Of its three conditions:
+- the window is not measured, since no run has been recorded on a server;
+- the disappearances are the owner's to count;
+- no stage is a bottleneck.
+
+By D56's own rule nothing is reopened. The written decision on Go for the
+collector and on any boundary is the owner's, and its own entry will record
+it, whichever way it goes. So will the server's hundred users, which answer
+whether one server holds ten times the target.
