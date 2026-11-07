@@ -7711,3 +7711,50 @@ are taken, the site and the API are Vercel's, as they were. The images the
 server would run are built, tested, walked in a browser and pushed on every
 merge, and run nowhere.
 
+## D101 — Phase 2 is closed by the owner's choice: Kavenegar behind the login, each environment's store in its Postgres
+
+Phase 2, the data layer and the seller listings, closes on two
+conditions:
+- a seller logs in, posts, is approved and has the number revealed in
+  production with real SMS;
+- `tests/test_store.py` is green on a real Postgres.
+
+The second holds: CI's `postgres` job has run it since #10. The catalog in
+Postgres was phase 1's, read by the API from every deploy. Everything else
+a session could build was merged on 2026-11-04 in #19. Left, for the first
+condition:
+- a Kavenegar account and its template;
+- staging's settings and the GitHub variable that links the seller pages;
+- PHASE2_SETUP's four checks on the owner's own number, in staging and then
+  in production: a code that arrives, a car posted, its approval in
+  `/admin`, and the number shown.
+
+None is taken, and the phase is closed by the owner's choice (D100), its
+steps in #12.
+
+    commit    what it does                                          suites    bare
+    7b3c5bf   Kavenegar sends a seller's login code                     3558   2825
+    22fd712   a corpus over 50 MB is not written into data/corpora      3559   2826
+    7e79f52   an environment's seller store, in its own Postgres        3559   2826
+    2ae07fd   PHASE2_SETUP, and the docs as built                       3559   2826
+    c282da3   only this repository pushes the images                    3559   2826
+
+Each commit was green on its own, and CI succeeded on the pull request's
+head and on `main` after `c91d618`. The last commit corrected phase 1: once
+`Tecso-Dev/caro` was brought in step, its copy of the workflow would have
+pushed images of its own. It now builds and reads them, and stops.
+
+**Where it differs from the plan:**
+- **The projection into the catalog runs at every deploy**, not from the
+  promoting machine, which could not reach the server's database from
+  Iran.
+- **The per-model summaries are not built.** A model's page answers from
+  Postgres in 0.31 s at its first call.
+- **The bucket moved to phase 3,** its first user.
+
+**Mutants:** 34, 30 caught, the survivors named in the commits.
+
+**What this does not settle.** Whether a real code reaches a real number:
+the provider's account is the owner's. Until it is set, the login says it
+is off rather than pretending to send.
+
