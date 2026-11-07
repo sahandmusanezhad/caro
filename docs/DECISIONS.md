@@ -7628,3 +7628,400 @@ seen to reach Telegram. Until they are taken the error reports are off on
 the deployment, nothing alerts anyone when the site is down, and `main` is
 protected by the rule that a session merges only on green, not by GitHub.
 The issue that carries them says which is done.
+
+## D100 — Phase 1 is closed by the owner's choice: two images, a server only Cloudflare reaches, deployed by pull
+
+Phase 1 of the 2026 plan (D97), containers and environments, closes when
+staging and production answer from the server through Cloudflare,
+`tests/test_api_contract.py` is green against staging, and the Vercel API
+service is gone. Everything in it a session could build was merged on
+2026-11-04 in this repository's pull request #18. What is left is the eight
+steps of PHASE1_SETUP: the server at Hetzner, its files, the origin
+certificate, each environment's settings, the images readable by the
+server, the edge and staging, production, and the switch of
+`caro.noxioai.com`. None of them has been taken, so none of the three
+conditions is met.
+
+On 2026-11-04 the owner asked for every phase to be built and then closed,
+and on 2026-11-06 for `main` to be brought to `Tecso-Dev/caro` and the
+phase issues closed. On 2026-11-07 the owner's run of `tecso-release.sh`
+did both. Phase 1 is closed by that choice, not by its conditions, as phase
+0 was (D99). Its steps, with those of phases 2, 3, 4, 6 and 7, are carried
+to an issue of their own in `Tecso-Dev/caro`, #12.
+
+    commit    what it does                                          suites    bare
+    ea099c5   /api/health names the build the process runs              3542   2812
+    7880836   the Postgres driver is one of the API's requirements      3542   2812
+    9d0a690   one image for the API and the workers, a role each        3542   2812
+    faa39e8   the site in an image of its own, standalone               3542   2812
+    a7a308d   CARO on a laptop, the two images and Postgres             3542   2812
+    9e001a0   the server's environments, its one edge, the pull         3542   2812
+    a348bc6   the images workflow                                       3542   2812
+    8777583   the deploy suite, the eighteenth                          3555   2825
+    429dd46   PHASE1_SETUP, and the docs as built                       3555   2825
+
+Every commit was green on its own, with the network off, with the site's
+typecheck, lint and build. CI succeeded on the pull request's head and on
+`main` after its merge, `5ee3e40`: the images were pushed as `sha-5ee3e40`
+and `:staging`, and `reached` said no environment is named yet.
+
+**Where the plan would have been wrong**, as REARCHITECTURE's phase 1 now
+says:
+- **The site moves with the API.** Left on Vercel and rewriting `/api/*` to
+  the server, every request would arrive from Vercel's address and share
+  the per-address limits.
+- **One edge serves both environments.** Two Compose projects cannot both
+  take port 443.
+- **Staging is `caro-staging.noxioai.com`.** Cloudflare's free certificate
+  covers first-level names only.
+- **The server deploys by pull.** No key to it is kept in GitHub.
+- **The contract suite runs inside the image staging runs.** It drives the
+  app in its own process.
+
+**Tried in the sandbox.** Docker ran there.
+- The API's image answered what the live site answered.
+- Its `test` stage passed 522 assertions.
+- A simulated server served staging when asked as Cloudflare asks, and
+  passed the client's address to the API: ten wrong tokens and then a 429.
+- A caller outside Cloudflare's ranges was closed without an answer.
+
+**Mutants:** the deploy suite's, 19, 18 caught. The survivor is named in its
+commit.
+
+**Read from the outside** on 2026-11-07, by the owner's `site_check.py` in
+`tecso-release.sh`. `Tecso-Dev/caro` was brought from `1940296` to
+`7ee3256`, the merge of #25, and the site at `7ee3256` read:
+- `/about`: 99 decisions, 3633 assertions and 19 suites;
+- the corpus: REAL run17, `ad72b16a54cf`, 492 rows;
+- a Samand's page: 32 listings, its history one point, run17 of
+  2026-10-30, 31 priced, the middle 2,096,250,000 toman;
+- «سمند زیر ۲ میلیارد»: read as `samand`, 13 shown and 1 held apart;
+- no link to the seller listings.
+
+The edge line read `models -, public, max-age=60`, its corpus and health's
+both `ad72b16a54cf`, the same. The answer came from Vercel with no
+Cloudflare header. The API writes `public, max-age=60, s-maxage=300`, as its
+image did in CI. The `s-maxage` part was gone on arrival, taken off by
+Vercel's network, the only thing between them. Whether that network kept
+the answer is not read: it says so in a header of its own, which the check
+does not read.
+
+**What this does not settle.** All three conditions. Until the eight steps
+are taken, the site and the API are Vercel's, as they were. The images the
+server would run are built, tested, walked in a browser and pushed on every
+merge, and run nowhere.
+
+## D101 — Phase 2 is closed by the owner's choice: Kavenegar behind the login, each environment's store in its Postgres
+
+Phase 2, the data layer and the seller listings, closes on two
+conditions:
+- a seller logs in, posts, is approved and has the number revealed in
+  production with real SMS;
+- `tests/test_store.py` is green on a real Postgres.
+
+The second holds: CI's `postgres` job has run it since #10. The catalog in
+Postgres was phase 1's, read by the API from every deploy. Everything else
+a session could build was merged on 2026-11-04 in #19. Left, for the first
+condition:
+- a Kavenegar account and its template;
+- staging's settings and the GitHub variable that links the seller pages;
+- PHASE2_SETUP's four checks on the owner's own number, in staging and then
+  in production: a code that arrives, a car posted, its approval in
+  `/admin`, and the number shown.
+
+None is taken, and the phase is closed by the owner's choice (D100), its
+steps in #12.
+
+    commit    what it does                                          suites    bare
+    7b3c5bf   Kavenegar sends a seller's login code                     3558   2825
+    22fd712   a corpus over 50 MB is not written into data/corpora      3559   2826
+    7e79f52   an environment's seller store, in its own Postgres        3559   2826
+    2ae07fd   PHASE2_SETUP, and the docs as built                       3559   2826
+    c282da3   only this repository pushes the images                    3559   2826
+
+Each commit was green on its own, and CI succeeded on the pull request's
+head and on `main` after `c91d618`. The last commit corrected phase 1: once
+`Tecso-Dev/caro` was brought in step, its copy of the workflow would have
+pushed images of its own. It now builds and reads them, and stops.
+
+**Where it differs from the plan:**
+- **The projection into the catalog runs at every deploy**, not from the
+  promoting machine, which could not reach the server's database from
+  Iran.
+- **The per-model summaries are not built.** A model's page answers from
+  Postgres in 0.31 s at its first call.
+- **The bucket moved to phase 3,** its first user.
+
+**Mutants:** 34, 30 caught, the survivors named in the commits.
+
+**What this does not settle.** Whether a real code reaches a real number:
+the provider's account is the owner's. Until it is set, the login says it
+is off rather than pretending to send.
+
+## D102 — Phase 3 is closed by the owner's choice: the queue beside the worker, the records and the alerts on the server
+
+Phase 3, the queue and the collection worker, closes when seven
+consecutive daily runs have come with their transcripts and no manual step
+but promotion, and `scripts/replicate_check.py` has compared two of them
+from the bucket. The plan says the runs come «from the VPS». As built, they
+come from the worker on the owner's machine, and only its records reach the
+server. Everything a session could build was merged on 2026-11-04 in #20:
+- the queue in Postgres, or a laptop's SQLite, taken `FOR UPDATE SKIP
+  LOCKED`;
+- the private bucket, R2 by S3's protocol;
+- the worker, a role of the image, running first_run with the owner's own
+  arguments each day;
+- the records, posted to the server by the worker's token;
+- the alerts, said by the server: a run missing, stopped, a robots.txt
+  changed, a count far off.
+
+Left: the bucket, the server's side, the worker on the owner's machine, and
+the seven days. The phase is closed by the owner's choice (D100), its steps
+in #12.
+
+    commit    what it does                                          suites    bare
+    8fa4759   the queue, a job taken once, a lock per source            3570   2837
+    ade98b0   the private bucket, signed in the standard library        3575   2842
+    b1270ac   the worker is told how a run ended                        3577   2844
+    cd0b3dc   the worker's records, by its token, on the server         3582   2845
+    3fec3c7   the daily runs, on a schedule, from the queue             3591   2854
+    b010e7a   the alerts, said once, from the server                    3596   2859
+    2a090ec   the worker's compose file, the server's alerts            3599   2862
+    8c654ca   PHASE3_SETUP, and the docs as built                       3599   2862
+
+Each commit was green on its own, and CI succeeded on the head and on
+`main` after `96f998f`.
+
+**Where it differs from the plan:**
+- **The queue is beside the worker,** not on the server. The server is
+  reached from Iran only through Cloudflare, which carries HTTPS and not a
+  database's connection.
+- **The alerts are said by the server.** A worker that stopped cannot say
+  so, and Telegram is not reached from Iran.
+
+**Mutants:** 114, 93 caught. One row was corrected after its run, as its
+commit says. **Tried in the sandbox**, with no request to any source, as a
+Docker run of the image:
+- staging refused a wrong token and kept a made-up record;
+- its alerts said the run missing and then stopped on a 503 robots.txt,
+  once each.
+
+**What this does not settle.** Moving the worker to a server in Iran, which
+changes the working agreement's rule on live requests, is the owner's. The
+daily Khodro45 run goes on by hand on the owner's machine until the worker
+takes it.
+
+## D103 — Phase 4 is closed by the owner's choice: what the edge may keep, by the served corpus's digest
+
+Phase 4, the edge, closes when three things hold:
+- the three answers the edge may keep are served from Cloudflare's cache
+  more than 80% of the time;
+- the search's target holds on the server;
+- no kept answer carries a digest other than the corpus served.
+
+Everything a session could build was merged on 2026-11-04 in #21:
+- the three answers say a shared cache may keep them for five minutes,
+  with an ETag that begins with the served corpus's digest;
+- the purge after a deploy that changed the runs;
+- Turnstile on the code request and the contact form, off without its
+  keys;
+- k6's baseline, 477 searches a second at p95 28 ms in the sandbox, against
+  a target of 300 ms on the server;
+- the site check's edge line.
+
+Left:
+- the cache rule;
+- the purge's token;
+- Turnstile's widget and secret, in an order that never refuses the forms;
+- the baseline on the server.
+
+The phase is closed by the owner's choice (D100), its steps in #12.
+
+    commit    what it does                                          suites    bare
+    b09529e   the three answers the edge may keep say so                3603   2862
+    33e31df   what the edge kept, purged after a deploy                 3605   2864
+    b6caabe   Turnstile on the code request and the contact form        3615   2871
+    f080bca   the search's baseline under load, and its target          3615   2871
+    08e70ae   the site check's edge line                                3616   2872
+    0b43068   PHASE4_SETUP, and the docs as built                       3616   2872
+
+Each commit was green on its own, and CI succeeded on the head and on
+`main` after `06bc25c`. **Mutants:** 35, 30 caught.
+
+The third condition can be read already: on 2026-11-07 (D100) the edge
+line said the models' digest was health's, `the same`. That edge was
+Vercel's, not Cloudflare's. The first two conditions wait on Cloudflare and
+the server.
+
+## D104 — Phase 5 closes on its conditions: one design system held, the operator's panel whole, every key route in a browser in CI
+
+Phase 5, the design system and the panels, closes when three things hold:
+the panels and the public pages share the system, the suites are green,
+and the end-to-end run is part of CI. All three held when #22 merged, on
+2026-11-06, and phase 5 closes on them; nothing of it is in the owner's
+accounts. What was built:
+- **The system was there; it is written down and held.** The site has
+  drawn with the palette's sixteen tokens, the glass and a handful of
+  classes since 2026-10-30 (DESIGN_SYSTEM). One component wrote a colour of
+  its own, a saved car's button. It is the system's solid button now, and
+  the palette suite refuses any component that writes one.
+- **`/admin` is the operator's whole panel:** the inbox, the listings
+  waiting for review, the ones reports took down, and the corpus being
+  served. It was the inbox alone, so PHASE2_SETUP's third check could not
+  have been made.
+- **The key routes in a browser** (`webapp/web/e2e/routes.mjs`, CI's `e2e`
+  job): twelve routes, desk and phone, light and dark. Each is checked for
+  right to left, one heading, nothing wider than the screen, nothing asked
+  of another origin, and no error. The seller listings are walked from a
+  code to a number shown.
+
+Its first run found three faults, which the second commit mends:
+- the search had no heading once asked;
+- the comparison had one only once drawn;
+- the login asked for a session where there was no store.
+
+    commit    what it does                                          suites    bare
+    c09e6eb   every component draws with the palette's tokens           3617   2873
+    c3cd108   one heading on every page, a quieter login                3617   2873
+    bcc1128   the operator's panel                                      3617   2873
+    bc7f50e   the key routes and the seller listings, in CI             3617   2873
+    441af80   DESIGN_SYSTEM, and the docs as built                      3617   2873
+
+Each commit was green on its own. CI, the `e2e` job among it, succeeded on
+the head and on `main` after `747d378`. **Mutants:** the palette's new rule,
+5, 4 caught.
+
+## D105 — Phase 6 is closed by the owner's choice: the site's image walked in a browser, and the site not yet off Vercel
+
+Phase 6, the site in its own image with Vercel retired, closes on three
+conditions:
+- the site answers from the server through Cloudflare;
+- the suites are green against it;
+- the decision entry records that the site left Vercel.
+
+The image and its place behind nginx were phase 1's (D100), when the site
+moved with the API. Merged on 2026-11-06 in #23:
+- **Both images walked in a browser before anything is pushed:** every key
+  route and the seller listings, the code read from the API container's
+  log. Where the pushed site draws Turnstile, which no browser in CI can
+  pass, the browser walks an image built without that one argument.
+- **`site_check.py --cloudflare`:** the read after each deploy fails unless
+  Cloudflare served the environment and Vercel served no part of it.
+
+The repository's side of the retirement waits as a draft, #24:
+`vercel.json` out, the site check and the probe at `caro.noxioai.com`. It
+merges only once the project is deleted, since until then `main` of
+`Tecso-Dev/caro` deploys to Vercel from `vercel.json`. Left:
+- the site served from the server;
+- a week of it;
+- the Vercel project deleted by its holder;
+- then #24.
+
+**The site has not left Vercel.** On 2026-11-07 it was still served by
+Vercel, with no Cloudflare header (D100). This entry records that, as the
+condition asks of it; a later one records the leaving. The phase is closed
+by the owner's choice (D100), its steps in #12.
+
+    commit    what it does                                          suites    bare
+    8ef6de7   the site check's --cloudflare                             3618   2874
+    685da1d   both images walked in a browser before a push             3619   2875
+    6216416   PHASE6_SETUP, and the docs as built                       3619   2875
+
+Each commit was green on its own, and CI succeeded on the head and on
+`main` after `66ed634`. In CI the images job walked both images: 48 page
+views and the seller listings.
+
+**Mutants:** 15, 14 caught; one row was corrected after its run.
+
+**Tried in the sandbox:**
+- both images, started as the workflow starts them, walked clean;
+- a site image built with a made-up Turnstile key failed the walk 8 times,
+  on `/login` and `/contact` in each view.
+
+## D106 — Phase 7 is closed by the owner's choice: the API's numbers to Grafana Cloud, the SLOs and every alert, D56 measured
+
+Phase 7, observability, scale and D56's review, closes when two things
+hold: the dashboards and the SLOs are live, and the D56 decision is
+written. Merged on 2026-11-07 in #25:
+- **`/metrics`:** every answer counted by its route's template, with a
+  histogram bucket at the search's 300 ms. It gives the corpus served and
+  each source's last collected run. Nothing personal is in it, and a
+  request through the edge gets a 404.
+- **The collector:** Grafana Alloy, the `observe` service of each
+  environment, writes those numbers to Grafana Cloud. It sends metrics
+  only, no log, and runs read-only with no capability, as its own user.
+- **The SLOs** (docs/SLO.md): 99.5% of the public reads, 95% of searches
+  within 300 ms, and a collected run of each source every Tehran day.
+- **Every alert CARO raises,** in one catalogue. The seven new ones are in
+  Prometheus's rule format, tested by promtool in CI.
+- **A dashboard** of the three SLOs against their targets.
+- **D56's conditions measured** (docs/D56_REVIEW.md, with
+  `scripts/d56_measure.py`).
+
+Left:
+- the Grafana Cloud stack, the collector on the server, the dashboard and
+  the alerts loaded;
+- a hundred users on the server;
+- D56's first two conditions from the owner's data.
+
+Neither condition is met, and the phase is closed by the owner's choice
+(D100), its steps in #12.
+
+    commit    what it does                                          suites    bare
+    32cdbff   /metrics, for the server's collector and nobody else      3625   2875
+    98edfaf   Alloy on the server, writing to Grafana Cloud             3626   2876
+    24d3d1d   the SLOs, and alerted on, with tests CI runs              3627   2877
+    3fa874f   the dashboard                                             3628   2878
+    480a359   scripts/d56_measure.py                                    3632   2882
+    03091e2   the count's middleware in plain ASGI                      3632   2882
+    770b2f1   the measurement script in the API's image                 3632   2882
+    7c17b35   condition 2 counts the watch's observations               3633   2883
+    66cc84f   D56_REVIEW, PHASE7_SETUP, PERF, and the docs as built     3633   2883
+
+Each commit was green on its own. CI succeeded on the head and on `main`
+after `7ee3256`, and promtool's tests passed there.
+
+**Where it differs from the plan:**
+- **Prometheus's text, not OpenTelemetry.** No dependency is added, and
+  there are no calls between services to trace.
+- **Metrics leave the server, logs do not.** A log holds addresses and
+  questions.
+- **The plan's «a published count disagrees with the suites»** was already
+  CI's.
+
+**Found by trying it.** Four faults were found by hand before they could be
+merged:
+- Alloy, run as root with no capability, could not write its own storage,
+  which belongs to its image's user.
+- The first alert on production's corpus could never fire: promtool's tests
+  found it.
+- `durations` was blind to every disappearance, since a run of list pages
+  never records a listing gone. It now counts the watch's observations.
+- The hot path's profile named the four middlewares the largest part of a
+  search, CARO's own code a small one. The counting middleware, this
+  phase's own, cost 0.34 to 0.42 ms an answer; as plain ASGI it costs 0.02
+  to 0.04.
+
+**Measured** (D56_REVIEW), with the predictions locked before the code:
+- the stages grow linearly on run17 grown to 50,000 listings;
+- the slowest is the free-text parser, 24 s, which is 0.2% of what
+  collecting those listings takes;
+- a hundred users, ten times the target, held at p95 278 ms in one process.
+
+**What the predictions got wrong:**
+- the evidence, not the intent parser, is CARO's larger stage of a search;
+- the middlewares were not foreseen at all;
+- the parser takes 24 s at 50,000, not under 10.
+
+**Mutants:** 70, 63 caught. One row was corrected after its run, as its
+commit says. #25's description says two; it was one.
+
+**What this does not settle.** D56. Of its three conditions:
+- the window is not measured, since no run has been recorded on a server;
+- the disappearances are the owner's to count;
+- no stage is a bottleneck.
+
+By D56's own rule nothing is reopened. The written decision on Go for the
+collector and on any boundary is the owner's, and its own entry will record
+it, whichever way it goes. So will the server's hundred users, which answer
+whether one server holds ten times the target.

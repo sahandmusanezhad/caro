@@ -143,13 +143,13 @@ plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 | Phase | What | State |
 |---|---|---|
 | 0 | foundation: the agreement for two, `caro.noxioai.com` behind Cloudflare, alerts, branch protection, a reachability probe from Iran | **closed** 2026-11-03 by the owner's choice (D99); the four steps in the owner's accounts carried to an issue of their own ([the steps](docs/PHASE0_SETUP.md)) |
-| 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | built (sahandmusanezhad/caro#18); the server's steps wait on the owner ([the steps](docs/PHASE1_SETUP.md)) |
-| 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | built (sahandmusanezhad/caro#19), off until an SMS account and the server ([the steps](docs/PHASE2_SETUP.md)) |
-| 3 | the queue in Postgres, the collection worker | built (sahandmusanezhad/caro#20), waiting on the owner's machine, a bucket and a bot ([the steps](docs/PHASE3_SETUP.md)) |
-| 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | built (sahandmusanezhad/caro#21), waiting on Cloudflare's settings ([the steps](docs/PHASE4_SETUP.md)) |
-| 5 | the design system and the panels, in Next.js | built (sahandmusanezhad/caro#22): the system held, the operator's panel whole, the browser run in CI ([the system](docs/DESIGN_SYSTEM.md)) |
-| 6 | the site in its own image, Vercel retired | built (sahandmusanezhad/caro#23): both images walked in a browser before they are pushed, the deploy's read held to Cloudflare; the Vercel project's deletion waits on its holder ([the steps](docs/PHASE6_SETUP.md)) |
-| 7 | observability, ten times the load, D56's measurements, Kubernetes decided | built (sahandmusanezhad/caro#25): `/metrics`, Alloy to Grafana Cloud, the SLOs and every alert, the dashboard, D56's stages measured; the stack, the server's run and the decision wait on the owner ([the steps](docs/PHASE7_SETUP.md), [D56, reviewed](docs/D56_REVIEW.md)) |
+| 1 | containers: one image for the API and the workers, one for the site; Compose with Postgres and nginx; staging and production | **closed** 2026-11-07 by the owner's choice (D100): built (sahandmusanezhad/caro#18); the server's steps in the owner's issue ([the steps](docs/PHASE1_SETUP.md)) |
+| 2 | data: the catalog of published runs in Postgres, the seller listings on with a real SMS provider | **closed** 2026-11-07 by the owner's choice (D101): built (sahandmusanezhad/caro#19), off until an SMS account and the server ([the steps](docs/PHASE2_SETUP.md)) |
+| 3 | the queue in Postgres, the collection worker | **closed** 2026-11-07 by the owner's choice (D102): built (sahandmusanezhad/caro#20), waiting on the owner's machine, a bucket and a bot ([the steps](docs/PHASE3_SETUP.md)) |
+| 4 | the edge: a cache keyed by the corpus digest, rate limits, Turnstile, k6 | **closed** 2026-11-07 by the owner's choice (D103): built (sahandmusanezhad/caro#21), waiting on Cloudflare's settings ([the steps](docs/PHASE4_SETUP.md)) |
+| 5 | the design system and the panels, in Next.js | **closed** on its conditions (D104): the system held, the operator's panel whole, the browser run in CI (sahandmusanezhad/caro#22, [the system](docs/DESIGN_SYSTEM.md)) |
+| 6 | the site in its own image, Vercel retired | **closed** 2026-11-07 by the owner's choice (D105): built (sahandmusanezhad/caro#23), both images walked in a browser before they are pushed, the deploy's read held to Cloudflare; the site still on Vercel until the switch and the project's deletion ([the steps](docs/PHASE6_SETUP.md)) |
+| 7 | observability, ten times the load, D56's measurements, Kubernetes decided | **closed** 2026-11-07 by the owner's choice (D106): built (sahandmusanezhad/caro#25), `/metrics`, Alloy to Grafana Cloud, the SLOs and every alert, the dashboard, D56's stages measured; the stack, the server's run and the decision wait on the owner ([the steps](docs/PHASE7_SETUP.md), [D56, reviewed](docs/D56_REVIEW.md)) |
 
 How the work is done, and the rules every session keeps, are in
 [WORKING_AGREEMENT](docs/WORKING_AGREEMENT.md).
@@ -818,7 +818,7 @@ scripts/         setup, live runs, promotion, the catalog's loader, replays, the
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D99) · eval · roadmap · readme/ (the README's images)
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D106) · eval · roadmap · readme/ (the README's images)
 ```
 
 ## Documentation

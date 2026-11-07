@@ -34,7 +34,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `0afbbd6` when it was read on 2026-11-03 (D99); see «Deploying» below. |
+| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `7ee3256` when it was read on 2026-11-07 (D100); see «Deploying» below. |
 
 ## The order of work
 
@@ -54,11 +54,12 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D99.
-- **Phases 1 to 7 built and merged** (this repository's pull requests #18
-  to #23 and #25; #24, the repository's side of Vercel's retirement, waits
-  as a draft); phase 5 needs nothing more, and what is left of the rest is
-  the owner's, every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
+  Every merge since D84 has its entry, D85 to D106.
+- **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
+  repository's pull requests #18 to #23 and #25; #24, the repository's side
+  of Vercel's retirement, waits as a draft): phase 5 on its conditions
+  (D104), the others by the owner's choice (D100 to D103, D105, D106), their
+  steps carried to `Tecso-Dev/caro` #12. What is left is the owner's, every step written down in [PHASE1_SETUP](PHASE1_SETUP.md),
   [PHASE2_SETUP](PHASE2_SETUP.md), [PHASE3_SETUP](PHASE3_SETUP.md),
   [PHASE4_SETUP](PHASE4_SETUP.md), [PHASE6_SETUP](PHASE6_SETUP.md) and
   [PHASE7_SETUP](PHASE7_SETUP.md): the server at Hetzner, staging, the first
@@ -67,9 +68,10 @@ an item says so.
   rule, the purge's token, Turnstile's widget, the Vercel project deleted by
   its holder, the Grafana Cloud stack with the collector, the dashboard and
   the alerts, and D56's decision.
-- **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge; its
-  `main` is at pull request #17's merge, `1940296`, read on 2026-11-06, so
-  phases 1 to 5 are not on the site yet.
+- **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge, with
+  `tecso-release.sh`, a fast-forward that reads the site after it; its
+  `main` was brought from `1940296` to `7ee3256`, #25's merge, on 2026-11-07
+  (D100).
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -136,7 +138,8 @@ names. Durations are for two people part-time.
    cached until phase 4); UptimeRobot on `/api/health` and `/`, alerting to
    Telegram. **Waits on the owner:** the accounts and the DNS.
 1. **Containers and environments** (issue #4; one to two weeks; Sobhan, a
-   session). **Built** (this repository's pull request #18): one image for
+   session). **Closed** on 2026-11-07 by the owner's choice (D100), its
+   steps carried to `Tecso-Dev/caro` #12. **Built** (this repository's pull request #18): one image for
    the API and the workers, a role per command, and one for the site;
    `compose.yml` for a laptop (the site, the API, Postgres) and, for the
    server, `compose.vps.yml` per environment and `compose.edge.yml`, one
@@ -148,7 +151,8 @@ names. Durations are for two people part-time.
    settings, the images made public, staging, the first release tag, and the
    switch of `caro.noxioai.com` from Vercel to the server. Reopens D64.
 2. **The data layer and the seller listings** (issue #5; about two weeks;
-   Sobhan, two decisions of the owner's). Done: the listings read model, as
+   Sobhan, two decisions of the owner's). **Closed** on 2026-11-07 by the
+   owner's choice (D101), its steps carried to #12. Done: the listings read model, as
    the catalog (this repository's pull request #10), and the seller store's
    suite on a real Postgres in CI. **Built** (this repository's pull request
    #19): Kavenegar behind the login's provider interface; the seller store
@@ -161,7 +165,8 @@ names. Durations are for two people part-time.
    seller listings switched on in staging, tried on the owner's own number,
    then in production. **Waits on the owner:** the provider's account.
 3. **The queue and the collection worker** (issue #6; about two weeks; both).
-   The queue in Postgres — SERVICES.md's `jobs` table, taken with
+   **Closed** on 2026-11-07 by the owner's choice (D102), its steps carried
+   to #12. The queue in Postgres — SERVICES.md's `jobs` table, taken with
    `FOR UPDATE SKIP LOCKED` — and a worker of the same package that runs
    `first_run.collect` as a job, writes its transcript and snapshot, and holds
    one lock per source; the daily Khodro45 run on its pin; promotion still a
@@ -178,7 +183,8 @@ names. Durations are for two people part-time.
    [PHASE3_SETUP](PHASE3_SETUP.md): the bucket, the worker's token and the
    bot on the server, the worker on the owner's machine, and seven days of
    runs. **Waits on the owner:** the R2 bucket and the bot.
-4. **The edge** (issue #7; about a week; Sobhan). `ETag` carrying the corpus
+4. **The edge** (issue #7; about a week; Sobhan). **Closed** on 2026-11-07
+   by the owner's choice (D103), its steps carried to #12. `ETag` carrying the corpus
    digest on the three pure reads, cached at the edge and purged on
    promotion, keyed as D47 requires; rate limits tuned from what phases 0 to
    3 saw; Turnstile on the seller login and the contact form, on our own
@@ -194,7 +200,7 @@ names. Durations are for two people part-time.
    on the server. The limits stay the one process's until traffic says what
    to tune them to.
 5. **The design system and the panels, in Next.js** (issue #10; one to two
-   weeks; Sobhan). Tokens that start from the site's palette and evolve,
+   weeks; Sobhan). **Closed** on its conditions (D104). Tokens that start from the site's palette and evolve,
    with `tests/test_palette.py`'s contrast checks; the operator and seller
    panels brought into it; Playwright end-to-end on the key routes, in CI.
    **Built** (this repository's pull request #22): the system written down
@@ -205,7 +211,9 @@ names. Durations are for two people part-time.
    in CI's `e2e` job. Nothing is left in the owner's accounts: the phase
    closes on its merge.
 6. **The site in its own image, Vercel retired** (issue #8; about a week;
-   Sobhan, reviewed by the owner). The site's standalone build beside the API
+   Sobhan, reviewed by the owner). **Closed** on 2026-11-07 by the owner's
+   choice (D105), the site still on Vercel, its steps carried to #12. The
+   site's standalone build beside the API
    behind nginx, through Cloudflare, every suite run against the same code.
    Reopens D64 for the site. **Built** (this repository's pull request #23):
    the image and its place behind nginx, phase 1's; both images walked in a
@@ -217,7 +225,8 @@ names. Durations are for two people part-time.
    served from the server, a week of it, and the Vercel project deleted by
    its holder.
 7. **Observability, scale, and the D56 review** (issue #9; about two weeks;
-   both). OpenTelemetry to Grafana, dashboards and SLOs, the full alert
+   both). **Closed** on 2026-11-07 by the owner's choice (D106), its steps
+   and the D56 decision carried to #12. OpenTelemetry to Grafana, dashboards and SLOs, the full alert
    catalogue; k6 at ten times the target; D56's three conditions measured,
    and then a written decision on Go for the collector, on any boundary
    inside the decision core, and on Kubernetes — whether one VPS still holds
@@ -635,7 +644,7 @@ names. Durations are for two people part-time.
    owner's, and its holder deployed `main` from `Tecso-Dev/caro` on
    2026-10-14 (D78). A push to `main` deploys: `1ebbf4a` was on the site
    within about three minutes of its push on 2026-10-15 (D80), and
-   `0afbbd6` was on the site when it was read on 2026-11-03 (D99). Checked
+   `7ee3256` was on the site when it was read on 2026-11-07 (D100). Checked
    there on 2026-10-25 (D84):
    the contact page has its inbox off and links to the repository's Issues
    (`CARO_INBOX=off`, D68), and the car page draws the province with how it
