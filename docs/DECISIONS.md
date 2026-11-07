@@ -7811,3 +7811,45 @@ changes the working agreement's rule on live requests, is the owner's. The
 daily Khodro45 run goes on by hand on the owner's machine until the worker
 takes it.
 
+## D103 — Phase 4 is closed by the owner's choice: what the edge may keep, by the served corpus's digest
+
+Phase 4, the edge, closes when three things hold:
+- the three answers the edge may keep are served from Cloudflare's cache
+  more than 80% of the time;
+- the search's target holds on the server;
+- no kept answer carries a digest other than the corpus served.
+
+Everything a session could build was merged on 2026-11-04 in #21:
+- the three answers say a shared cache may keep them for five minutes,
+  with an ETag that begins with the served corpus's digest;
+- the purge after a deploy that changed the runs;
+- Turnstile on the code request and the contact form, off without its
+  keys;
+- k6's baseline, 477 searches a second at p95 28 ms in the sandbox, against
+  a target of 300 ms on the server;
+- the site check's edge line.
+
+Left:
+- the cache rule;
+- the purge's token;
+- Turnstile's widget and secret, in an order that never refuses the forms;
+- the baseline on the server.
+
+The phase is closed by the owner's choice (D100), its steps in #12.
+
+    commit    what it does                                          suites    bare
+    b09529e   the three answers the edge may keep say so                3603   2862
+    33e31df   what the edge kept, purged after a deploy                 3605   2864
+    b6caabe   Turnstile on the code request and the contact form        3615   2871
+    f080bca   the search's baseline under load, and its target          3615   2871
+    08e70ae   the site check's edge line                                3616   2872
+    0b43068   PHASE4_SETUP, and the docs as built                       3616   2872
+
+Each commit was green on its own, and CI succeeded on the head and on
+`main` after `06bc25c`. **Mutants:** 35, 30 caught.
+
+The third condition can be read already: on 2026-11-07 (D100) the edge
+line said the models' digest was health's, `the same`. That edge was
+Vercel's, not Cloudflare's. The first two conditions wait on Cloudflare and
+the server.
+
