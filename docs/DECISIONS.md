@@ -7853,3 +7853,41 @@ line said the models' digest was health's, `the same`. That edge was
 Vercel's, not Cloudflare's. The first two conditions wait on Cloudflare and
 the server.
 
+## D104 — Phase 5 closes on its conditions: one design system held, the operator's panel whole, every key route in a browser in CI
+
+Phase 5, the design system and the panels, closes when three things hold:
+the panels and the public pages share the system, the suites are green,
+and the end-to-end run is part of CI. All three held when #22 merged, on
+2026-11-06, and phase 5 closes on them; nothing of it is in the owner's
+accounts. What was built:
+- **The system was there; it is written down and held.** The site has
+  drawn with the palette's sixteen tokens, the glass and a handful of
+  classes since 2026-10-30 (DESIGN_SYSTEM). One component wrote a colour of
+  its own, a saved car's button. It is the system's solid button now, and
+  the palette suite refuses any component that writes one.
+- **`/admin` is the operator's whole panel:** the inbox, the listings
+  waiting for review, the ones reports took down, and the corpus being
+  served. It was the inbox alone, so PHASE2_SETUP's third check could not
+  have been made.
+- **The key routes in a browser** (`webapp/web/e2e/routes.mjs`, CI's `e2e`
+  job): twelve routes, desk and phone, light and dark. Each is checked for
+  right to left, one heading, nothing wider than the screen, nothing asked
+  of another origin, and no error. The seller listings are walked from a
+  code to a number shown.
+
+Its first run found three faults, which the second commit mends:
+- the search had no heading once asked;
+- the comparison had one only once drawn;
+- the login asked for a session where there was no store.
+
+    commit    what it does                                          suites    bare
+    c09e6eb   every component draws with the palette's tokens           3617   2873
+    c3cd108   one heading on every page, a quieter login                3617   2873
+    bcc1128   the operator's panel                                      3617   2873
+    bc7f50e   the key routes and the seller listings, in CI             3617   2873
+    441af80   DESIGN_SYSTEM, and the docs as built                      3617   2873
+
+Each commit was green on its own. CI, the `e2e` job among it, succeeded on
+the head and on `main` after `747d378`. **Mutants:** the palette's new rule,
+5, 4 caught.
+
