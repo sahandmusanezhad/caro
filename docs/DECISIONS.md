@@ -7758,3 +7758,56 @@ pushed images of its own. It now builds and reads them, and stops.
 the provider's account is the owner's. Until it is set, the login says it
 is off rather than pretending to send.
 
+## D102 — Phase 3 is closed by the owner's choice: the queue beside the worker, the records and the alerts on the server
+
+Phase 3, the queue and the collection worker, closes when seven
+consecutive daily runs have come with their transcripts and no manual step
+but promotion, and `scripts/replicate_check.py` has compared two of them
+from the bucket. The plan says the runs come «from the VPS». As built, they
+come from the worker on the owner's machine, and only its records reach the
+server. Everything a session could build was merged on 2026-11-04 in #20:
+- the queue in Postgres, or a laptop's SQLite, taken `FOR UPDATE SKIP
+  LOCKED`;
+- the private bucket, R2 by S3's protocol;
+- the worker, a role of the image, running first_run with the owner's own
+  arguments each day;
+- the records, posted to the server by the worker's token;
+- the alerts, said by the server: a run missing, stopped, a robots.txt
+  changed, a count far off.
+
+Left: the bucket, the server's side, the worker on the owner's machine, and
+the seven days. The phase is closed by the owner's choice (D100), its steps
+in #12.
+
+    commit    what it does                                          suites    bare
+    8fa4759   the queue, a job taken once, a lock per source            3570   2837
+    ade98b0   the private bucket, signed in the standard library        3575   2842
+    b1270ac   the worker is told how a run ended                        3577   2844
+    cd0b3dc   the worker's records, by its token, on the server         3582   2845
+    3fec3c7   the daily runs, on a schedule, from the queue             3591   2854
+    b010e7a   the alerts, said once, from the server                    3596   2859
+    2a090ec   the worker's compose file, the server's alerts            3599   2862
+    8c654ca   PHASE3_SETUP, and the docs as built                       3599   2862
+
+Each commit was green on its own, and CI succeeded on the head and on
+`main` after `96f998f`.
+
+**Where it differs from the plan:**
+- **The queue is beside the worker,** not on the server. The server is
+  reached from Iran only through Cloudflare, which carries HTTPS and not a
+  database's connection.
+- **The alerts are said by the server.** A worker that stopped cannot say
+  so, and Telegram is not reached from Iran.
+
+**Mutants:** 114, 93 caught. One row was corrected after its run, as its
+commit says. **Tried in the sandbox**, with no request to any source, as a
+Docker run of the image:
+- staging refused a wrong token and kept a made-up record;
+- its alerts said the run missing and then stopped on a 503 robots.txt,
+  once each.
+
+**What this does not settle.** Moving the worker to a server in Iran, which
+changes the working agreement's rule on live requests, is the owner's. The
+daily Khodro45 run goes on by hand on the owner's machine until the worker
+takes it.
+

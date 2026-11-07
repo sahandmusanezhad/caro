@@ -13,7 +13,7 @@ export const metadata = { title: 'درباره‌ی ما — CARO' };
    a count a human keeps beside a file that grows is a count that drifts. */
 
 const FACTS: [string, string, string][] = [
-  ['۱۰۱', 'تصمیم ثبت‌شده', 'docs/DECISIONS.md'],
+  ['۱۰۲', 'تصمیم ثبت‌شده', 'docs/DECISIONS.md'],
   ['۳۶۳۳', 'گزاره‌ی آزمون', 'tests/run_all.py'],
   ['۱۹', 'مجموعه‌ی آزمون', 'یکی از آن‌ها فقط مراقب بازگشت ادعاهای بازنشسته است'],
   ['۰', 'وابستگی سنگین', 'هسته‌ی پروژه فقط به numpy نیاز دارد'],
@@ -58,7 +58,7 @@ export default function About() {
       <section className="panel">
         <p className="eyebrow">دفتر تصمیم‌ها</p>
         <p className="m-0 text-[15px] leading-[1.95] max-w-[64ch]">
-          بیشتر آن ۱۰۱ تصمیم به این دلیل نوشته شده‌اند که چیزی به‌شکلی نامرئی
+          بیشتر آن ۱۰۲ تصمیم به این دلیل نوشته شده‌اند که چیزی به‌شکلی نامرئی
           خراب شده بود. دو تا از آن‌ها بیش از بقیه اینجا حضور دارند:
         </p>
         <div className="mt-4 grid tiles
