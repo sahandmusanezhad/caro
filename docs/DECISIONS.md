@@ -7891,3 +7891,50 @@ Each commit was green on its own. CI, the `e2e` job among it, succeeded on
 the head and on `main` after `747d378`. **Mutants:** the palette's new rule,
 5, 4 caught.
 
+## D105 — Phase 6 is closed by the owner's choice: the site's image walked in a browser, and the site not yet off Vercel
+
+Phase 6, the site in its own image with Vercel retired, closes on three
+conditions:
+- the site answers from the server through Cloudflare;
+- the suites are green against it;
+- the decision entry records that the site left Vercel.
+
+The image and its place behind nginx were phase 1's (D100), when the site
+moved with the API. Merged on 2026-11-06 in #23:
+- **Both images walked in a browser before anything is pushed:** every key
+  route and the seller listings, the code read from the API container's
+  log. Where the pushed site draws Turnstile, which no browser in CI can
+  pass, the browser walks an image built without that one argument.
+- **`site_check.py --cloudflare`:** the read after each deploy fails unless
+  Cloudflare served the environment and Vercel served no part of it.
+
+The repository's side of the retirement waits as a draft, #24:
+`vercel.json` out, the site check and the probe at `caro.noxioai.com`. It
+merges only once the project is deleted, since until then `main` of
+`Tecso-Dev/caro` deploys to Vercel from `vercel.json`. Left:
+- the site served from the server;
+- a week of it;
+- the Vercel project deleted by its holder;
+- then #24.
+
+**The site has not left Vercel.** On 2026-11-07 it was still served by
+Vercel, with no Cloudflare header (D100). This entry records that, as the
+condition asks of it; a later one records the leaving. The phase is closed
+by the owner's choice (D100), its steps in #12.
+
+    commit    what it does                                          suites    bare
+    8ef6de7   the site check's --cloudflare                             3618   2874
+    685da1d   both images walked in a browser before a push             3619   2875
+    6216416   PHASE6_SETUP, and the docs as built                       3619   2875
+
+Each commit was green on its own, and CI succeeded on the head and on
+`main` after `66ed634`. In CI the images job walked both images: 48 page
+views and the seller listings.
+
+**Mutants:** 15, 14 caught; one row was corrected after its run.
+
+**Tried in the sandbox:**
+- both images, started as the workflow starts them, walked clean;
+- a site image built with a made-up Turnstile key failed the walk 8 times,
+  on `/login` and `/contact` in each view.
+
