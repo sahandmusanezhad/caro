@@ -7628,3 +7628,86 @@ seen to reach Telegram. Until they are taken the error reports are off on
 the deployment, nothing alerts anyone when the site is down, and `main` is
 protected by the rule that a session merges only on green, not by GitHub.
 The issue that carries them says which is done.
+
+## D100 — Phase 1 is closed by the owner's choice: two images, a server only Cloudflare reaches, deployed by pull
+
+Phase 1 of the 2026 plan (D97), containers and environments, closes when
+staging and production answer from the server through Cloudflare,
+`tests/test_api_contract.py` is green against staging, and the Vercel API
+service is gone. Everything in it a session could build was merged on
+2026-11-04 in this repository's pull request #18. What is left is the eight
+steps of PHASE1_SETUP: the server at Hetzner, its files, the origin
+certificate, each environment's settings, the images readable by the
+server, the edge and staging, production, and the switch of
+`caro.noxioai.com`. None of them has been taken, so none of the three
+conditions is met.
+
+On 2026-11-04 the owner asked for every phase to be built and then closed,
+and on 2026-11-06 for `main` to be brought to `Tecso-Dev/caro` and the
+phase issues closed. On 2026-11-07 the owner's run of `tecso-release.sh`
+did both. Phase 1 is closed by that choice, not by its conditions, as phase
+0 was (D99). Its steps, with those of phases 2, 3, 4, 6 and 7, are carried
+to an issue of their own in `Tecso-Dev/caro`, #12.
+
+    commit    what it does                                          suites    bare
+    ea099c5   /api/health names the build the process runs              3542   2812
+    7880836   the Postgres driver is one of the API's requirements      3542   2812
+    9d0a690   one image for the API and the workers, a role each        3542   2812
+    faa39e8   the site in an image of its own, standalone               3542   2812
+    a7a308d   CARO on a laptop, the two images and Postgres             3542   2812
+    9e001a0   the server's environments, its one edge, the pull         3542   2812
+    a348bc6   the images workflow                                       3542   2812
+    8777583   the deploy suite, the eighteenth                          3555   2825
+    429dd46   PHASE1_SETUP, and the docs as built                       3555   2825
+
+Every commit was green on its own, with the network off, with the site's
+typecheck, lint and build. CI succeeded on the pull request's head and on
+`main` after its merge, `5ee3e40`: the images were pushed as `sha-5ee3e40`
+and `:staging`, and `reached` said no environment is named yet.
+
+**Where the plan would have been wrong**, as REARCHITECTURE's phase 1 now
+says:
+- **The site moves with the API.** Left on Vercel and rewriting `/api/*` to
+  the server, every request would arrive from Vercel's address and share
+  the per-address limits.
+- **One edge serves both environments.** Two Compose projects cannot both
+  take port 443.
+- **Staging is `caro-staging.noxioai.com`.** Cloudflare's free certificate
+  covers first-level names only.
+- **The server deploys by pull.** No key to it is kept in GitHub.
+- **The contract suite runs inside the image staging runs.** It drives the
+  app in its own process.
+
+**Tried in the sandbox.** Docker ran there.
+- The API's image answered what the live site answered.
+- Its `test` stage passed 522 assertions.
+- A simulated server served staging when asked as Cloudflare asks, and
+  passed the client's address to the API: ten wrong tokens and then a 429.
+- A caller outside Cloudflare's ranges was closed without an answer.
+
+**Mutants:** the deploy suite's, 19, 18 caught. The survivor is named in its
+commit.
+
+**Read from the outside** on 2026-11-07, by the owner's `site_check.py` in
+`tecso-release.sh`. `Tecso-Dev/caro` was brought from `1940296` to
+`7ee3256`, the merge of #25, and the site at `7ee3256` read:
+- `/about`: 99 decisions, 3633 assertions and 19 suites;
+- the corpus: REAL run17, `ad72b16a54cf`, 492 rows;
+- a Samand's page: 32 listings, its history one point, run17 of
+  2026-10-30, 31 priced, the middle 2,096,250,000 toman;
+- «سمند زیر ۲ میلیارد»: read as `samand`, 13 shown and 1 held apart;
+- no link to the seller listings.
+
+The edge line read `models -, public, max-age=60`, its corpus and health's
+both `ad72b16a54cf`, the same. The answer came from Vercel with no
+Cloudflare header. The API writes `public, max-age=60, s-maxage=300`, as its
+image did in CI. The `s-maxage` part was gone on arrival, taken off by
+Vercel's network, the only thing between them. Whether that network kept
+the answer is not read: it says so in a header of its own, which the check
+does not read.
+
+**What this does not settle.** All three conditions. Until the eight steps
+are taken, the site and the API are Vercel's, as they were. The images the
+server would run are built, tested, walked in a browser and pushed on every
+merge, and run nowhere.
+
