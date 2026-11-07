@@ -36,3 +36,41 @@ holds it.
 
 Each run: k6 v2.3.0 (`grafana/k6`), the API's image on the host's network,
 `CARO_INBOX=off`, nothing else on the machine but the run.
+
+## Ten times the target
+
+Phase 7 asks for k6 at ten times the target: a hundred users. The second
+row above is that run in the sandbox: one process held it, 0 failures in
+26,188 and p95 278 ms, under the 300 ms target, at 436 answers a second.
+Its p50 of 225 ms is a queue's wait, not work: a search is a few
+milliseconds of it. Whether the server's two shared cores hold the same is
+the server's run ([PHASE7_SETUP](PHASE7_SETUP.md)), and it is the question
+Kubernetes would answer. One server that holds it needs no orchestrator.
+
+## The hot path
+
+`scripts/d56_measure.py profile` times each stage of a search on its own,
+over the eight questions, in process, with no profiler in the way: a
+profiler's cost lands on the small functions, and an async one leaves out
+the time it awaits. On 2026-11-06, in the sandbox, per search:
+
+| stage | time |
+|---|---|
+| the intent parser | 0.13 ms |
+| the evidence | 0.21 ms |
+| the endpoint, whole | 0.33 ms |
+| the answer encoded as JSON | 0.30 ms |
+
+The slowest part is around the endpoint: routing, the response's
+validation, and four middlewares, which together cost 1.1 ms of a search
+through the test client. The newest of them, the count /metrics reads, cost
+0.34 to 0.42 ms on Starlette's BaseHTTPMiddleware. As plain ASGI it costs
+0.02 to 0.04 ms, and the four together 0.95 ms.
+
+The next two are the edge's cache (`webapp/api/edge.py`) and the security
+headers (`webapp/api/security.py`), both still on BaseHTTPMiddleware;
+between them they are most of what is left. They are rewritten when a
+server's run says the search needs the time: until then the target holds
+with room to spare.
+
+D56's stages, the collection's side, are in [D56_REVIEW](D56_REVIEW.md).

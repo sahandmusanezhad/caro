@@ -456,6 +456,33 @@ not yet behind Cloudflare and no alert has been seen to reach Telegram.
 - **Closes when** the dashboards and SLOs are live and the D56 decision is
   written.
 - **Reopens:** D56 — only if the measurements say so.
+- **As built** (sahandmusanezhad/caro#25; the owner's steps are
+  [PHASE7_SETUP](PHASE7_SETUP.md); [SLO](SLO.md),
+  [D56_REVIEW](D56_REVIEW.md)):
+  - **Prometheus's text, not OpenTelemetry.** The API counts its own
+    answers at `/metrics`, by route template, and Grafana Alloy on the
+    server reads it every 30 s and writes it to Grafana Cloud. Nothing is
+    added to the API's dependencies, and nothing personal is in a number.
+    The worker runs on the owner's machine and reports each run to the
+    server, so its numbers are read there, from its records; there are no
+    calls between services to trace.
+  - **Metrics leave the server, logs do not.** A log holds addresses and
+    questions.
+  - **Every alert in one catalogue, the new ones tested.** The seven on the
+    numbers are in Prometheus's rule format, with promtool's tests in CI.
+    The catalogue lists them beside the server's four, UptimeRobot, the
+    error reports, the browser check and the stale-number check. That last
+    one is the plan's «a published count disagrees with the suites», which
+    CI raised already.
+  - **The hot path's slowest part was not CARO's code.** The middlewares
+    and the routing around the endpoint were. The counting middleware,
+    this phase's own, was the largest of the four and is now plain ASGI,
+    a tenth of its cost.
+  - **D56 measured, and the decision left where it belongs.** The stages,
+    grown to 50,000 listings, name the free-text parser the slowest, at
+    0.2% of what collecting the same listings takes. The window and the
+    disappearances wait on the owner's runs and observations. The decision
+    on Go and on any boundary is the owner's.
 
 ## Frozen lines this plan asks to reopen
 
