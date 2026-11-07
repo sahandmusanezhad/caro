@@ -45,7 +45,6 @@ import threading
 import time
 
 from fastapi import APIRouter, HTTPException, Request
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
 # Seconds. 0.3 is the search's target, so that the share of searches within
@@ -111,19 +110,39 @@ class Registry:
 REGISTRY = Registry()
 
 
-class Measure(BaseHTTPMiddleware):
-    """Counts and times every answer, by its route's template."""
+class Measure:
+    """Counts and times every answer, by its route's template: from the
+    request in to the last of the answer out.
 
-    async def dispatch(self, request: Request, call_next):
+    A plain ASGI middleware, not Starlette's BaseHTTPMiddleware: that one
+    runs each request through streams and a task group of its own, which cost
+    a search about 0.3 ms of its 2.5 (scripts/d56_measure.py profile). The
+    router writes the route it chose into the request's scope, which is the
+    one this holds, so the template is read once the answer is out. An error
+    of ours that no answer was started for is counted as the 500 it becomes.
+    """
+
+    def __init__(self, app) -> None:
+        self.app = app
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
         t0 = time.perf_counter()
         code = 500
+
+        async def sending(message) -> None:
+            nonlocal code
+            if message["type"] == "http.response.start":
+                code = message["status"]
+            await send(message)
+
         try:
-            response = await call_next(request)
-            code = response.status_code
-            return response
+            await self.app(scope, receive, sending)
         finally:
-            route = getattr(request.scope.get("route"), "path", None) or "unmatched"
-            REGISTRY.observe(route, request.method, code, time.perf_counter() - t0)
+            route = getattr(scope.get("route"), "path", None) or "unmatched"
+            REGISTRY.observe(route, scope.get("method", ""), code, time.perf_counter() - t0)
 
 
 def corpus_lines() -> list[str]:
