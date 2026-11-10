@@ -875,6 +875,194 @@ check("DP19: the images workflow walks both images in a browser before it pushes
       and "CARO_E2E_ADMIN_TOKEN: made-up-for-the-images-job-operator" in _walk
       and "npm install --no-save" in _wf, "")
 
+# ---------------------------------------------------------------------------
+print("\nthe server's side of phase 1, in one command")
+import shutil as _sh_bs                                                  # noqa: E402
+
+# The tools the bootstrap and the ranges' script use, from this machine; the
+# ones that would change a server -- docker, systemctl, apt-get, curl, ip and
+# the certificate's python3 -- are stand-ins that write down what they were
+# asked, so no row depends on what this machine has installed.
+_BS_TOOLS = ("sh", "bash", "sed", "grep", "tr", "awk", "cut", "head", "install", "chmod", "mv", "openssl",
+             "dirname", "mkdir", "mktemp", "rm", "cat", "wc", "date", "cp", "env", "touch")
+
+
+def _bs_world(docker=True, served=False, unreadable=(), short_ranges=False,
+              addrs=("203.0.113.7",)):
+    d = Path(tempfile.mkdtemp())
+    tools, stubs, units = d / "tools", d / "bin", d / "units"
+    for x in (tools, stubs, units):
+        x.mkdir()
+    for t in _BS_TOOLS:
+        (tools / t).symlink_to(_sh_bs.which(t))
+    calls = d / "calls"
+
+    def stub(name, body):
+        (stubs / name).write_text(f'#!/bin/sh\necho "{name} $*" >> "{calls}"\n{body}\n')
+        (stubs / name).chmod(0o755)
+
+    # `docker manifest inspect` fails for a tag the server cannot read.
+    docker_body = 'case "$1 $2 $3" in\n%s  *) exit 0;;\nesac' % "".join(
+        f'  "manifest inspect "*:{tag}) exit 1;;\n' for tag in unreadable)
+    if docker:
+        stub("docker", docker_body)
+    (d / "docker.later").write_text(f'#!/bin/sh\necho "docker $*" >> "{calls}"\n{docker_body}\n')
+    stub("systemctl", "exit 0")
+    stub("apt-get", "exit 0")
+    # Cloudflare's published ranges: not reachable, or two lists too short to be them.
+    ranges = ('out=$(echo "$*" | sed "s/.* -o //"); echo "203.0.113.0/24" > "$out"; exit 0' if short_ranges
+              else "exit 7")
+    stub("curl", 'case "$*" in\n  *get.docker.com*) echo "cp %s %s/docker; chmod 755 %s/docker";;\n'
+                 '  *caro-staging.noxioai.com*) exit %d;;\n  *cloudflare.com/ips-*) %s;;\n  *) exit 7;;\nesac'
+         % (d / "docker.later", stubs, stubs, 0 if served else 7, ranges))
+    stub("ip", "\n".join(f'echo "{i + 2}: if{i}    inet {a}/32 brd {a} scope global if{i}"'
+                          for i, a in enumerate(addrs)))
+    stub("python3", 'echo "-----BEGIN CERTIFICATE-----" > "$4/origin.pem"; echo "-----BEGIN PRIVATE KEY-----" > "$4/origin.key"')
+    return d
+
+
+def _bs_run(d, *args, home=None, token=None):
+    env = {"PATH": f"{d / 'bin'}:{d / 'tools'}", "CARO_HOME": str(ROOT if home is None else home),
+           "CARO_ETC": str(d / "etc"), "CARO_UNITS": str(d / "units"), "HOME": str(d)}
+    if token:
+        env["CLOUDFLARE_API_TOKEN"] = token
+    p = subprocess.run([_sh_bs.which("bash"), str(ROOT / "deploy/bootstrap.sh"), *args],
+                       capture_output=True, text=True, env=env, timeout=60)
+    calls = (d / "calls").read_text().splitlines() if (d / "calls").exists() else []
+    (d / "calls").unlink(missing_ok=True)
+    return p.returncode, p.stdout, p.stderr, calls
+
+
+def _env_of(path):
+    return dict(re.findall(r"^([A-Z_]+)=(.*)$", path.read_text(), re.MULTILINE))
+
+
+def _mode(path):
+    return path.stat().st_mode & 0o777
+
+
+_bsA = _bs_world()
+_rA = _bs_run(_bsA)
+_etcA = _bsA / "etc"
+_st, _pr = _env_of(_etcA / "staging.env"), _env_of(_etcA / "production.env")
+_tmpl = _env_of(ROOT / "deploy/env.example")
+_made = {"CARO_ENV", "CARO_ENV_FILE", "CARO_API_IMAGE", "CARO_SITE_IMAGE", "POSTGRES_PASSWORD",
+         "CARO_SITE_ORIGINS", "CARO_SITE_HOST"}
+check("DP29: on a fresh server the bootstrap makes each environment's file from the template, mode 600: "
+      "its name, its own path, its images' tag, its origin and host, and a database password of its "
+      "own, printed nowhere, every other line as the template has it; /etc/caro and its tls directory "
+      "700; the ranges and the units in place; and with no origin certificate yet, no edge and no timer, "
+      "the certificate, the admin keys and staging's name said to be left",
+      _rA[0] == 0 and _st["CARO_ENV"] == "staging" and _pr["CARO_ENV"] == "production"
+      and _st["CARO_ENV_FILE"] == str(_etcA / "staging.env") and _pr["CARO_ENV_FILE"] == str(_etcA / "production.env")
+      and _st["CARO_API_IMAGE"] == "ghcr.io/sahandmusanezhad/caro-api:staging"
+      and _st["CARO_SITE_IMAGE"] == "ghcr.io/sahandmusanezhad/caro-site:staging"
+      and _pr["CARO_API_IMAGE"] == "ghcr.io/sahandmusanezhad/caro-api:production"
+      and _st["CARO_SITE_ORIGINS"] == "https://caro-staging.noxioai.com" and _st["CARO_SITE_HOST"] == "caro-staging.noxioai.com"
+      and _pr["CARO_SITE_ORIGINS"] == "https://caro.noxioai.com" and _pr["CARO_SITE_HOST"] == "caro.noxioai.com"
+      and all(re.fullmatch(r"[0-9a-f]{48}", e["POSTGRES_PASSWORD"]) for e in (_st, _pr))
+      and _st["POSTGRES_PASSWORD"] != _pr["POSTGRES_PASSWORD"]
+      and all({k: v for k, v in e.items() if k not in _made} == {k: v for k, v in _tmpl.items() if k not in _made}
+              for e in (_st, _pr))
+      and not any(e["POSTGRES_PASSWORD"] in _rA[1] + _rA[2] for e in (_st, _pr))
+      and _mode(_etcA / "staging.env") == 0o600 and _mode(_etcA / "production.env") == 0o600
+      and _mode(_etcA) == 0o700 and _mode(_etcA / "tls") == 0o700 and _mode(_etcA / "nginx") == 0o755
+      and (_etcA / "nginx/cloudflare-geo.conf").exists()
+      and sorted(x.name for x in (_bsA / "units").iterdir()) == sorted(_units)
+      and "systemctl daemon-reload" in _rA[3]
+      and not any(c.startswith(("docker compose -p caro-edge", "systemctl enable")) for c in _rA[3])
+      and "the origin certificate" in _rA[1] and "CARO_ADMIN_TOKEN CARO_ADMIN_TOTP_SECRET" in _rA[1]
+      and "staging --ip 203.0.113.7" in _rA[1],
+      str((_rA, sorted(_st.items()))))
+
+(_etcA / "staging.env").write_text((_etcA / "staging.env").read_text()
+                                   .replace("CARO_ADMIN_TOKEN=\n", "CARO_ADMIN_TOKEN=the-owner-s-own\n")
+                                   .replace("CARO_ADMIN_TOTP_SECRET=\n", "CARO_ADMIN_TOTP_SECRET=the-owner-s-too\n"))
+_before_bs = {n: (_etcA / n).read_bytes() for n in ("staging.env", "production.env")}
+(_etcA / "tls/origin.pem").write_text("-----BEGIN CERTIFICATE-----\n")
+(_etcA / "tls/origin.key").write_text("-----BEGIN PRIVATE KEY-----\n")
+_rB = _bs_run(_bsA)
+_rC = _bs_run(_bsA, "--production")
+_bsS = _bs_world(served=True)
+(_bsS / "etc/tls").mkdir(parents=True)
+(_bsS / "etc/tls/origin.pem").write_text("c\n")
+(_bsS / "etc/tls/origin.key").write_text("k\n")
+_rS = _bs_run(_bsS, "--production")
+_bsU = _bs_world()
+_rU = _bs_run(_bsU, "--everything")
+_bsE = _bs_world()
+_rE = _bs_run(_bsE, home="/opt/caro")
+check("DP30: run again, the bootstrap writes no environment's file it finds -- the owner's values stay "
+      "byte for byte -- and with the certificate in place it starts the edge, then staging's pull and the "
+      "ranges' timer, and production's only with --production; staging answering through its name is "
+      "taken as its name done; anything but --production, or a checkout other than the one the units "
+      "run, stops it before anything",
+      _rB[0] == 0 and {n: (_etcA / n).read_bytes() for n in _before_bs} == _before_bs
+      and f"docker compose -p caro-edge -f {ROOT}/compose.edge.yml up -d --quiet-pull" in _rB[3]
+      and "systemctl enable --now caro-cloudflare-ips.timer caro-pull@staging.timer" in _rB[3]
+      and _rB[3].index("systemctl enable --now caro-cloudflare-ips.timer caro-pull@staging.timer")
+      > _rB[3].index(f"docker compose -p caro-edge -f {ROOT}/compose.edge.yml up -d --quiet-pull")
+      and not any("caro-pull@production" in c for c in _rB[3]) and "--production" in _rB[1]
+      and "staging.env: CARO_ADMIN" not in _rB[1] and "production.env: CARO_ADMIN_TOKEN" in _rB[1]
+      and _rC[0] == 0 and "systemctl enable --now caro-pull@production.timer" in _rC[3]
+      and "after the release tag" not in _rC[1]
+      and _rS[0] == 0 and "staging: answers" in _rS[1] and "staging --ip" not in _rS[1]
+      and _rU[0] == 2 and _rU[3] == [] and not (_bsU / "etc").exists()
+      and _rE[0] == 2 and "this checkout is" in _rE[2] and _rE[3] == [] and not (_bsE / "etc").exists(),
+      str((_rB, _rC, _rS, _rU, _rE)))
+
+def _with_cert(d):
+    (d / "etc/tls").mkdir(parents=True)
+    (d / "etc/tls/origin.pem").write_text("c\n")
+    (d / "etc/tls/origin.key").write_text("k\n")
+    return d
+
+
+_bsP = _with_cert(_bs_world(unreadable=("staging", "production")))
+_rP = _bs_run(_bsP, "--production")
+_bsT = _with_cert(_bs_world(unreadable=("production",)))
+_rT = _bs_run(_bsT, "--production")
+_rN = _bs_run(_bs_world(addrs=("172.17.0.1", "10.0.0.2", "192.168.4.4", "100.64.0.9", "203.0.113.8")))
+_rO = _bs_run(_bs_world(addrs=("172.17.0.1", "10.0.0.2")))
+_bsR = _bs_world(short_ranges=True)
+_rR = _bs_run(_bsR)
+check("DP31: an image the server cannot read is said and not waited on: staging's as the packages to "
+      "make public, production's as the release tag first, with production's timer not started; the "
+      "address given for staging's name is the first that is not inside a network, and none is given "
+      "when there is none; and where Cloudflare's ranges cannot be had at all, it stops before any "
+      "settings are made, since the edge would not start",
+      _rP[0] == 0 and "Change visibility -> Public" in _rP[1] and "the release tag first" in _rP[1]
+      and not any("caro-pull@production" in c for c in _rP[3])
+      and any(c.startswith("systemctl enable --now caro-cloudflare-ips.timer caro-pull@staging.timer") for c in _rP[3])
+      and _rT[0] == 0 and "Change visibility" not in _rT[1] and "the release tag first" in _rT[1]
+      and not any("caro-pull@production" in c for c in _rT[3])
+      and "Change visibility" not in _rC[1] and "the release tag first" not in _rC[1]
+      and "staging --ip 203.0.113.8" in _rN[1] and "staging --ip" not in _rO[1] and _rO[0] == 0
+      and _rR[0] == 2 and "no list of Cloudflare's ranges" in _rR[2]
+      and not (_bsR / "etc/staging.env").exists() and not any(c.startswith("systemctl") for c in _rR[3]),
+      str((_rP, _rT, _rN, _rO, _rR)))
+
+_bsD = _bs_world(docker=False)
+_rD = _bs_run(_bsD, token="made-up-cloudflare-token-for-the-bootstrap")
+_cD = _rD[3]
+
+
+def _at(calls, start):
+    return next((i for i, c in enumerate(calls) if c.startswith(start)), -1)
+
+
+check("DP32: on a server without Docker the bootstrap upgrades the system, then installs Docker from "
+      "get.docker.com, before anything asks for it; with Cloudflare's token in its environment it has the "
+      "origin certificate made on the server, into its tls directory, and then starts the edge and the "
+      "timers in the same run; the token is printed nowhere",
+      _rD[0] == 0
+      and 0 <= _at(_cD, "apt-get update") < _at(_cD, "apt-get -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade") < _at(_cD, "curl -fsSL https://get.docker.com")
+      < _at(_cD, "docker compose version")
+      < _at(_cD, f"python3 {ROOT}/scripts/cloudflare_setup.py origin-cert --tls-dir {_bsD / 'etc/tls'}")
+      < _at(_cD, "docker compose -p caro-edge") < _at(_cD, "systemctl enable --now caro-cloudflare-ips.timer")
+      and "made-up-cloudflare-token" not in _rD[1] + _rD[2],
+      str(_rD))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

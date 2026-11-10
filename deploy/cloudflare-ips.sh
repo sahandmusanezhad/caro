@@ -7,7 +7,7 @@
 # copies the ones in this repository and says so.
 set -eu
 HERE=$(cd "$(dirname "$0")" && pwd)
-OUT=/etc/caro/nginx
+OUT=${CARO_ETC:-/etc/caro}/nginx
 mkdir -p "$OUT"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
