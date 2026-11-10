@@ -481,8 +481,9 @@ not yet behind Cloudflare and no alert has been seen to reach Telegram.
   - **D56 measured, and the decision left where it belongs.** The stages,
     grown to 50,000 listings, name the free-text parser the slowest, at
     0.2% of what collecting the same listings takes. The window and the
-    disappearances wait on the owner's runs and observations. The decision
-    on Go and on any boundary is the owner's.
+    disappearances wait on the owner's runs and observations. On 2026-11-10
+    the owner kept D56 (D107) and chose one server without Kubernetes
+    (D108).
 
 ## Frozen lines this plan asks to reopen
 

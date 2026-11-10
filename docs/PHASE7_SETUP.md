@@ -141,6 +141,6 @@ Phase 7 closes on two things:
 
 - **the dashboards and the SLOs are live:** steps 2 to 4, numbers arriving,
   the dashboard showing them, the alerts loaded and tried;
-- **the D56 decision is written:** the owner's, from
-  [D56_REVIEW](D56_REVIEW.md) and steps 5 and 6. Its D-entry records it,
-  whichever way it goes.
+- **the D56 decision is written:** done on 2026-11-10. The owner kept D56
+  (D107) and chose one server without Kubernetes (D108), from
+  [D56_REVIEW](D56_REVIEW.md). Steps 5 and 6 are what would reopen either.

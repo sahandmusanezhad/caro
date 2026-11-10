@@ -54,7 +54,8 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106.
+  Every merge since D84 has its entry, D85 to D106, and the owner's two
+  decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
   of Vercel's retirement, waits as a draft): phase 5 on its conditions
@@ -66,8 +67,9 @@ an item says so.
   release, the switch from Vercel, an SMS account with its template, the R2
   bucket, the alerts' bot, the worker on the owner's machine, the cache
   rule, the purge's token, Turnstile's widget, the Vercel project deleted by
-  its holder, the Grafana Cloud stack with the collector, the dashboard and
-  the alerts, and D56's decision.
+  its holder, and the Grafana Cloud stack with the collector, the dashboard
+  and the alerts. D56 is kept (D107), and one server serves without
+  Kubernetes (D108), both the owner's decisions of 2026-11-10.
 - **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge, with
   `tecso-release.sh`, a fast-forward that reads the site after it; its
   `main` was brought from `1940296` to `7ee3256`, #25's merge, on 2026-11-07
@@ -226,7 +228,8 @@ names. Durations are for two people part-time.
    its holder.
 7. **Observability, scale, and the D56 review** (issue #9; about two weeks;
    both). **Closed** on 2026-11-07 by the owner's choice (D106), its steps
-   and the D56 decision carried to #12. OpenTelemetry to Grafana, dashboards and SLOs, the full alert
+   carried to #12; D56 kept (D107) and no Kubernetes (D108) on 2026-11-10.
+   OpenTelemetry to Grafana, dashboards and SLOs, the full alert
    catalogue; k6 at ten times the target; D56's three conditions measured,
    and then a written decision on Go for the collector, on any boundary
    inside the decision core, and on Kubernetes — whether one VPS still holds
@@ -238,8 +241,7 @@ names. Durations are for two people part-time.
    stages measured, none a bottleneck ([D56_REVIEW](D56_REVIEW.md)). Left,
    every step in [PHASE7_SETUP](PHASE7_SETUP.md): the stack, the collector
    on the server, the dashboard and the alerts loaded, the hundred users on
-   the server, D56's first two conditions from the owner's data, and the
-   decision itself, the owner's.
+   the server, and D56's first two conditions from the owner's data.
 
 ## The parser — open, recorded
 

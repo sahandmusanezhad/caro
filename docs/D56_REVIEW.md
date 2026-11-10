@@ -174,11 +174,21 @@ None of the three conditions is demonstrated:
 - the third is measured, and no stage is a bottleneck.
 
 D56's words are: until one of those is on the table, measure first, then add
-a boundary. On this record it stands. The written decision on Go for the
-collector, and on any service boundary inside the decision core, is the
-owner's to make, and its D-entry records it, whichever way it goes.
+a boundary. On this record it stands.
 
 Phase 7's other question is Kubernetes: whether one server still holds ten
 times the search's target. [PERF](PERF.md) has the sandbox's answer, a
 hundred users at p95 278 ms in one process. The server's own run is
 [PHASE7_SETUP](PHASE7_SETUP.md)'s.
+
+## The decision
+
+On 2026-11-10, with this record in front of them, the owner made two
+choices:
+- **D56 is kept** (D107): no Go collector, no Go component, no service
+  boundary inside the decision core.
+- **One server, with Compose, and no Kubernetes** (D108).
+
+Each is reopened only by what it names: D56 by one of its three conditions
+demonstrated, and one server by the server's own run of a hundred users,
+or production's searches, missing the target.
