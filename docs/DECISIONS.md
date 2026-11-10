@@ -8025,3 +8025,51 @@ By D56's own rule nothing is reopened. The written decision on Go for the
 collector and on any boundary is the owner's, and its own entry will record
 it, whichever way it goes. So will the server's hundred users, which answer
 whether one server holds ten times the target.
+
+## D107 — D56 is kept, by the owner's decision on what was measured: no Go collector, no service boundary inside the decision core
+
+The plan's phase 7 asks for D56's three conditions to be measured, and then
+for a written decision on Go for the collector and on any service boundary,
+whichever way it goes. D56_REVIEW recorded the measurements on 2026-11-06,
+in the sandbox with the network off:
+- **Condition 3, a stage that is the bottleneck: measured, and none is.**
+  On run17 grown to 50,000 listings every stage grows linearly. The
+  slowest, the free-text parser, takes 24 s, which is 0.2% of what
+  collecting those listings takes at D56's own pace.
+- **Condition 1, a crawl past its window: not measured.** No run has been
+  recorded on a server.
+- **Condition 2, `duration_stats` running: not measured.** The
+  observations are on the owner's machine.
+
+On 2026-11-10 the owner was asked with that in front of them, given three
+choices: keep D56, wait for the server's data, or Go for the collector. The
+owner chose to keep it. CARO stays one language: no Go service and no Go
+component, and no service boundary inside the decision core. The API
+contract, the fault vocabulary, the envelope and every interpretation of
+collected data stay where D56 put them.
+
+**What would reopen it** is D56's own three conditions, unchanged, each
+demonstrated rather than anticipated. The two not yet measured are read by
+`scripts/d56_measure.py`:
+- `window` on the server, once the worker reports its runs;
+- `durations` on the owner's machine, the snapshots with the watch's
+  observations (PHASE7_SETUP, step 6).
+
+A condition met is an entry of its own, and reopens D56 there.
+
+With this entry phase 7's second condition holds: the D56 decision is
+written. Its first, the dashboards and the SLOs live, waits on
+PHASE7_SETUP's steps (D106).
+
+**Read from the outside** on 2026-11-07, by the owner's second run of
+`tecso-release.sh`, which brought `Tecso-Dev/caro` from `7ee3256` to
+`2f345dd`, the merge of #26:
+- `/about`: 106 decisions, 3633 assertions and 19 suites;
+- everything else as at `7ee3256` (D100): the corpus REAL run17,
+  `ad72b16a54cf`, 492 rows; a Samand's page 32 listings; «سمند زیر ۲
+  میلیارد» 13 shown and 1 held apart; the edge's digest the same as
+  health's;
+- served by Vercel, with no Cloudflare header.
+
+The same run told each phase's issue, #4 to #10, which entry is its own.
+
