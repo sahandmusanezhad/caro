@@ -250,6 +250,328 @@ check("DP22: the dashboard reads only what /metrics says, each expression for th
       and 'up{job="caro-api", env="$env"}' in _titles["The API answers its collector"]["targets"][0]["expr"],
       str(sorted(_dused - _exposed)))
 
+# ---------------------------------------------------------------------------
+print("\nthe owner's Cloudflare steps, through its API with the owner's token")
+import contextlib as _ctx_cf                                            # noqa: E402
+import io as _io_cf                                                     # noqa: E402
+import urllib.error as _ue_cf                                           # noqa: E402
+import urllib.parse as _up_cf                                           # noqa: E402
+
+from scripts import cloudflare_setup as _cf                             # noqa: E402
+
+_CF_TOKEN = "made-up-cloudflare-token-0123456789"
+
+
+class _FakeCloudflare:
+    """Cloudflare's API as the script uses it, kept in memory; every call logged."""
+
+    def __init__(self, records=(), rules=None, widgets=(), refuse_batch=False, refuse_cert=False,
+                 ignore_filter=False, zones=None):
+        self.records = [dict(r) for r in records]
+        self.rules = rules              # None: the zone has no entry point
+        self.widgets = [dict(w) for w in widgets]
+        self.refuse_batch, self.refuse_cert, self.certs = refuse_batch, refuse_cert, []
+        self.ignore_filter = ignore_filter      # a list that answers with every name's records
+        self.zones = [{"id": "z1", "name": "noxioai.com", "account": {"id": "a1"}}] if zones is None else zones
+        self.calls, self.seq = [], 0
+
+    def _ok(self, result):
+        body = json.dumps({"success": True, "errors": [], "result": result}).encode()
+        return _ctx_cf.nullcontext(type("R", (), {"read": lambda _s: body})())
+
+    def _refuse(self, req, code, message):
+        raise _ue_cf.HTTPError(req.full_url, 400, "Bad Request", {}, _io_cf.BytesIO(json.dumps(
+            {"success": False, "errors": [{"code": code, "message": message}]}).encode()))
+
+    def _post_record(self, body):
+        self.seq += 1
+        self.records.append({**body, "id": f"r{self.seq}"})
+        return self.records[-1]
+
+    def __call__(self, req, timeout=30):
+        u = _up_cf.urlparse(req.full_url)
+        q = dict(_up_cf.parse_qsl(u.query))
+        body = json.loads(req.data) if req.data else None
+        m, path = req.get_method(), u.path.removeprefix("/client/v4")
+        self.calls.append((m, path, body, req.get_header("Authorization"), u.netloc))
+        if path == "/zones" and m == "GET":
+            return self._ok(self.zones)
+        if path == "/zones/z1/dns_records":
+            if m == "GET":
+                return self._ok([r for r in self.records if self.ignore_filter or r["name"] == q.get("name.exact")])
+            return self._ok(self._post_record(body))
+        if path == "/zones/z1/dns_records/batch" and m == "POST":
+            if self.refuse_batch:       # Cloudflare's one transaction: nothing of it is made
+                self._refuse(req, 81053, "An A, AAAA, or CNAME record with that host already exists.")
+            gone = {d["id"] for d in body.get("deletes", [])}
+            self.records = [r for r in self.records if r["id"] not in gone]
+            return self._ok({"deletes": [{"id": i} for i in sorted(gone)],
+                             "posts": [self._post_record(r) for r in body.get("posts", [])]})
+        if path.startswith("/zones/z1/dns_records/"):
+            rid = path.rsplit("/", 1)[1]
+            if m == "DELETE":
+                self.records = [r for r in self.records if r["id"] != rid]
+                return self._ok({"id": rid})
+            for r in self.records:
+                if r["id"] == rid:
+                    r.update(body)
+                    return self._ok(r)
+        if path == "/zones/z1/rulesets/phases/http_request_cache_settings/entrypoint":
+            if m == "GET":
+                if self.rules is None:
+                    raise _ue_cf.HTTPError(req.full_url, 404, "Not Found", {}, _io_cf.BytesIO(
+                        b'{"success": false, "errors": [{"message": "could not find entrypoint ruleset"}]}'))
+                return self._ok({"id": "rs1", "phase": "http_request_cache_settings", "rules": self.rules})
+            self.rules = [{**r, "id": r.get("id", f"rule{i}"), "version": "1"} for i, r in enumerate(body["rules"])]
+            return self._ok({"id": "rs1", "rules": self.rules})
+        if path == "/zones/z1/rulesets/rs1/rules" and m == "POST":
+            self.rules.append({**body, "id": f"rule{len(self.rules)}", "version": "1"})
+            return self._ok({"id": "rs1", "rules": self.rules})
+        if path == "/accounts/a1/challenges/widgets":
+            if m == "GET":
+                return self._ok([{k: w[k] for k in ("sitekey", "name", "domains")} for w in self.widgets])
+            w = {**body, "sitekey": "0x4AAAAAAA-made-up-sitekey", "secret": "0x4AAAAAAA-made-up-secret"}
+            self.widgets.append(w)
+            return self._ok(w)
+        if path.startswith("/accounts/a1/challenges/widgets/"):
+            if m == "GET":
+                return self._ok(self.widgets[0])
+            if m == "PUT":          # the whole widget: what is not sent goes back to what a new one has
+                w = self.widgets[0]
+                self.widgets[0] = {"sitekey": w["sitekey"], "secret": w["secret"], "bot_fight_mode": False,
+                                   "clearance_level": "no_clearance", **body}
+                return self._ok(self.widgets[0])
+        if path == "/certificates" and m == "POST":
+            if self.refuse_cert:
+                self._refuse(req, 1100, "Failed to validate requested hostname caro-staging.noxioai.com")
+            self.certs.append(body)
+            return self._ok({"id": "c1", "certificate": "-----BEGIN CERTIFICATE-----\nMADEUP\n-----END CERTIFICATE-----\n",
+                             "hostnames": body["hostnames"], "expires_on": "2041-11-06 00:00:00 +0000 UTC"})
+        raise AssertionError(f"the fake has no {m} {path}")
+
+
+def _cf_run(fake, *argv, here=None, env=None, run=None):
+    out, err = _io_cf.StringIO(), _io_cf.StringIO()
+    with _ctx_cf.redirect_stderr(err):
+        try:
+            rc = _cf.main(list(argv), env={"CLOUDFLARE_API_TOKEN": _CF_TOKEN} if env is None else env,
+                          opener=fake, out=lambda line: out.write(line + "\n"), here=here,
+                          **({"run": run} if run else {}))
+        except SystemExit as e:         # what argparse does with an argument it refuses
+            rc = e.code
+    return rc, out.getvalue(), err.getvalue()
+
+
+def _writes(fake):
+    return [(m, p) for m, p, *_ in fake.calls if m != "GET"]
+
+
+_f1 = _FakeCloudflare()
+_cf1 = [_cf_run(_f1, "staging", "--ip", "203.0.113.10") for _ in range(2)]
+_w1 = _writes(_f1)
+_cf1b = _cf_run(_f1, "staging", "--ip", "203.0.113.11")
+_f1d = _FakeCloudflare()
+_cf1d = _cf_run(_f1d, "staging", "--ip", "203.0.113.10", "--dry-run")
+_f1c = _FakeCloudflare(records=[{"id": "c1", "type": "CNAME", "name": "caro-staging.noxioai.com",
+                                 "content": "somewhere.example", "proxied": False}])
+_cf1c = _cf_run(_f1c, "staging", "--ip", "203.0.113.10")
+_f1g = _FakeCloudflare(records=[{"id": "g1", "type": "A", "name": "caro-staging.noxioai.com",
+                                 "content": "203.0.113.10", "proxied": False}])
+_cf1g = _cf_run(_f1g, "staging", "--ip", "203.0.113.10")
+_f1p = _FakeCloudflare()
+_cf1p = [_cf_run(_f1p, "staging", *a) for a in (("--ip", "192.168.1.10"), ("--ip", "10.0.0.5"), ())]
+check("DP23: staging's record is made once, an A record to the server, proxied; run again it is found and "
+      "nothing is written; a new address changes it; one made by hand to the server but not proxied is "
+      "made proxied; --dry-run writes nothing; a record of another kind at the name is not touched; an "
+      "address inside a network, or none, stops it before anything",
+      [rc for rc, *_ in _cf1] == [0, 0] and _w1 == [("POST", "/zones/z1/dns_records")]
+      and _f1.records[0]["content"] == "203.0.113.11" and _f1.records[0]["proxied"] is True
+      and _f1.records[0]["type"] == "A" and _cf1b[0] == 0 and _writes(_f1)[-1][0] == "PATCH"
+      and "already" in _cf1[1][1] and _cf1d[0] == 0 and _writes(_f1d) == [] and "would:" in _cf1d[1]
+      and _cf1c[0] == 1 and _writes(_f1c) == [] and "CNAME" in _cf1c[2]
+      and _cf1g[0] == 0 and _writes(_f1g) == [("PATCH", "/zones/z1/dns_records/g1")]
+      and _f1g.records[0]["proxied"] is True
+      and [rc for rc, *_ in _cf1p] == [2, 2, 2] and _f1p.calls == [],
+      str((_cf1, _cf1b, _cf1d, _cf1c, _cf1g, _cf1p, _writes(_f1))))
+
+_bypass = {"id": "keep1", "description": "phase 0: no cache for /api/", "expression": 'starts_with(http.request.uri.path, "/api/")',
+           "action": "set_cache_settings", "action_parameters": {"cache": False}, "enabled": True,
+           "version": "3", "last_updated": "2026-11-03T00:00:00Z"}
+_f2 = _FakeCloudflare(rules=[dict(_bypass)])
+_cf2 = [_cf_run(_f2, "cache") for _ in range(2)]
+_post2 = [c for c in _f2.calls if c[0] != "GET"]
+_f2n = _FakeCloudflare(rules=None)
+_cf2n = _cf_run(_f2n, "cache")
+_hand = {"id": "h1", "description": "API answers that say they may be kept", "action": "set_cache_settings",
+         "expression": '(http.request.uri.path in {"/api/models" "/api/model" "/api/corpus"})',
+         "action_parameters": {"cache": True}, "enabled": True}
+_f2h = _FakeCloudflare(rules=[dict(_bypass), dict(_hand)])
+_cf2h = _cf_run(_f2h, "cache")
+_f2e = _FakeCloudflare(rules=[{**_hand, "description": "mine", "expression":
+                               '(http.request.uri.path in {"/api/models"  "/api/model"\n "/api/corpus"})'}])
+_cf2e = _cf_run(_f2e, "cache")
+_f2o = _FakeCloudflare(rules=[dict(_hand), dict(_bypass)])
+_cf2o = _cf_run(_f2o, "cache")
+check("DP24: the cache rule is added alone at the end of the zone's rules, none of which is sent back or "
+      "changed; it makes the three answers eligible, the origin's Cache-Control deciding for how long; "
+      "run again, it is found; made by hand under PHASE4's name, or under any name with the same "
+      "expression, it is found and nothing is written; a rule after it that switches the cache off is "
+      "said; a zone with no entry point gets it as its first",
+      [rc for rc, *_ in _cf2] == [0, 0] and [(c[0], c[1]) for c in _post2] == [("POST", "/zones/z1/rulesets/rs1/rules")]
+      and _post2[0][2] == _cf.RULE and _f2.rules[0] == _bypass
+      and [r["description"] for r in _f2.rules] == [_bypass["description"], _cf.RULE_NAME]
+      and _cf.RULE["action"] == "set_cache_settings"
+      and _cf.RULE["action_parameters"] == {"cache": True, "edge_ttl": {"mode": "respect_origin"},
+                                            "browser_ttl": {"mode": "respect_origin"}}
+      and _cf.RULE["expression"] == '(http.request.uri.path in {"/api/models" "/api/model" "/api/corpus"})'
+      and _cf.RULE["enabled"] is True
+      and "there already" in _cf2[1][1] and "switches the cache off" not in _cf2[1][1]
+      and _cf2n[0] == 0 and [r["description"] for r in _f2n.rules] == [_cf.RULE_NAME]
+      and _writes(_f2n) == [("PUT", "/zones/z1/rulesets/phases/http_request_cache_settings/entrypoint")]
+      and _cf2h[0] == 0 and _writes(_f2h) == [] and "there already" in _cf2h[1]
+      and _cf2e[0] == 0 and _writes(_f2e) == []
+      and _cf2o[0] == 0 and _writes(_f2o) == [] and "switches the cache off" in _cf2o[1]
+      and _bypass["description"] in _cf2o[1],
+      str((_cf2, _post2, _cf2n, _cf2h, _cf2e, _cf2o)))
+
+_tmp_cf = tempfile.TemporaryDirectory()
+_here_cf = Path(_tmp_cf.name)
+_f3 = _FakeCloudflare()
+_cf3 = [_cf_run(_f3, "turnstile", here=_here_cf) for _ in range(2)]
+_sec = _here_cf / "turnstile-secret.txt"
+_f3h = _FakeCloudflare(widgets=[{"sitekey": "0x4BBB-by-hand", "name": "caro", "domains": ["caro.noxioai.com"],
+                                 "mode": "non-interactive", "secret": "0x4BBB-by-hand-secret",
+                                 "bot_fight_mode": True, "clearance_level": "managed"}])
+_cf3h = _cf_run(_f3h, "turnstile", here=_here_cf)
+check("DP25: the Turnstile widget is made once, managed, for the site's two hostnames; its site key is "
+      "printed and its secret written beside the owner, mode 600, and printed nowhere; run again it is "
+      "found and not made twice; one made by hand for one hostname gets the other, its mode and its other "
+      "settings kept",
+      [rc for rc, *_ in _cf3] == [0, 0] and len(_f3.widgets) == 1
+      and _f3.widgets[0]["mode"] == "managed" and _f3.widgets[0]["name"] == "caro"
+      and _f3.widgets[0]["domains"] == ["caro.noxioai.com", "caro-staging.noxioai.com"]
+      and all("0x4AAAAAAA-made-up-sitekey" in o for _, o, _ in _cf3)
+      and not any("made-up-secret" in o + e for _, o, e in _cf3)
+      and [m for m, *_ in _writes(_f3)] == ["POST"]
+      and _cf3h[0] == 0 and [m for m, *_ in _writes(_f3h)] == ["PUT"]
+      and _f3h.widgets[0]["domains"] == ["caro.noxioai.com", "caro-staging.noxioai.com"]
+      and _f3h.widgets[0]["mode"] == "non-interactive" and len(_f3h.widgets) == 1
+      and _f3h.widgets[0]["bot_fight_mode"] is True and _f3h.widgets[0]["clearance_level"] == "managed"
+      and _sec.read_text().strip() == "0x4BBB-by-hand-secret" and (_sec.stat().st_mode & 0o777) == 0o600
+      and "by-hand-secret" not in _cf3h[1] + _cf3h[2],
+      str((_cf3, _cf3h)))
+
+_vercel = {"id": "v1", "type": "CNAME", "name": "caro.noxioai.com", "content": "cname.vercel-dns.com",
+           "proxied": False, "ttl": 1}
+_undo = _here_cf / "cloudflare-undo.json"
+_f4 = _FakeCloudflare(records=[_vercel])
+_cf4 = [_cf_run(_f4, "switch", "--ip", "203.0.113.10", here=_here_cf) for _ in range(2)]
+_w4 = _writes(_f4)
+_after_switch = [(r["type"], r["content"], r["proxied"]) for r in _f4.records]
+_cf4m = _cf_run(_f4, "switch", "--ip", "203.0.113.20", here=_here_cf)
+_kept = json.loads(_undo.read_text())
+_cf4u = _cf_run(_f4, "undo-switch", here=_here_cf)
+_after_undo = [(r["type"], r["content"], r["proxied"]) for r in _f4.records]
+_tmp_cf2 = tempfile.TemporaryDirectory()
+_cf4n = _cf_run(_FakeCloudflare(), "undo-switch", here=Path(_tmp_cf2.name))
+_f4r = _FakeCloudflare(records=[_vercel], refuse_batch=True)
+_cf4r = _cf_run(_f4r, "switch", "--ip", "203.0.113.10", here=Path(_tmp_cf2.name))
+_f4x = _FakeCloudflare(records=[{"id": "x1", "type": "A", "name": "caro.noxioai.com", "content": "203.0.113.10",
+                                 "proxied": True}, {"id": "x2", "type": "AAAA", "name": "caro.noxioai.com",
+                                                    "content": "2001:db8::1", "proxied": True}])
+_cf4x = _cf_run(_f4x, "switch", "--ip", "203.0.113.10", here=Path(_tmp_cf2.name))
+_www = {"id": "w1", "type": "A", "name": "www.noxioai.com", "content": "198.51.100.5", "proxied": True}
+_tmp_cf3 = tempfile.TemporaryDirectory()
+_f4i = _FakeCloudflare(records=[_www, _vercel], ignore_filter=True)
+_cf4i = _cf_run(_f4i, "switch", "--ip", "203.0.113.10", here=Path(_tmp_cf3.name))
+_batch4i = [c[2] for c in _f4i.calls if c[1].endswith("/batch")]
+check("DP26: the switch keeps what caro.noxioai.com was beside the owner, then makes it an A record to "
+      "the server, proxied, in one batch that takes Vercel's CNAME away; run again it is found; a switch "
+      "to a new address keeps the first switch's file; undone, in one batch, Vercel's CNAME is back as it "
+      "was and the file is gone; with nothing kept, undo refuses; a batch Cloudflare refuses leaves the "
+      "name as it was; a record left beside the server's is taken away, the A record alone kept; and "
+      "where the list answers with other names' records too, none of them is taken away or kept as "
+      "what the name was",
+      [rc for rc, *_ in _cf4] == [0, 0] and _w4 == [("POST", "/zones/z1/dns_records/batch")]
+      and _after_switch == [("A", "203.0.113.10", True)] and "already" in _cf4[1][1]
+      and _cf4m[0] == 0 and [(r["type"], r["content"]) for r in _kept] == [("CNAME", "cname.vercel-dns.com")]
+      and _cf4u[0] == 0 and _after_undo == [("CNAME", "cname.vercel-dns.com", False)] and not _undo.exists()
+      and _writes(_f4)[-1] == ("POST", "/zones/z1/dns_records/batch") and len(_writes(_f4)) == 3
+      and _cf4n[0] == 1
+      and _cf4r[0] == 1 and [(r["type"], r["content"]) for r in _f4r.records] == [("CNAME", "cname.vercel-dns.com")]
+      and "already exists" in _cf4r[2]
+      and _cf4x[0] == 0 and [(r["type"], r["content"]) for r in _f4x.records] == [("A", "203.0.113.10")]
+      and _cf4i[0] == 0 and _batch4i and _batch4i[0]["deletes"] == [{"id": "v1"}]
+      and [r for r in _f4i.records if r["name"] == "www.noxioai.com"] == [_www]
+      and [x["name"] for x in json.loads((Path(_tmp_cf3.name) / "cloudflare-undo.json").read_text())] == ["caro.noxioai.com"],
+      str((_cf4, _cf4m, _cf4u, _after_switch, _after_undo, _cf4n, _cf4r, _cf4x, _cf4i)))
+
+_tls_cf = tempfile.TemporaryDirectory()
+_tls = Path(_tls_cf.name)
+_f6 = _FakeCloudflare()
+_cf6d = _cf_run(_f6, "origin-cert", "--tls-dir", str(_tls), "--dry-run")
+_dry_files = sorted(x.name for x in _tls.iterdir())
+_cf6 = [_cf_run(_f6, "origin-cert", "--tls-dir", str(_tls)) for _ in range(2)]
+_key6 = (_tls / "origin.key").read_text() if (_tls / "origin.key").exists() else ""
+_tls_cf2 = tempfile.TemporaryDirectory()
+_tls2 = Path(_tls_cf2.name)
+_cf6n = _cf_run(_FakeCloudflare(), "origin-cert", "--tls-dir", str(_tls2 / "none"))
+_cf6r = _cf_run(_FakeCloudflare(refuse_cert=True), "origin-cert", "--tls-dir", str(_tls2))
+_after_refused = sorted(x.name for x in _tls2.iterdir())
+_f6o = _FakeCloudflare()
+_cf6o = _cf_run(_f6o, "origin-cert", "--tls-dir", str(_tls2),
+                run=lambda argv, **_k: subprocess.CompletedProcess(argv, 1, "", "req: unable to write the key"))
+check("DP27: the origin certificate is made on the server: the key by openssl in the certificate's "
+      "directory, mode 600, and only its request sent to Cloudflare, for the site's two hostnames, RSA, "
+      "fifteen years; the certificate written beside the key; run again, nothing is asked; --dry-run "
+      "writes nothing; a directory that is not there stops it before anything; a certificate Cloudflare "
+      "refuses, or a key openssl could not make, leaves no key behind",
+      _cf6d[0] == 0 and _dry_files == [] and [rc for rc, *_ in _cf6] == [0, 0] and len(_f6.certs) == 1
+      and _f6.certs[0]["csr"].startswith("-----BEGIN CERTIFICATE REQUEST-----")
+      and _f6.certs[0]["hostnames"] == ["caro.noxioai.com", "caro-staging.noxioai.com"]
+      and _f6.certs[0]["request_type"] == "origin-rsa" and _f6.certs[0]["requested_validity"] == 5475
+      and "PRIVATE KEY" in _key6 and ((_tls / "origin.key").stat().st_mode & 0o777) == 0o600
+      and (_tls / "origin.pem").read_text().startswith("-----BEGIN CERTIFICATE-----")
+      and sorted(x.name for x in _tls.iterdir()) == ["origin.key", "origin.pem"]
+      and not any(_key6.strip().split("\n")[1] in json.dumps(c[2]) for c in _f6.calls if c[2])
+      and not any("PRIVATE KEY" in o + e for _, o, e in _cf6)
+      and "there already" in _cf6[1][1] and _cf6n[0] == 2
+      and _cf6r[0] == 1 and "Failed to validate" in _cf6r[2] and _after_refused == []
+      and _cf6o[0] == 1 and "unable to write" in _cf6o[2] and _f6o.certs == []
+      and list(_tls2.iterdir()) == [],
+      str((_cf6d, _cf6, _dry_files, _cf6n, _cf6r, _cf6o)))
+
+
+class _Refusing(_FakeCloudflare):
+    def __call__(self, req, timeout=30):
+        self.calls.append((req.get_method(), req.full_url, None, None, None))
+        raise _ue_cf.HTTPError(req.full_url, 403, "Forbidden", {}, _io_cf.BytesIO(
+            b'{"success": false, "errors": [{"code": 10000, "message": "Authentication error"}]}'))
+
+
+_cf5a = _cf_run(_FakeCloudflare(), "status", env={})
+_cf5b = _cf_run(_Refusing(), "status")
+_cf5c = _cf_run(_Refusing(), "cache")
+_f5z = _FakeCloudflare(zones=[{"id": "zX", "name": "my-noxioai.com", "account": {"id": "aX"}},
+                              {"id": "z1", "name": "noxioai.com", "account": {"id": "a1"}}])
+_cf5z = _cf_run(_f5z, "staging", "--ip", "203.0.113.10")
+_cf5n = _cf_run(_FakeCloudflare(zones=[{"id": "zX", "name": "my-noxioai.com", "account": {"id": "aX"}}]), "status")
+_every = [c for f in (_f1, _f2, _f3, _f3h, _f4, _f6) for c in f.calls]
+_files = "".join(p.read_text() for p in _here_cf.iterdir()) + "".join(p.read_text() for p in _tls.iterdir())
+check("DP28: without a token it stops before asking anything; Cloudflare's refusal stops it with "
+      "Cloudflare's words and the permission that command needs; the zone is the one of that exact name, "
+      "and a token that sees only another stops it; every request goes to api.cloudflare.com with the "
+      "token as a bearer, and the token is in no line printed and no file written",
+      _cf5a[0] == 2 and "CLOUDFLARE_API_TOKEN" in _cf5a[2]
+      and _cf5b[0] == 1 and "Authentication error" in _cf5b[2] and "Zone / Zone / Read" in _cf5b[2]
+      and _cf5c[0] == 1 and "Zone / Cache Rules / Edit" in _cf5c[2]
+      and _cf5z[0] == 0 and _writes(_f5z) == [("POST", "/zones/z1/dns_records")]
+      and _cf5n[0] == 1 and "sees no zone noxioai.com" in _cf5n[2]
+      and all(c[4] == "api.cloudflare.com" and c[3] == f"Bearer {_CF_TOKEN}" for c in _every)
+      and not any(_CF_TOKEN in o + e for runs in (_cf1, _cf2, _cf3, _cf4, _cf6) for _, o, e in runs)
+      and _CF_TOKEN not in _cf5b[2] + _cf5c[2] and _CF_TOKEN not in _files,
+      str((_cf5a, _cf5b, _cf5c)))
+
 _edge = text("compose.edge.yml")
 _esvc = blocks(_edge)
 check("DP6: the edge is nginx alone, the only thing on the server that publishes a port -- 443 -- "
