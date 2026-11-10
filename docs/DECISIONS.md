@@ -8073,3 +8073,28 @@ PHASE7_SETUP's steps (D106).
 
 The same run told each phase's issue, #4 to #10, which entry is its own.
 
+## D108 — One server and no Kubernetes, by the owner's decision on what was measured
+
+The plan's phase 7 asks whether one server still holds ten times the
+search's target, which is the question Kubernetes answers. The target is 95%
+of searches within 300 ms with ten users (PERF). Ten times it is a hundred
+users at once, with no pause between questions.
+
+In the sandbox, one API process held them: 26,188 answers in 60 s, none
+failed, at p95 278 ms. Its p50 of 225 ms was the queue's wait, not work, a
+search being a few milliseconds of it (PERF; D106). The search's slowest
+part was named. The largest piece of it that was CARO's own, the counting
+middleware, now costs a tenth of what it did.
+
+On 2026-11-10, with that in front of them, the owner chose: one server,
+Compose, no Kubernetes. Staging and production stay two Compose projects on
+one Hetzner server behind its one nginx (D100).
+
+**What would reopen it:**
+- the hundred users run on the server itself (PHASE7_SETUP, step 5)
+  failing the target, as two shared cores may where four held;
+- a search's p95 over 300 ms in production, which the alert
+  CaroSearchSlow says (SLO).
+
+Either is an entry of its own. A second server and a load balancer come
+before an orchestrator.
