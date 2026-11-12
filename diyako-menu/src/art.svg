@@ -1,0 +1,166 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- engraving fills: line hatch, cross hatch, stipple -->
+    <pattern id="p-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-38)">
+      <rect width="5" height="5" fill="var(--paper, #f3ead8)"/>
+      <line x1="0" y1="0" x2="0" y2="5" stroke="var(--ink, #1d1712)" stroke-width="2.1"/>
+    </pattern>
+    <pattern id="p-hatch-l" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-38)">
+      <rect width="5" height="5" fill="var(--paper, #f3ead8)"/>
+      <line x1="0" y1="0" x2="0" y2="5" stroke="var(--ink, #1d1712)" stroke-width="1.1"/>
+    </pattern>
+    <pattern id="p-cross" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(30)">
+      <rect width="5" height="5" fill="var(--paper, #f3ead8)"/>
+      <path d="M0 0V5M0 0H5" stroke="var(--ink, #1d1712)" stroke-width="1.2"/>
+    </pattern>
+    <pattern id="p-dots" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="var(--paper, #f3ead8)"/>
+      <circle cx="1.5" cy="1.5" r=".9" fill="var(--ink, #1d1712)"/>
+      <circle cx="4.5" cy="4.5" r=".9" fill="var(--ink, #1d1712)"/>
+    </pattern>
+    <pattern id="p-rice" width="14" height="10" patternUnits="userSpaceOnUse">
+      <rect width="14" height="10" fill="var(--paper, #f3ead8)"/>
+      <path d="M2 2.5l3 1M8.5 1.5l3.2-.6M5 7.5l3 .9M11 7l2.6 1.3M.5 8.6l1.8-1.4" stroke="var(--ink, #1d1712)" stroke-width="1.1" stroke-linecap="round"/>
+    </pattern>
+    <pattern id="p-saffron" width="10" height="8" patternUnits="userSpaceOnUse">
+      <rect width="10" height="8" fill="var(--copper-l, #e3a35f)"/>
+      <path d="M1.5 2l2.6.8M6.5 1.4l2.4-.5M3.5 6l2.6.8" stroke="var(--copper-d, #7b4520)" stroke-width="1.1" stroke-linecap="round"/>
+    </pattern>
+
+    <!-- ===== section vignettes (64 x 64) ===== -->
+    <symbol id="i-skewer" viewBox="0 0 64 64">
+      <g transform="rotate(-24 32 32)" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 32H63" fill="none"/>
+        <path d="M58.5 32h5" stroke-width="4.5"/>
+        <rect x="8" y="24.5" width="11" height="15" rx="4.5" fill="url(#p-hatch)"/>
+        <rect x="21" y="24" width="11" height="16" rx="4.5" fill="url(#p-dots)"/>
+        <rect x="34" y="24.5" width="11" height="15" rx="4.5" fill="url(#p-hatch)"/>
+        <circle cx="51.5" cy="32" r="5.6" fill="var(--paper, #f3ead8)"/>
+        <path d="M51.5 28.4v7.2M47.9 32h7.2" fill="none" stroke-width="1.6"/>
+      </g>
+    </symbol>
+
+    <symbol id="i-pizza" viewBox="0 0 64 64">
+      <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M32 59 9.5 15.5C23 6 41 6 54.5 15.5Z" fill="url(#p-dots)"/>
+        <path d="M13 22.3C25.3 14.6 38.7 14.6 51 22.3" fill="none"/>
+        <circle cx="26" cy="29" r="4.4" fill="url(#p-hatch)"/>
+        <circle cx="38.5" cy="33" r="4" fill="url(#p-hatch)"/>
+        <circle cx="31" cy="44.5" r="3.4" fill="url(#p-hatch)"/>
+      </g>
+    </symbol>
+
+    <symbol id="i-salad" viewBox="0 0 64 64">
+      <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 33c-3-8 4-14 10.5-11.5C27 14 37 13 40 20c6-3 13 3 10.5 11" fill="url(#p-hatch-l)"/>
+        <path d="M30 22c2 3 2 7 0 11M41 23c-1 3-3 6-6 9" fill="none" stroke-width="1.6"/>
+        <path d="M7 33h50c0 12-11 20-25 20S7 45 7 33Z" fill="var(--paper, #f3ead8)"/>
+        <path d="M12 38.5h40" fill="none" stroke-width="1.4"/>
+        <path d="M24 53.5 22 58h20l-2-4.5" fill="none"/>
+      </g>
+    </symbol>
+
+    <symbol id="i-cup" viewBox="0 0 64 64">
+      <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M24 17c-3-3.5 3-5.5 0-9.5M32 17c-3-3.5 3-5.5 0-9.5M40 17c-3-3.5 3-5.5 0-9.5" fill="none" stroke-width="1.8"/>
+        <path d="M47 29.5h3.5a6.5 6.5 0 0 1 0 13h-5" fill="none"/>
+        <path d="M13 23h34v13c0 9-7 15-15.5 15h-3C20 51 13 45 13 36Z" fill="url(#p-hatch-l)"/>
+        <path d="M13 23h34" fill="none"/>
+        <path d="M6 54.5c6 4 46 4 52 0" fill="var(--paper, #f3ead8)"/>
+      </g>
+    </symbol>
+
+    <symbol id="i-tea" viewBox="0 0 64 64">
+      <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M28 11c-2.6-3 2.6-4.8 0-8.2M36 11c-2.6-3 2.6-4.8 0-8.2" fill="none" stroke-width="1.8"/>
+        <path d="M21.6 21c1.4 5 4.4 8.5 7 12-4.4 3.5-6.8 8.5-6.4 14.2.4 4.2 3.6 6.4 9.8 6.4s9.4-2.2 9.8-6.4c.4-5.7-2-10.7-6.4-14.2 2.6-3.5 5.6-7 7-12Z" fill="var(--copper, #b06a30)" fill-opacity=".85" stroke="none"/>
+        <path d="M20 15c.5 8 5.5 13.5 8.2 18-4.7 3.5-7.6 8.5-7.2 14.5.4 5 4 7.5 11 7.5s10.6-2.5 11-7.5c.4-6-2.5-11-7.2-14.5 2.7-4.5 7.7-10 8.2-18" fill="none"/>
+        <path d="M18.5 15h27" fill="none" stroke-width="2.8"/>
+        <path d="M7 56.5c6 4.5 44 4.5 50 0" fill="none"/>
+        <path d="M48.5 50.5l5-2.4 2.4 4.6-5 2.4Z" fill="url(#p-dots)" stroke-width="1.6"/>
+      </g>
+    </symbol>
+
+    <symbol id="i-glass" viewBox="0 0 64 64">
+      <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M37 4.5 31.5 44" fill="none" stroke-width="2.4"/>
+        <path d="M18.5 15h27l-3.6 42.5H22.1Z" fill="none"/>
+        <path d="M19.6 27h24.8l-2.5 30.5H22.1Z" fill="url(#p-hatch-l)"/>
+        <rect x="23.5" y="31" width="7.5" height="7.5" rx="1.2" transform="rotate(14 27.2 34.7)" fill="var(--paper, #f3ead8)" stroke-width="1.7"/>
+        <rect x="32" y="38" width="7" height="7" rx="1.2" transform="rotate(-10 35.5 41.5)" fill="var(--paper, #f3ead8)" stroke-width="1.7"/>
+        <circle cx="46.5" cy="15" r="7" fill="var(--paper, #f3ead8)"/>
+        <path d="M46.5 8v14M39.5 15h14M41.6 10.1l9.8 9.8M51.4 10.1l-9.8 9.8" fill="none" stroke-width="1.2"/>
+      </g>
+    </symbol>
+
+    <symbol id="i-hookah" viewBox="0 0 64 64">
+      <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M27 6.5h10" fill="none" stroke-width="3"/>
+        <path d="M26.5 9.5h11l-2.5 6.5h-6Z" fill="url(#p-hatch-l)"/>
+        <path d="M21 19h22" fill="none"/>
+        <path d="M32 16v19" fill="none" stroke-width="3"/>
+        <path d="M29 24h6M29.5 29h5" fill="none" stroke-width="1.6"/>
+        <path d="M27 36.5h10c8 2.5 11 8.5 9.5 14.5-1.3 5.3-6 8-14.5 8s-13.2-2.7-14.5-8c-1.5-6 1.5-12 9.5-14.5Z" fill="url(#p-hatch-l)"/>
+        <path d="M18.8 45.5h26.4" fill="none" stroke-width="1.5"/>
+        <path d="M36 32c10-2 17 2 18.5 10 1.2 6.5-1 11 4 13.5" fill="none"/>
+        <path d="M57 53.5l3.5 3" fill="none" stroke-width="3"/>
+      </g>
+    </symbol>
+
+    <symbol id="i-cake" viewBox="0 0 64 64">
+      <g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M32 9.5c-2.4 2.6-2.4 5 0 6.4 2.4-1.4 2.4-3.8 0-6.4Z" fill="var(--copper, #b06a30)"/>
+        <path d="M32 17v6" fill="none"/>
+        <path d="M14 30c0-4.5 36-4.5 36 0v16H14Z" fill="url(#p-hatch-l)"/>
+        <path d="M14 30c0 4.5 36 4.5 36 0" fill="var(--paper, #f3ead8)"/>
+        <path d="M14 38.5c6 2.2 30 2.2 36 0" fill="none" stroke-width="1.6"/>
+        <path d="M8 46.5h48" fill="none"/>
+        <path d="M32 46.5v8M23 56h18" fill="none"/>
+      </g>
+    </symbol>
+
+    <!-- ===== front-page art ===== -->
+    <symbol id="a-shishlik" viewBox="0 0 320 180">
+      <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <!-- plate -->
+        <ellipse cx="160" cy="138" rx="148" ry="30" fill="var(--paper, #f3ead8)"/>
+        <ellipse cx="160" cy="134" rx="120" ry="20" fill="none" stroke-width="1.6"/>
+        <path d="M30 150c40 18 220 18 260 0" fill="none" stroke-width="1.4"/>
+        <!-- rice dome with saffron cap -->
+        <path d="M44 134c4-36 40-60 86-62 42-2 68 22 74 62Z" fill="url(#p-rice)"/>
+        <path d="M86 84c18-10 50-13 70-4-14 7-52 9-70 4Z" fill="url(#p-saffron)" stroke-width="1.8"/>
+        <!-- grilled tomato -->
+        <circle cx="62" cy="128" r="17" fill="url(#p-cross)"/>
+        <path d="M54 118l8 5 8-5M62 123v-9" fill="none" stroke-width="2"/>
+        <!-- lamb chops -->
+        <g><path d="M190 102L208 78" fill="none" stroke-width="10"/><path d="M190 102L208 78" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="4.6"/><ellipse cx="210" cy="75" rx="7" ry="5.5" transform="rotate(-50 210 75)" fill="var(--paper, #f3ead8)"/><path d="M154 130C146 116 156 94 176 94C194 94 204 108 200 122C197 132 186 136 172 136C164 136 157 134 154 130Z" fill="url(#p-hatch)"/><path d="M157 123C153 110 163 99 176 99C188 99 196 107 195 117" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="4"/><path d="M168 118l14-10M172 128l18-12" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="2.6"/></g><g><path d="M226 110L244 86" fill="none" stroke-width="10"/><path d="M226 110L244 86" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="4.6"/><ellipse cx="246" cy="83" rx="7" ry="5.5" transform="rotate(-50 246 83)" fill="var(--paper, #f3ead8)"/><path d="M190 138C182 124 192 102 212 102C230 102 240 116 236 130C233 140 222 144 208 144C200 144 193 142 190 138Z" fill="url(#p-hatch)"/><path d="M193 131C189 118 199 107 212 107C224 107 232 115 231 125" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="4"/><path d="M204 126l14-10M208 136l18-12" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="2.6"/></g><g><path d="M262 118L280 94" fill="none" stroke-width="10"/><path d="M262 118L280 94" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="4.6"/><ellipse cx="282" cy="91" rx="7" ry="5.5" transform="rotate(-50 282 91)" fill="var(--paper, #f3ead8)"/><path d="M226 146C218 132 228 110 248 110C266 110 276 124 272 138C269 148 258 152 244 152C236 152 229 150 226 146Z" fill="url(#p-hatch)"/><path d="M229 139C225 126 235 115 248 115C260 115 268 123 267 133" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="4"/><path d="M240 134l14-10M244 144l18-12" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="2.6"/></g>
+        <!-- herbs -->
+        <path d="M118 140c-6-6-2-14 6-14 2 8-2 12-6 14ZM130 142c0-8 8-12 14-8-2 6-8 9-14 8ZM104 142c-8-2-10-10-4-14 5 4 6 9 4 14Z" fill="url(#p-hatch-l)" stroke-width="1.8"/>
+      </g>
+    </symbol>
+
+    <symbol id="a-bakhtiari" viewBox="0 0 320 120">
+      <g stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 64H306" fill="none" stroke-width="3"/>
+        <path d="M296 64h18" fill="none" stroke-width="9"/>
+        <rect x="22" y="44" width="40" height="40" rx="12" fill="url(#p-dots)"/>
+        <rect x="68" y="42" width="40" height="44" rx="12" fill="url(#p-hatch)"/>
+        <rect x="114" y="44" width="40" height="40" rx="12" fill="url(#p-dots)"/>
+        <rect x="160" y="42" width="40" height="44" rx="12" fill="url(#p-hatch)"/>
+        <rect x="206" y="44" width="40" height="40" rx="12" fill="url(#p-dots)"/>
+        <circle cx="270" cy="64" r="17" fill="url(#p-cross)"/>
+        <path d="M262 54l8 5 8-5M270 59v-9" fill="none" stroke-width="2"/>
+        <path d="M78 52l10 26M90 50l10 30M170 52l10 26M182 50l10 30" fill="none" stroke="var(--paper, #f3ead8)" stroke-width="3"/>
+      </g>
+    </symbol>
+
+    <!-- ornaments -->
+    <symbol id="o-fleuron" viewBox="0 0 40 16">
+      <path d="M20 2c3 4 3 8 0 12-3-4-3-8 0-12ZM14 8c-3-3-7-3-10 0 3 3 7 3 10 0ZM26 8c3-3 7-3 10 0-3 3-7 3-10 0Z" fill="currentColor"/>
+      <circle cx="1.5" cy="8" r="1.5" fill="currentColor"/><circle cx="38.5" cy="8" r="1.5" fill="currentColor"/>
+    </symbol>
+    <symbol id="o-star" viewBox="0 0 20 20">
+      <path d="M10 1.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L1.3 7.8l6.1-.7Z" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
