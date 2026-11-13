@@ -65,6 +65,7 @@ FONTS = [
     ("Markazi", "markazi-arabic.woff2", "400 700", ARABIC),
     ("Markazi", "markazi-latin.woff2", "400 700", LATIN),
     ("Ruqaa", "arefruqaa-arabic-700.woff2", "700", ARABIC),
+    ("Ultra", "ultra-latin.woff2", "400", LATIN),
 ]
 STATIC_WEIGHTS = {"Vazirmatn": (600, 700, 800), "Markazi": (600, 700)}
 
@@ -116,7 +117,7 @@ def item_li(it):
     note = f'<small>{esc(it["note"])}</small>' if it.get("note") else ""
     tag = f'<em class="tag">{esc(it["tag"])}</em>' if it.get("tag") else ""
     price = price_html(it.get("price"))
-    q = norm(it["name"] + " " + it.get("note", ""))
+    q = norm(" ".join(filter(None, (it["name"], it.get("note"), it.get("tag")))))
     tail = (f'<span class="dots" aria-hidden="true"></span><span class="price">{price}</span>'
             if price else "")
     return f'<li class="item" data-q="{esc(q)}"><span class="name">{esc(it["name"])}{tag}{note}</span>{tail}</li>'
@@ -186,13 +187,26 @@ def strip(d, left, date=False):
     return (f'<div class="strip">{first}<b>{esc(m["welcome"])}</b><span>{esc(m["follow"])}</span></div>')
 
 
+def is_latin(s):
+    return bool(re.search(r"[A-Za-z]", s)) and not re.search(r"[؀-ۿ]", s)
+
+
+def deco(text, cls):
+    """A display word: Persian keeps its own class, a Latin word gets the wood-type face."""
+    if is_latin(text):
+        return f'<span class="{cls} latin" lang="en" dir="ltr">{esc(text)}</span>'
+    return f'<span class="{cls}">{esc(text)}</span>'
+
+
 def hero(h, cls=""):
+    title = h["title"]
+    t_attr = ' class="hero__title hero__title--latin" lang="en" dir="ltr"' if is_latin(title) else ' class="hero__title"'
     return (f'<div class="hero {cls}"><p class="hero__line"><span class="script">{esc(h["script"])}</span>{hand()}</p>'
-            f'<p class="hero__title">{esc(h["title"])}</p><p class="hero__sub">{esc(h["sub"])}</p></div>')
+            f'<p{t_attr}>{esc(title)}</p><p class="hero__sub">{esc(h["sub"])}</p></div>')
 
 
 def specials(d):
-    sp, unit = d["specials"], d["meta"]["unit"]
+    sp = d["specials"]
     boxes = []
     for it in sp["items"]:
         q = norm(it["name"] + " " + it.get("note", ""))
@@ -203,9 +217,8 @@ def specials(d):
         )
     return f'''
 <section id="specials" class="specials" aria-labelledby="h-specials">
-  <h2 class="banner" id="h-specials"><span class="script">{esc(sp["script"])}</span>{hand()}<span class="banner__title">{esc(sp["title"])}</span></h2>
+  <h2 class="banner" id="h-specials">{deco(sp["script"], "script")}{hand()}<span class="banner__title">{esc(sp["title"])}</span></h2>
   <div class="sp-grid">{"".join(boxes)}</div>
-  <p class="fine">همهٔ قیمت‌ها به {esc(unit)} است.</p>
 </section>'''
 
 
@@ -225,11 +238,14 @@ def footer(d):
         if fb.get("qr"):
             link = (f'<a class="foot__link" href="{esc(insta["url"])}" rel="noopener" dir="ltr">@{esc(insta.get("handle", ""))}</a>'
                     if insta.get("url") else "")
-            extra = qr_block(d) + link
+            cta = (f'<span class="foot__cta">{esc(fb["cta"])}{hand()}</span>' if fb.get("cta") else "")
+            extra = f'<div class="foot__scan">{cta}{qr_block(d)}{link}</div>'
+        hook = f'<b class="foot__hook">{esc(fb["hook"])}</b>' if fb.get("hook") else ""
+        wide = " foot__box--wide" if fb.get("qr") else ""
         boxes.append(
-            f'<div class="foot__box"><h2 class="foot__bar">{esc(fb["title"])}</h2>'
+            f'<div class="foot__box{wide}"><h2 class="foot__bar">{esc(fb["title"])}</h2>'
             f'<div class="foot__body"><svg class="foot__icon" aria-hidden="true"><use href="#ic-{fb["icon"]}"/></svg>'
-            f'<p>{esc(fb["text"])}</p>{extra}</div></div>'
+            f'<div class="foot__text">{hook}<p>{esc(fb["text"])}</p></div>{extra}</div></div>'
         )
     return f'<footer class="foot">{"".join(boxes)}</footer>'
 
@@ -241,7 +257,9 @@ def build_digital(d):
     ink = svg_inner(read(ASSETS / "logo-ink.svg")).replace("<svg ", '<svg class="mini-badge" ', 1)
     ink = ink.replace('id="dk-key"', 'id="dk-key-mini"').replace('href="#dk-key"', 'href="#dk-key-mini"')
     favicon = "data:image/svg+xml," + read(ASSETS / "logo-mark.svg").replace("#", "%23").replace('"', "'")
-    nav = ['<a href="#irani">ایرانی</a>', '<a href="#specials">ویژه‌ها</a>']
+    sp_nav = d["specials"].get("nav", "VIP")
+    sp_attr = ' lang="en"' if is_latin(sp_nav) else ""
+    nav = ['<a href="#irani">ایرانی</a>', f'<a href="#specials"{sp_attr}>{esc(sp_nav)}</a>']
     nav += [f'<a href="#{s["id"]}">{esc(s["nav"])}</a>' for s in d["sections"] if s["id"] != "irani"]
     css = read(SRC / "style.css")
     js = read(SRC / "app.js")

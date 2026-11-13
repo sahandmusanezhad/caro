@@ -9,6 +9,7 @@
   --serif: "Markazi", "Vazirmatn", serif;
   --sans: "Vazirmatn", sans-serif;
   --display: "Lalezar", "Vazirmatn", sans-serif;
+  --latin: "Ultra", Georgia, serif;
   --script: "Ruqaa", "Lalezar", serif;
   --shadow-l: .45mm .45mm 0 var(--paper), .9mm .9mm 0 var(--ink);
   --shadow-m: .32mm .32mm 0 var(--paper), .64mm .64mm 0 var(--ink);
@@ -102,6 +103,8 @@ body { color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust:
 .script { font: 700 23pt/1.15 var(--script); }
 .hand { width: 13mm; height: 7mm; flex: none; color: var(--ink); }
 .hero__title { margin: 0; font: 400 32pt/1.04 var(--display); text-shadow: var(--shadow-l); }
+.hero__title--latin { font: 400 29pt/1.12 var(--latin); letter-spacing: .03em; text-transform: uppercase; }
+.latin { font-family: var(--latin) !important; font-weight: 400 !important; letter-spacing: .05em; text-transform: uppercase; }
 .hero__sub { flex-basis: 100%; margin: .2mm 0 0; font: 700 10.5pt/1.3 var(--serif); }
 
 /* ---------- columns ---------- */
@@ -124,7 +127,7 @@ body { color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust:
 .dots { flex: 1; min-width: 3mm; height: 0; border-bottom: .45mm dotted rgba(17, 17, 17, .55); transform: translateY(-1.1mm); }
 .price { font: 700 11.6pt/1 var(--serif); white-space: nowrap; }
 .slash { margin: 0 .5mm; font-style: normal; color: var(--ink-3); }
-.tag { display: inline-block; margin-inline-start: 1.2mm; padding: .45mm 1.1mm .7mm; background: var(--ink); color: var(--paper); font: 800 6.2pt/1 var(--sans); font-style: normal; vertical-align: .5mm; }
+.tag { display: inline-block; letter-spacing: .06em; margin-inline-start: 1.2mm; padding: .45mm 1.1mm .7mm; background: var(--ink); color: var(--paper); font: 800 6.2pt/1 var(--sans); font-style: normal; vertical-align: .5mm; }
 
 /* ---------- lower row on page 1 ---------- */
 .prow { display: grid; grid-template-columns: 1.15fr 1fr .9fr; margin-top: 1.8mm; padding-top: 1.2mm; border-top: .75mm solid var(--ink); }
@@ -182,7 +185,6 @@ body { color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust:
 .sp--heavy { border-width: 1.1mm; }
 .sp--heavy .sp__name { text-shadow: var(--shadow-m); }
 .sp--script .sp__name { font: 700 16pt/1.25 var(--script); }
-.fine { margin: .8mm 0 0; text-align: center; font: 700 6.8pt/1.3 var(--sans); }
 
 /* ---------- hookah row on page 2 ---------- */
 .page--cafe .lampframe { grid-template-columns: 13mm minmax(0, 1fr) 13mm; column-gap: 2.6mm; }
@@ -197,12 +199,19 @@ body { color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust:
 .phookah .cat:not(.ht) .sub { margin-top: 0; }
 
 /* ---------- footer boxes ---------- */
-.foot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm; margin-top: auto; padding-top: 2mm; }
+.foot { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 3mm; margin-top: auto; padding-top: 2mm; }
 .foot__box { display: flex; flex-direction: column; border: .5mm solid var(--ink); }
 .foot__bar { margin: 0; padding: .1mm 2mm .5mm; background: var(--ink); color: var(--paper); font: 400 10.5pt/1.4 var(--display); text-align: center; }
 .foot__body { flex: 1; display: flex; align-items: center; gap: 2mm; padding: 1mm 2mm; }
 .foot__icon { width: 6.5mm; height: 6.5mm; flex: none; color: var(--ink); }
-.foot__body p { flex: 1; margin: 0; font: 700 8.6pt/1.3 var(--serif); }
+.foot__text { flex: 1; min-width: 0; }
+.foot__hook { display: block; font: 400 12pt/1.3 var(--display); }
+.foot__text p { margin: .2mm 0 0; font: 700 8.6pt/1.3 var(--serif); }
+.foot__scan { flex: none; display: flex; align-items: center; gap: 1.8mm; }
+.foot__cta { display: flex; flex-direction: column; align-items: center; gap: .3mm; font: 800 6.6pt/1.3 var(--sans); text-align: center; }
+.foot__cta .hand { width: 9mm; height: 5mm; }
+.foot__box:not(.foot__box--wide) .foot__body { justify-content: center; }
+.foot__box:not(.foot__box--wide) .foot__text { flex: none; }
 .foot__link { flex: none; font: 800 7pt/1 var(--sans); }
 .qr { flex: none; display: block; width: 13mm; height: 13mm; padding: .6mm; border: .3mm solid var(--ink); background: #fff; }
 .qr--soon { position: relative; display: grid; place-items: center; background: repeating-linear-gradient(45deg, rgba(17, 17, 17, .09) 0 1mm, transparent 1mm 2mm), #fff; }
