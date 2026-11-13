@@ -3,7 +3,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-  /* ---- today's date on the dateline, in the Persian calendar ---- */
+  /* ---- today's date, Persian calendar ---- */
   const today = $("[data-today]");
   if (today) {
     try {
@@ -16,17 +16,18 @@
     } catch (e) { /* keep the printed fallback */ }
   }
 
-  /* ---- sticky index: show the small badge once stuck, follow the page being read ---- */
-  const nav = $(".sections");
-  const sentinel = $(".sections-sentinel");
+  /* ---- sticky index: small badge once stuck, follow the section being read ---- */
+  const nav = $(".nav");
+  const sentinel = $(".nav-sentinel");
   if (nav && sentinel && "IntersectionObserver" in window) {
     new IntersectionObserver(([e]) => nav.classList.toggle("is-stuck", !e.isIntersecting && e.boundingClientRect.top < 0))
       .observe(sentinel);
   }
-  const list = $(".sections__list");
-  const links = $$(".sections__list a");
+  const list = $(".nav__list");
+  const links = $$(".nav__list a");
   const byId = new Map(links.map((a) => [decodeURIComponent(a.hash.slice(1)), a]));
-  const pages = $$("main > section[id]");
+  const targets = links.map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1)))).filter(Boolean)
+    .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top);
   let current = null;
 
   function centreLink(a) {
@@ -49,11 +50,11 @@
     ticking = true;
     requestAnimationFrame(() => {
       ticking = false;
-      const line = (nav ? nav.getBoundingClientRect().bottom : 0) + 24;
+      const line = (nav ? nav.getBoundingClientRect().bottom : 0) + 30;
       let id = null;
-      for (const p of pages) {
-        if (p.hidden) continue;
-        if (p.getBoundingClientRect().top <= line) id = p.id; else break;
+      for (const t of targets) {
+        if (t.offsetParent === null) continue;
+        if (t.getBoundingClientRect().top <= line) id = t.id;
       }
       setActive(id);
     });
@@ -62,8 +63,8 @@
   addEventListener("resize", onScroll);
   onScroll();
 
-  /* ---- search the menu ---- */
-  const toggle = $(".sections__search");
+  /* ---- search ---- */
+  const toggle = $(".nav__search");
   const box = $(".search");
   const input = box && $("input", box);
   const empty = $(".search-empty");
@@ -77,19 +78,15 @@
     const q = norm(input.value);
     document.body.classList.toggle("is-searching", !!q);
     let hits = 0;
-    $$(".item, .ad-card").forEach((el) => {
+    $$(".item, .ht__item").forEach((el) => {
       const ok = !q || (el.dataset.q || "").includes(q);
       el.hidden = !ok;
       if (ok && q) hits++;
     });
-    $$(".cat").forEach((c) => { c.hidden = !!q && !c.querySelector(".item:not([hidden]), .ad-card:not([hidden])"); });
-    pages.forEach((p) => {
-      if (p.id === "front") return;
-      p.hidden = !!q && !p.querySelector(".cat:not([hidden])");
-    });
+    $$(".cat").forEach((c) => { c.hidden = !!q && !c.querySelector(".item:not([hidden]), .ht__item:not([hidden])"); });
+    $$("main .sec").forEach((s) => { s.hidden = !!q && !s.querySelector(".cat:not([hidden])"); });
     if (empty) empty.hidden = !q || hits > 0;
     if (q) {
-      // results start right under the sticky index
       const top = $("main").getBoundingClientRect().top + scrollY - nav.offsetHeight + 1;
       if (Math.abs(scrollY - top) > 2) scrollTo({ top, behavior: "auto" });
     }
@@ -101,8 +98,6 @@
     toggle.setAttribute("aria-expanded", String(open));
     if (open) {
       input.focus({ preventScroll: true });
-      const top = $("main").getBoundingClientRect().top + scrollY - nav.offsetHeight + 1;
-      if (scrollY < top) scrollTo({ top, behavior: "smooth" });
     } else {
       input.value = "";
       runSearch();
@@ -112,24 +107,5 @@
     toggle.addEventListener("click", () => openSearch(box.hidden));
     input.addEventListener("input", runSearch);
     input.addEventListener("keydown", (e) => { if (e.key === "Escape") { openSearch(false); toggle.focus(); } });
-  }
-
-  /* ---- فال قهوه ---- */
-  const FORTUNES = /*FORTUNES*/[];
-  const fBtn = $(".fortune__btn");
-  const fText = $(".fortune__text");
-  let last = -1;
-  if (fBtn && fText && FORTUNES.length) {
-    fBtn.addEventListener("click", () => {
-      let i;
-      do { i = Math.floor(Math.random() * FORTUNES.length); } while (FORTUNES.length > 1 && i === last);
-      last = i;
-      fText.classList.add("is-turning");
-      setTimeout(() => {
-        fText.textContent = FORTUNES[i];
-        fText.classList.remove("is-turning");
-        fBtn.textContent = "یک فالِ دیگر";
-      }, 220);
-    });
   }
 })();
