@@ -8098,3 +8098,137 @@ one Hetzner server behind its one nginx (D100).
 
 Either is an entry of its own. A second server and a load balancer come
 before an orchestrator.
+
+## D109 — The owner's steps as scripts, each run with the owner's own token: the server's bootstrap, its settings, Cloudflare and Grafana
+
+The steps left in the owner's accounts, phases 1 to 7's, were a page of
+clicks and pasted values each. Asked on 2026-11-10 how they should be done,
+the owner chose scripts they run themselves, the keys staying with them.
+Merged on 2026-11-18 in #28:
+- **`deploy/bootstrap.sh`**, on the server, does PHASE1_SETUP's steps 2,
+  3, 4, 6 and 7 where they are not done yet, and says what is left. It
+  never writes an environment's file it finds, and makes each database
+  password on the server. It starts the timers only once the edge is up,
+  and production's only with `--production` and its images there.
+- **`deploy/set-env.sh`**, on the server, writes every setting the steps
+  name. It asks for a secret unseen, or takes one piped, never on the
+  command line. It takes only the template's names, and a run changes all
+  it was asked or nothing.
+- **`scripts/cloudflare_setup.py`** does what the dashboard was asked for:
+  - the origin certificate, its key made on the server and only its
+    request sent;
+  - staging's name;
+  - the cache rule, added alone after the zone's own;
+  - Turnstile's widget, its secret written mode 600;
+  - the switch from Vercel and its undo, each in one batch Cloudflare
+    makes whole or not at all.
+- **`scripts/grafana_setup.py`** loads the dashboard and the seven alerts,
+  then `caro-telegram` with two routes in front of the stack's own, then
+  has Grafana send a test to the chat.
+- **The two files** the Cloudflare script writes beside the owner are ones
+  git ignores. The first is Turnstile's secret.
+- **Each step's document** says what to run, then the same by hand.
+
+A token is read from the environment, which `read -rs` fills unseen, and
+it is printed nowhere. Each command reads before it writes and writes only
+what differs.
+
+    commit    what it does                                          suites    bare
+    9cd7fb7   scripts/cloudflare_setup.py                               3639   2889
+    c176e00   deploy/bootstrap.sh                                       3643   2893
+    0e296a6   deploy/set-env.sh                                         3645   2895
+    4905e7e   scripts/grafana_setup.py                                  3651   2901
+    d68660c   the switch takes staging's address, status the zone's     3651   2901
+    5293864   the Cloudflare script's two files ignored by git          3651   2901
+    0464409   each step says what to run, then the same by hand         3651   2901
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `4273047`.
+
+**Where it differs from the plan:**
+- **The alerts are Grafana-managed rules,** by Grafana's own conversion of
+  `alerts.yml`, where PHASE7_SETUP loaded them with mimirtool into the
+  stack's Prometheus. They then go out through the same contact point and
+  routes as everything else the stack sends. `alerts.yml` is the same file
+  promtool tests, and mimirtool stays the way by hand.
+- **One Cloudflare token** for every step of the owner's, to be deleted
+  when they are done. The purge's token stays the server's own.
+
+**Found before the merge.** By reading the code against what each call
+would do to an account:
+- writing the cache rules' entry point back would have rewritten the
+  zone's own rules with whatever the script left out. It adds one rule;
+- a list of records that ignored its filter would have had the switch take
+  other names' records away. It asks by the exact name, and filters again;
+- a widget written back whole would have lost the settings it was not
+  sent. It sends them back as they were;
+- a secret written into a checkout would have been offered to the next
+  `git add -A`.
+
+By trying it against Grafana 13.3.0:
+- Grafana writes a day back as `1d`, so routes written as `24h` would have
+  been written again on every run. They are written as Grafana writes them;
+- Grafana 13.3 answers the old way of testing a contact point with a 410,
+  removed. The script tests through the receivers' API.
+
+**By hand.** The Grafana script ran from zero against Grafana 13.3.0 and
+Prometheus v3.16.0 started in the sandbox, with a contact point and a route
+of the stack's own: status, all --dry-run, all, all again, status.
+- The seven alerts read back as Grafana-managed rules, no data OK, each
+  with its own `for`, and the dashboard had its 11 panels on the stack's
+  Prometheus.
+- The two routes were in front, and the stack's own after them, kept.
+- The second run wrote neither the dashboard nor the routes.
+- The test alone failed: api.telegram.org is not reached from the sandbox,
+  and the script stopped with Grafana's words.
+
+The certificate's request and key, made by the real openssl, verify and
+pair.
+
+**Mutants:** 150, with bytecode off, 145 caught:
+- Cloudflare, 57 and 55;
+- the bootstrap, 31 and 29;
+- set-env, 20 and 19;
+- Grafana, 42 and 42.
+
+Of the five survivors:
+- three take away a umask or a chmod whose file a later chmod, or mktemp,
+  makes the same;
+- one opens Turnstile's secret readable by all, which its chmod closes;
+- the last is the bootstrap's check that /etc can be written, which the
+  suites, run as root, always pass.
+
+Rows were corrected after a mutation run, each as its commit says:
+- Cloudflare's refused certificate;
+- the switch's two cases, two A records at staging and one inside a
+  network;
+- the bootstrap's upgrade line;
+- set-env's three cases;
+- Grafana's eight.
+
+Every mutant was run again against the rows as corrected. #28's
+description leaves out the switch's two cases, d68660c's.
+
+**Read from the outside** on 2026-11-18, by the owner's third run of
+`tecso-release.sh`, which brought `Tecso-Dev/caro` from `2f345dd` to
+`4273047`, the merge of #28:
+- `/about`: 108 decisions, 3651 assertions and 19 suites;
+- the corpus REAL run17, `ad72b16a54cf`, 492 rows;
+- a Samand's page, 32 listings;
+- «سمند زیر ۲ میلیارد», 13 shown and 1 held apart;
+- the edge line `models -, public, max-age=60`, its corpus the same as
+  health's. The `s-maxage` is taken off by Vercel's network, as at
+  `7ee3256` (D100);
+- served by Vercel, with no Cloudflare header.
+
+The same run told the steps' issue, #12, that each step is now a command,
+and phase 7's, #9, that the D56 decision is written (D107, D108).
+
+**What this does not settle.** Whether the scripts work against the real
+accounts. None was run against one: Cloudflare's API was not called from
+the sandbox, and no server ran the bootstrap. The first run of each is the
+owner's, and what it prints is that record. Phase 1's step 1, the server
+itself, and step 5, the packages made public, stay by hand, as do the
+accounts each step needs: the SMS account, the bucket, the bot, the
+Grafana Cloud stack.

@@ -54,8 +54,8 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106, and the owner's two
-  decisions after phase 7 theirs, D107 and D108.
+  Every merge since D84 has its entry, D85 to D106 and D109, and the
+  owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
   of Vercel's retirement, waits as a draft): phase 5 on its conditions
@@ -77,11 +77,13 @@ an item says so.
   (the origin certificate, staging's name, the cache rule, Turnstile and
   the switch), and `scripts/grafana_setup.py` for the dashboard, the alerts
   and Telegram. Each step's document says what to run, then the same by
-  hand. None has yet run against the owner's accounts.
+  hand. Merged in #28 (D109). None has yet run against the owner's
+  accounts.
 - **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge, with
   `tecso-release.sh`, a fast-forward that reads the site after it; its
   `main` was brought from `1940296` to `7ee3256`, #25's merge, on 2026-11-07
-  (D100).
+  (D100), to `2f345dd` the same day (D107), and to `4273047`, #28's merge,
+  on 2026-11-18 (D109).
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
