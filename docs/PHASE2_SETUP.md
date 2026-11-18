@@ -39,7 +39,17 @@ a session to build it behind the same interface. At
 
 ## 2. Staging, with your own number
 
-On the server, add to `/etc/caro/staging.env` (`nano`):
+On the server:
+
+```
+openssl rand -hex 32 | bash /opt/caro/deploy/set-env.sh staging CARO_STORE_SECRET
+bash /opt/caro/deploy/set-env.sh staging CARO_SELLER_STORE=on CARO_SMS_PROVIDER=kavenegar CARO_SMS_KAVENEGAR_TEMPLATE=caro-login CARO_SMS_KAVENEGAR_KEY
+```
+
+The first line makes the store's secret on the server and writes it,
+unseen. The second asks for the API key without showing it.
+`CARO_SITE_ORIGINS` is staging's own already: the bootstrap wrote it. By
+hand, the same lines in `/etc/caro/staging.env` (`nano`):
 
 ```
 CARO_SELLER_STORE=on
@@ -80,8 +90,9 @@ back the line: it holds nothing a stranger could use.
 
 ## 3. Production
 
-The same lines in `/etc/caro/production.env`, with
-`CARO_SITE_ORIGINS=https://caro.noxioai.com` and a secret of its own. Then
+The same two commands with `production` in place of `staging`: a secret of
+its own, and `CARO_SITE_ORIGINS=https://caro.noxioai.com` from the
+bootstrap. Then
 tag the next release (PHASE1_SETUP, step 7) so production runs the image
 that draws the links.
 

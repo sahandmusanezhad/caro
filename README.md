@@ -813,8 +813,8 @@ tests/           3651 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
-deploy/          the edge's nginx, Cloudflare's ranges, the server's pull script and timers
-scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts
+deploy/          the edge's nginx, Cloudflare's ranges, the server's pull script and timers, its bootstrap and its settings' helper
+scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts, the owner's Cloudflare and Grafana steps
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json

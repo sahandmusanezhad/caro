@@ -27,6 +27,10 @@ What is left is in Grafana Cloud's dashboard, the server's env files and
 the owner's machine. No step asks for a key to be written into this
 repository or pasted into a conversation.
 
+Step 2's settings are `deploy/set-env.sh`'s, and steps 3 and 4 are one run
+of `scripts/grafana_setup.py`. Each step says what to run, and then the
+same by hand.
+
 ## 1. A Grafana Cloud stack
 
 On grafana.com, a free account and a stack. In the stack's **Prometheus**
@@ -37,8 +41,13 @@ card, under **Details**, there are three things:
 - the way to a token: an access policy whose only scope is
   **metrics:write**, and a token made under it.
 
-Make a second policy with **rules:write** alone, and a token under it, for
-step 4.
+Then, in the stack's Grafana, a service account for steps 3 and 4:
+**Administration → Users and access → Service accounts → Add service
+account**, role **Admin**, then **Add service account token**. Delete it
+when the steps are done.
+
+By hand, step 4 needs instead a second policy with **rules:write** alone,
+and a token under it.
 
 ## 2. The collector on the server
 
@@ -49,7 +58,15 @@ its file from it.
 cd /opt/caro && git pull --ff-only
 ```
 
-Then in `/etc/caro/staging.env`:
+Then:
+
+```
+bash /opt/caro/deploy/set-env.sh staging COMPOSE_PROFILES=observe GRAFANA_CLOUD_PROM_URL GRAFANA_CLOUD_PROM_USER GRAFANA_CLOUD_TOKEN
+```
+
+It asks for the three in turn, none shown: the Remote Write Endpoint, the
+Instance ID, the metrics:write token. By hand, the same lines in
+`/etc/caro/staging.env`:
 
 ```
 COMPOSE_PROFILES=observe
@@ -67,22 +84,51 @@ Worked when two things hold:
 - in Grafana, **Explore** on the stack's Prometheus, `up{job="caro-api",
   env="staging"}` is 1.
 
-Then do the same in `/etc/caro/production.env`. To stop it again, empty
-`COMPOSE_PROFILES` and run `... stop observe`: a service whose profile is
-off is not stopped by `up`.
+Then do the same with `production`. To stop it again,
+`bash /opt/caro/deploy/set-env.sh staging COMPOSE_PROFILES=` and
+`... stop observe`: a service whose profile is off is not stopped by `up`.
 
-## 3. The dashboard
+## 3 and 4. The dashboard, the alerts, and where they go
 
-In Grafana, **Dashboards → New → Import**: upload `deploy/grafana/caro.json`
-and choose the stack's Prometheus as its data source.
+On the server, where production's file holds the bot and the chat of the
+server's alerts ([PHASE3_SETUP](PHASE3_SETUP.md)):
 
-Worked when the panels show staging: answers by route, the search's
-percentiles, the corpus served.
+```
+cd /opt/caro
+read -r GRAFANA_URL && export GRAFANA_URL
+read -rs GRAFANA_TOKEN && export GRAFANA_TOKEN
+python3 scripts/grafana_setup.py all --env-file /etc/caro/production.env
+```
 
-## 4. The alerts, and where they go
+The first line reads the stack's address, `https://` and the stack's name
+`.grafana.net`; the second the service account's token, not shown. Then it
+does, in order:
+- the dashboard, on the stack's own Prometheus;
+- the seven alerts, as Grafana-managed rules in the folder CARO, by
+  Grafana's own conversion of `deploy/grafana/alerts.yml`. No data means
+  no alert, as in Prometheus;
+- the contact point `caro-telegram`, and two routes to it in front of the
+  stack's own: a page within half a minute and again every four hours,
+  tickets every three hours and again each day;
+- a test message, sent by Grafana to the chat.
 
-From any machine with `mimirtool` (Grafana's, version 2 or later), in the
-checkout:
+Run again, it finds the dashboard and the routes as they are and writes
+neither. `status` says what the stack holds, and `--dry-run` what it
+would do.
+
+Worked when three things hold:
+
+- it ends `the test: sent by Grafana`, and the message is in the chat;
+- **Alerting → Alert rules** lists the seven in the folder CARO;
+- the dashboard CARO shows staging: answers by route, the search's
+  percentiles, the corpus served.
+
+By hand, the dashboard: in Grafana, **Dashboards → New → Import**: upload
+`deploy/grafana/caro.json` and choose the stack's Prometheus as its data
+source.
+
+By hand, the alerts: from any machine with `mimirtool` (Grafana's, version
+2 or later), in the checkout:
 
 ```
 mimirtool rules load deploy/grafana/alerts.yml \
@@ -90,17 +136,16 @@ mimirtool rules load deploy/grafana/alerts.yml \
   --id=<the Instance ID> --key=<the rules:write token>
 ```
 
-In Grafana, **Alerting → Contact points**, add a Telegram contact point:
-the bot and the chat of the server's alerts ([PHASE3_SETUP](PHASE3_SETUP.md)).
-In **Notification policies**, route both severities to it:
+Rules loaded so are the stack's Prometheus's own, and send to the
+Alertmanager it names. In Grafana, **Alerting → Contact points**, for that
+Alertmanager, add a Telegram contact point with the bot and the chat. In
+**Notification policies**, route both severities to it:
 
 - `severity=page` at once;
 - `severity=ticket` grouped, every few hours.
 
-Worked when two things hold:
-
-- **Alerting → Alert rules** lists the seven, CaroApiDown first;
-- the contact point's **Test** arrives in the chat.
+Worked by hand when **Alerting → Alert rules** lists the seven and the
+contact point's **Test** arrives in the chat.
 
 ## 5. Ten times the target, on the server
 

@@ -1,9 +1,14 @@
 # CARO's alerts on what the API counts (docs/SLO.md), in Prometheus's rule
 # format, for the Grafana Cloud stack the `observe` service writes to
-# (docs/PHASE7_SETUP.md):
+# (docs/PHASE7_SETUP.md). scripts/grafana_setup.py loads them, group by
+# group, as Grafana-managed rules in the folder CARO; where a stack does not
+# convert them, mimirtool loads them as the stack's Prometheus's own:
 #
 #   mimirtool rules load deploy/grafana/alerts.yml \
 #     --address=<the stack's Prometheus address> --id=<its user> --key=<a token with rules:write>
+#
+# The script reads this file's own layout: each group a `  - name:` line,
+# and every line of it indented under that.
 #
 # Each alert names its environment. The public reads are the routes whose
 # 5xx is always a fault: a 503 elsewhere -- the seller listings or the

@@ -2,12 +2,13 @@
 """The owner's Grafana steps, done through the stack's own API with a token
 of the owner's (docs/PHASE7_SETUP.md, steps 3 and 4).
 
-    export GRAFANA_URL=https://<the stack>.grafana.net
+    read -r GRAFANA_URL && export GRAFANA_URL
     read -rs GRAFANA_TOKEN && export GRAFANA_TOKEN
     python3 scripts/grafana_setup.py <command> [--dry-run]
 
-The second line reads the token without showing it or keeping it in the
-shell's history: paste it, then Enter.
+The first line reads the stack's address, https:// and the stack's name
+.grafana.net; the second the token, without showing it or keeping it in the
+shell's history: paste each, then Enter.
 
     status      what the stack holds of the rest, read only
     dashboard   deploy/grafana/caro.json, on the stack's Prometheus (step 3)

@@ -60,8 +60,10 @@ source and the time of day its run must have arrived by
 | a deploy that did not arrive | an environment not running the commit, or not served through Cloudflare alone | the workflow's run | `scripts/deploy_wait.py`, `scripts/site_check.py --cloudflare` |
 
 **Page** and **ticket** are the alerts' `severity`, for Grafana's
-notification policy to route: a page to the Telegram contact point at
-once, a ticket to the same chat by day ([PHASE7_SETUP](PHASE7_SETUP.md)).
+notification policy to route to the Telegram contact point: a page within
+half a minute and again every four hours, tickets grouped every three hours
+and again each day. `scripts/grafana_setup.py` makes the routes and loads
+the alerts as Grafana-managed rules ([PHASE7_SETUP](PHASE7_SETUP.md)).
 The burn-rate pair is the usual one for a 30-day budget: 2% of it spent in
 an hour pages, 10% in six hours is a ticket, and both windows must agree so
 that one slow minute does not page and a fault that has ended stops
