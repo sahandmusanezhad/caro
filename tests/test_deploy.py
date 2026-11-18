@@ -851,12 +851,15 @@ _wf = text(".github/workflows/images.yml")
 _only_here = "if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'"
 check("DP13: the images workflow runs the API's suites inside its image and reads both images "
       "together before it pushes anything, pushes only on a merge or a tag and only from the "
-      "repository the server pulls from, keeps no key to the server, and waits on an environment "
-      "only where a variable names it",
+      "repository the server pulls from, keeps no key to the server -- its one key is Tecso-Dev/caro's "
+      "deploy key -- and waits on an environment only where a variable names it",
       _wf.index("docker build --target test") < _wf.index("docker push")
       and _wf.index("scripts/site_check.py --site http://127.0.0.1:3000") < _wf.index("docker push")
       and _wf.count(_only_here) == 2 and "if: github.event_name == 'push'\n" not in _wf
-      and "ghcr.io/sahandmusanezhad/" in text("deploy/env.example") and "ssh" not in _wf.lower()
+      and "ghcr.io/sahandmusanezhad/" in text("deploy/env.example")
+      # The one key here is the deploy key of Tecso-Dev/caro, which Vercel builds from (DP43):
+      # none reaches the server.
+      and "ssh" not in _wf.lower().replace("ssh-key: ${{ secrets.tecso_deploy_key }}", "", 1)
       and "vars.CARO_STAGING_URL" in _wf and "if: env.URL != ''" in _wf
       and "packages: write" in _wf and "contents: read" in _wf, "")
 
@@ -1541,6 +1544,40 @@ check("DP42: where Tecso-Dev/caro's main has a commit of its own, nothing is pus
       and _d6[0] != 0 and "main is protected" in _d6[2] and _main_of(_orgC) == _a3 and "->" not in _d6[1]
       and "--force" not in _dl_text and '"+' not in _dl_text and " -f " not in _dl_text,
       str((_d4, _d5)))
+
+_dj = _wf[_wf.index("\n  deliver:"):]
+_dsteps = {n: _step(_dj, n) for n in ("No delivery key yet", "CI passed on this commit", "Tecso-Dev/caro, by its deploy key",
+                                       "Its main brought to this commit, a fast-forward and never a force",
+                                       "The site runs this commit", "The site, read from the outside")}
+check("DP43: each merge into this repository's main is delivered only after its images passed and CI passed "
+      "on the very commit, and never from a pull request; without the deploy key it says so and does "
+      "nothing; with it, Tecso-Dev/caro is reached by that key alone, its main moved by deliver.sh, and "
+      "the site waited for until it runs the commit, then read from the outside; the job may read the "
+      "runs and the code, and write nothing here",
+      "    needs: images\n" in _dj
+      and "if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'sahandmusanezhad/caro'" in _dj
+      and all(_dsteps.values())
+      and "if: env.HAS_KEY != 'true'" in _dsteps["No delivery key yet"]
+      and all("if: env.HAS_KEY == 'true'" in t for n, t in _dsteps.items() if n != "No delivery key yet")
+      and "HAS_KEY: ${{ secrets.TECSO_DEPLOY_KEY != '' }}" in _dj
+      and _dj.count("secrets.TECSO_DEPLOY_KEY") == 2
+      and "ssh-key: ${{ secrets.TECSO_DEPLOY_KEY }}" in _dsteps["Tecso-Dev/caro, by its deploy key"]
+      and "repository: Tecso-Dev/caro" in _dsteps["Tecso-Dev/caro, by its deploy key"]
+      and '--workflow ci.yml --commit "$GITHUB_SHA"' in _dsteps["CI passed on this commit"]
+      and '"completed success") echo' in _dsteps["CI passed on this commit"]
+      and 'completed*) echo "::error::ci did not pass on this commit ($run): nothing is delivered"; exit 1 ;;'
+          in _dsteps["CI passed on this commit"]
+      and _dsteps["CI passed on this commit"].rstrip().endswith("exit 1")
+      and _before(_dj, "- name: CI passed on this commit", "- name: Tecso-Dev/caro, by its deploy key")
+      and _before(_dj, "- name: Tecso-Dev/caro, by its deploy key", "- name: Its main brought to this commit")
+      and 'sh deploy/deliver.sh "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/tecso" "$GITHUB_SHA"'
+          in _dsteps["Its main brought to this commit, a fast-forward and never a force"]
+      and _before(_dj, "- name: Its main brought to this commit", "- name: The site runs this commit")
+      and '--build "$GITHUB_SHA"' in _dsteps["The site runs this commit"]
+      and "scripts/site_check.py --site \"$SITE\"" in _dsteps["The site, read from the outside"]
+      and "      contents: read\n      actions: read\n" in _dj and "packages: write" not in _dj
+      and "--force" not in _dj,
+      _dj[:300])
 
 print()
 if FAILS:
