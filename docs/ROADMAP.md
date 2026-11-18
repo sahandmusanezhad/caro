@@ -34,7 +34,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `7ee3256` when it was read on 2026-11-07 (D100); see «Deploying» below. |
+| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `4273047` when it was read on 2026-11-18 (D109); each green merge reaches it by CI once the owner's deploy key is set ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
 
 ## The order of work
 
@@ -658,7 +658,9 @@ names. Durations are for two people part-time.
    owner's, and its holder deployed `main` from `Tecso-Dev/caro` on
    2026-10-14 (D78). A push to `main` deploys: `1ebbf4a` was on the site
    within about three minutes of its push on 2026-10-15 (D80), and
-   `7ee3256` was on the site when it was read on 2026-11-07 (D100). Checked
+   `4273047` was on the site when it was read on 2026-11-18 (D109). Since
+   #30, CI pushes each green merge there itself and reads the site after
+   it, once the owner has set one deploy key ([DELIVERY](DELIVERY.md)). Checked
    there on 2026-10-25 (D84):
    the contact page has its inbox off and links to the repository's Issues
    (`CARO_INBOX=off`, D68), and the car page draws the province with how it
@@ -683,13 +685,17 @@ names. Durations are for two people part-time.
    actions are on v7, their Node 24 releases (`ci.yml` says what their majors
    changed and why none of it touches this workflow), and the fonts are files
    of the site (`webapp/web/public/fonts`), so `next lint` reports nothing.
-   What is left is the first run after the push: both jobs green and no
-   warning on either.
+   **Closed** on 2026-11-18: on `4273047`, #28's merge, every job of both
+   workflows on `main` -- `suites`, `web`, `e2e`, `postgres` and `images` --
+   was green and carried no warning, read from their annotations. The one
+   annotation was `reached`'s notice that no environment is named yet.
 2. **After every merge.** CI on `main`, and the site read from the outside:
    `/about`'s counts, and the queries the merge changed. What was read goes
-   into the next D-entry. The sandbox a session works in cannot reach the
-   site, so the owner runs the read -- `python3 scripts/site_check.py`, with
-   `--site` once the address changes -- and passes back what it printed.
+   into the next D-entry. Once the owner's deploy key is set, the images
+   workflow's job `deliver` does the read after each merge, and its log is
+   what was read ([DELIVERY](DELIVERY.md)). Until then the owner runs it --
+   `python3 scripts/site_check.py`, with `--site` once the address changes,
+   or `tecso-release.sh`, which runs it -- and passes back what it printed.
 
 ## The end
 
