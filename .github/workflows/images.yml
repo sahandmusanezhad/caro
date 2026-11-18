@@ -13,7 +13,10 @@
 # in step by the owner -- builds and reads both images and stops there.
 #
 # The server pulls :staging and :production every minute (deploy/pull.sh):
-# nothing here reaches the server, and no key to it is kept here. Once the
+# nothing here reaches the server, and no key to it is kept here. Until the
+# switch to the server, the job `deliver` brings each green merge to
+# Tecso-Dev/caro's main, which Vercel builds the site from, and reads the
+# site after it (docs/DELIVERY.md). Once the
 # repository variable CARO_STAGING_URL (or CARO_PRODUCTION_URL) names an
 # environment, the job `reached` waits until it runs the new commit
 # (scripts/deploy_wait.py) and reads it from the outside
@@ -169,3 +172,68 @@ jobs:
       - name: The environment, read from the outside
         if: env.URL != ''
         run: python3 scripts/site_check.py --site "$URL" --cloudflare
+
+  # Until the switch to the server (docs/PHASE6_SETUP.md), the site is
+  # Vercel's, built from Tecso-Dev/caro's main. Each merge into main whose
+  # images passed above, and whose CI passed, is brought there -- a
+  # fast-forward, never a force -- by a deploy key of that repository alone;
+  # then the site is waited for until it runs the commit, and read from the
+  # outside (docs/DELIVERY.md). Without the key, it says so and does nothing.
+  deliver:
+    needs: images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'sahandmusanezhad/caro'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      actions: read
+    env:
+      HAS_KEY: ${{ secrets.TECSO_DEPLOY_KEY != '' }}
+      SITE: https://caro-rho.vercel.app
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: No delivery key yet
+        if: env.HAS_KEY != 'true'
+        run: echo "::notice::TECSO_DEPLOY_KEY is not set, so main is not delivered to Tecso-Dev/caro (docs/DELIVERY.md)"
+
+      - name: CI passed on this commit
+        if: env.HAS_KEY == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for _ in $(seq 1 90); do
+            run=$(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --event push \
+                  --json status,conclusion -q '.[0] | "\(.status) \(.conclusion)"')
+            case "$run" in
+              "completed success") echo "ci passed on $GITHUB_SHA"; exit 0 ;;
+              completed*) echo "::error::ci did not pass on this commit ($run): nothing is delivered"; exit 1 ;;
+            esac
+            sleep 20
+          done
+          echo "::error::ci did not finish on this commit in 30 minutes: nothing is delivered"
+          exit 1
+
+      - name: Tecso-Dev/caro, by its deploy key
+        if: env.HAS_KEY == 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: Tecso-Dev/caro
+          ref: main
+          path: tecso
+          fetch-depth: 0
+          ssh-key: ${{ secrets.TECSO_DEPLOY_KEY }}
+
+      - name: Its main brought to this commit, a fast-forward and never a force
+        if: env.HAS_KEY == 'true'
+        run: sh deploy/deliver.sh "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/tecso" "$GITHUB_SHA"
+
+      - name: The site runs this commit
+        if: env.HAS_KEY == 'true'
+        run: python3 scripts/deploy_wait.py --site "$SITE" --build "$GITHUB_SHA" --timeout 900 --every 15
+
+      - name: The site, read from the outside
+        if: env.HAS_KEY == 'true'
+        run: python3 scripts/site_check.py --site "$SITE"

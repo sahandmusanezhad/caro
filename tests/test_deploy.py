@@ -851,12 +851,15 @@ _wf = text(".github/workflows/images.yml")
 _only_here = "if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'"
 check("DP13: the images workflow runs the API's suites inside its image and reads both images "
       "together before it pushes anything, pushes only on a merge or a tag and only from the "
-      "repository the server pulls from, keeps no key to the server, and waits on an environment "
-      "only where a variable names it",
+      "repository the server pulls from, keeps no key to the server -- its one key is Tecso-Dev/caro's "
+      "deploy key -- and waits on an environment only where a variable names it",
       _wf.index("docker build --target test") < _wf.index("docker push")
       and _wf.index("scripts/site_check.py --site http://127.0.0.1:3000") < _wf.index("docker push")
       and _wf.count(_only_here) == 2 and "if: github.event_name == 'push'\n" not in _wf
-      and "ghcr.io/sahandmusanezhad/" in text("deploy/env.example") and "ssh" not in _wf.lower()
+      and "ghcr.io/sahandmusanezhad/" in text("deploy/env.example")
+      # The one key here is the deploy key of Tecso-Dev/caro, which Vercel builds from (DP43):
+      # none reaches the server.
+      and "ssh" not in _wf.lower().replace("ssh-key: ${{ secrets.tecso_deploy_key }}", "", 1)
       and "vars.CARO_STAGING_URL" in _wf and "if: env.URL != ''" in _wf
       and "packages: write" in _wf and "contents: read" in _wf, "")
 
@@ -1455,6 +1458,126 @@ check("DP40: without the stack's address and token it stops before asking anythi
       and all(c[4] == "caro.grafana.example" and c[3].get("authorization") == f"Bearer {_GF_TOKEN}" for c in _gevery)
       and not any(_GF_TOKEN in o + e for runs in (_gr1, _gr3, [_gr4, _gr4f, _gr5r]) for _, o, e in runs),
       str((_gr5a, _gr5h, _gr5l, _gr5r)))
+
+# ---------------------------------------------------------------------------
+print("\neach green merge delivered to the site Vercel builds, a fast-forward and never a force")
+
+
+def _git(cwd, *args):
+    p = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t.invalid", "-c", "init.defaultBranch=main",
+                        *args], cwd=cwd, capture_output=True, text=True, env={**os.environ, "HOME": str(cwd)})
+    if p.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)}: {p.stderr}")
+    return p.stdout.strip()
+
+
+def _dl_world():
+    """This repository at A -> B -> C; Tecso-Dev/caro, a bare repository, at A; its checkout."""
+    d = Path(tempfile.mkdtemp())
+    src, origin, dst = d / "src", d / "origin.git", d / "dst"
+    src.mkdir()
+    _git(src, "init", "-q")
+    shas = []
+    for n in "ABC":
+        (src / "f").write_text(n)
+        _git(src, "add", "f")
+        _git(src, "commit", "-q", "-m", n)
+        shas.append(_git(src, "rev-parse", "HEAD"))
+    _git(d, "init", "-q", "--bare", str(origin))
+    _git(src, "push", "-q", str(origin), f"{shas[0]}:refs/heads/main")
+    _git(d, "clone", "-q", str(origin), str(dst))
+    return d, src, origin, dst, shas
+
+
+def _deliver(src, dst, sha):
+    p = subprocess.run(["sh", str(ROOT / "deploy/deliver.sh"), str(src), str(dst), sha], capture_output=True,
+                       text=True, timeout=60, env={**os.environ, "HOME": str(dst.parent)})
+    return p.returncode, p.stdout, p.stderr
+
+
+def _main_of(origin):
+    return _git(origin, "rev-parse", "main")
+
+
+_dlA, _srcA, _orgA, _dstA, (_a, _b, _c) = _dl_world()
+_d1 = _deliver(_srcA, _dstA, _c)
+_after1 = _main_of(_orgA)
+_d2 = _deliver(_srcA, _dstA, _c)
+# A later merge, D, delivered before C's job runs.
+(_srcA / "f").write_text("D")
+_git(_srcA, "commit", "-q", "-am", "D")
+_dD = _git(_srcA, "rev-parse", "HEAD")
+_git(_srcA, "push", "-q", str(_orgA), f"{_dD}:refs/heads/main")
+_git(_srcA, "checkout", "-q", _c)
+_d3 = _deliver(_srcA, _dstA, _c)
+check("DP41: a commit of main is pushed to Tecso-Dev/caro's main where that main is behind it, and only "
+      "then; run again it is found there; where a later merge was delivered first, it is found held there "
+      "and nothing moves back",
+      _d1[0] == 0 and _after1 == _c and f"{_a} -> {_c}" in _d1[1]
+      and _d2[0] == 0 and "already" in _d2[1] and _main_of(_orgA) == _dD
+      and _d3[0] == 0 and "a later merge was delivered first" in _d3[1] and _main_of(_orgA) == _dD,
+      str((_d1, _d2, _d3)))
+
+_dlB, _srcB, _orgB, _dstB, (_a2, _b2, _c2) = _dl_world()
+# Tecso-Dev/caro's main gets a commit of its own, which this repository does not have.
+_other = Path(tempfile.mkdtemp()) / "other"
+_git(_dlB, "clone", "-q", str(_orgB), str(_other))
+(_other / "g").write_text("theirs")
+_git(_other, "add", "g")
+_git(_other, "commit", "-q", "-m", "someone else's")
+_git(_other, "push", "-q", "origin", "HEAD:refs/heads/main")
+_theirs = _main_of(_orgB)
+_d4 = _deliver(_srcB, _dstB, _c2)
+_git(_srcB, "checkout", "-q", _b2)
+_d5 = _deliver(_srcB, _dstB, _c2)
+# A main GitHub would not let the key write: the push refused, and the job with it.
+_dlC, _srcC, _orgC, _dstC, (_a3, _b3, _c3) = _dl_world()
+(_orgC / "hooks/pre-receive").write_text("#!/bin/sh\necho 'refused: main is protected' >&2\nexit 1\n")
+(_orgC / "hooks/pre-receive").chmod(0o755)
+_d6 = _deliver(_srcC, _dstC, _c3)
+_dl_text = text("deploy/deliver.sh")
+check("DP42: where Tecso-Dev/caro's main has a commit of its own, nothing is pushed and the job fails, saying "
+      "so; a checkout that is not at the commit pushes nothing; a push GitHub refuses fails the job; the "
+      "script never forces a push",
+      _d4[0] == 1 and "has commits" in _d4[2] and _main_of(_orgB) == _theirs
+      and _d5[0] == 1 and f"is at {_b2}, not {_c2}" in _d5[2] and _main_of(_orgB) == _theirs
+      and _d6[0] != 0 and "main is protected" in _d6[2] and _main_of(_orgC) == _a3 and "->" not in _d6[1]
+      and "--force" not in _dl_text and '"+' not in _dl_text and " -f " not in _dl_text,
+      str((_d4, _d5)))
+
+_dj = _wf[_wf.index("\n  deliver:"):]
+_dsteps = {n: _step(_dj, n) for n in ("No delivery key yet", "CI passed on this commit", "Tecso-Dev/caro, by its deploy key",
+                                       "Its main brought to this commit, a fast-forward and never a force",
+                                       "The site runs this commit", "The site, read from the outside")}
+check("DP43: each merge into this repository's main is delivered only after its images passed and CI passed "
+      "on the very commit, and never from a pull request; without the deploy key it says so and does "
+      "nothing; with it, Tecso-Dev/caro is reached by that key alone, its main moved by deliver.sh, and "
+      "the site waited for until it runs the commit, then read from the outside; the job may read the "
+      "runs and the code, and write nothing here",
+      "    needs: images\n" in _dj
+      and "if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'sahandmusanezhad/caro'" in _dj
+      and all(_dsteps.values())
+      and "if: env.HAS_KEY != 'true'" in _dsteps["No delivery key yet"]
+      and all("if: env.HAS_KEY == 'true'" in t for n, t in _dsteps.items() if n != "No delivery key yet")
+      and "HAS_KEY: ${{ secrets.TECSO_DEPLOY_KEY != '' }}" in _dj
+      and _dj.count("secrets.TECSO_DEPLOY_KEY") == 2
+      and "ssh-key: ${{ secrets.TECSO_DEPLOY_KEY }}" in _dsteps["Tecso-Dev/caro, by its deploy key"]
+      and "repository: Tecso-Dev/caro" in _dsteps["Tecso-Dev/caro, by its deploy key"]
+      and '--workflow ci.yml --commit "$GITHUB_SHA"' in _dsteps["CI passed on this commit"]
+      and '"completed success") echo' in _dsteps["CI passed on this commit"]
+      and 'completed*) echo "::error::ci did not pass on this commit ($run): nothing is delivered"; exit 1 ;;'
+          in _dsteps["CI passed on this commit"]
+      and _dsteps["CI passed on this commit"].rstrip().endswith("exit 1")
+      and _before(_dj, "- name: CI passed on this commit", "- name: Tecso-Dev/caro, by its deploy key")
+      and _before(_dj, "- name: Tecso-Dev/caro, by its deploy key", "- name: Its main brought to this commit")
+      and 'sh deploy/deliver.sh "$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/tecso" "$GITHUB_SHA"'
+          in _dsteps["Its main brought to this commit, a fast-forward and never a force"]
+      and _before(_dj, "- name: Its main brought to this commit", "- name: The site runs this commit")
+      and '--build "$GITHUB_SHA"' in _dsteps["The site runs this commit"]
+      and "scripts/site_check.py --site \"$SITE\"" in _dsteps["The site, read from the outside"]
+      and "      contents: read\n      actions: read\n" in _dj and "packages: write" not in _dj
+      and "--force" not in _dj,
+      _dj[:300])
 
 print()
 if FAILS:

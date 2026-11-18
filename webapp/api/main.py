@@ -332,10 +332,17 @@ def _evidence(c, spec, cands, k: int) -> dict:
 # endpoints
 # ---------------------------------------------------------------------------
 
+def _build() -> str | None:
+    """The commit this process runs: the one its image was built from
+    (CARO_BUILD), or else the one Vercel deployed (VERCEL_GIT_COMMIT_SHA,
+    which Vercel gives its functions), or None where neither says."""
+    return os.environ.get("CARO_BUILD") or os.environ.get("VERCEL_GIT_COMMIT_SHA") or None
+
+
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     c = corpus_mod.active()
-    return HealthResponse(ok=True, build=os.environ.get("CARO_BUILD") or None,
+    return HealthResponse(ok=True, build=_build(),
                           corpus=c.identity.sha256 if c.identity is not None else None)
 
 

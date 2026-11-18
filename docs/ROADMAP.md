@@ -79,8 +79,10 @@ an item says so.
   and Telegram. Each step's document says what to run, then the same by
   hand. Merged in #28 (D109). None has yet run against the owner's
   accounts.
-- **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge, with
-  `tecso-release.sh`, a fast-forward that reads the site after it; its
+- **`Tecso-Dev/caro` brought to `main`.** Once the owner sets one deploy
+  key ([DELIVERY](DELIVERY.md)), CI does it after each green merge: a
+  fast-forward, then the site waited for and read. Until then, the owner
+  after each merge with `tecso-release.sh`, which does the same; its
   `main` was brought from `1940296` to `7ee3256`, #25's merge, on 2026-11-07
   (D100), to `2f345dd` the same day (D107), and to `4273047`, #28's merge,
   on 2026-11-18 (D109).
