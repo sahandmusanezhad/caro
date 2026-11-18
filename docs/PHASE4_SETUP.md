@@ -24,11 +24,32 @@ What is left is in Cloudflare's dashboard, GitHub's settings and the
 server's env files. No step asks for a key to be written into this
 repository or pasted into a conversation.
 
+Steps 1 and 3 are `scripts/cloudflare_setup.py`'s, and each setting is
+`deploy/set-env.sh`'s, run in `/opt/caro` on the server with PHASE1_SETUP's
+token read as there:
+
+```
+read -rs CLOUDFLARE_API_TOKEN && export CLOUDFLARE_API_TOKEN
+```
+
+Each step says what to run, and then the same by hand.
+
 ## 1. The cache rule
 
-Phase 0's rule bypasses the cache for every `/api/` address. In Cloudflare,
-**Caching → Cache Rules**, keep it, and add a rule **after** it — when two
-match, the later one's settings win:
+Phase 0's rule bypasses the cache for every `/api/` address. It stays, and
+the rule below goes **after** it: when two match, the later one's settings
+win.
+
+```
+python3 scripts/cloudflare_setup.py cache
+```
+
+It adds the rule at the end of the zone's rules and changes none of them.
+A rule made by hand already is found by its name or its expression. A rule
+after it that switches the cache off is said, to be dragged above it.
+
+By hand, in Cloudflare, **Caching → Cache Rules**, add the rule after
+phase 0's:
 
 - name: *API answers that say they may be kept*
 - when: *URI Path* is in `/api/models`, `/api/model`, `/api/corpus`
@@ -49,8 +70,21 @@ that ends `the same`.
 
 In Cloudflare, **My Profile → API Tokens → Create Token → Custom token**:
 permission *Zone → Cache Purge → Purge*, zone resources *Include → Specific
-zone → noxioai.com*. The zone's id is on the zone's **Overview** page. On the
-server, in `/etc/caro/production.env` and `/etc/caro/staging.env`:
+zone → noxioai.com*. This token is the server's, and stays there. Then on
+the server:
+
+```
+python3 scripts/cloudflare_setup.py status
+bash /opt/caro/deploy/set-env.sh production CARO_CF_API_TOKEN
+bash /opt/caro/deploy/set-env.sh staging CARO_CF_API_TOKEN
+```
+
+`status` gives the zone's id as two lines to run as they are, one for each
+environment. The other two ask for the purge's token without showing it.
+`CARO_SITE_HOST` is each environment's own already: the bootstrap wrote it.
+
+By hand, the zone's id is on the zone's **Overview** page. On the server,
+in `/etc/caro/production.env` and `/etc/caro/staging.env`:
 
 ```
 CARO_CF_API_TOKEN=<the token>
@@ -65,18 +99,34 @@ lives out its five minutes.
 
 ## 3. Turnstile
 
-In Cloudflare, **Turnstile → Add widget**: name `caro`, hostnames
-`caro.noxioai.com` and `caro-staging.noxioai.com`, mode *Managed*. It gives a
-site key and a secret key. In this order, because a secret set before the
-site draws the widget refuses every code request:
+```
+python3 scripts/cloudflare_setup.py turnstile
+```
+
+It makes the widget `caro` for both hostnames, mode *Managed*, or finds it,
+and adds a hostname it lacks. It prints the site key, and writes the
+secret key to `turnstile-secret.txt` beside you, mode 600, which git
+ignores. By hand: Cloudflare, **Turnstile → Add widget**, name `caro`,
+hostnames `caro.noxioai.com` and `caro-staging.noxioai.com`, mode
+*Managed*; it gives a site key and a secret key.
+
+Then, in this order, because a secret set before the site draws the widget
+refuses every code request:
 
 1. GitHub, **Settings → Secrets and variables → Actions → Variables**:
    `NEXT_PUBLIC_TURNSTILE_SITE_KEY` = the site key (it is public: the
    browser is sent it). The next merge's site image draws the check.
-2. Staging's file: `CARO_TURNSTILE_SECRET=<the secret key>`. Then
-   `https://caro-staging.noxioai.com/login` shows the check, and a code
-   arrives; `/contact` sends a message.
-3. The next release tag; then production's file, the same line.
+2. Staging's file, on the server, once staging runs that image:
+
+   ```
+   bash /opt/caro/deploy/set-env.sh staging CARO_TURNSTILE_SECRET < turnstile-secret.txt
+   ```
+
+   By hand: `CARO_TURNSTILE_SECRET=<the secret key>` in staging's file.
+   Then `https://caro-staging.noxioai.com/login` shows the check, and a
+   code arrives; `/contact` sends a message.
+3. The next release tag; then production's file, the same line with
+   `production`. Then `rm turnstile-secret.txt`.
 
 ## 4. The baseline on the server
 

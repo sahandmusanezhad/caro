@@ -38,7 +38,23 @@ In Cloudflare's dashboard, **R2 Object Storage**:
 
 ## 2. The server's side
 
-On the server, add to `/etc/caro/production.env` (`nano`):
+The bot first: in Telegram, **@BotFather → /newbot** gives its token. Then
+on the server:
+
+```
+openssl rand -hex 32 | bash /opt/caro/deploy/set-env.sh production CARO_WORKER_TOKEN
+bash /opt/caro/deploy/set-env.sh production CARO_ALERT_EXPECT=khodro45@05:00 CARO_ALERT_TELEGRAM_TOKEN
+```
+
+The first line makes the worker's token on the server. Step 3 types it
+into the worker's file, and this shows it to copy there:
+
+```
+sed -n 's/^CARO_WORKER_TOKEN=//p' /etc/caro/production.env
+```
+
+The second asks for the bot's token without showing it. By hand, the same lines in
+`/etc/caro/production.env` (`nano`):
 
 ```
 CARO_WORKER_TOKEN=<openssl rand -hex 32, run on the server>
@@ -47,8 +63,7 @@ CARO_ALERT_TELEGRAM_TOKEN=<the bot's token>
 CARO_ALERT_TELEGRAM_CHAT=<the chat's id>
 ```
 
-The bot: in Telegram, **@BotFather → /newbot** gives its token; type it into
-the file. Send the bot one message from your own account, then on the
+The chat: send the bot one message from your own account, then on the
 server:
 
 ```
@@ -56,8 +71,13 @@ TOKEN=$(sed -n 's/^CARO_ALERT_TELEGRAM_TOKEN=//p' /etc/caro/production.env)
 curl -s "https://api.telegram.org/bot$TOKEN/getUpdates" | grep -o '"chat":{"id":-\?[0-9]*'
 ```
 
-The number is the chat's id. The timer brings production to the file within
-a minute. Then:
+The number is the chat's id:
+
+```
+bash /opt/caro/deploy/set-env.sh production CARO_ALERT_TELEGRAM_CHAT
+```
+
+The timer brings production to the file within a minute. Then:
 
 ```
 cd /opt/caro

@@ -70,6 +70,14 @@ an item says so.
   its holder, and the Grafana Cloud stack with the collector, the dashboard
   and the alerts. D56 is kept (D107), and one server serves without
   Kubernetes (D108), both the owner's decisions of 2026-11-10.
+- **The owner's steps, as scripts**, the owner's choice of 2026-11-10, each
+  run with the owner's own token and nothing else: `deploy/bootstrap.sh`
+  for the server's side of phase 1, `deploy/set-env.sh` for every setting
+  the steps name, `scripts/cloudflare_setup.py` for Cloudflare's
+  (the origin certificate, staging's name, the cache rule, Turnstile and
+  the switch), and `scripts/grafana_setup.py` for the dashboard, the alerts
+  and Telegram. Each step's document says what to run, then the same by
+  hand. None has yet run against the owner's accounts.
 - **`Tecso-Dev/caro` brought to `main`.** The owner, after each merge, with
   `tecso-release.sh`, a fast-forward that reads the site after it; its
   `main` was brought from `1940296` to `7ee3256`, #25's merge, on 2026-11-07

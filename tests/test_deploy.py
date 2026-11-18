@@ -19,6 +19,7 @@ runs the API's suites inside its image and reads them together.
 """
 import io
 import ipaddress
+import os
 import json
 import re
 import subprocess
@@ -249,6 +250,350 @@ check("DP22: the dashboard reads only what /metrics says, each expression for th
       and any("since the last collected run" in tl.lower() for tl in _titles)
       and 'up{job="caro-api", env="$env"}' in _titles["The API answers its collector"]["targets"][0]["expr"],
       str(sorted(_dused - _exposed)))
+
+# ---------------------------------------------------------------------------
+print("\nthe owner's Cloudflare steps, through its API with the owner's token")
+import contextlib as _ctx_cf                                            # noqa: E402
+import io as _io_cf                                                     # noqa: E402
+import urllib.error as _ue_cf                                           # noqa: E402
+import urllib.parse as _up_cf                                           # noqa: E402
+
+from scripts import cloudflare_setup as _cf                             # noqa: E402
+
+_CF_TOKEN = "made-up-cloudflare-token-0123456789"
+
+
+class _FakeCloudflare:
+    """Cloudflare's API as the script uses it, kept in memory; every call logged."""
+
+    def __init__(self, records=(), rules=None, widgets=(), refuse_batch=False, refuse_cert=False,
+                 ignore_filter=False, zones=None):
+        self.records = [dict(r) for r in records]
+        self.rules = rules              # None: the zone has no entry point
+        self.widgets = [dict(w) for w in widgets]
+        self.refuse_batch, self.refuse_cert, self.certs = refuse_batch, refuse_cert, []
+        self.ignore_filter = ignore_filter      # a list that answers with every name's records
+        self.zones = [{"id": "z1", "name": "noxioai.com", "account": {"id": "a1"}}] if zones is None else zones
+        self.calls, self.seq = [], 0
+
+    def _ok(self, result):
+        body = json.dumps({"success": True, "errors": [], "result": result}).encode()
+        return _ctx_cf.nullcontext(type("R", (), {"read": lambda _s: body})())
+
+    def _refuse(self, req, code, message):
+        raise _ue_cf.HTTPError(req.full_url, 400, "Bad Request", {}, _io_cf.BytesIO(json.dumps(
+            {"success": False, "errors": [{"code": code, "message": message}]}).encode()))
+
+    def _post_record(self, body):
+        self.seq += 1
+        self.records.append({**body, "id": f"r{self.seq}"})
+        return self.records[-1]
+
+    def __call__(self, req, timeout=30):
+        u = _up_cf.urlparse(req.full_url)
+        q = dict(_up_cf.parse_qsl(u.query))
+        body = json.loads(req.data) if req.data else None
+        m, path = req.get_method(), u.path.removeprefix("/client/v4")
+        self.calls.append((m, path, body, req.get_header("Authorization"), u.netloc))
+        if path == "/zones" and m == "GET":
+            return self._ok(self.zones)
+        if path == "/zones/z1/dns_records":
+            if m == "GET":
+                return self._ok([r for r in self.records if self.ignore_filter or r["name"] == q.get("name.exact")])
+            return self._ok(self._post_record(body))
+        if path == "/zones/z1/dns_records/batch" and m == "POST":
+            if self.refuse_batch:       # Cloudflare's one transaction: nothing of it is made
+                self._refuse(req, 81053, "An A, AAAA, or CNAME record with that host already exists.")
+            gone = {d["id"] for d in body.get("deletes", [])}
+            self.records = [r for r in self.records if r["id"] not in gone]
+            return self._ok({"deletes": [{"id": i} for i in sorted(gone)],
+                             "posts": [self._post_record(r) for r in body.get("posts", [])]})
+        if path.startswith("/zones/z1/dns_records/"):
+            rid = path.rsplit("/", 1)[1]
+            if m == "DELETE":
+                self.records = [r for r in self.records if r["id"] != rid]
+                return self._ok({"id": rid})
+            for r in self.records:
+                if r["id"] == rid:
+                    r.update(body)
+                    return self._ok(r)
+        if path == "/zones/z1/rulesets/phases/http_request_cache_settings/entrypoint":
+            if m == "GET":
+                if self.rules is None:
+                    raise _ue_cf.HTTPError(req.full_url, 404, "Not Found", {}, _io_cf.BytesIO(
+                        b'{"success": false, "errors": [{"message": "could not find entrypoint ruleset"}]}'))
+                return self._ok({"id": "rs1", "phase": "http_request_cache_settings", "rules": self.rules})
+            self.rules = [{**r, "id": r.get("id", f"rule{i}"), "version": "1"} for i, r in enumerate(body["rules"])]
+            return self._ok({"id": "rs1", "rules": self.rules})
+        if path == "/zones/z1/rulesets/rs1/rules" and m == "POST":
+            self.rules.append({**body, "id": f"rule{len(self.rules)}", "version": "1"})
+            return self._ok({"id": "rs1", "rules": self.rules})
+        if path == "/accounts/a1/challenges/widgets":
+            if m == "GET":
+                return self._ok([{k: w[k] for k in ("sitekey", "name", "domains")} for w in self.widgets])
+            w = {**body, "sitekey": "0x4AAAAAAA-made-up-sitekey", "secret": "0x4AAAAAAA-made-up-secret"}
+            self.widgets.append(w)
+            return self._ok(w)
+        if path.startswith("/accounts/a1/challenges/widgets/"):
+            if m == "GET":
+                return self._ok(self.widgets[0])
+            if m == "PUT":          # the whole widget: what is not sent goes back to what a new one has
+                w = self.widgets[0]
+                self.widgets[0] = {"sitekey": w["sitekey"], "secret": w["secret"], "bot_fight_mode": False,
+                                   "clearance_level": "no_clearance", **body}
+                return self._ok(self.widgets[0])
+        if path == "/certificates" and m == "POST":
+            if self.refuse_cert:
+                self._refuse(req, 1100, "Failed to validate requested hostname caro-staging.noxioai.com")
+            self.certs.append(body)
+            return self._ok({"id": "c1", "certificate": "-----BEGIN CERTIFICATE-----\nMADEUP\n-----END CERTIFICATE-----\n",
+                             "hostnames": body["hostnames"], "expires_on": "2041-11-06 00:00:00 +0000 UTC"})
+        raise AssertionError(f"the fake has no {m} {path}")
+
+
+def _cf_run(fake, *argv, here=None, env=None, run=None):
+    out, err = _io_cf.StringIO(), _io_cf.StringIO()
+    with _ctx_cf.redirect_stderr(err):
+        try:
+            rc = _cf.main(list(argv), env={"CLOUDFLARE_API_TOKEN": _CF_TOKEN} if env is None else env,
+                          opener=fake, out=lambda line: out.write(line + "\n"), here=here,
+                          **({"run": run} if run else {}))
+        except SystemExit as e:         # what argparse does with an argument it refuses
+            rc = e.code
+    return rc, out.getvalue(), err.getvalue()
+
+
+def _writes(fake):
+    return [(m, p) for m, p, *_ in fake.calls if m != "GET"]
+
+
+_f1 = _FakeCloudflare()
+_cf1 = [_cf_run(_f1, "staging", "--ip", "203.0.113.10") for _ in range(2)]
+_w1 = _writes(_f1)
+_cf1b = _cf_run(_f1, "staging", "--ip", "203.0.113.11")
+_f1d = _FakeCloudflare()
+_cf1d = _cf_run(_f1d, "staging", "--ip", "203.0.113.10", "--dry-run")
+_f1c = _FakeCloudflare(records=[{"id": "c1", "type": "CNAME", "name": "caro-staging.noxioai.com",
+                                 "content": "somewhere.example", "proxied": False}])
+_cf1c = _cf_run(_f1c, "staging", "--ip", "203.0.113.10")
+_f1g = _FakeCloudflare(records=[{"id": "g1", "type": "A", "name": "caro-staging.noxioai.com",
+                                 "content": "203.0.113.10", "proxied": False}])
+_cf1g = _cf_run(_f1g, "staging", "--ip", "203.0.113.10")
+_f1p = _FakeCloudflare()
+_cf1p = [_cf_run(_f1p, "staging", *a) for a in (("--ip", "192.168.1.10"), ("--ip", "10.0.0.5"), ())]
+check("DP23: staging's record is made once, an A record to the server, proxied; run again it is found and "
+      "nothing is written; a new address changes it; one made by hand to the server but not proxied is "
+      "made proxied; --dry-run writes nothing; a record of another kind at the name is not touched; an "
+      "address inside a network, or none, stops it before anything",
+      [rc for rc, *_ in _cf1] == [0, 0] and _w1 == [("POST", "/zones/z1/dns_records")]
+      and _f1.records[0]["content"] == "203.0.113.11" and _f1.records[0]["proxied"] is True
+      and _f1.records[0]["type"] == "A" and _cf1b[0] == 0 and _writes(_f1)[-1][0] == "PATCH"
+      and "already" in _cf1[1][1] and _cf1d[0] == 0 and _writes(_f1d) == [] and "would:" in _cf1d[1]
+      and _cf1c[0] == 1 and _writes(_f1c) == [] and "CNAME" in _cf1c[2]
+      and _cf1g[0] == 0 and _writes(_f1g) == [("PATCH", "/zones/z1/dns_records/g1")]
+      and _f1g.records[0]["proxied"] is True
+      and [rc for rc, *_ in _cf1p] == [2, 2, 2] and _f1p.calls == [],
+      str((_cf1, _cf1b, _cf1d, _cf1c, _cf1g, _cf1p, _writes(_f1))))
+
+_bypass = {"id": "keep1", "description": "phase 0: no cache for /api/", "expression": 'starts_with(http.request.uri.path, "/api/")',
+           "action": "set_cache_settings", "action_parameters": {"cache": False}, "enabled": True,
+           "version": "3", "last_updated": "2026-11-03T00:00:00Z"}
+_f2 = _FakeCloudflare(rules=[dict(_bypass)])
+_cf2 = [_cf_run(_f2, "cache") for _ in range(2)]
+_post2 = [c for c in _f2.calls if c[0] != "GET"]
+_f2n = _FakeCloudflare(rules=None)
+_cf2n = _cf_run(_f2n, "cache")
+_hand = {"id": "h1", "description": "API answers that say they may be kept", "action": "set_cache_settings",
+         "expression": '(http.request.uri.path in {"/api/models" "/api/model" "/api/corpus"})',
+         "action_parameters": {"cache": True}, "enabled": True}
+_f2h = _FakeCloudflare(rules=[dict(_bypass), dict(_hand)])
+_cf2h = _cf_run(_f2h, "cache")
+_f2e = _FakeCloudflare(rules=[{**_hand, "description": "mine", "expression":
+                               '(http.request.uri.path in {"/api/models"  "/api/model"\n "/api/corpus"})'}])
+_cf2e = _cf_run(_f2e, "cache")
+_f2o = _FakeCloudflare(rules=[dict(_hand), dict(_bypass)])
+_cf2o = _cf_run(_f2o, "cache")
+check("DP24: the cache rule is added alone at the end of the zone's rules, none of which is sent back or "
+      "changed; it makes the three answers eligible, the origin's Cache-Control deciding for how long; "
+      "run again, it is found; made by hand under PHASE4's name, or under any name with the same "
+      "expression, it is found and nothing is written; a rule after it that switches the cache off is "
+      "said; a zone with no entry point gets it as its first",
+      [rc for rc, *_ in _cf2] == [0, 0] and [(c[0], c[1]) for c in _post2] == [("POST", "/zones/z1/rulesets/rs1/rules")]
+      and _post2[0][2] == _cf.RULE and _f2.rules[0] == _bypass
+      and [r["description"] for r in _f2.rules] == [_bypass["description"], _cf.RULE_NAME]
+      and _cf.RULE["action"] == "set_cache_settings"
+      and _cf.RULE["action_parameters"] == {"cache": True, "edge_ttl": {"mode": "respect_origin"},
+                                            "browser_ttl": {"mode": "respect_origin"}}
+      and _cf.RULE["expression"] == '(http.request.uri.path in {"/api/models" "/api/model" "/api/corpus"})'
+      and _cf.RULE["enabled"] is True
+      and "there already" in _cf2[1][1] and "switches the cache off" not in _cf2[1][1]
+      and _cf2n[0] == 0 and [r["description"] for r in _f2n.rules] == [_cf.RULE_NAME]
+      and _writes(_f2n) == [("PUT", "/zones/z1/rulesets/phases/http_request_cache_settings/entrypoint")]
+      and _cf2h[0] == 0 and _writes(_f2h) == [] and "there already" in _cf2h[1]
+      and _cf2e[0] == 0 and _writes(_f2e) == []
+      and _cf2o[0] == 0 and _writes(_f2o) == [] and "switches the cache off" in _cf2o[1]
+      and _bypass["description"] in _cf2o[1],
+      str((_cf2, _post2, _cf2n, _cf2h, _cf2e, _cf2o)))
+
+_tmp_cf = tempfile.TemporaryDirectory()
+_here_cf = Path(_tmp_cf.name)
+_f3 = _FakeCloudflare()
+_cf3 = [_cf_run(_f3, "turnstile", here=_here_cf) for _ in range(2)]
+_sec = _here_cf / "turnstile-secret.txt"
+_f3h = _FakeCloudflare(widgets=[{"sitekey": "0x4BBB-by-hand", "name": "caro", "domains": ["caro.noxioai.com"],
+                                 "mode": "non-interactive", "secret": "0x4BBB-by-hand-secret",
+                                 "bot_fight_mode": True, "clearance_level": "managed"}])
+_cf3h = _cf_run(_f3h, "turnstile", here=_here_cf)
+check("DP25: the Turnstile widget is made once, managed, for the site's two hostnames; its site key is "
+      "printed and its secret written beside the owner, mode 600, and printed nowhere; run again it is "
+      "found and not made twice; one made by hand for one hostname gets the other, its mode and its other "
+      "settings kept",
+      [rc for rc, *_ in _cf3] == [0, 0] and len(_f3.widgets) == 1
+      and _f3.widgets[0]["mode"] == "managed" and _f3.widgets[0]["name"] == "caro"
+      and _f3.widgets[0]["domains"] == ["caro.noxioai.com", "caro-staging.noxioai.com"]
+      and all("0x4AAAAAAA-made-up-sitekey" in o for _, o, _ in _cf3)
+      and not any("made-up-secret" in o + e for _, o, e in _cf3)
+      and [m for m, *_ in _writes(_f3)] == ["POST"]
+      and _cf3h[0] == 0 and [m for m, *_ in _writes(_f3h)] == ["PUT"]
+      and _f3h.widgets[0]["domains"] == ["caro.noxioai.com", "caro-staging.noxioai.com"]
+      and _f3h.widgets[0]["mode"] == "non-interactive" and len(_f3h.widgets) == 1
+      and _f3h.widgets[0]["bot_fight_mode"] is True and _f3h.widgets[0]["clearance_level"] == "managed"
+      and _sec.read_text().strip() == "0x4BBB-by-hand-secret" and (_sec.stat().st_mode & 0o777) == 0o600
+      and "by-hand-secret" not in _cf3h[1] + _cf3h[2],
+      str((_cf3, _cf3h)))
+
+_vercel = {"id": "v1", "type": "CNAME", "name": "caro.noxioai.com", "content": "cname.vercel-dns.com",
+           "proxied": False, "ttl": 1}
+_undo = _here_cf / "cloudflare-undo.json"
+_f4 = _FakeCloudflare(records=[_vercel])
+_cf4 = [_cf_run(_f4, "switch", "--ip", "203.0.113.10", here=_here_cf) for _ in range(2)]
+_w4 = _writes(_f4)
+_after_switch = [(r["type"], r["content"], r["proxied"]) for r in _f4.records]
+_cf4m = _cf_run(_f4, "switch", "--ip", "203.0.113.20", here=_here_cf)
+_kept = json.loads(_undo.read_text())
+_cf4u = _cf_run(_f4, "undo-switch", here=_here_cf)
+_after_undo = [(r["type"], r["content"], r["proxied"]) for r in _f4.records]
+_tmp_cf2 = tempfile.TemporaryDirectory()
+_cf4n = _cf_run(_FakeCloudflare(), "undo-switch", here=Path(_tmp_cf2.name))
+_f4r = _FakeCloudflare(records=[_vercel], refuse_batch=True)
+_cf4r = _cf_run(_f4r, "switch", "--ip", "203.0.113.10", here=Path(_tmp_cf2.name))
+_f4x = _FakeCloudflare(records=[{"id": "x1", "type": "A", "name": "caro.noxioai.com", "content": "203.0.113.10",
+                                 "proxied": True}, {"id": "x2", "type": "AAAA", "name": "caro.noxioai.com",
+                                                    "content": "2001:db8::1", "proxied": True}])
+_cf4x = _cf_run(_f4x, "switch", "--ip", "203.0.113.10", here=Path(_tmp_cf2.name))
+_www = {"id": "w1", "type": "A", "name": "www.noxioai.com", "content": "198.51.100.5", "proxied": True}
+_tmp_cf3 = tempfile.TemporaryDirectory()
+_f4i = _FakeCloudflare(records=[_www, _vercel], ignore_filter=True)
+_cf4i = _cf_run(_f4i, "switch", "--ip", "203.0.113.10", here=Path(_tmp_cf3.name))
+_batch4i = [c[2] for c in _f4i.calls if c[1].endswith("/batch")]
+_stg = {"id": "s1", "type": "A", "name": "caro-staging.noxioai.com", "content": "203.0.113.30", "proxied": True}
+_tmp_cf4 = tempfile.TemporaryDirectory()
+_f4s = _FakeCloudflare(records=[_stg, _vercel])
+_cf4s = _cf_run(_f4s, "switch", here=Path(_tmp_cf4.name))
+_f4z = _FakeCloudflare(records=[_vercel])
+_cf4z = _cf_run(_f4z, "switch", here=Path(_tmp_cf4.name))
+_f4t = _FakeCloudflare(records=[_stg, {**_stg, "id": "s2", "content": "203.0.113.31"}, _vercel])
+_cf4t = _cf_run(_f4t, "switch", here=Path(_tmp_cf4.name))
+_f4p = _FakeCloudflare(records=[{**_stg, "content": "192.168.1.10", "proxied": False}, _vercel])
+_cf4p = _cf_run(_f4p, "switch", here=Path(_tmp_cf4.name))
+check("DP26: the switch keeps what caro.noxioai.com was beside the owner, then makes it an A record to "
+      "the server, proxied, in one batch that takes Vercel's CNAME away; run again it is found; a switch "
+      "to a new address keeps the first switch's file; undone, in one batch, Vercel's CNAME is back as it "
+      "was and the file is gone; with nothing kept, undo refuses; a batch Cloudflare refuses leaves the "
+      "name as it was; a record left beside the server's is taken away, the A record alone kept; and "
+      "where the list answers with other names' records too, none of them is taken away or kept as "
+      "what the name was; given no address, it takes the one staging's record has, and with none there, "
+      "two, or one inside a network, it stops before writing",
+      [rc for rc, *_ in _cf4] == [0, 0] and _w4 == [("POST", "/zones/z1/dns_records/batch")]
+      and _after_switch == [("A", "203.0.113.10", True)] and "already" in _cf4[1][1]
+      and _cf4m[0] == 0 and [(r["type"], r["content"]) for r in _kept] == [("CNAME", "cname.vercel-dns.com")]
+      and _cf4u[0] == 0 and _after_undo == [("CNAME", "cname.vercel-dns.com", False)] and not _undo.exists()
+      and _writes(_f4)[-1] == ("POST", "/zones/z1/dns_records/batch") and len(_writes(_f4)) == 3
+      and _cf4n[0] == 1
+      and _cf4r[0] == 1 and [(r["type"], r["content"]) for r in _f4r.records] == [("CNAME", "cname.vercel-dns.com")]
+      and "already exists" in _cf4r[2]
+      and _cf4x[0] == 0 and [(r["type"], r["content"]) for r in _f4x.records] == [("A", "203.0.113.10")]
+      and _cf4i[0] == 0 and _batch4i and _batch4i[0]["deletes"] == [{"id": "v1"}]
+      and [r for r in _f4i.records if r["name"] == "www.noxioai.com"] == [_www]
+      and [x["name"] for x in json.loads((Path(_tmp_cf3.name) / "cloudflare-undo.json").read_text())] == ["caro.noxioai.com"]
+      and _cf4s[0] == 0 and [(r["name"], r["type"], r["content"]) for r in _f4s.records if r["name"] == "caro.noxioai.com"]
+      == [("caro.noxioai.com", "A", "203.0.113.30")] and "as caro-staging.noxioai.com's record has it: 203.0.113.30" in _cf4s[1]
+      and _cf4z[0] == 1 and "give the switch --ip" in _cf4z[2] and _writes(_f4z) == []
+      and _cf4t[0] == 1 and "2 A records" in _cf4t[2] and _writes(_f4t) == []
+      and _cf4p[0] == 1 and "not the server's public IPv4 address" in _cf4p[2] and _writes(_f4p) == [],
+      str((_cf4, _cf4m, _cf4u, _after_switch, _after_undo, _cf4n, _cf4r, _cf4x, _cf4i)))
+
+_tls_cf = tempfile.TemporaryDirectory()
+_tls = Path(_tls_cf.name)
+_f6 = _FakeCloudflare()
+_cf6d = _cf_run(_f6, "origin-cert", "--tls-dir", str(_tls), "--dry-run")
+_dry_files = sorted(x.name for x in _tls.iterdir())
+_cf6 = [_cf_run(_f6, "origin-cert", "--tls-dir", str(_tls)) for _ in range(2)]
+_key6 = (_tls / "origin.key").read_text() if (_tls / "origin.key").exists() else ""
+_tls_cf2 = tempfile.TemporaryDirectory()
+_tls2 = Path(_tls_cf2.name)
+_cf6n = _cf_run(_FakeCloudflare(), "origin-cert", "--tls-dir", str(_tls2 / "none"))
+_cf6r = _cf_run(_FakeCloudflare(refuse_cert=True), "origin-cert", "--tls-dir", str(_tls2))
+_after_refused = sorted(x.name for x in _tls2.iterdir())
+_f6o = _FakeCloudflare()
+_cf6o = _cf_run(_f6o, "origin-cert", "--tls-dir", str(_tls2),
+                run=lambda argv, **_k: subprocess.CompletedProcess(argv, 1, "", "req: unable to write the key"))
+check("DP27: the origin certificate is made on the server: the key by openssl in the certificate's "
+      "directory, mode 600, and only its request sent to Cloudflare, for the site's two hostnames, RSA, "
+      "fifteen years; the certificate written beside the key; run again, nothing is asked; --dry-run "
+      "writes nothing; a directory that is not there stops it before anything; a certificate Cloudflare "
+      "refuses, or a key openssl could not make, leaves no key behind",
+      _cf6d[0] == 0 and _dry_files == [] and [rc for rc, *_ in _cf6] == [0, 0] and len(_f6.certs) == 1
+      and _f6.certs[0]["csr"].startswith("-----BEGIN CERTIFICATE REQUEST-----")
+      and _f6.certs[0]["hostnames"] == ["caro.noxioai.com", "caro-staging.noxioai.com"]
+      and _f6.certs[0]["request_type"] == "origin-rsa" and _f6.certs[0]["requested_validity"] == 5475
+      and "PRIVATE KEY" in _key6 and ((_tls / "origin.key").stat().st_mode & 0o777) == 0o600
+      and (_tls / "origin.pem").read_text().startswith("-----BEGIN CERTIFICATE-----")
+      and sorted(x.name for x in _tls.iterdir()) == ["origin.key", "origin.pem"]
+      and not any(_key6.strip().split("\n")[1] in json.dumps(c[2]) for c in _f6.calls if c[2])
+      and not any("PRIVATE KEY" in o + e for _, o, e in _cf6)
+      and "there already" in _cf6[1][1] and _cf6n[0] == 2
+      and _cf6r[0] == 1 and "Failed to validate" in _cf6r[2] and _after_refused == []
+      and _cf6o[0] == 1 and "unable to write" in _cf6o[2] and _f6o.certs == []
+      and list(_tls2.iterdir()) == [],
+      str((_cf6d, _cf6, _dry_files, _cf6n, _cf6r, _cf6o)))
+
+
+class _Refusing(_FakeCloudflare):
+    def __call__(self, req, timeout=30):
+        self.calls.append((req.get_method(), req.full_url, None, None, None))
+        raise _ue_cf.HTTPError(req.full_url, 403, "Forbidden", {}, _io_cf.BytesIO(
+            b'{"success": false, "errors": [{"code": 10000, "message": "Authentication error"}]}'))
+
+
+_cf5a = _cf_run(_FakeCloudflare(), "status", env={})
+_cf5b = _cf_run(_Refusing(), "status")
+_cf5c = _cf_run(_Refusing(), "cache")
+_f5z = _FakeCloudflare(zones=[{"id": "zX", "name": "my-noxioai.com", "account": {"id": "aX"}},
+                              {"id": "z1", "name": "noxioai.com", "account": {"id": "a1"}}])
+_cf5z = _cf_run(_f5z, "staging", "--ip", "203.0.113.10")
+_cf5n = _cf_run(_FakeCloudflare(zones=[{"id": "zX", "name": "my-noxioai.com", "account": {"id": "aX"}}]), "status")
+_cf5s = _cf_run(_FakeCloudflare(rules=[dict(_hand)]), "status")
+_every = [c for f in (_f1, _f2, _f3, _f3h, _f4, _f6) for c in f.calls]
+_files = "".join(p.read_text() for p in _here_cf.iterdir()) + "".join(p.read_text() for p in _tls.iterdir())
+check("DP28: without a token it stops before asking anything; Cloudflare's refusal stops it with "
+      "Cloudflare's words and the permission that command needs; the zone is the one of that exact name, "
+      "and a token that sees only another stops it; status gives the zone's id as the server's line for "
+      "the purge; every request goes to api.cloudflare.com with the "
+      "token as a bearer, and the token is in no line printed and no file written; the two files it "
+      "writes beside the owner are ones git ignores, so a checkout never offers them to a commit",
+      _cf5a[0] == 2 and "CLOUDFLARE_API_TOKEN" in _cf5a[2]
+      and _cf5b[0] == 1 and "Authentication error" in _cf5b[2] and "Zone / Zone / Read" in _cf5b[2]
+      and _cf5c[0] == 1 and "Zone / Cache Rules / Edit" in _cf5c[2]
+      and _cf5z[0] == 0 and _writes(_f5z) == [("POST", "/zones/z1/dns_records")]
+      and _cf5n[0] == 1 and "sees no zone noxioai.com" in _cf5n[2]
+      and _cf5s[0] == 0 and "bash /opt/caro/deploy/set-env.sh production CARO_CF_ZONE_ID=z1\n" in _cf5s[1]
+      and "bash /opt/caro/deploy/set-env.sh staging CARO_CF_ZONE_ID=z1\n" in _cf5s[1] and "CARO's number 1" in _cf5s[1]
+      and all(c[4] == "api.cloudflare.com" and c[3] == f"Bearer {_CF_TOKEN}" for c in _every)
+      and not any(_CF_TOKEN in o + e for runs in (_cf1, _cf2, _cf3, _cf4, _cf6) for _, o, e in runs)
+      and _CF_TOKEN not in _cf5b[2] + _cf5c[2] and _CF_TOKEN not in _files
+      and {"turnstile-secret.txt", "cloudflare-undo.json"} <= set(text(".gitignore").split("\n")),
+      str((_cf5a, _cf5b, _cf5c)))
 
 _edge = text("compose.edge.yml")
 _esvc = blocks(_edge)
@@ -552,6 +897,564 @@ check("DP19: the images workflow walks both images in a browser before it pushes
       and "CARO_ADMIN_TOKEN=made-up-for-the-images-job-operator" in _smoke
       and "CARO_E2E_ADMIN_TOKEN: made-up-for-the-images-job-operator" in _walk
       and "npm install --no-save" in _wf, "")
+
+# ---------------------------------------------------------------------------
+print("\nthe server's side of phase 1, in one command")
+import shutil as _sh_bs                                                  # noqa: E402
+
+# The tools the bootstrap and the ranges' script use, from this machine; the
+# ones that would change a server -- docker, systemctl, apt-get, curl, ip and
+# the certificate's python3 -- are stand-ins that write down what they were
+# asked, so no row depends on what this machine has installed.
+_BS_TOOLS = ("sh", "bash", "sed", "grep", "tr", "awk", "cut", "head", "install", "chmod", "mv", "openssl",
+             "dirname", "mkdir", "mktemp", "rm", "cat", "wc", "date", "cp", "env", "touch")
+
+
+def _bs_world(docker=True, served=False, unreadable=(), short_ranges=False,
+              addrs=("203.0.113.7",)):
+    d = Path(tempfile.mkdtemp())
+    tools, stubs, units = d / "tools", d / "bin", d / "units"
+    for x in (tools, stubs, units):
+        x.mkdir()
+    for t in _BS_TOOLS:
+        (tools / t).symlink_to(_sh_bs.which(t))
+    calls = d / "calls"
+
+    def stub(name, body):
+        (stubs / name).write_text(f'#!/bin/sh\necho "{name} $*" >> "{calls}"\n{body}\n')
+        (stubs / name).chmod(0o755)
+
+    # `docker manifest inspect` fails for a tag the server cannot read.
+    docker_body = 'case "$1 $2 $3" in\n%s  *) exit 0;;\nesac' % "".join(
+        f'  "manifest inspect "*:{tag}) exit 1;;\n' for tag in unreadable)
+    if docker:
+        stub("docker", docker_body)
+    (d / "docker.later").write_text(f'#!/bin/sh\necho "docker $*" >> "{calls}"\n{docker_body}\n')
+    stub("systemctl", "exit 0")
+    stub("apt-get", "exit 0")
+    # Cloudflare's published ranges: not reachable, or two lists too short to be them.
+    ranges = ('out=$(echo "$*" | sed "s/.* -o //"); echo "203.0.113.0/24" > "$out"; exit 0' if short_ranges
+              else "exit 7")
+    stub("curl", 'case "$*" in\n  *get.docker.com*) echo "cp %s %s/docker; chmod 755 %s/docker";;\n'
+                 '  *caro-staging.noxioai.com*) exit %d;;\n  *cloudflare.com/ips-*) %s;;\n  *) exit 7;;\nesac'
+         % (d / "docker.later", stubs, stubs, 0 if served else 7, ranges))
+    stub("ip", "\n".join(f'echo "{i + 2}: if{i}    inet {a}/32 brd {a} scope global if{i}"'
+                          for i, a in enumerate(addrs)))
+    stub("python3", 'echo "-----BEGIN CERTIFICATE-----" > "$4/origin.pem"; echo "-----BEGIN PRIVATE KEY-----" > "$4/origin.key"')
+    return d
+
+
+def _bs_run(d, *args, home=None, token=None):
+    env = {"PATH": f"{d / 'bin'}:{d / 'tools'}", "CARO_HOME": str(ROOT if home is None else home),
+           "CARO_ETC": str(d / "etc"), "CARO_UNITS": str(d / "units"), "HOME": str(d)}
+    if token:
+        env["CLOUDFLARE_API_TOKEN"] = token
+    p = subprocess.run([_sh_bs.which("bash"), str(ROOT / "deploy/bootstrap.sh"), *args],
+                       capture_output=True, text=True, env=env, timeout=60)
+    calls = (d / "calls").read_text().splitlines() if (d / "calls").exists() else []
+    (d / "calls").unlink(missing_ok=True)
+    return p.returncode, p.stdout, p.stderr, calls
+
+
+def _env_of(path):
+    return dict(re.findall(r"^([A-Z_]+)=(.*)$", path.read_text(), re.MULTILINE))
+
+
+def _mode(path):
+    return path.stat().st_mode & 0o777
+
+
+_bsA = _bs_world()
+_rA = _bs_run(_bsA)
+_etcA = _bsA / "etc"
+_st, _pr = _env_of(_etcA / "staging.env"), _env_of(_etcA / "production.env")
+_tmpl = _env_of(ROOT / "deploy/env.example")
+_made = {"CARO_ENV", "CARO_ENV_FILE", "CARO_API_IMAGE", "CARO_SITE_IMAGE", "POSTGRES_PASSWORD",
+         "CARO_SITE_ORIGINS", "CARO_SITE_HOST"}
+check("DP29: on a fresh server the bootstrap makes each environment's file from the template, mode 600: "
+      "its name, its own path, its images' tag, its origin and host, and a database password of its "
+      "own, printed nowhere, every other line as the template has it; /etc/caro and its tls directory "
+      "700; the ranges and the units in place; and with no origin certificate yet, no edge and no timer, "
+      "the certificate, the admin keys and staging's name said to be left",
+      _rA[0] == 0 and _st["CARO_ENV"] == "staging" and _pr["CARO_ENV"] == "production"
+      and _st["CARO_ENV_FILE"] == str(_etcA / "staging.env") and _pr["CARO_ENV_FILE"] == str(_etcA / "production.env")
+      and _st["CARO_API_IMAGE"] == "ghcr.io/sahandmusanezhad/caro-api:staging"
+      and _st["CARO_SITE_IMAGE"] == "ghcr.io/sahandmusanezhad/caro-site:staging"
+      and _pr["CARO_API_IMAGE"] == "ghcr.io/sahandmusanezhad/caro-api:production"
+      and _st["CARO_SITE_ORIGINS"] == "https://caro-staging.noxioai.com" and _st["CARO_SITE_HOST"] == "caro-staging.noxioai.com"
+      and _pr["CARO_SITE_ORIGINS"] == "https://caro.noxioai.com" and _pr["CARO_SITE_HOST"] == "caro.noxioai.com"
+      and all(re.fullmatch(r"[0-9a-f]{48}", e["POSTGRES_PASSWORD"]) for e in (_st, _pr))
+      and _st["POSTGRES_PASSWORD"] != _pr["POSTGRES_PASSWORD"]
+      and all({k: v for k, v in e.items() if k not in _made} == {k: v for k, v in _tmpl.items() if k not in _made}
+              for e in (_st, _pr))
+      and not any(e["POSTGRES_PASSWORD"] in _rA[1] + _rA[2] for e in (_st, _pr))
+      and _mode(_etcA / "staging.env") == 0o600 and _mode(_etcA / "production.env") == 0o600
+      and _mode(_etcA) == 0o700 and _mode(_etcA / "tls") == 0o700 and _mode(_etcA / "nginx") == 0o755
+      and (_etcA / "nginx/cloudflare-geo.conf").exists()
+      and sorted(x.name for x in (_bsA / "units").iterdir()) == sorted(_units)
+      and "systemctl daemon-reload" in _rA[3]
+      and not any(c.startswith(("docker compose -p caro-edge", "systemctl enable")) for c in _rA[3])
+      and "the origin certificate" in _rA[1] and "CARO_ADMIN_TOKEN CARO_ADMIN_TOTP_SECRET" in _rA[1]
+      and f"bash {ROOT}/deploy/set-env.sh staging CARO_ADMIN_TOKEN CARO_ADMIN_TOTP_SECRET\n" in _rA[1]
+      and "staging --ip 203.0.113.7" in _rA[1],
+      str((_rA, sorted(_st.items()))))
+
+(_etcA / "staging.env").write_text((_etcA / "staging.env").read_text()
+                                   .replace("CARO_ADMIN_TOKEN=\n", "CARO_ADMIN_TOKEN=the-owner-s-own\n")
+                                   .replace("CARO_ADMIN_TOTP_SECRET=\n", "CARO_ADMIN_TOTP_SECRET=the-owner-s-too\n"))
+_before_bs = {n: (_etcA / n).read_bytes() for n in ("staging.env", "production.env")}
+(_etcA / "tls/origin.pem").write_text("-----BEGIN CERTIFICATE-----\n")
+(_etcA / "tls/origin.key").write_text("-----BEGIN PRIVATE KEY-----\n")
+_rB = _bs_run(_bsA)
+_rC = _bs_run(_bsA, "--production")
+_bsS = _bs_world(served=True)
+(_bsS / "etc/tls").mkdir(parents=True)
+(_bsS / "etc/tls/origin.pem").write_text("c\n")
+(_bsS / "etc/tls/origin.key").write_text("k\n")
+_rS = _bs_run(_bsS, "--production")
+_bsU = _bs_world()
+_rU = _bs_run(_bsU, "--everything")
+_bsE = _bs_world()
+_rE = _bs_run(_bsE, home="/opt/caro")
+check("DP30: run again, the bootstrap writes no environment's file it finds -- the owner's values stay "
+      "byte for byte -- and with the certificate in place it starts the edge, then staging's pull and the "
+      "ranges' timer, and production's only with --production; staging answering through its name is "
+      "taken as its name done; anything but --production, or a checkout other than the one the units "
+      "run, stops it before anything",
+      _rB[0] == 0 and {n: (_etcA / n).read_bytes() for n in _before_bs} == _before_bs
+      and f"docker compose -p caro-edge -f {ROOT}/compose.edge.yml up -d --quiet-pull" in _rB[3]
+      and "systemctl enable --now caro-cloudflare-ips.timer caro-pull@staging.timer" in _rB[3]
+      and _rB[3].index("systemctl enable --now caro-cloudflare-ips.timer caro-pull@staging.timer")
+      > _rB[3].index(f"docker compose -p caro-edge -f {ROOT}/compose.edge.yml up -d --quiet-pull")
+      and not any("caro-pull@production" in c for c in _rB[3]) and "--production" in _rB[1]
+      and "staging.env: CARO_ADMIN" not in _rB[1] and "production.env: CARO_ADMIN_TOKEN" in _rB[1]
+      and _rC[0] == 0 and "systemctl enable --now caro-pull@production.timer" in _rC[3]
+      and "after the release tag" not in _rC[1]
+      and _rS[0] == 0 and "staging: answers" in _rS[1] and "staging --ip" not in _rS[1]
+      and _rU[0] == 2 and _rU[3] == [] and not (_bsU / "etc").exists()
+      and _rE[0] == 2 and "this checkout is" in _rE[2] and _rE[3] == [] and not (_bsE / "etc").exists(),
+      str((_rB, _rC, _rS, _rU, _rE)))
+
+def _with_cert(d):
+    (d / "etc/tls").mkdir(parents=True)
+    (d / "etc/tls/origin.pem").write_text("c\n")
+    (d / "etc/tls/origin.key").write_text("k\n")
+    return d
+
+
+_bsP = _with_cert(_bs_world(unreadable=("staging", "production")))
+_rP = _bs_run(_bsP, "--production")
+_bsT = _with_cert(_bs_world(unreadable=("production",)))
+_rT = _bs_run(_bsT, "--production")
+_rN = _bs_run(_bs_world(addrs=("172.17.0.1", "10.0.0.2", "192.168.4.4", "100.64.0.9", "203.0.113.8")))
+_rO = _bs_run(_bs_world(addrs=("172.17.0.1", "10.0.0.2")))
+_bsR = _bs_world(short_ranges=True)
+_rR = _bs_run(_bsR)
+check("DP31: an image the server cannot read is said and not waited on: staging's as the packages to "
+      "make public, production's as the release tag first, with production's timer not started; the "
+      "address given for staging's name is the first that is not inside a network, and none is given "
+      "when there is none; and where Cloudflare's ranges cannot be had at all, it stops before any "
+      "settings are made, since the edge would not start",
+      _rP[0] == 0 and "Change visibility -> Public" in _rP[1] and "the release tag first" in _rP[1]
+      and not any("caro-pull@production" in c for c in _rP[3])
+      and any(c.startswith("systemctl enable --now caro-cloudflare-ips.timer caro-pull@staging.timer") for c in _rP[3])
+      and _rT[0] == 0 and "Change visibility" not in _rT[1] and "the release tag first" in _rT[1]
+      and not any("caro-pull@production" in c for c in _rT[3])
+      and "Change visibility" not in _rC[1] and "the release tag first" not in _rC[1]
+      and "staging --ip 203.0.113.8" in _rN[1] and "staging --ip" not in _rO[1] and _rO[0] == 0
+      and _rR[0] == 2 and "no list of Cloudflare's ranges" in _rR[2]
+      and not (_bsR / "etc/staging.env").exists() and not any(c.startswith("systemctl") for c in _rR[3]),
+      str((_rP, _rT, _rN, _rO, _rR)))
+
+_bsD = _bs_world(docker=False)
+_rD = _bs_run(_bsD, token="made-up-cloudflare-token-for-the-bootstrap")
+_cD = _rD[3]
+
+
+def _at(calls, start):
+    return next((i for i, c in enumerate(calls) if c.startswith(start)), -1)
+
+
+check("DP32: on a server without Docker the bootstrap upgrades the system, then installs Docker from "
+      "get.docker.com, before anything asks for it; with Cloudflare's token in its environment it has the "
+      "origin certificate made on the server, into its tls directory, and then starts the edge and the "
+      "timers in the same run; the token is printed nowhere",
+      _rD[0] == 0
+      and 0 <= _at(_cD, "apt-get update") < _at(_cD, "apt-get -y -q -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold upgrade") < _at(_cD, "curl -fsSL https://get.docker.com")
+      < _at(_cD, "docker compose version")
+      < _at(_cD, f"python3 {ROOT}/scripts/cloudflare_setup.py origin-cert --tls-dir {_bsD / 'etc/tls'}")
+      < _at(_cD, "docker compose -p caro-edge") < _at(_cD, "systemctl enable --now caro-cloudflare-ips.timer")
+      and "made-up-cloudflare-token" not in _rD[1] + _rD[2],
+      str(_rD))
+
+# ---------------------------------------------------------------------------
+print("\nan environment's settings written on the server, without an editor")
+
+
+def _se(etc, *args, stdin=""):
+    p = subprocess.run([_sh_bs.which("bash"), str(ROOT / "deploy/set-env.sh"), *args], input=stdin,
+                       capture_output=True, text=True, timeout=30, env={"PATH": os.environ["PATH"], "CARO_ETC": str(etc)})
+    return p.returncode, p.stdout, p.stderr
+
+
+_seA = _bs_world()
+_bs_run(_seA)
+_seE = _seA / "etc"
+_se_before = (_seE / "staging.env").read_text()
+_se_prod = (_seE / "production.env").read_bytes()
+_s1 = _se(_seE, "staging", "CARO_TURNSTILE_SECRET", stdin="0x4AAA-made-up-turnstile-secret\n")
+_se_after1 = (_seE / "staging.env").read_text()
+_s2 = _se(_seE, "staging", "COMPOSE_PROFILES=observe", "GRAFANA_CLOUD_PROM_URL", "GRAFANA_CLOUD_TOKEN",
+          "SENTRY_DSN=https://k@o1.ingest.sentry.io/7",
+          stdin="https://prometheus-prod-01.grafana.example/api/prom/push\nglc_made-up-token==\n")
+_se2 = _env_of(_seE / "staging.env")
+_s3 = _se(_seE, "staging", "COMPOSE_PROFILES=")
+with (_seE / "staging.env").open("a") as _f_se:
+    _f_se.write("CARO_EDGE_TTL=900\n")           # a second line for a name, which compose would read last
+_s4 = _se(_seE, "staging", "CARO_EDGE_TTL=120")
+_se4 = (_seE / "staging.env").read_text()
+(_seE / "staging.env").write_text(_se4.replace("GRAFANA_CLOUD_PROM_USER=\n", ""))   # a file older than the template
+_s5 = _se(_seE, "staging", "GRAFANA_CLOUD_PROM_USER=123456")
+_se5 = (_seE / "staging.env").read_text()
+check("DP33: a setting named alone is read from what is typed or piped and its line replaced where it is, "
+      "every other line of the file byte for byte, mode 600, the value printed nowhere; NAME=value is "
+      "written as given and NAME= empties it; several are written in one run; a name's second line, which "
+      "would win, goes; a name the file lacks is added at its end; the other environment's file is not "
+      "touched",
+      _s1[0] == 0 and _se_after1 == _se_before.replace("CARO_TURNSTILE_SECRET=\n", "CARO_TURNSTILE_SECRET=0x4AAA-made-up-turnstile-secret\n")
+      and _se_after1 != _se_before and "made-up-turnstile-secret" not in _s1[1] + _s1[2]
+      and "staging: CARO_TURNSTILE_SECRET written" in _s1[1]
+      and _s2[0] == 0 and _se2["COMPOSE_PROFILES"] == "observe"
+      and _se2["GRAFANA_CLOUD_PROM_URL"] == "https://prometheus-prod-01.grafana.example/api/prom/push"
+      and _se2["GRAFANA_CLOUD_TOKEN"] == "glc_made-up-token==" and _se2["SENTRY_DSN"] == "https://k@o1.ingest.sentry.io/7"
+      and _se2["CARO_TURNSTILE_SECRET"] == "0x4AAA-made-up-turnstile-secret" and "glc_made-up" not in _s2[1] + _s2[2]
+      and _s3[0] == 0 and _env_of(_seE / "staging.env")["COMPOSE_PROFILES"] == ""
+      and _s4[0] == 0 and _se4.count("CARO_EDGE_TTL=") == 1 and "CARO_EDGE_TTL=120\n" in _se4
+      and _se4.index("CARO_EDGE_TTL=120") < _se4.index("CARO_CF_API_TOKEN=")
+      and _s5[0] == 0 and _se5.endswith("GRAFANA_CLOUD_PROM_USER=123456\n")
+      and _mode(_seE / "staging.env") == 0o600 and (_seE / "production.env").read_bytes() == _se_prod
+      and sorted(x.name for x in _seE.iterdir()) == ["nginx", "production.env", "staging.env", "tls"],
+      str((_s1, _s2, _s3, _s4, _s5)))
+
+_se_keep = (_seE / "staging.env").read_bytes()
+_refused = {
+    "a name the template does not have": _se(_seE, "staging", "CARO_TURNSTYLE_SECRET=x"),
+    "not a name": _se(_seE, "staging", "caro_inbox=on"),
+    "a pattern for a name": _se(_seE, "staging", "CARO_.*=x"),
+    "another environment": _se(_seE, "preview", "CARO_INBOX=on"),
+    "a path for an environment": _se(_seE, "../etc/staging", "CARO_INBOX=on"),
+    "no setting": _se(_seE, "staging"),
+    "which environment the file is": _se(_seE, "staging", "CARO_ENV=production"),
+    "its own path": _se(_seE, "staging", "CARO_ENV_FILE=/etc/caro/production.env"),
+    "a database password that is set": _se(_seE, "staging", "POSTGRES_PASSWORD=another"),
+    "a space": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin="two words\n"),
+    "a dollar": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin="pa$word\n"),
+    "a hash": _se(_seE, "staging", "CARO_ADMIN_TOKEN=pass#word"),
+    "a quote": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin="it's\n"),
+    "an empty line": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin="\n"),
+    "no line": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin=""),
+    "one good, one bad": _se(_seE, "staging", "CARO_INBOX=on", "CARO_ADMIN_TOKEN", stdin="pa$word\n"),
+}
+_se_none = _se(_seA / "nowhere", "staging", "CARO_INBOX=on")
+(_seE / "production.env").write_text((_seE / "production.env").read_text().replace(
+    "POSTGRES_PASSWORD=" + _env_of(_seE / "production.env")["POSTGRES_PASSWORD"], "POSTGRES_PASSWORD="))
+_se_pw = _se(_seE, "production", "POSTGRES_PASSWORD", stdin="0123456789abcdef\n")
+check("DP34: it changes all it was asked or nothing: a name the template does not have, or a pattern "
+      "that would match one, an environment that is not one, or a path to one, the file's own environment "
+      "and path, a database password that is set, a value "
+      "with a space, a dollar, a hash or a quote, an empty line or none, and one bad setting beside a "
+      "good one each stop it with the file byte for byte as it was; a file that is not there names the "
+      "bootstrap; a database password is taken only where there is none",
+      all(rc == 2 for rc, *_ in _refused.values()) and (_seE / "staging.env").read_bytes() == _se_keep
+      and "is not a setting deploy/env.example has" in _refused["a name the template does not have"][2]
+      and "the database was made with it" in _refused["a database password that is set"][2]
+      and "no line to read" in _refused["no line"][2] and "an empty line" in _refused["an empty line"][2]
+      and "pa$word" not in "".join(o + e for _, o, e in _refused.values())
+      and _se_none[0] == 2 and "bootstrap.sh makes it" in _se_none[2]
+      and _se_pw[0] == 0 and _env_of(_seE / "production.env")["POSTGRES_PASSWORD"] == "0123456789abcdef"
+      and sorted(x.name for x in _seE.iterdir()) == ["nginx", "production.env", "staging.env", "tls"],
+      str(({k: v for k, v in _refused.items() if v[0] != 2}, _se_none, _se_pw)))
+
+# ---------------------------------------------------------------------------
+print("\nthe owner's Grafana steps, through the stack's API with the owner's token")
+import base64 as _b64_gf                                                 # noqa: E402
+
+from scripts import grafana_setup as _gf                                # noqa: E402
+
+_GF_TOKEN = "glsa_made-up-grafana-token_0123456789"
+_GF_URL = "https://caro.grafana.example"
+
+
+class _FakeGrafana:
+    """A Grafana stack's API as the script uses it, kept in memory; every call logged."""
+
+    def __init__(self, datasources=None, routes=(), groups=(), test_fails=None, receivers_api=True, convert=True,
+                 convert_error=None, other_rules=(), other_receivers=()):
+        self.datasources = datasources if datasources is not None else [
+            {"uid": "p1", "name": "grafanacloud-caro-prom", "type": "prometheus"},
+            {"uid": "u1", "name": "grafanacloud-usage", "type": "prometheus"},
+            {"uid": "l1", "name": "grafanacloud-caro-logs", "type": "loki"}]
+        self.dashboard, self.version = None, 0
+        self.groups = {g: "name: " + g + "\n" for g in groups}     # the folder CARO's groups
+        self.contacts = []
+        self.tree = {"receiver": "grafana-default-email", "group_by": ["grafana_folder", "alertname"],
+                     "routes": [dict(r) for r in routes]}
+        self.test_fails, self.receivers_api, self.convert, self.tests = test_fails, receivers_api, convert, []
+        self.convert_error, self.other_rules, self.other_receivers = convert_error, list(other_rules), list(other_receivers)
+        self.calls = []
+
+    def _ok(self, result, raw=None):
+        body = raw if raw is not None else json.dumps(result).encode()
+        return _ctx_cf.nullcontext(type("R", (), {"read": lambda _s: body})())
+
+    def _no(self, req, code, message):
+        raise _ue_cf.HTTPError(req.full_url, code, "No", {}, _io_cf.BytesIO(json.dumps({"message": message}).encode()))
+
+    def __call__(self, req, timeout=30):
+        u = _up_cf.urlparse(req.full_url)
+        q = dict(_up_cf.parse_qsl(u.query))
+        m, path = req.get_method(), _up_cf.unquote(u.path)
+        raw = req.data or b""
+        self.calls.append((m, path, raw, {k.lower(): v for k, v in req.header_items()}, u.netloc))
+        body = json.loads(raw) if raw and req.get_header("Content-type") == "application/json" else None
+        if path == "/api/health":
+            return self._ok({"version": "13.3.0"})
+        if path == "/api/datasources":
+            return self._ok(self.datasources)
+        if path == "/api/dashboards/uid/caro":
+            if self.dashboard is None:
+                self._no(req, 404, "Dashboard not found")
+            return self._ok({"dashboard": self.dashboard, "meta": {}})
+        if path == "/api/dashboards/db" and m == "POST":
+            self.version += 1
+            self.dashboard = {**body["dashboard"], "id": 7, "version": self.version}
+            return self._ok({"status": "success", "uid": "caro", "version": self.version})
+        if path == "/api/folders":
+            return self._ok([{"uid": "f1", "title": "CARO"}] if self.groups else [])
+        if path == "/api/v1/provisioning/alert-rules":
+            return self._ok(self.other_rules + [{"title": f"r{i}", "ruleGroup": g, "folderUID": "f1"}
+                                                for i, g in enumerate(self.groups)])
+        if path == "/api/convert/prometheus/config/v1/rules/CARO" and m == "POST":
+            if not self.convert:
+                self._no(req, 404, "Not found")
+            if self.convert_error:
+                self._no(req, 400, self.convert_error)
+            text_ = raw.decode()
+            self.groups[text_.split("\n", 1)[0].split(":", 1)[1].strip()] = text_
+            return self._ok({"status": "success"})
+        if path.startswith("/api/convert/prometheus/config/v1/rules/CARO/") and m == "DELETE":
+            self.groups.pop(path.rsplit("/", 1)[1])
+            return self._ok({"status": "success"})
+        if path == "/api/v1/provisioning/contact-points":
+            if m == "GET":
+                return self._ok([{**c, "settings": {**c["settings"], "bottoken": "[REDACTED]"}}
+                                 for c in self.contacts if c["name"] == q.get("name")])
+            self.contacts.append({**body, "uid": f"cp{len(self.contacts) + 1}"})
+            return self._ok(self.contacts[-1])
+        if path.startswith("/api/v1/provisioning/contact-points/") and m == "PUT":
+            for c in self.contacts:
+                if c["uid"] == path.rsplit("/", 1)[1]:
+                    c.update(body)
+            return self._ok({"message": "contactpoint updated"})
+        if path == "/api/v1/provisioning/policies":
+            if m == "GET":
+                return self._ok(self.tree)
+            self.tree = body
+            return self._ok({"message": "policies updated"})
+        if path == "/api/frontend/settings":
+            return self._ok({"namespace": "stacks-42"})
+        base = "/apis/notifications.alerting.grafana.app/v1beta1/namespaces/stacks-42/receivers"
+        if path.startswith("/apis/") and not self.receivers_api:
+            self._no(req, 404, "page not found")
+        if path == base:
+            return self._ok({"items": self.other_receivers + [{"metadata": {"name": _b64_gf.urlsafe_b64encode(c["name"].encode()).decode().rstrip("=")},
+                                        "spec": {"title": c["name"], "integrations": [
+                                            {"uid": c["uid"], "type": "telegram", "settings": {"chatid": c["settings"]["chatid"]},
+                                             "secureFields": {"bottoken": True}}]}} for c in self.contacts]})
+        if path.startswith(base + "/") and path.endswith("/test") and m == "POST":
+            self.tests.append((path, body))
+            if self.test_fails:
+                return self._ok({"status": "failure", "error": self.test_fails})
+            return self._ok({"status": "success", "duration": "1s"})
+        raise AssertionError(f"the fake has no {m} {path}")
+
+
+def _gf_run(fake, *argv, env=None, root=None):
+    out, err = _io_cf.StringIO(), _io_cf.StringIO()
+    e = {"GRAFANA_URL": _GF_URL, "GRAFANA_TOKEN": _GF_TOKEN, "CARO_ALERT_TELEGRAM_TOKEN": "123456:made-up-bot",
+         "CARO_ALERT_TELEGRAM_CHAT": "-1009876543210"} if env is None else env
+    with _ctx_cf.redirect_stderr(err):
+        rc = _gf.main(list(argv), env=e, opener=fake, out=lambda line: out.write(line + "\n"),
+                      **({"root": root} if root else {}))
+    return rc, out.getvalue(), err.getvalue()
+
+
+def _gwrites(fake):
+    return [(m, p) for m, p, *_ in fake.calls if m != "GET"]
+
+
+_alerts_text = text("deploy/grafana/alerts.yml")
+_groups = _gf.rule_groups(_alerts_text)
+_rebuilt = "groups:\n" + "\n".join(
+    "\n".join(["  - " + d.split("\n")[0]] + [("    " + ln) if ln.strip() else "" for ln in d.rstrip("\n").split("\n")[1:]])
+    for _, d in _groups)
+_tail = _alerts_text.split("groups:\n", 1)[1].rstrip("\n")
+try:
+    _gf.rule_groups("groups:\n  - name: a\n    rules:\n  oops: 1\n")
+    _bad_layout = "taken"
+except _gf.GrafanaError as e:
+    _bad_layout = str(e)
+check("DP35: the alerts' file is cut into its groups as the ruler API takes them, each a document of its "
+      "own, and put back together they are the file again, every line that is not blank in its place; all "
+      "seven alerts are in them; a line outside a group stops it",
+      [n for n, _ in _groups] == ["caro-availability", "caro-search", "caro-corpus", "caro-collection"]
+      and all(d.startswith("name: " + n + "\n") for n, d in _groups)
+      and [ln.rstrip() for ln in _rebuilt.split("\n") if ln.strip()]
+      == [ln.rstrip() for ln in ("groups:\n" + _tail).split("\n") if ln.strip()]
+      and sum(d.count("\n  - alert: ") for _, d in _groups) == 7 == _alerts_text.count("- alert: ")
+      and "outside its group" in _bad_layout,
+      str([n for n, _ in _groups]))
+
+_g1 = _FakeGrafana()
+_gr1 = [_gf_run(_g1, "dashboard") for _ in range(2)]
+_posted = [c for c in _g1.calls if c[0] == "POST"]
+_sent_board = json.loads(_posted[0][2])["dashboard"] if _posted else {}
+_dsvar = [v for v in _sent_board.get("templating", {}).get("list", []) if v.get("type") == "datasource"]
+_tmp_gf = tempfile.TemporaryDirectory()
+_root_gf = Path(_tmp_gf.name)
+(_root_gf / "deploy/grafana").mkdir(parents=True)
+_changed_board = json.loads(text("deploy/grafana/caro.json"))
+_changed_board["title"] = "CARO, changed"
+(_root_gf / "deploy/grafana/caro.json").write_text(json.dumps(_changed_board))
+_gr1c = _gf_run(_g1, "dashboard", root=_root_gf)
+_g1o = _FakeGrafana(datasources=[{"uid": "only", "name": "prometheus", "type": "prometheus"}])
+_gr1o = _gf_run(_g1o, "dashboard")
+_g1m = _FakeGrafana(datasources=[{"uid": "a", "name": "one-prom", "type": "prometheus"},
+                                 {"uid": "b", "name": "two-prom", "type": "prometheus"}])
+_gr1m = _gf_run(_g1m, "dashboard")
+_gr1n = _gf_run(_g1m, "dashboard", "--datasource", "two-prom")
+_g1p = _FakeGrafana(datasources=[{"uid": "old", "name": "grafanacloud-caro-prom", "type": "prometheus"},
+                                 {"uid": "new", "name": "caro-prom", "type": "prometheus"}])
+_gr1p = _gf_run(_g1p, "dashboard", "--datasource", "caro-prom")
+check("DP36: the dashboard is put on the stack's own Prometheus -- the only one, or the one whose name ends "
+      "-prom, or the one of exactly the name given -- the file as it is but for its datasource chosen; run again it is found "
+      "and not written; a changed file is written over it; two that end -prom and none named stops it, "
+      "naming them",
+      [rc for rc, *_ in _gr1] == [0, 0] and len(_posted) == 1 and _posted[0][1] == "/api/dashboards/db"
+      and json.loads(_posted[0][2])["overwrite"] is True and _sent_board.get("id") is None
+      and _dsvar and _dsvar[0]["current"] == {"selected": True, "text": "grafanacloud-caro-prom", "value": "p1"}
+      and {k: v for k, v in _sent_board.items() if k not in ("templating", "id")}
+      == {k: v for k, v in json.loads(text("deploy/grafana/caro.json")).items() if k != "templating"}
+      and "there already" in _gr1[1][1]
+      and _gr1c[0] == 0 and _g1.dashboard["title"] == "CARO, changed" and "brought to the file" in _gr1c[1]
+      and _gr1o[0] == 0 and _g1o.dashboard["templating"]["list"][0]["current"]["value"] == "only"
+      and _gr1m[0] == 1 and "one-prom, two-prom" in _gr1m[2] and _gwrites(_g1m)[:1] == [("POST", "/api/dashboards/db")]
+      and _g1m.dashboard["templating"]["list"][0]["current"]["value"] == "b"
+      and _gr1p[0] == 0 and _g1p.dashboard["templating"]["list"][0]["current"]["value"] == "new",
+      str((_gr1, _gr1c, _gr1o, _gr1m, _gr1n, _gr1p)))
+
+_g2 = _FakeGrafana(groups=("caro-retired", "caro-search"),
+                   other_rules=[{"title": "theirs", "ruleGroup": "their-group", "folderUID": "f2"}])
+_gr2d = _gf_run(_g2, "alerts", "--dry-run")
+_w2d = _gwrites(_g2)
+_gr2 = _gf_run(_g2, "alerts")
+_conv = [c for c in _g2.calls if c[0] == "POST"]
+_gr2x = _gf_run(_FakeGrafana(convert=False), "alerts")
+_gr2e = _gf_run(_FakeGrafana(convert_error="invalid rule group: unknown function rat"), "alerts")
+check("DP37: the alerts are loaded group by group into the folder CARO through Grafana's conversion of "
+      "Prometheus rules, each group's document as the file has it, as YAML, on the stack's Prometheus; a "
+      "group the folder has and the file no longer does is taken away, and no other, nor any group of "
+      "another folder; --dry-run loads nothing; a Grafana that does not convert them says to load them "
+      "with mimirtool, and any other refusal is said in Grafana's words",
+      _gr2d[0] == 0 and _w2d == [] and _gr2d[1].count("would:") == 5
+      and _gr2[0] == 0 and [c[1] for c in _conv] == ["/api/convert/prometheus/config/v1/rules/CARO"] * 4
+      and [c[2].decode() for c in _conv] == [d for _, d in _groups]
+      and all(c[3].get("content-type") == "application/yaml"
+              and c[3].get("x-grafana-alerting-datasource-uid") == "p1" for c in _conv)
+      and ("DELETE", "/api/convert/prometheus/config/v1/rules/CARO/caro-retired") in _gwrites(_g2)
+      and sorted(_g2.groups) == sorted(n for n, _ in _groups)
+      and _gr2x[0] == 1 and "does not convert Prometheus rules" in _gr2x[2] and "mimirtool" in _gr2x[2]
+      and _gr2e[0] == 1 and "unknown function rat" in _gr2e[2] and "does not convert" not in _gr2e[2]
+      and [p for m, p in _gwrites(_g2) if m == "DELETE"] == ["/api/convert/prometheus/config/v1/rules/CARO/caro-retired"],
+      str((_gr2d, _gr2, _gr2x, _gr2e)))
+
+_theirs = {"receiver": "someone-else", "object_matchers": [["team", "=", "other"]]}
+_g3 = _FakeGrafana(routes=[_theirs])
+_gr3 = [_gf_run(_g3, "telegram") for _ in range(2)]
+_w3 = _gwrites(_g3)
+_tmp_gf2 = tempfile.TemporaryDirectory()
+_envf = Path(_tmp_gf2.name) / "production.env"
+_envf.write_text("CARO_ENV=production\nCARO_ALERT_TELEGRAM_TOKEN=654321:from-the-file\nCARO_ALERT_TELEGRAM_CHAT=-100555\n")
+_g3f = _FakeGrafana()
+_gr3f = _gf_run(_g3f, "telegram", "--env-file", str(_envf), env={"GRAFANA_URL": _GF_URL, "GRAFANA_TOKEN": _GF_TOKEN})
+_gr3n = _gf_run(_FakeGrafana(), "telegram", env={"GRAFANA_URL": _GF_URL, "GRAFANA_TOKEN": _GF_TOKEN})
+_gr3b = _gf_run(_FakeGrafana(), "telegram", env={"GRAFANA_URL": _GF_URL, "GRAFANA_TOKEN": _GF_TOKEN,
+                                                 "CARO_ALERT_TELEGRAM_TOKEN": "123456:made-up-bot"})
+_timing = [(r["group_wait"], r["group_interval"], r["repeat_interval"]) for r in _g3.tree["routes"][:2]]
+check("DP38: the contact point caro-telegram is made once with the server's bot and chat, editable in "
+      "Grafana's pages, and written again on a second run; the two routes -- a page within half a minute and "
+      "again every four hours, tickets every three hours and again each day -- go in front of the stack's own, "
+      "which stay as they were, and on a second run are found and not written; the bot and the chat can "
+      "come from the server's env file; without either it stops before anything",
+      [rc for rc, *_ in _gr3] == [0, 0] and len(_g3.contacts) == 1
+      and _g3.contacts[0]["type"] == "telegram"
+      and _g3.contacts[0]["settings"] == {"bottoken": "123456:made-up-bot", "chatid": "-1009876543210"}
+      and [m for m, _ in _w3] == ["POST", "PUT", "PUT"] and _w3[1] == ("PUT", "/api/v1/provisioning/policies")
+      and all(c[3].get("x-disable-provenance") == "true" for c in _g3.calls if c[0] in ("POST", "PUT"))
+      and _g3.tree["routes"] == _gf.ROUTES + [_theirs] and _g3.tree["receiver"] == "grafana-default-email"
+      and [r["object_matchers"][1] for r in _g3.tree["routes"][:2]] == [["severity", "=", "page"], ["severity", "=", "ticket"]]
+      and all(r["object_matchers"][0] == ["grafana_folder", "=", "CARO"] for r in _g3.tree["routes"][:2])
+      and "there already" in _gr3[1][1] and not any("made-up-bot" in o + e for _, o, e in _gr3)
+      and _gr3f[0] == 0 and _g3f.contacts[0]["settings"] == {"bottoken": "654321:from-the-file", "chatid": "-100555"}
+      and _gr3n[0] == 2 and "CARO_ALERT_TELEGRAM_TOKEN" in _gr3n[2] and _gr3b[0] == 2
+      and _timing == [("30s", "5m", "4h"), ("10m", "3h", "1d")],
+      str((_gr3, _gr3f, _gr3n, _gr3b, _w3, _timing)))
+
+_g4 = _FakeGrafana(other_receivers=[{"metadata": {"name": "ZW1haWw"}, "spec": {"title": "email", "integrations": [
+    {"uid": "em1", "type": "email", "settings": {"addresses": "ops@example.invalid"}}]}}])
+_gr4 = _gf_run(_g4, "all")
+_g4d = _FakeGrafana()
+_gr4d = _gf_run(_g4d, "all", "--dry-run")
+_g4f = _FakeGrafana(test_fails="failed to send telegram message: Bad Request: chat not found")
+_gr4f = _gf_run(_g4f, "all")
+_gr4n = _gf_run(_FakeGrafana(), "test")
+_gr4o = _gf_run(_FakeGrafana(receivers_api=False), "all")
+check("DP39: all does the dashboard, the alerts, the contact point and its routes, then has Grafana send "
+      "a test to the chat, finding the contact point by its title in the stack's own namespace, among others; "
+      "with --dry-run it writes and sends nothing; a test "
+      "Grafana could not send stops it with Grafana's words; with no contact point, or no API to test from, "
+      "it says what to do",
+      _gr4[0] == 0 and _g4.dashboard is not None and len(_g4.groups) == 4 and len(_g4.contacts) == 1
+      and len(_g4.tests) == 1 and _g4.tests[0][0].endswith("/namespaces/stacks-42/receivers/Y2Fyby10ZWxlZ3JhbQ/test")
+      and _g4.tests[0][1]["integration"]["uid"] == "cp1" and "sent by Grafana" in _gr4[1]
+      and _gr4f[0] == 1 and "chat not found" in _gr4f[2]
+      and _gr4n[0] == 1 and "run telegram first" in _gr4n[2]
+      and _gr4o[0] == 1 and "Contact points -> caro-telegram -> Test" in _gr4o[2]
+      and _gr4d[0] == 0 and _gwrites(_g4d) == [] and _g4d.tests == [] and "would: ask Grafana to send a test" in _gr4d[1],
+      str((_gr4, _gr4f, _gr4n, _gr4o, _gr4d)))
+
+
+class _GfRefusing(_FakeGrafana):
+    def __call__(self, req, timeout=30):
+        self.calls.append((req.get_method(), req.full_url, b"", {}, ""))
+        self._no(req, 403, "You'll need additional permissions to perform this action")
+
+
+_gr5a = _gf_run(_FakeGrafana(), "status", env={"GRAFANA_URL": _GF_URL})
+_gr5h = _gf_run(_FakeGrafana(), "status", env={"GRAFANA_URL": "http://caro.grafana.example", "GRAFANA_TOKEN": _GF_TOKEN})
+_gr5l = _gf_run(_FakeGrafana(), "status", env={"GRAFANA_URL": "http://127.0.0.1:3300", "GRAFANA_TOKEN": _GF_TOKEN})
+_gr5r = _gf_run(_GfRefusing(), "dashboard")
+_gevery = [c for f in (_g1, _g2, _g3, _g4) for c in f.calls]
+check("DP40: without the stack's address and token it stops before asking anything; an address that is "
+      "not https stops it, but on this machine's own; a refusal stops it with Grafana's words and what the "
+      "token needs; every request goes to the stack with the token as a bearer, and the token is in no "
+      "line printed",
+      _gr5a[0] == 2 and "GRAFANA_TOKEN" in _gr5a[2]
+      and _gr5h[0] == 2 and "https" in _gr5h[2] and _gr5l[0] == 0
+      and _gr5r[0] == 1 and "additional permissions" in _gr5r[2] and "Admin" in _gr5r[2]
+      and all(c[4] == "caro.grafana.example" and c[3].get("authorization") == f"Bearer {_GF_TOKEN}" for c in _gevery)
+      and not any(_GF_TOKEN in o + e for runs in (_gr1, _gr3, [_gr4, _gr4f, _gr5r]) for _, o, e in runs),
+      str((_gr5a, _gr5h, _gr5l, _gr5r)))
 
 print()
 if FAILS:

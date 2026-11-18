@@ -66,6 +66,14 @@ python3 scripts/site_check.py --site https://caro.noxioai.com --cloudflare; echo
 the first prints a 404 and `x-vercel-error: DEPLOYMENT_NOT_FOUND`, and the
 second still ends `exit 0`.
 
+Then, where the switch was made (PHASE1_SETUP, step 8):
+
+```
+rm cloudflare-undo.json
+```
+
+The CNAME it would put back points at a project that is gone.
+
 ## 4. The repository's side
 
 Tell a session that step 3 is done. It brings `phase6-vercel-gone` up to
