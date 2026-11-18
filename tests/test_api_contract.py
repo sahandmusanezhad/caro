@@ -3193,6 +3193,7 @@ print("\n28 — the build a process runs")
 # (scripts/deploy_wait.py). The image sets CARO_BUILD when it is built; a
 # laptop and the suites do not, and then nothing is claimed.
 _bh_was = os.environ.pop("CARO_BUILD", None)
+_bh_vwas = os.environ.pop("VERCEL_GIT_COMMIT_SHA", None)
 with contextlib.redirect_stdout(io.StringIO()):
     _bh_c = TestClient(api.app)
 _bh_none = _bh_c.get("/api/health").json()
@@ -3200,15 +3201,33 @@ os.environ["CARO_BUILD"] = "0123456789abcdef0123456789abcdef01234567"
 _bh_set = _bh_c.get("/api/health").json()
 os.environ["CARO_BUILD"] = ""
 _bh_empty = _bh_c.get("/api/health").json()
+# Vercel deploys from a commit and gives its functions that commit's sha:
+# health names it where no image named one, and an image's always wins.
+os.environ["VERCEL_GIT_COMMIT_SHA"] = "fedcba9876543210fedcba9876543210fedcba98"
+_bh_vercel = _bh_c.get("/api/health").json()
+os.environ["CARO_BUILD"] = "0123456789abcdef0123456789abcdef01234567"
+_bh_both = _bh_c.get("/api/health").json()
+os.environ["VERCEL_GIT_COMMIT_SHA"] = ""
 del os.environ["CARO_BUILD"]
+_bh_vempty = _bh_c.get("/api/health").json()
+del os.environ["VERCEL_GIT_COMMIT_SHA"]
 if _bh_was is not None:
     os.environ["CARO_BUILD"] = _bh_was
+if _bh_vwas is not None:
+    os.environ["VERCEL_GIT_COMMIT_SHA"] = _bh_vwas
 check("BH1: /api/health says the commit the process was built from where CARO_BUILD names one, and "
       "null where nothing does, an empty value included",
       all({k: h.get(k) for k in ("ok", "build")} == want for h, want in (
           (_bh_none, {"ok": True, "build": None}), (_bh_empty, {"ok": True, "build": None}),
           (_bh_set, {"ok": True, "build": "0123456789abcdef0123456789abcdef01234567"}))),
       str((_bh_none, _bh_set, _bh_empty)))
+check("BH2: on Vercel, where no image names a build, /api/health says the commit Vercel deployed; an "
+      "image's CARO_BUILD wins over it, and an empty one is nothing",
+      all({k: h.get(k) for k in ("ok", "build")} == want for h, want in (
+          (_bh_vercel, {"ok": True, "build": "fedcba9876543210fedcba9876543210fedcba98"}),
+          (_bh_both, {"ok": True, "build": "0123456789abcdef0123456789abcdef01234567"}),
+          (_bh_vempty, {"ok": True, "build": None}))),
+      str((_bh_vercel, _bh_both, _bh_vempty)))
 
 
 # ---------------------------------------------------------------------------
