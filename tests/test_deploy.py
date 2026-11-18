@@ -486,13 +486,24 @@ _tmp_cf3 = tempfile.TemporaryDirectory()
 _f4i = _FakeCloudflare(records=[_www, _vercel], ignore_filter=True)
 _cf4i = _cf_run(_f4i, "switch", "--ip", "203.0.113.10", here=Path(_tmp_cf3.name))
 _batch4i = [c[2] for c in _f4i.calls if c[1].endswith("/batch")]
+_stg = {"id": "s1", "type": "A", "name": "caro-staging.noxioai.com", "content": "203.0.113.30", "proxied": True}
+_tmp_cf4 = tempfile.TemporaryDirectory()
+_f4s = _FakeCloudflare(records=[_stg, _vercel])
+_cf4s = _cf_run(_f4s, "switch", here=Path(_tmp_cf4.name))
+_f4z = _FakeCloudflare(records=[_vercel])
+_cf4z = _cf_run(_f4z, "switch", here=Path(_tmp_cf4.name))
+_f4t = _FakeCloudflare(records=[_stg, {**_stg, "id": "s2", "content": "203.0.113.31"}, _vercel])
+_cf4t = _cf_run(_f4t, "switch", here=Path(_tmp_cf4.name))
+_f4p = _FakeCloudflare(records=[{**_stg, "content": "192.168.1.10", "proxied": False}, _vercel])
+_cf4p = _cf_run(_f4p, "switch", here=Path(_tmp_cf4.name))
 check("DP26: the switch keeps what caro.noxioai.com was beside the owner, then makes it an A record to "
       "the server, proxied, in one batch that takes Vercel's CNAME away; run again it is found; a switch "
       "to a new address keeps the first switch's file; undone, in one batch, Vercel's CNAME is back as it "
       "was and the file is gone; with nothing kept, undo refuses; a batch Cloudflare refuses leaves the "
       "name as it was; a record left beside the server's is taken away, the A record alone kept; and "
       "where the list answers with other names' records too, none of them is taken away or kept as "
-      "what the name was",
+      "what the name was; given no address, it takes the one staging's record has, and with none there, "
+      "two, or one inside a network, it stops before writing",
       [rc for rc, *_ in _cf4] == [0, 0] and _w4 == [("POST", "/zones/z1/dns_records/batch")]
       and _after_switch == [("A", "203.0.113.10", True)] and "already" in _cf4[1][1]
       and _cf4m[0] == 0 and [(r["type"], r["content"]) for r in _kept] == [("CNAME", "cname.vercel-dns.com")]
@@ -504,7 +515,12 @@ check("DP26: the switch keeps what caro.noxioai.com was beside the owner, then m
       and _cf4x[0] == 0 and [(r["type"], r["content"]) for r in _f4x.records] == [("A", "203.0.113.10")]
       and _cf4i[0] == 0 and _batch4i and _batch4i[0]["deletes"] == [{"id": "v1"}]
       and [r for r in _f4i.records if r["name"] == "www.noxioai.com"] == [_www]
-      and [x["name"] for x in json.loads((Path(_tmp_cf3.name) / "cloudflare-undo.json").read_text())] == ["caro.noxioai.com"],
+      and [x["name"] for x in json.loads((Path(_tmp_cf3.name) / "cloudflare-undo.json").read_text())] == ["caro.noxioai.com"]
+      and _cf4s[0] == 0 and [(r["name"], r["type"], r["content"]) for r in _f4s.records if r["name"] == "caro.noxioai.com"]
+      == [("caro.noxioai.com", "A", "203.0.113.30")] and "as caro-staging.noxioai.com's record has it: 203.0.113.30" in _cf4s[1]
+      and _cf4z[0] == 1 and "give the switch --ip" in _cf4z[2] and _writes(_f4z) == []
+      and _cf4t[0] == 1 and "2 A records" in _cf4t[2] and _writes(_f4t) == []
+      and _cf4p[0] == 1 and "not the server's public IPv4 address" in _cf4p[2] and _writes(_f4p) == [],
       str((_cf4, _cf4m, _cf4u, _after_switch, _after_undo, _cf4n, _cf4r, _cf4x, _cf4i)))
 
 _tls_cf = tempfile.TemporaryDirectory()
@@ -557,17 +573,21 @@ _f5z = _FakeCloudflare(zones=[{"id": "zX", "name": "my-noxioai.com", "account": 
                               {"id": "z1", "name": "noxioai.com", "account": {"id": "a1"}}])
 _cf5z = _cf_run(_f5z, "staging", "--ip", "203.0.113.10")
 _cf5n = _cf_run(_FakeCloudflare(zones=[{"id": "zX", "name": "my-noxioai.com", "account": {"id": "aX"}}]), "status")
+_cf5s = _cf_run(_FakeCloudflare(rules=[dict(_hand)]), "status")
 _every = [c for f in (_f1, _f2, _f3, _f3h, _f4, _f6) for c in f.calls]
 _files = "".join(p.read_text() for p in _here_cf.iterdir()) + "".join(p.read_text() for p in _tls.iterdir())
 check("DP28: without a token it stops before asking anything; Cloudflare's refusal stops it with "
       "Cloudflare's words and the permission that command needs; the zone is the one of that exact name, "
-      "and a token that sees only another stops it; every request goes to api.cloudflare.com with the "
+      "and a token that sees only another stops it; status gives the zone's id as the server's line for "
+      "the purge; every request goes to api.cloudflare.com with the "
       "token as a bearer, and the token is in no line printed and no file written",
       _cf5a[0] == 2 and "CLOUDFLARE_API_TOKEN" in _cf5a[2]
       and _cf5b[0] == 1 and "Authentication error" in _cf5b[2] and "Zone / Zone / Read" in _cf5b[2]
       and _cf5c[0] == 1 and "Zone / Cache Rules / Edit" in _cf5c[2]
       and _cf5z[0] == 0 and _writes(_f5z) == [("POST", "/zones/z1/dns_records")]
       and _cf5n[0] == 1 and "sees no zone noxioai.com" in _cf5n[2]
+      and _cf5s[0] == 0 and "bash /opt/caro/deploy/set-env.sh production CARO_CF_ZONE_ID=z1\n" in _cf5s[1]
+      and "bash /opt/caro/deploy/set-env.sh staging CARO_CF_ZONE_ID=z1\n" in _cf5s[1] and "CARO's number 1" in _cf5s[1]
       and all(c[4] == "api.cloudflare.com" and c[3] == f"Bearer {_CF_TOKEN}" for c in _every)
       and not any(_CF_TOKEN in o + e for runs in (_cf1, _cf2, _cf3, _cf4, _cf6) for _, o, e in runs)
       and _CF_TOKEN not in _cf5b[2] + _cf5c[2] and _CF_TOKEN not in _files,

@@ -25,8 +25,10 @@ shell's history: paste it, then Enter.
                             printed, its secret written to
                             turnstile-secret.txt beside you, mode 600 (PHASE4,
                             step 3)
-    switch --ip ADDRESS     caro.noxioai.com from what it is -- Vercel's
-                            CNAME -- to an A record to the server, proxied,
+    switch [--ip ADDRESS]   caro.noxioai.com from what it is -- Vercel's
+                            CNAME -- to an A record to the server, proxied:
+                            to the address staging's record has, unless
+                            another is given,
                             in one change that Cloudflare makes whole or not
                             at all; what it was is kept in
                             cloudflare-undo.json beside you, by the first
@@ -266,6 +268,19 @@ def _replace(c: Client, zone: str, have: list[dict], new: list[dict], what: str)
                    {"deletes": [{"id": r["id"]} for r in have], "posts": new}, what)
 
 
+def staging_address(c: Client, zone: str) -> str:
+    """The server's address, as staging's record has it (PHASE1, step 6)."""
+    a = [r for r in records(c, zone, STAGING) if r["type"] == "A"]
+    if len(a) != 1:
+        raise CloudflareError(f"{STAGING} has {len(a)} A records, not one: give the switch --ip")
+    try:
+        ip = _ip(a[0]["content"])
+    except argparse.ArgumentTypeError as e:
+        raise CloudflareError(f"{STAGING}'s record: {e}") from None
+    c.out(f"the server's address, as {STAGING}'s record has it: {ip}")
+    return ip
+
+
 def switch(c: Client, zone: str, ip: str, undo_file: Path) -> str:
     """caro.noxioai.com to the server. What the first switch found is kept in
     `undo_file`, and a later switch -- to a new address -- keeps it as it is."""
@@ -339,7 +354,9 @@ def origin_cert(c: Client, tls_dir: Path, run: Callable = RUN) -> str:
 
 
 def status(c: Client, zone: str, account: str) -> None:
-    c.out(f"the zone {ZONE}: its id is {zone}")
+    c.out(f"the zone {ZONE}: its id is {zone}; on the server, for the edge's purge (PHASE4_SETUP, step 2):")
+    for env in ("production", "staging"):
+        c.out(f"  bash /opt/caro/deploy/set-env.sh {env} CARO_CF_ZONE_ID={zone}")
     for name in (SITE, STAGING):
         have = records(c, zone, name)
         c.out(f"{name}: " + (", ".join(f"{r['type']} {r['content']}"
@@ -389,8 +406,8 @@ def main(argv: list[str] | None = None, env=None, opener: Callable | None = None
     if not token:
         print("cloudflare-setup: CLOUDFLARE_API_TOKEN is not set (see the top of this file)", file=sys.stderr)
         return 2
-    if a.command in ("staging", "switch") and not a.ip:
-        print(f"cloudflare-setup: {a.command} needs --ip, the server's IPv4 address", file=sys.stderr)
+    if a.command == "staging" and not a.ip:
+        print("cloudflare-setup: staging needs --ip, the server's IPv4 address", file=sys.stderr)
         return 2
     if a.command == "origin-cert" and not a.tls_dir.is_dir():
         print(f"cloudflare-setup: no directory {a.tls_dir} (PHASE1_SETUP, step 2 makes it)", file=sys.stderr)
@@ -408,7 +425,7 @@ def main(argv: list[str] | None = None, env=None, opener: Callable | None = None
         elif a.command == "turnstile":
             ensure_widget(c, account, here / SECRET_FILE)
         elif a.command == "switch":
-            switch(c, zone, a.ip, here / UNDO_FILE)
+            switch(c, zone, a.ip or staging_address(c, zone), here / UNDO_FILE)
         elif a.command == "origin-cert":
             origin_cert(c, a.tls_dir, run)
         else:
