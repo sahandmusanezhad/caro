@@ -36,7 +36,7 @@ corpus it is reading.
 </tr>
 </table>
 
-<sub>The site as built from this commit, serving run17, captured locally on 2026-11-02.</sub>
+<sub>The site as built from this commit, serving run17, captured locally on 2026-11-02, and again on 2026-11-18 the same to the byte.</sub>
 
 ---
 
@@ -124,13 +124,13 @@ are deliberately *not* agents, and why.
 The brief asks for **crawl offers → normalize messy data → rank by user
 intent → explain the best choice**.
 
-| Requirement | State, 2026-11-01 |
+| Requirement | State, 2026-11-18 |
 |---|---|
 | crawl offers | ⚠️ **two sources published.** Four runs of `BamaAdapter` and one of Khodro45's ([the data](#the-data)), every line of run16 and run17 read before it was published; the site serves run17. Khodro45 runs every day on the owner's machine (TEMPORAL_CONTRACT §11) and Sheypoor has run live, none of its runs published. `DivarCarAdapter` has read one saved real page (24 of 24 listings) and its live path has never run. |
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province — the 31 capitals give theirs — with how each was read. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
 | explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
-| deployed | ✅ **from `main`** — one Vercel project of two services (D64, D80), following [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro). |
+| deployed | ✅ **from `main`** — one Vercel project of two services (D64, D80), following [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro), which CI brings to each green merge once the owner's deploy key is set ([DELIVERY](docs/DELIVERY.md)). |
 
 Everything that is left until the end of the project — in order, with what
 closes each item and who does it — is in [ROADMAP](docs/ROADMAP.md), in two
@@ -156,7 +156,7 @@ How the work is done, and the rules every session keeps, are in
 
 ### Try it
 
-Four requests, asked of this commit's API on 2026-11-02, on run17:
+Four requests, asked of this commit's API on run17, on 2026-11-02 and again on 2026-11-18, with the same answers:
 
 ```
 دنا از ۳ میلیارد به بالا          a budget floor of 3 billion and no ceiling:
@@ -568,17 +568,19 @@ trade for a system whose pitch is that it does not overclaim.
 
 ### Listings sellers post on CARO itself
 
-Five of its six steps were built on 2026-10-30 — the sixth, a real SMS
-provider, is the owner's to choose — and it is off until the deploy turns it
-on ([SELLER_LISTINGS](docs/SELLER_LISTINGS.md)): a seller logs in with a code by
+Its six steps are built: five on 2026-10-30, and the sixth, a real SMS
+provider, Kavenegar, in phase 2 (D101). It is off until the deploy turns it
+on ([SELLER_LISTINGS](docs/SELLER_LISTINGS.md),
+[PHASE2_SETUP](docs/PHASE2_SETUP.md)): a seller logs in with a code by
 SMS, posts a listing whose rules the server keeps, edits, renews and deletes
 it; an operator approves, rejects with a reason, and takes down a listing
 three reports name. A seller's number is the one they logged in with, kept
 apart from the corpus, never in a page's HTML, JSON or structured data,
 shown only where its seller ticked «نمایش شماره» and only when a visitor
 presses it, and deleted with the account. It is off unless `DATABASE_URL`
-and `CARO_STORE_SECRET` are set; logging in needs an SMS provider too, and
-the only one so far is a fake, which a Postgres store refuses. Its links stay
+and `CARO_STORE_SECRET` are set. Logging in needs an SMS provider too:
+Kavenegar, whose account is the owner's to open, or a fake, which only a
+laptop's SQLite store takes and a Postgres store refuses. Its links stay
 out of the nav, and a model page does not ask for its listings, unless the
 site is built with `NEXT_PUBLIC_SELLER_LISTINGS=on`. No answer of the
 decision API reads them.
@@ -615,13 +617,16 @@ python3 tests/run_all.py            # 3655 across all nineteen
 
 A suite whose extra module or program is absent is skipped by name with the
 command that enables it — skipped is never printed as passed, and the count
-reads "14 of 17". scipy builds an oracle inside `tests/test_appraisal.py`,
+reads "16 of 19". scipy builds an oracle inside `tests/test_appraisal.py`,
 fastapi is only reachable from `webapp/`, and node only draws the site's own
 components in `tests/test_screens.py`. `.github/workflows/ci.yml` runs every
 suite and the site's type check, lint and build on each push to `main` and
-each pull request, and fails when a suite is skipped. A third job runs the
-seller store, the catalog and the site served from the catalog once more
-against a real Postgres 16, where a laptop and the other jobs use SQLite.
+each pull request, and fails when a suite is skipped. A third job walks
+every key route of the built site in a browser, and a fourth runs the seller
+store, the catalog and the site served from the catalog once more against a
+real Postgres 16, where a laptop and the other jobs use SQLite. What follows
+a merge — the images, and the site brought to it — is in
+[DELIVERY](docs/DELIVERY.md).
 
 <details>
 <summary><b>Why <code>setup.sh</code>, why no scikit-learn, and the scripts that need a corpus no clone has</b></summary>
@@ -717,7 +722,7 @@ key of 128 bits or more, nothing opens it until it is fixed.
 
 ### A live collection
 
-Only the owner starts one, on his own machine. No script here runs on its
+Only the owner starts one, on their own machine. No script here runs on its
 own, and every suite passes with the network switched off.
 
 ```
@@ -801,8 +806,9 @@ The rules every session keeps are in
 collections; Sobhan builds the platform; each commits under their own name.
 Work lands in [sahandmusanezhad/caro](https://github.com/sahandmusanezhad/caro),
 by pull request; [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro) holds
-the issues, is kept at the same `main` by the owner after every merge, and
-the deployed site follows it.
+the issues and is kept at the same `main` — by CI after each green merge
+once the owner's deploy key is set ([DELIVERY](docs/DELIVERY.md)), by the
+owner until then — and the deployed site follows it.
 
 ## Repository layout
 
