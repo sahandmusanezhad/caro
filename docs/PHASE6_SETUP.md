@@ -79,6 +79,9 @@ The CNAME it would put back points at a project that is gone.
 Tell a session that step 3 is done. It brings `phase6-vercel-gone` up to
 `main`, marks its pull request ready, and merges it once CI is green, with
 the README's and the roadmap's lines that say where the site is served.
+It takes out the images workflow's job `deliver` too, which brought each
+merge to Vercel's site ([DELIVERY](DELIVERY.md)). Then remove its deploy
+key from `Tecso-Dev/caro` and its secret from this repository.
 
 ## Then
 

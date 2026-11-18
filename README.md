@@ -813,7 +813,7 @@ tests/           3655 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
-deploy/          the edge's nginx, Cloudflare's ranges, the server's pull script and timers, its bootstrap and its settings' helper
+deploy/          the edge's nginx, Cloudflare's ranges, the server's pull script and timers, its bootstrap and its settings' helper, the delivery to Vercel's site
 scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts, the owner's Cloudflare and Grafana steps
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
@@ -830,6 +830,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D109) �
 | [DECISIONS](docs/DECISIONS.md) | the design record, including bugs found and what they cost |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
 | [REARCHITECTURE](docs/REARCHITECTURE.md) | the 2026 plan for the platform, phases 0 to 7: Sobhan's, accepted with its review's amendments |
+| [DELIVERY](docs/DELIVERY.md) | what follows a merge: the checks, the images, and the site brought to it and read -- Vercel's by CI once the owner's one deploy key is set, the server's by its own pull |
 | [PHASE0_SETUP](docs/PHASE0_SETUP.md) | phase 0's steps in the owner's accounts — GitHub, Sentry, Cloudflare, UptimeRobot — each with what to see when it worked |
 | [PHASE1_SETUP](docs/PHASE1_SETUP.md) | phase 1's steps: the server at Hetzner, its certificate and settings, staging, the first release, and the switch from Vercel |
 | [PHASE2_SETUP](docs/PHASE2_SETUP.md) | phase 2's steps: an SMS account and its template, and the seller listings switched on in staging, then production |
