@@ -1456,6 +1456,92 @@ check("DP40: without the stack's address and token it stops before asking anythi
       and not any(_GF_TOKEN in o + e for runs in (_gr1, _gr3, [_gr4, _gr4f, _gr5r]) for _, o, e in runs),
       str((_gr5a, _gr5h, _gr5l, _gr5r)))
 
+# ---------------------------------------------------------------------------
+print("\neach green merge delivered to the site Vercel builds, a fast-forward and never a force")
+
+
+def _git(cwd, *args):
+    p = subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t.invalid", "-c", "init.defaultBranch=main",
+                        *args], cwd=cwd, capture_output=True, text=True, env={**os.environ, "HOME": str(cwd)})
+    if p.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)}: {p.stderr}")
+    return p.stdout.strip()
+
+
+def _dl_world():
+    """This repository at A -> B -> C; Tecso-Dev/caro, a bare repository, at A; its checkout."""
+    d = Path(tempfile.mkdtemp())
+    src, origin, dst = d / "src", d / "origin.git", d / "dst"
+    src.mkdir()
+    _git(src, "init", "-q")
+    shas = []
+    for n in "ABC":
+        (src / "f").write_text(n)
+        _git(src, "add", "f")
+        _git(src, "commit", "-q", "-m", n)
+        shas.append(_git(src, "rev-parse", "HEAD"))
+    _git(d, "init", "-q", "--bare", str(origin))
+    _git(src, "push", "-q", str(origin), f"{shas[0]}:refs/heads/main")
+    _git(d, "clone", "-q", str(origin), str(dst))
+    return d, src, origin, dst, shas
+
+
+def _deliver(src, dst, sha):
+    p = subprocess.run(["sh", str(ROOT / "deploy/deliver.sh"), str(src), str(dst), sha], capture_output=True,
+                       text=True, timeout=60, env={**os.environ, "HOME": str(dst.parent)})
+    return p.returncode, p.stdout, p.stderr
+
+
+def _main_of(origin):
+    return _git(origin, "rev-parse", "main")
+
+
+_dlA, _srcA, _orgA, _dstA, (_a, _b, _c) = _dl_world()
+_d1 = _deliver(_srcA, _dstA, _c)
+_after1 = _main_of(_orgA)
+_d2 = _deliver(_srcA, _dstA, _c)
+# A later merge, D, delivered before C's job runs.
+(_srcA / "f").write_text("D")
+_git(_srcA, "commit", "-q", "-am", "D")
+_dD = _git(_srcA, "rev-parse", "HEAD")
+_git(_srcA, "push", "-q", str(_orgA), f"{_dD}:refs/heads/main")
+_git(_srcA, "checkout", "-q", _c)
+_d3 = _deliver(_srcA, _dstA, _c)
+check("DP41: a commit of main is pushed to Tecso-Dev/caro's main where that main is behind it, and only "
+      "then; run again it is found there; where a later merge was delivered first, it is found held there "
+      "and nothing moves back",
+      _d1[0] == 0 and _after1 == _c and f"{_a} -> {_c}" in _d1[1]
+      and _d2[0] == 0 and "already" in _d2[1] and _main_of(_orgA) == _dD
+      and _d3[0] == 0 and "a later merge was delivered first" in _d3[1] and _main_of(_orgA) == _dD,
+      str((_d1, _d2, _d3)))
+
+_dlB, _srcB, _orgB, _dstB, (_a2, _b2, _c2) = _dl_world()
+# Tecso-Dev/caro's main gets a commit of its own, which this repository does not have.
+_other = Path(tempfile.mkdtemp()) / "other"
+_git(_dlB, "clone", "-q", str(_orgB), str(_other))
+(_other / "g").write_text("theirs")
+_git(_other, "add", "g")
+_git(_other, "commit", "-q", "-m", "someone else's")
+_git(_other, "push", "-q", "origin", "HEAD:refs/heads/main")
+_theirs = _main_of(_orgB)
+_d4 = _deliver(_srcB, _dstB, _c2)
+_git(_srcB, "checkout", "-q", _b2)
+_d5 = _deliver(_srcB, _dstB, _c2)
+# A main GitHub would not let the key write: the push refused, and the job with it.
+_dlC, _srcC, _orgC, _dstC, (_a3, _b3, _c3) = _dl_world()
+(_orgC / "hooks/pre-receive").write_text("#!/bin/sh\necho 'refused: main is protected' >&2\nexit 1\n")
+(_orgC / "hooks/pre-receive").chmod(0o755)
+_d6 = _deliver(_srcC, _dstC, _c3)
+_dl_text = text("deploy/deliver.sh")
+check("DP42: where Tecso-Dev/caro's main has a commit of its own, nothing is pushed and the job fails, saying "
+      "so; a checkout that is not at the commit pushes nothing; a push GitHub refuses fails the job; the "
+      "script never forces a push",
+      _d4[0] == 1 and "has commits" in _d4[2] and _main_of(_orgB) == _theirs
+      and _d5[0] == 1 and f"is at {_b2}, not {_c2}" in _d5[2] and _main_of(_orgB) == _theirs
+      and _d6[0] != 0 and "main is protected" in _d6[2] and _main_of(_orgC) == _a3 and "->" not in _d6[1]
+      and "--force" not in _dl_text and '"+' not in _dl_text and " -f " not in _dl_text,
+      str((_d4, _d5)))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
