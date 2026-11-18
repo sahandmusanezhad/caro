@@ -156,8 +156,8 @@ def after_amount(text: str) -> str:
 # year are also written together -- «از ۲۰۰ میلیون مدل ۹۸ به بالا» -- and the
 # only «به بالا» is the year clause's, which says the same of both: `_FLOOR_Y`
 # reads the floor there and leaves the year clause as it is.
-_UNIT_TAIL = (r"(?:\s*(?:میلیون|ملیون)(?!\w))?"
-              r"(?:\s*(?:تومان|تومن)(?!\w))?")
+_CURRENCY_TAIL = r"(?:\s*(?:تومان|تومن)(?!\w))?"
+_UNIT_TAIL = r"(?:\s*(?:میلیون|ملیون)(?!\w))?" + _CURRENCY_TAIL
 _SOFT = r"(?:(?:حدود|تقریبا)\s*)?"
 _CUE = r"(?<!\w)(?:بالای|از)\s*"
 _FLOOR_S = re.compile(_CUE + _SOFT + "(" + _MONEY.pattern + ")" + _UNIT_TAIL
@@ -248,6 +248,119 @@ def _floor_by_word(q: str):
         for m in rx.finditer(q):
             if not _NOT_A_FLOOR_AFTER.match(q, m.end()):
                 return m
+    return None
+
+
+# The BARE floor: an amount of money and the unit after it, then «به بالا» or
+# «به بالاتر», with no cue before -- «پراید ۴۰۰ میلیون به بالا». It set no
+# floor, and its amount was taken for the ceiling, with «عدد قیمت را سقف بودجه
+# فرض کردیم» printed: the meaning reversed, on 120 of 120 made phrasings of
+# five forms («X به بالا», «X تومان به بالا», «حدود X به بالا», «X به‌بالا»,
+# «X به بالاتر»; six amounts, four contexts), 2026-11-18. It is a floor now,
+# tried after the floors above, on 120 of 120 with nothing printed, and with a
+# year clause after it («… ۴۰۰ میلیون به بالا مدل ۹۸ به بالا») on 6 of 6. It is
+# no floor, and the ceiling rules read the query as they did:
+#
+#   - where a negation follows at once, as for the other floors: «۴۰۰ میلیون
+#     به بالا نباشه» is the ceiling it was, on 24 of 24;
+#   - where a ceiling's cue stands right before the amount -- «تا», «زیر»,
+#     «حداکثر», or a comparative with or without «از» («کمتر از»). «تا ۴۰۰
+#     میلیون به بالا نمی‌تونم» is the ceiling it was, though no negation the
+#     parser holds follows it, and «کمتر از ۴۰۰ میلیون به بالا» says nothing a
+#     floor could. Found by hand after the measurement, which holds no such
+#     phrasing, and read as they were.
+#
+# The 132 phrasings that had to stay as they were («از X به بالا», «X و
+# بالاتر», «زیر X», «تا X», «کمتر از X مدل ۹۸ به بالا», «پژو ۲۰۶ تا X», an
+# odometer, a figure with no scale word, a year's and an odometer's range) did.
+# Left, as for the suffix: a negation outside the list («۴۰۰ میلیون به بالا
+# نمی‌تونم» is a floor), and a figure glued to a word («پراید۴۰۰ میلیون به
+# بالا» is not read).
+_FLOOR_BARE = re.compile(r"(?<![\w.,/٫])" + _SOFT + "(" + _MONEY.pattern + ")"
+                         + _UNIT_TAIL + r"\s*به\s*بالا(?:تر)?(?!\w)")
+_CEILING_BEFORE = re.compile(
+    r"(?<!\w)(?:تا|زیر|حداکثر"
+    r"|(?:کم\s?تر|پایین\s?تر|ارزان\s?تر|ارزون\s?تر)(?:\s*از)?)\s*$")
+
+
+def _floor_bare(q: str):
+    """The first `_FLOOR_BARE` that no ceiling's cue stands right before and
+    no negation follows at once; None if there is none."""
+    for m in _FLOOR_BARE.finditer(q):
+        if _CEILING_BEFORE.search(q[:m.start()]):
+            continue
+        if _NOT_A_FLOOR_AFTER.match(q, m.end()):
+            continue
+        return m
+    return None
+
+
+# A RANGE: «بین» or «از», or neither, a lower figure with its scale word or
+# none, then «تا», «الی», «-» or, after «بین» only, «و», then an amount of money
+# -- «بین ۳۰۰ تا ۴۰۰ میلیون», «از ۸۰۰ تا ۱.۲ میلیارد», «۳۰۰ الی ۴۰۰ میلیون». No
+# floor was read: the upper end was the ceiling and the lower was dropped, or
+# the first amount was taken for the ceiling with the assumption printed, which
+# after «بین X و Y» and «X الی Y» was the lower end where it had a scale word:
+# right on 0 of 136 made phrasings of six forms (six pairs, four contexts),
+# 2026-11-18. Both ends are read now, the floor and the ceiling, on 120 of 136:
+#
+#   - a lower figure with no scale word takes the upper's, or a million below
+#     a billion («۸۰۰ تا ۱.۲ میلیارد» is from 800 million), so that the upper
+#     is above it and no more than ten times it;
+#   - it is no range where the lower end is not below the upper: «بین ۴۰۰ تا
+#     ۳۰۰ میلیون» is the ceiling of 300 million it was (the owner's choice,
+#     2026-11-18);
+#   - «X تا Y» with neither «بین» nor «از», where X has no scale word, is no
+#     range: «پژو ۲۰۶ تا ۴۰۰ میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are a model or
+#     a year and a ceiling. These are the 16 of the 136 left as they were;
+#     «۳۰۰ میلیون تا ۴۰۰ میلیون», with a scale word, is a range;
+#   - a figure right after «مدل» is a year, not the lower end.
+#
+# Found by hand after the measurement, which holds no such phrasing, and read
+# as they were: a range a ceiling's cue stands right before («حداکثر ۳۰۰
+# میلیون تا ۴۰۰ میلیون») or a negation follows at once («بین ۳۰۰ تا ۴۰۰ میلیون
+# نباشه»), as for the floors; and, with neither «بین» nor «از», a dash with a
+# space beside it («پژو ۲۰۶ - ۴۰۰ میلیون», a field and a price) and a lower
+# figure that is a model's number («پژو ۲۰۶-۴۰۰ میلیون»). The range is read
+# before the floors, and its upper end is the ceiling: the ceiling rules are
+# not asked. Left: a lower end written «۱ میلیارد و ۲۰۰ میلیون», which the
+# lower figure does not take, is read as it was; and a year typed against a
+# price with a bare dash, «تیبا ۱۴۰۰-۲ میلیارد», is a range.
+_RANGE = re.compile(
+    r"(?<!\w)(?:(بین)\s*|(از)\s*)?" + _SOFT
+    + r"(\d+" + _DECIMAL + r")\s*((?:میلیارد|ملیارد|میلیون|ملیون)(?!\w)|م(?!\w))?"
+    + _CURRENCY_TAIL + r"\s*(تا|الی|-|–|و)\s*" + _SOFT
+    + "(" + _MONEY.pattern + ")" + _UNIT_TAIL)
+
+
+def _range(q: str):
+    """(match, floor, ceiling) of the first range in `q`, or None."""
+    for m in _RANGE.finditer(q):
+        cue = m.group(1) or m.group(2)
+        low, unit, sep, high = m.group(3), m.group(4), m.group(5), m.group(6)
+        if sep == "و" and m.group(1) is None:
+            continue
+        if not cue and sep == "تا" and not unit:
+            continue
+        if not cue and sep in ("-", "–") and " " in (q[m.start(5) - 1], q[m.end(5)]):
+            continue
+        if not cue and not unit and low in _NUMERIC_ALIASES:
+            continue
+        if re.search(r"مدل\s*$", q[:m.start(3)]) or _CEILING_BEFORE.search(q[:m.start()]):
+            continue
+        if _NOT_A_FLOOR_AFTER.match(q, m.end()):
+            continue
+        hi = parse_amount(high)
+        if unit:
+            lo = parse_amount(f"{low} {unit}")
+        else:
+            words = (("میلیارد", "میلیون") if re.search(r"(?:میلیارد|ملیارد)(?!\w)", high)
+                     else ("میلیون",))
+            lo = next((v for v in (parse_amount(f"{low} {w}") for w in words)
+                       if v is not None and hi is not None and v < hi <= v * 10), None)
+        if lo is None or hi is None or lo >= hi:
+            continue
+        return m, lo, hi
     return None
 
 
@@ -719,13 +832,19 @@ class RuleIntentParser:
 
         budget_max = budget_min = None
         hard = True
-        # The floor is read first, and the budget is read from the query with the
-        # floor's phrase blanked out: «از ۴۰۰ میلیون به بالا» is a floor and
-        # nothing else, and its amount was also taken for the ceiling.
+        # A range is read first, and gives both ends. Otherwise the floor is
+        # read, and the budget is read from the query with the floor's phrase
+        # blanked out: «از ۴۰۰ میلیون به بالا» is a floor and nothing else, and
+        # its amount was also taken for the ceiling.
         qc = q
-        m = _floor_by_cue(q) or _floor_by_word(q)
+        rng = _range(q)
+        if rng:
+            m, budget_min, budget_max = rng
+        else:
+            m = _floor_by_cue(q) or _floor_by_word(q) or _floor_bare(q)
+            if m:
+                budget_min = parse_amount(m.group(1))
         if m:
-            budget_min = parse_amount(m.group(1))
             acted.append(m.group(0))
             qc = q[:m.start()] + " " * (m.end() - m.start()) + q[m.end():]
         # Every budget-ish clause, not just the first one in the string. The
@@ -735,9 +854,11 @@ class RuleIntentParser:
         # taken whole, up to the next «،», so a word after the amount goes
         # with it; `budget_tail` is what follows the amount, and is handed to
         # `read_unknown_places` below.
+        # A range has named the ceiling already, and no clause is asked.
         budget_tail = ""
-        for m in re.finditer(r"(?:زیر|تا|حداکثر|کمتر از|بودجه|قیمت)\s*([^،]*)",
-                             qc):
+        ceiling_cues = () if rng else re.finditer(
+            r"(?:زیر|تا|حداکثر|کمتر از|بودجه|قیمت)\s*([^،]*)", qc)
+        for m in ceiling_cues:
             got = money_amount(m.group(1))
             if got is not None:
                 budget_max = got
