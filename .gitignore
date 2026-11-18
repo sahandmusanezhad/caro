@@ -62,3 +62,9 @@ webapp/web/.next/
 webapp/web/out/
 webapp/web/next-env.d.ts
 webapp/web/tsconfig.tsbuildinfo
+
+# What scripts/cloudflare_setup.py writes beside the owner, in a checkout as
+# anywhere: Turnstile's secret, mode 600, until it is in the server's env
+# files; and what caro.noxioai.com was before the switch, until undone.
+turnstile-secret.txt
+cloudflare-undo.json

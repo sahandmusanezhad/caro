@@ -580,7 +580,8 @@ check("DP28: without a token it stops before asking anything; Cloudflare's refus
       "Cloudflare's words and the permission that command needs; the zone is the one of that exact name, "
       "and a token that sees only another stops it; status gives the zone's id as the server's line for "
       "the purge; every request goes to api.cloudflare.com with the "
-      "token as a bearer, and the token is in no line printed and no file written",
+      "token as a bearer, and the token is in no line printed and no file written; the two files it "
+      "writes beside the owner are ones git ignores, so a checkout never offers them to a commit",
       _cf5a[0] == 2 and "CLOUDFLARE_API_TOKEN" in _cf5a[2]
       and _cf5b[0] == 1 and "Authentication error" in _cf5b[2] and "Zone / Zone / Read" in _cf5b[2]
       and _cf5c[0] == 1 and "Zone / Cache Rules / Edit" in _cf5c[2]
@@ -590,7 +591,8 @@ check("DP28: without a token it stops before asking anything; Cloudflare's refus
       and "bash /opt/caro/deploy/set-env.sh staging CARO_CF_ZONE_ID=z1\n" in _cf5s[1] and "CARO's number 1" in _cf5s[1]
       and all(c[4] == "api.cloudflare.com" and c[3] == f"Bearer {_CF_TOKEN}" for c in _every)
       and not any(_CF_TOKEN in o + e for runs in (_cf1, _cf2, _cf3, _cf4, _cf6) for _, o, e in runs)
-      and _CF_TOKEN not in _cf5b[2] + _cf5c[2] and _CF_TOKEN not in _files,
+      and _CF_TOKEN not in _cf5b[2] + _cf5c[2] and _CF_TOKEN not in _files
+      and {"turnstile-secret.txt", "cloudflare-undo.json"} <= set(text(".gitignore").split("\n")),
       str((_cf5a, _cf5b, _cf5c)))
 
 _edge = text("compose.edge.yml")
