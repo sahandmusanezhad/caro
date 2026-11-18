@@ -88,7 +88,7 @@ make_env production caro.noxioai.com
 make_env staging caro-staging.noxioai.com
 for env in staging production; do
     empty=$(grep -oE '^(CARO_ADMIN_TOKEN|CARO_ADMIN_TOTP_SECRET)=$' "$ETC/$env.env" | tr -d '=' | tr '\n' ' ' || true)
-    [ -z "$empty" ] || left "$ETC/$env.env: ${empty}as on Vercel today (nano $ETC/$env.env; PHASE1_SETUP, step 4)"
+    [ -z "$empty" ] || left "$ETC/$env.env: ${empty}as on Vercel today (PHASE1_SETUP, step 4): bash $HERE/deploy/set-env.sh $env ${empty% }"
 done
 
 # ---- 4. The units --------------------------------------------------------------

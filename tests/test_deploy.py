@@ -19,6 +19,7 @@ runs the API's suites inside its image and reads them together.
 """
 import io
 import ipaddress
+import os
 import json
 import re
 import subprocess
@@ -972,6 +973,7 @@ check("DP29: on a fresh server the bootstrap makes each environment's file from 
       and "systemctl daemon-reload" in _rA[3]
       and not any(c.startswith(("docker compose -p caro-edge", "systemctl enable")) for c in _rA[3])
       and "the origin certificate" in _rA[1] and "CARO_ADMIN_TOKEN CARO_ADMIN_TOTP_SECRET" in _rA[1]
+      and f"bash {ROOT}/deploy/set-env.sh staging CARO_ADMIN_TOKEN CARO_ADMIN_TOTP_SECRET\n" in _rA[1]
       and "staging --ip 203.0.113.7" in _rA[1],
       str((_rA, sorted(_st.items()))))
 
@@ -1062,6 +1064,94 @@ check("DP32: on a server without Docker the bootstrap upgrades the system, then 
       < _at(_cD, "docker compose -p caro-edge") < _at(_cD, "systemctl enable --now caro-cloudflare-ips.timer")
       and "made-up-cloudflare-token" not in _rD[1] + _rD[2],
       str(_rD))
+
+# ---------------------------------------------------------------------------
+print("\nan environment's settings written on the server, without an editor")
+
+
+def _se(etc, *args, stdin=""):
+    p = subprocess.run([_sh_bs.which("bash"), str(ROOT / "deploy/set-env.sh"), *args], input=stdin,
+                       capture_output=True, text=True, timeout=30, env={"PATH": os.environ["PATH"], "CARO_ETC": str(etc)})
+    return p.returncode, p.stdout, p.stderr
+
+
+_seA = _bs_world()
+_bs_run(_seA)
+_seE = _seA / "etc"
+_se_before = (_seE / "staging.env").read_text()
+_se_prod = (_seE / "production.env").read_bytes()
+_s1 = _se(_seE, "staging", "CARO_TURNSTILE_SECRET", stdin="0x4AAA-made-up-turnstile-secret\n")
+_se_after1 = (_seE / "staging.env").read_text()
+_s2 = _se(_seE, "staging", "COMPOSE_PROFILES=observe", "GRAFANA_CLOUD_PROM_URL", "GRAFANA_CLOUD_TOKEN",
+          "SENTRY_DSN=https://k@o1.ingest.sentry.io/7",
+          stdin="https://prometheus-prod-01.grafana.example/api/prom/push\nglc_made-up-token==\n")
+_se2 = _env_of(_seE / "staging.env")
+_s3 = _se(_seE, "staging", "COMPOSE_PROFILES=")
+with (_seE / "staging.env").open("a") as _f_se:
+    _f_se.write("CARO_EDGE_TTL=900\n")           # a second line for a name, which compose would read last
+_s4 = _se(_seE, "staging", "CARO_EDGE_TTL=120")
+_se4 = (_seE / "staging.env").read_text()
+(_seE / "staging.env").write_text(_se4.replace("GRAFANA_CLOUD_PROM_USER=\n", ""))   # a file older than the template
+_s5 = _se(_seE, "staging", "GRAFANA_CLOUD_PROM_USER=123456")
+_se5 = (_seE / "staging.env").read_text()
+check("DP33: a setting named alone is read from what is typed or piped and its line replaced where it is, "
+      "every other line of the file byte for byte, mode 600, the value printed nowhere; NAME=value is "
+      "written as given and NAME= empties it; several are written in one run; a name's second line, which "
+      "would win, goes; a name the file lacks is added at its end; the other environment's file is not "
+      "touched",
+      _s1[0] == 0 and _se_after1 == _se_before.replace("CARO_TURNSTILE_SECRET=\n", "CARO_TURNSTILE_SECRET=0x4AAA-made-up-turnstile-secret\n")
+      and _se_after1 != _se_before and "made-up-turnstile-secret" not in _s1[1] + _s1[2]
+      and "staging: CARO_TURNSTILE_SECRET written" in _s1[1]
+      and _s2[0] == 0 and _se2["COMPOSE_PROFILES"] == "observe"
+      and _se2["GRAFANA_CLOUD_PROM_URL"] == "https://prometheus-prod-01.grafana.example/api/prom/push"
+      and _se2["GRAFANA_CLOUD_TOKEN"] == "glc_made-up-token==" and _se2["SENTRY_DSN"] == "https://k@o1.ingest.sentry.io/7"
+      and _se2["CARO_TURNSTILE_SECRET"] == "0x4AAA-made-up-turnstile-secret" and "glc_made-up" not in _s2[1] + _s2[2]
+      and _s3[0] == 0 and _env_of(_seE / "staging.env")["COMPOSE_PROFILES"] == ""
+      and _s4[0] == 0 and _se4.count("CARO_EDGE_TTL=") == 1 and "CARO_EDGE_TTL=120\n" in _se4
+      and _se4.index("CARO_EDGE_TTL=120") < _se4.index("CARO_CF_API_TOKEN=")
+      and _s5[0] == 0 and _se5.endswith("GRAFANA_CLOUD_PROM_USER=123456\n")
+      and _mode(_seE / "staging.env") == 0o600 and (_seE / "production.env").read_bytes() == _se_prod
+      and sorted(x.name for x in _seE.iterdir()) == ["nginx", "production.env", "staging.env", "tls"],
+      str((_s1, _s2, _s3, _s4, _s5)))
+
+_se_keep = (_seE / "staging.env").read_bytes()
+_refused = {
+    "a name the template does not have": _se(_seE, "staging", "CARO_TURNSTYLE_SECRET=x"),
+    "not a name": _se(_seE, "staging", "caro_inbox=on"),
+    "a pattern for a name": _se(_seE, "staging", "CARO_.*=x"),
+    "another environment": _se(_seE, "preview", "CARO_INBOX=on"),
+    "a path for an environment": _se(_seE, "../etc/staging", "CARO_INBOX=on"),
+    "no setting": _se(_seE, "staging"),
+    "which environment the file is": _se(_seE, "staging", "CARO_ENV=production"),
+    "its own path": _se(_seE, "staging", "CARO_ENV_FILE=/etc/caro/production.env"),
+    "a database password that is set": _se(_seE, "staging", "POSTGRES_PASSWORD=another"),
+    "a space": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin="two words\n"),
+    "a dollar": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin="pa$word\n"),
+    "a hash": _se(_seE, "staging", "CARO_ADMIN_TOKEN=pass#word"),
+    "a quote": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin="it's\n"),
+    "an empty line": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin="\n"),
+    "no line": _se(_seE, "staging", "CARO_ADMIN_TOKEN", stdin=""),
+    "one good, one bad": _se(_seE, "staging", "CARO_INBOX=on", "CARO_ADMIN_TOKEN", stdin="pa$word\n"),
+}
+_se_none = _se(_seA / "nowhere", "staging", "CARO_INBOX=on")
+(_seE / "production.env").write_text((_seE / "production.env").read_text().replace(
+    "POSTGRES_PASSWORD=" + _env_of(_seE / "production.env")["POSTGRES_PASSWORD"], "POSTGRES_PASSWORD="))
+_se_pw = _se(_seE, "production", "POSTGRES_PASSWORD", stdin="0123456789abcdef\n")
+check("DP34: it changes all it was asked or nothing: a name the template does not have, or a pattern "
+      "that would match one, an environment that is not one, or a path to one, the file's own environment "
+      "and path, a database password that is set, a value "
+      "with a space, a dollar, a hash or a quote, an empty line or none, and one bad setting beside a "
+      "good one each stop it with the file byte for byte as it was; a file that is not there names the "
+      "bootstrap; a database password is taken only where there is none",
+      all(rc == 2 for rc, *_ in _refused.values()) and (_seE / "staging.env").read_bytes() == _se_keep
+      and "is not a setting deploy/env.example has" in _refused["a name the template does not have"][2]
+      and "the database was made with it" in _refused["a database password that is set"][2]
+      and "no line to read" in _refused["no line"][2] and "an empty line" in _refused["an empty line"][2]
+      and "pa$word" not in "".join(o + e for _, o, e in _refused.values())
+      and _se_none[0] == 2 and "bootstrap.sh makes it" in _se_none[2]
+      and _se_pw[0] == 0 and _env_of(_seE / "production.env")["POSTGRES_PASSWORD"] == "0123456789abcdef"
+      and sorted(x.name for x in _seE.iterdir()) == ["nginx", "production.env", "staging.env", "tls"],
+      str(({k: v for k, v in _refused.items() if v[0] != 2}, _se_none, _se_pw)))
 
 print()
 if FAILS:
