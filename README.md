@@ -453,19 +453,20 @@ stands alone), the ceiling of a budget (after «زیر», «تا», «حداکث
 floor (an amount of money and «به بالا», with «از» or «بالای» before it or
 none, unless a ceiling's cue such as «تا» stands right before it; or «حداقل»,
 with «قیمت» if it is written, and an amount; or an amount and «و بالاتر», «و
-بیشتر» or «یا بیشتر»), the minimum year, an odometer cap in five
-shapes, the province where the car should be, the use, the risk profile and
-the red lines. It lists under «نفهمیدیم» what it does not read: a city after
-a cue it knows («در مشهد»), a figure with no scale word, a phrase it cannot
-place.
+بیشتر» or «یا بیشتر»), both ends of a range («بین X تا Y», «از X تا Y», «بین X
+و Y», «X الی Y», «X-Y», and «X تا Y» where X has its scale word), the minimum
+year, an odometer cap in five shapes, the province where the car should be,
+the use, the risk profile and the red lines. It lists under «نفهمیدیم» what it
+does not read: a city after a cue it knows («در مشهد»), a figure with no scale
+word, a phrase it cannot place.
 
 What it does not read yet, each pinned by a test so that it changes on
 purpose, is in the roadmap with the numbers measured for it: a city, «بیشتر
-از», «بیش از», «بالاتر از» and «حداقل بودجه» as a floor, ranges, a negated
-floor, and «بالای X» without «به بالا», which is read as a ceiling by the
-owner's choice. No log of what buyers type exists,
-so what the parser does is measured on made phrasings, and what buyers write
-is not.
+از», «بیش از», «بالاتر از» and «حداقل بودجه» as a floor, the lower end of «X تا
+Y» with no «بین» or «از» and no scale word on X, a range written upside down,
+a negated floor, and «بالای X» without «به بالا», which is read as a ceiling by
+the owner's choice. No log of what buyers type exists, so what the parser does
+is measured on made phrasings, and what buyers write is not.
 
 ---
 
@@ -596,7 +597,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 3710 assertions, no API key, no network
+python3 tests/run_all.py            # 3796 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -610,10 +611,10 @@ dependency of `caro/`.** Three of the nineteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 2959 assertions across 16 of 19 suites
+python3 tests/run_all.py            # 3045 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3710 across all nineteen
+python3 tests/run_all.py            # 3796 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -816,7 +817,7 @@ owner until then — and the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3710 assertions across nineteen suites
+tests/           3796 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)

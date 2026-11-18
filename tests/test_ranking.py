@@ -379,10 +379,12 @@ print("\na floor is an amount of money right before «به بالا»")
 # A floor is now a cue -- «از» or «بالای», and not the end of a word -- then an
 # amount of money, then «به بالا», with nothing between them; or the same
 # without «به بالا» where a year clause with its own «به بالا» follows, which
-# is how a floor and a year are written together. What it does not read is
-# the last block: each of those was measured and is left to a round of its
-# own (docs/ROADMAP.md). Every phrasing is made here; no log of what buyers
-# write exists, so these test the rule, not the buyers.
+# is how a floor and a year are written together. What it did not read, each
+# measured and left to a round of its own, is read by the rules after it since
+# 2026-11-18: a word between the cue and the amount, and the «از» that ends a
+# word, by the bare floor; a range with a year clause, by the range. Every
+# phrasing is made here; no log of what buyers write exists, so these test the
+# rule, not the buyers.
 for text, want, why in [
     ("از ۳۰۰ میلیون به بالا", 300_000_000, "a cue, an amount of money, «به بالا»"),
     ("پراید از ۲۰۰ میلیون به بالا", 200_000_000, "with a model"),
@@ -485,14 +487,6 @@ for text, want, why in [   # what is read is understood; what is not is listed
     got_u = P.parse(text).unparsed
     check(f"«{text}» → listed: {list(want) or '—'}  ({why})", got_u == want,
           str(got_u))
-
-for text, why in [   # measured and left: no floor is read, and nothing is claimed beyond that
-    ("پراید از ۲۰۰ تا ۴۰۰ میلیون مدل ۹۸ به بالا",
-     "a range with a year clause: its lower end"),
-    ("پراید از ۲۰۰ میلیون تا ۴۰۰ میلیون مدل ۹۸ به بالا", "  a unit on both"),
-]:
-    got_f = P.parse(text).budget_min_toman
-    check(f"«{text}» → no floor, left  ({why})", got_f is None, str(got_f))
 
 
 # ---------------------------------------------------------------------------
@@ -961,6 +955,134 @@ for text, printed, year, listed, why in [   # what is said, read and listed besi
           (any(_FL_NOTE in a for a in sp_b.assumptions), sp_b.year_min,
            tuple(t.strip() for t in sp_b.unparsed)) == (printed, year, listed),
           f"{sp_b.assumptions} {sp_b.year_min} {sp_b.unparsed}")
+
+# ---------------------------------------------------------------------------
+print("\na range gives both ends (2026-11-18, the owner's call)")
+# «بین ۳۰۰ تا ۴۰۰ میلیون» read no floor: the upper end was the ceiling and the
+# lower was dropped, or the first amount was taken for the ceiling with the
+# assumption printed, which after «بین X و Y» and «X الی Y» was the lower end
+# where it had a scale word. Right on 0 of 136 made phrasings of six forms (six
+# pairs, four contexts). Both ends are read now, on 120 of 136; «X تا Y» with
+# neither «بین» nor «از» and no scale word on X is left as it was, since
+# «پژو ۲۰۶ تا ۴۰۰ میلیون» is written so. A range written upside down is the
+# ceiling it was, the owner's choice. Every phrasing is made here; no log of
+# what buyers write exists.
+_RANGE_PAIRS = [("۳۰۰", "۴۰۰ میلیون", 300_000_000, 400_000_000),
+                ("۸۰۰", "۱.۲ میلیارد", 800_000_000, 1_200_000_000),
+                ("۱", "۱.۵ میلیارد", 1_000_000_000, 1_500_000_000),
+                ("۹۰۰ میلیون", "۱ میلیارد", 900_000_000, 1_000_000_000)]
+for _form, _pairs in [("بین {x} تا {y}", _RANGE_PAIRS), ("از {x} تا {y}", _RANGE_PAIRS),
+                      ("بین {x} و {y}", _RANGE_PAIRS), ("{x} الی {y}", _RANGE_PAIRS),
+                      ("{x}-{y}", _RANGE_PAIRS[:3]),
+                      ("{x} تا {y}", [("۳۰۰ میلیون", "۴۰۰ میلیون", 300_000_000, 400_000_000),
+                                      ("۹۰۰ میلیون", "۱ میلیارد", 900_000_000, 1_000_000_000)])]:
+    for _ctx in ("", "پراید ", "پژو ۲۰۶ ", "پراید مدل ۹۸ به بالا، "):
+        got_r = [P.parse(_ctx + _form.format(x=x, y=y)) for x, y, _, _ in _pairs]
+        check(f"«{_ctx}{_form.format(x='X', y='Y')}», {len(_pairs)} pairs → floor X, ceiling Y, "
+              "nothing assumed",
+              [(s.budget_min_toman, s.budget_max_toman) for s in got_r]
+              == [(lo, hi) for _, _, lo, hi in _pairs]
+              and not any(_FL_NOTE in a for s in got_r for a in s.assumptions),
+              str([(s.budget_min_toman, s.budget_max_toman, s.assumptions) for s in got_r]))
+
+for text, want_f, want_c, why in [
+    # the rows that pinned it as left until this round
+    ("پراید از ۲۰۰ تا ۴۰۰ میلیون مدل ۹۸ به بالا", 200_000_000, 400_000_000,
+     "a range with a year clause"),
+    ("پراید از ۲۰۰ میلیون تا ۴۰۰ میلیون مدل ۹۸ به بالا", 200_000_000, 400_000_000,
+     "  a unit on both"),
+    # the lower end's scale
+    ("بین ۰.۸ تا ۱.۲ میلیارد", 800_000_000, 1_200_000_000, "a decimal lower end"),
+    ("بین ۱۲۰ تا ۱.۲ میلیارد", 120_000_000, 1_200_000_000, "  ten times apart"),
+    ("بین ۱۰۰ تا ۱.۲ میلیارد", None, 1_200_000_000, "more than ten times: no range"),
+    ("بین ۳۰ تا ۴۰۰ میلیون", None, 400_000_000, "  the same in millions"),
+    ("۳۰ میلیون تا ۴۰۰ میلیون", 30_000_000, 400_000_000,
+     "a lower end with its own scale word is taken as written"),
+    ("بین ۴۰۰ تا ۴۰۰ میلیون", None, 400_000_000, "the two ends equal: no range"),
+    ("بین ۴۰۰ میلیون تا ۴۰۰ میلیون", None, 400_000_000, "  each with its scale word"),
+    ("بین ۴۰۰ تا ۳۰۰ میلیون", None, 300_000_000, "upside down: the ceiling it was"),
+    ("بین ۴۰۰ میلیون تا ۳۰۰ میلیون", None, 300_000_000, "  each with its scale word"),
+    ("بین ۱.۵ تا ۱ میلیارد", None, 1_000_000_000, "  in billions"),
+    ("بین ۱ تا ۱.۵ ملیارد", 1_000_000_000, 1_500_000_000, "«ملیارد», as it is also typed"),
+    ("بین ۱/۵ تا ۲ میلیارد", 1_500_000_000, 2_000_000_000, "«/» as the decimal mark"),
+    ("بین ۱٫۵ تا ۲ میلیارد", 1_500_000_000, 2_000_000_000, "  «٫»"),
+    ("از ۳۰۰ تا ۴۰۰م", 300_000_000, 400_000_000, "«م» on the upper end"),
+    ("بین ۳۰۰م تا ۴۰۰م", 300_000_000, 400_000_000, "  and on the lower"),
+    ("بین ۳۰۰ تا حدود ۴۰۰ میلیون", 300_000_000, 400_000_000, "a soft word on the upper end"),
+    ("۳۰۰-۴۰۰ میلیون به بالا", 300_000_000, 400_000_000,
+     "«به بالا» after a range: the range is read first"),
+    ("بین ۳۰۰ تا ۴۰۰ میلیون، زیر ۵۰۰ میلیون", 300_000_000, 400_000_000,
+     "a ceiling clause after a range is not asked"),
+    ("بین ۳۰۰ میلیون تومان تا ۴۰۰ میلیون تومان", 300_000_000, 400_000_000,
+     "a currency word on both ends"),
+    ("بین حدود ۳۰۰ تا ۴۰۰ میلیون", 300_000_000, 400_000_000, "a soft word"),
+    ("۳۰۰–۴۰۰ میلیون", 300_000_000, 400_000_000, "an en dash"),
+    ("بین ۳۰۰ - ۴۰۰ میلیون", 300_000_000, 400_000_000, "a spaced dash after «بین»"),
+    ("پراید مدل ۹۵ تا ۹۸ ۳۰۰ میلیون تا ۴۰۰ میلیون", 300_000_000, 400_000_000,
+     "after a year's range, whose «تا» took the lower end for the ceiling"),
+    ("کارکرد زیر ۱۰۰ هزار، بین ۳۰۰ تا ۴۰۰ میلیون", 300_000_000, 400_000_000,
+     "after an odometer"),
+    # with neither «بین» nor «از», read as it was
+    ("پراید ۳۰۰ تا ۴۰۰ میلیون", None, 400_000_000, "«X تا Y», X with no scale word"),
+    ("کوییک ۸۰۰ تا ۹۰۰ میلیون", None, 900_000_000, "  another"),
+    ("پژو ۲۰۶ تا ۴۰۰ میلیون", None, 400_000_000, "  a model's number and a ceiling"),
+    ("تیبا ۱۴۰۰ تا ۲ میلیارد", None, 2_000_000_000, "  a year and a ceiling"),
+    ("۳۰۰ و ۴۰۰ میلیون", None, 400_000_000, "«و» without «بین»"),
+    ("از ۳۰۰ و ۴۰۰ میلیون", None, 400_000_000, "  after «از»"),
+    ("پراید شیراز ۳۰۰ تا ۴۰۰ میلیون", None, 400_000_000,
+     "the «از» that ends a word is no «از»"),
+    ("۳۰۰ - ۴۰۰ میلیون", None, 400_000_000, "a spaced dash"),
+    ("۳۰۰ -۴۰۰ میلیون", None, 400_000_000, "  a space before it only"),
+    ("۳۰۰- ۴۰۰ میلیون", None, 400_000_000, "  a space after it only"),
+    ("۳۰۰ – ۴۰۰ میلیون", None, 400_000_000, "  an en dash, spaced"),
+    ("پژو ۲۰۶ - ۴۰۰ میلیون", None, 400_000_000, "  a field and a price"),
+    ("پژو ۲۰۶ – ۴۰۰ میلیون", None, 400_000_000, "  an en dash"),
+    ("پژو ۲۰۶-۴۰۰ میلیون", None, 400_000_000, "a model's number before a bare dash"),
+    ("پژو ۲۰۶ الی ۴۰۰ میلیون", None, 400_000_000, "  before «الی»"),
+    ("پراید ۱۳۱ الی ۴۰۰ میلیون", None, 400_000_000, "  Pride's 131"),
+    ("پراید مدل ۹۸ - ۴۰۰ میلیون", None, 400_000_000, "a year after «مدل»"),
+    ("پراید مدل ۹۸-۴۰۰ میلیون", None, 400_000_000, "  before a bare dash"),
+    ("پراید مدل ۹۸ تا ۴۰۰ میلیون", None, 400_000_000, "  before «تا»"),
+    # a ceiling's cue before it, or a negation after: read as it was
+    ("حداکثر ۳۰۰ میلیون تا ۴۰۰ میلیون", None, 300_000_000, "«حداکثر»"),
+    ("زیر ۳۰۰ میلیون تا ۴۰۰ میلیون", None, 300_000_000, "«زیر»"),
+    ("پراید کمتر از ۳۰۰ تا ۴۰۰ میلیون", None, 400_000_000, "«کمتر از»"),
+    ("پراید ارزان‌تر از ۳۰۰ تا ۴۰۰ میلیون", None, 400_000_000, "«ارزان‌تر از»"),
+    ("بین ۳۰۰ تا ۴۰۰ میلیون نباشه", None, 400_000_000, "a negation right after"),
+    ("بین ۳۰۰ تا ۴۰۰ میلیون تومان نباشه", None, 400_000_000, "  after a currency word"),
+    # no money: no range
+    ("پراید مدل ۹۵ تا ۹۸", None, None, "a year's range"),
+    ("پراید ۵۰ تا ۱۰۰ هزار کیلومتر", None, None, "an odometer's"),
+    ("بین ۳۰۰ تا ۴۰۰ هزار کیلومتر", None, None, "  with «بین»"),
+    # measured and left
+    ("بین ۱ میلیارد و ۲۰۰ میلیون تا ۲ میلیارد", None, 2_000_000_000,
+     "a lower end with «و» and a second unit is not taken, left"),
+    ("تیبا ۱۴۰۰-۲ میلیارد", 1_400_000_000, 2_000_000_000,
+     "a year against a price with a bare dash is a range, left"),
+    ("تیبا از ۹۵ تا ۴۰۰ میلیون", 95_000_000, 400_000_000,
+     "«از» and a figure with no «مدل» is the lower end, left"),
+    ("پراید۳۰۰ میلیون تا ۴۰۰ میلیون", None, 400_000_000,
+     "a figure glued to a word is not read, left"),
+]:
+    sp_r = P.parse(text)
+    check(f"«{text}» → floor {_fl_amt(want_f)}, ceiling {_fl_amt(want_c)}  ({why})",
+          (sp_r.budget_min_toman, sp_r.budget_max_toman) == (want_f, want_c),
+          f"{sp_r.budget_min_toman} {sp_r.budget_max_toman}")
+
+for text, year, listed, why in [   # what is read beside a range, and what is listed
+    ("بین ۳۰۰ تا ۴۰۰ میلیون", None, (), "the lower end is read, not listed"),
+    ("بین ۳۰۰ و ۴۰۰ میلیون", None, (), "  and nothing assumed"),
+    ("بین ۳۰۰ تا ۴۰۰ میلیون در مشهد", None, ("در مشهد",), "a city after it is listed"),
+    ("پراید بین ۳۰۰ تا ۴۰۰ میلیون مدل ۱۴۰۰ به بالا", 1400, (), "a year clause after it"),
+    ("پراید مدل ۹۵ تا ۹۸ ۳۰۰ میلیون تا ۴۰۰ میلیون", 1395, (), "  a year's range before it"),
+]:
+    sp_r = P.parse(text)
+    check(f"«{text}» → year {year or '—'}, listed {list(listed) or '—'}, nothing assumed  ({why})",
+          (sp_r.year_min, tuple(t.strip() for t in sp_r.unparsed)) == (year, listed)
+          and not any(_FL_NOTE in a for a in sp_r.assumptions),
+          f"{sp_r.year_min} {sp_r.unparsed} {sp_r.assumptions}")
+check("«بین حدود ۳۰۰ تا ۴۰۰ میلیون» → the budget is soft, as «حدود» makes any budget",
+      P.parse("بین حدود ۳۰۰ تا ۴۰۰ میلیون").budget_hard is False)
 
 # ---------------------------------------------------------------------------
 print("\na model's number is a model only where it stands alone (D83)")

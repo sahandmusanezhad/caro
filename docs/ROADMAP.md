@@ -107,8 +107,8 @@ an item says so.
    live on the owner's machine since 2026-10-30; none of its runs is
    published. The plan and its predictions:
    [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
-4. **The parser's open topics** (the parser). The floor topic left —
-   ranges — and the five ways Khodro45 writes an assembled model's name. The models a buyer can name: since 2026-11-02 the search
+4. **The parser's open topics** (the parser). The five ways Khodro45 writes
+   an assembled model's name; the floor's topics were closed on 2026-11-18. The models a buyer can name: since 2026-11-02 the search
    and the listing parser read one table (`caro/ingest/models.py`), so IKCO's
    Samand, Tara and Runna are read — 281 of run17's 492 listings are of a
    model a query can name, from 217. Offered the same day and not chosen: a
@@ -532,30 +532,60 @@ names. Durations are for two people part-time.
    floors in one query, where the one with a cue is read and the other
    amount is taken for the ceiling.
 
-   Not built, measured on made phrasings and a round of its own, with the
-   predictions written first:
-   - A range sets no floor, on 96 of 96: «از X تا Y», «بین X تا Y» and
-     «X تا Y» give the upper end as the ceiling; «از X الی Y» gives the
-     lower end, with the assumption printed.
-   - A negated floor, «پراید از ۴۰۰ میلیون به بالا نباشه», was read as a
-     floor of 400 million with no ceiling: the meaning reversed, on 312 of 312
-     made phrasings (thirteen negations, six amounts, four contexts) and 96
-     of 96 with «بالای». Built (a rule about Persian; the owner took it on
-     2026-10-30): the negations `_floor_by_word` already
-     refuses after its phrase are refused after the «به بالا» of «از X» and
-     «بالای X» too, and the query reads as a ceiling with the assumption
-     printed, on 312 of 312 and 96 of 96; 0 of the 1,609 other made
-     phrasings change (a positive tail, three negations outside the list, the
-     negation after a year clause, and the sets of the earlier rounds). Left,
-     each pinned by a test: a negation outside the list («نمی‌رسه», «نباید
-     باشه»), a word between the phrase and the negation, and a negation after
-     a year clause («از X مدل ۹۸ به بالا نباشه»), where it may be the year's.
+   Ranges — built (2026-11-18, the owner's call, measured in the round of the
+   bare form). «بین ۳۰۰ تا ۴۰۰ میلیون» read no floor: the upper end was the
+   ceiling and the lower end was dropped, or the first amount was taken for
+   the ceiling with the assumption printed, which after «بین X و Y» and «X الی
+   Y» was the lower end where it had a scale word. Right on 0 of 136 made
+   phrasings of six forms (six pairs, four contexts). Both ends are read now
+   (`_RANGE`, before the floors), on 120 of the 136: «بین X تا Y», «از X تا
+   Y», «بین X و Y», «X الی Y», «X-Y», and «X تا Y» where X has its scale word.
+   A lower end with no scale word takes the upper's, or a million below a
+   billion, so that the upper is above it and no more than ten times it. Left
+   as they were, by the owner's choice on the measurement: the 16 «X تا Y»
+   with neither «بین» nor «از» and no scale word on X, since «پژو ۲۰۶ تا ۴۰۰
+   میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are written the same way; and a range
+   written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون», the ceiling of 300 million it
+   was (8 of 8). The predictions held but for two: the controls' count, and
+   the upside-down range for the first candidate, which read «بین ۱.۵ تا ۱
+   میلیارد» as a floor of 1.5 million on 4 phrasings. The ten-times bound was
+   added before the owner was asked, and the candidate put to them holds it.
+   None of the 132 controls changes, and of the queries the suites hand the
+   parser, the 2 rows that pinned a range as left change, each to both ends.
 
-   Next: ranges, the topic left above. They were measured in the same round
-   as the bare form, with the predictions written first, and the owner chose
-   their rule on 2026-11-18; it is the next change. The phrasings of the earlier rounds were written
-   outside the repository; the forms and counts given here are enough to
-   write them again.
+   Found by hand after the measurement, and read as they were: a range that a
+   ceiling's cue stands right before («حداکثر ۳۰۰ میلیون تا ۴۰۰ میلیون») or a
+   negation follows at once; and, with neither «بین» nor «از», a dash with a
+   space beside it («پژو ۲۰۶ - ۴۰۰ میلیون», read as measured as a floor of
+   206 million) and a lower figure that is a model's number («پژو ۲۰۶-۴۰۰
+   میلیون», «پراید ۱۳۱ الی ۴۰۰ میلیون»). Of the 122,768 composed queries,
+   27,648 change beyond the bare form, and each holds two figures joined by
+   «تا», «الی», a dash or «و», the second an amount of money. A phrase after
+   « و » that the range's clause used to take with it is listed now, as after
+   a floor. Left, each pinned by a test: a lower end written «۱ میلیارد و ۲۰۰
+   میلیون»; a year against a price with a bare dash («تیبا ۱۴۰۰-۲ میلیارد» is
+   a range from 1.4 billion); «از» and a figure with no «مدل» («تیبا از ۹۵ تا
+   ۴۰۰ میلیون» is a range from 95 million); and a figure glued to a word.
+
+   A negated floor — built (2026-10-30). «پراید از ۴۰۰ میلیون به بالا نباشه»
+   was read as a floor of 400 million with no ceiling: the meaning reversed,
+   on 312 of 312 made phrasings (thirteen negations, six amounts, four
+   contexts) and 96 of 96 with «بالای». A rule about Persian, which the owner
+   took: the negations `_floor_by_word` already refuses after its phrase are
+   refused after the «به بالا» of «از X» and «بالای X» too, and the query
+   reads as a ceiling with the assumption printed, on 312 of 312 and 96 of 96;
+   0 of the 1,609 other made phrasings change (a positive tail, three
+   negations outside the list, the negation after a year clause, and the sets
+   of the earlier rounds). Left, each pinned by a test: a negation outside the
+   list («نمی‌رسه», «نباید باشه»), a word between the phrase and the negation,
+   and a negation after a year clause («از X مدل ۹۸ به بالا نباشه»), where it
+   may be the year's.
+
+   Next: none of the floor's topics is left for a round of its own. What is
+   left of each is pinned by a test and named above. The phrasings of the
+   earlier rounds, this one's among them, were written outside the
+   repository; the forms and counts given here are enough to write them
+   again.
 
 ## The product gaps
 
