@@ -490,11 +490,6 @@ for text, why in [   # measured and left: no floor is read, and nothing is claim
     ("پراید از ۲۰۰ تا ۴۰۰ میلیون مدل ۹۸ به بالا",
      "a range with a year clause: its lower end"),
     ("پراید از ۲۰۰ میلیون تا ۴۰۰ میلیون مدل ۹۸ به بالا", "  a unit on both"),
-    ("پراید از قیمت ۲۰۰ میلیون به بالا", "a word between the cue and the amount"),
-    ("پراید از مبلغ ۲۰۰ میلیون به بالا", "  the same"),
-    ("پراید شیراز ۲۰۰ میلیون به بالا", "no cue: the «از» that ends a word is not one"),
-    ("پراید اهواز ۲۰۰ میلیون به بالا", "  the same"),
-    ("پراید ۲۰۰ میلیون به بالا", "no cue at all"),
 ]:
     got_f = P.parse(text).budget_min_toman
     check(f"«{text}» → no floor, left  ({why})", got_f is None, str(got_f))
@@ -745,7 +740,6 @@ for text, want, why in [   # measured and left: the ceiling is read, as it was
     ("پراید بالاتر از ۴۰۰ میلیون", 400_000_000, "«بالاتر از»"),
     ("پراید بیشتر از ۴۰۰ میلیون نباشه", 400_000_000, "  negated, which is the ceiling it means"),
     ("پراید نباید بیشتر از ۴۰۰ میلیون باشه", 400_000_000, "  a negation before the word"),
-    ("پراید ۴۰۰ میلیون به بالا", 400_000_000, "a bare «X به بالا» (its own round)"),
     ("پراید بالای ۴۰۰ میلیون", 400_000_000, "«بالای X», the owner's choice"),
 ]:
     sp_w = P.parse(text)
@@ -868,6 +862,105 @@ for q_neg, why in [
 ]:
     got_n = P.parse(q_neg).budget_min_toman
     check(f"«{q_neg}» → still floor 400,000,000  ({why})", got_n == 400_000_000, str(got_n))
+
+# ---------------------------------------------------------------------------
+print("\na bare «X به بالا» is a floor (2026-11-18, the owner's call)")
+# «پراید ۴۰۰ میلیون به بالا», with no «از» or «بالای» before the amount, set no
+# floor, and the amount was taken for the ceiling with «عدد قیمت را سقف بودجه
+# فرض کردیم» printed: the meaning reversed, on 120 of 120 made phrasings of
+# five forms (six amounts, four contexts). It is a floor now, with nothing
+# printed, unless a negation follows at once or a ceiling's cue stands right
+# before the amount; then the ceiling rules read the query as they did. Every
+# phrasing is made here; no log of what buyers write exists.
+_BARE_AMOUNTS = [("۴۰۰ میلیون", 400_000_000), ("۱.۵ میلیارد", 1_500_000_000),
+                 ("۱ میلیارد و ۲۰۰ میلیون", 1_200_000_000), ("۴۰۰م", 400_000_000)]
+for _form in ("{a} به بالا", "{a} تومان به بالا", "حدود {a} به بالا", "{a} به‌بالا",
+              "{a} به بالاتر"):
+    for _ctx in ("", "پراید ", "پژو ۲۰۶ ", "پراید مدل ۹۸ به بالا، "):
+        got_b = [P.parse(_ctx + _form.format(a=a)) for a, _ in _BARE_AMOUNTS]
+        check(f"«{_ctx}{_form.format(a='X')}», four amounts → floor X, no ceiling, nothing assumed",
+              [(s.budget_min_toman, s.budget_max_toman) for s in got_b]
+              == [(v, None) for _, v in _BARE_AMOUNTS]
+              and not any(_FL_NOTE in a for s in got_b for a in s.assumptions),
+              str([(s.budget_min_toman, s.budget_max_toman, s.assumptions) for s in got_b]))
+
+for text, want_f, want_c, why in [
+    # the rows that pinned it as left until this round
+    ("پراید ۲۰۰ میلیون به بالا", 200_000_000, None, "no cue at all"),
+    ("پراید ۴۰۰ میلیون به بالا", 400_000_000, None, "  another amount"),
+    ("پراید شیراز ۲۰۰ میلیون به بالا", 200_000_000, None, "after a word that ends in «از»"),
+    ("پراید اهواز ۲۰۰ میلیون به بالا", 200_000_000, None, "  the same"),
+    ("پراید از قیمت ۲۰۰ میلیون به بالا", 200_000_000, None,
+     "a word between a «از» and the amount"),
+    ("پراید از مبلغ ۲۰۰ میلیون به بالا", 200_000_000, None, "  the same"),
+    # with a ceiling, and with a year
+    ("زیر ۸۰۰ میلیون، ۴۰۰ میلیون به بالا", 400_000_000, 800_000_000,
+     "a ceiling clause before it"),
+    ("پراید ۴۰۰ میلیون به بالا، تا ۸۰۰ میلیون", 400_000_000, 800_000_000,
+     "  and after it"),
+    ("پراید ۴۰۰ میلیون به بالا مدل ۹۸ به بالا", 400_000_000, None,
+     "a year clause after it, its own «به بالا»"),
+    ("پراید مدل ۹۵ تا ۹۸ ۴۰۰ میلیون به بالا", 400_000_000, None,
+     "the «تا» of a year's range is not right before the amount"),
+    ("پراید بودجه ۴۰۰ میلیون به بالا", 400_000_000, None,
+     "«بودجه» before it, as «بودجه از X به بالا» is read"),
+    ("پراید قیمت ۴۰۰ میلیون به بالا", 400_000_000, None, "  «قیمت»"),
+    ("پراید ۴۰۰ میلیون به بالا در مشهد", 400_000_000, None, "a city after it"),
+    ("پراید ۴۰۰ میلیون بهبالا", 400_000_000, None, "«بهبالا» with no space"),
+    ("پراید ۴۰۰ میلیونبه بالا", 400_000_000, None, "  «میلیونبه» typed as one"),
+    ("پراید ۳۰۰ میلیون به بالا، از ۴۰۰ میلیون به بالا", 400_000_000, 300_000_000,
+     "two floors, left: the one with a cue is read, and the other amount is the ceiling"),
+    ("پراید برای روستا ۴۰۰ میلیون به بالا", 400_000_000, None,
+     "a word that ends in «تا» is no cue"),
+    ("پراید تا ۸۰۰ میلیون به بالا نره، ۴۰۰ میلیون به بالا", 400_000_000, 800_000_000,
+     "the first phrase refused, the second read"),
+    ("پراید ۴۰۰ میلیون به بالاترین قیمت", None, 400_000_000,
+     "a longer word after: not «به بالا»"),
+    # a negation right after the phrase: the ceiling it was
+    ("پراید ۴۰۰ میلیون به بالا نباشه", None, 400_000_000, "«نباشه»"),
+    ("پراید ۴۰۰ میلیون به بالا نمی‌خوام", None, 400_000_000, "«نمی‌خوام»"),
+    ("پراید ۴۰۰ میلیون به بالا نره", None, 400_000_000, "«نره»"),
+    ("پراید ۴۰۰ میلیون به بالاتر نشه", None, 400_000_000, "«به بالاتر» and «نشه»"),
+    # a ceiling's cue right before the amount: the ceiling it was
+    ("پراید تا ۴۰۰ میلیون به بالا نمی‌تونم", None, 400_000_000,
+     "«تا», and a negation outside the list"),
+    ("پراید تا ۴۰۰ میلیون به بالا نره", None, 400_000_000, "«تا», and «نره»"),
+    ("پراید تا ۴۰۰ میلیون به بالا", None, 400_000_000, "«تا» alone"),
+    ("پراید تا حدود ۴۰۰ میلیون به بالا", None, 400_000_000, "  and a soft word"),
+    ("پراید زیر ۴۰۰ میلیون به بالا", None, 400_000_000, "«زیر»"),
+    ("پراید حداکثر ۴۰۰ میلیون به بالا", None, 400_000_000, "«حداکثر»"),
+    ("پراید کمتر از ۴۰۰ میلیون به بالا", None, 400_000_000, "«کمتر از»"),
+    ("پراید کم‌تر از ۴۰۰ میلیون به بالا", None, 400_000_000, "  «کم‌تر از»"),
+    ("پراید ارزان‌تر از ۴۰۰ میلیون به بالا", None, 400_000_000, "«ارزان‌تر از»"),
+    ("پراید پایین تر از ۴۰۰ میلیون به بالا", None, 400_000_000, "«پایین تر از»"),
+    ("پراید کمتر ۴۰۰ میلیون به بالا", None, 400_000_000,
+     "a comparative right before the amount, with no «از»"),
+    ("پراید مدل ۹۸ تا ۴۰۰ میلیون به بالا", None, 400_000_000,
+     "«مدل ۹۸ تا X»: the «تا» before the amount"),
+    # measured and left, as for the suffix
+    ("پراید ۴۰۰ میلیون به بالا نمی‌تونم", 400_000_000, None,
+     "a negation outside the list is not seen, left"),
+    ("پراید۴۰۰ میلیون به بالا", None, 400_000_000,
+     "a figure glued to a word is not read, left"),
+]:
+    sp_b = P.parse(text)
+    check(f"«{text}» → floor {_fl_amt(want_f)}, ceiling {_fl_amt(want_c)}  ({why})",
+          (sp_b.budget_min_toman, sp_b.budget_max_toman) == (want_f, want_c),
+          f"{sp_b.budget_min_toman} {sp_b.budget_max_toman}")
+
+for text, printed, year, listed, why in [   # what is said, read and listed beside it
+    ("پراید ۴۰۰ میلیون به بالا", False, None, (), "a floor: nothing assumed or listed"),
+    ("پراید ۴۰۰ میلیون به بالا مدل ۹۸ به بالا", False, 1398, (), "  and the year read"),
+    ("۴۰۰ میلیون به بالا در مشهد", False, None, ("در مشهد",), "a city after it is listed"),
+    ("پراید ۴۰۰ میلیون به بالا نباشه", True, None, (),
+     "negated: the ceiling is assumed, and said so"),
+]:
+    sp_b = P.parse(text)
+    check(f"«{text}» → {'assumed' if printed else 'not assumed'}, year {year or '—'}, "
+          f"listed {list(listed) or '—'}  ({why})",
+          (any(_FL_NOTE in a for a in sp_b.assumptions), sp_b.year_min,
+           tuple(t.strip() for t in sp_b.unparsed)) == (printed, year, listed),
+          f"{sp_b.assumptions} {sp_b.year_min} {sp_b.unparsed}")
 
 # ---------------------------------------------------------------------------
 print("\na model's number is a model only where it stands alone (D83)")

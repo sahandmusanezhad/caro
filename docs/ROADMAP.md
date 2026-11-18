@@ -107,9 +107,8 @@ an item says so.
    live on the owner's machine since 2026-10-30; none of its runs is
    published. The plan and its predictions:
    [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
-4. **The parser's open topics** (the parser). The floor topics left — ranges
-   and the bare «X به بالا» — and the five ways Khodro45 writes an assembled
-   model's name. The models a buyer can name: since 2026-11-02 the search
+4. **The parser's open topics** (the parser). The floor topic left —
+   ranges — and the five ways Khodro45 writes an assembled model's name. The models a buyer can name: since 2026-11-02 the search
    and the listing parser read one table (`caro/ingest/models.py`), so IKCO's
    Samand, Tara and Runna are read — 281 of run17's 492 listings are of a
    model a query can name, from 217. Offered the same day and not chosen: a
@@ -503,18 +502,38 @@ names. Durations are for two people part-time.
    «بالاتر از» still read the floor (D84); two floors in one query, and a
    floor by word beside one by cue, are not pinned.
 
-   Not built, each measured on made phrasings and each a round of its own,
-   with the predictions written first:
-   - A bare «X به بالا» («پراید ۴۰۰ میلیون به بالا») is read as a ceiling,
-     on 24 of 24. A rule that makes the cue optional reads it as a floor,
-     and on 72 of 72 with a ceiling clause beside it («زیر ۸۰۰ میلیون،
-     ۴۰۰ میلیون به بالا»). But it also reads «تا ۴۰۰ میلیون به بالا نره»
-     (up to 400 million, not higher) as a floor, where the parser reads the
-     ceiling it is: five of five phrases tried, and four of five when a
-     negation after «به بالا» is skipped, since «نره», «نشه», «نرسه»,
-     «نگذره» and «نزنه» are in no list of negations the parser holds. How
-     many buyers write it that way is not known; a round on it measures the
-     hazard family first.
+   A bare «X به بالا» — built (2026-11-18, the owner's call). «پراید ۴۰۰
+   میلیون به بالا», with no «از» or «بالای» before the amount, set no floor,
+   and the amount was taken for the ceiling with the assumption printed: the
+   meaning reversed, on 120 of 120 made phrasings of five forms («X به بالا»,
+   «X تومان به بالا», «حدود X به بالا», «X به‌بالا», «X به بالاتر»; six
+   amounts, four contexts). It is a floor now (`_FLOOR_BARE`), tried after
+   the floors above: 120 of 120 with nothing printed, and 6 of 6 with a year
+   clause after it. A negation right after it leaves it to the ceiling rules,
+   as for the other floors (24 of 24). The predictions were written before
+   the measurement, and held but for one count: the controls were 132, not
+   164. None of the 132 phrasings that had to stay as they were changes, and
+   of the 818 queries the suites hand the parser the 6 rows that pinned it as
+   left change, each to the floor.
+
+   Found by hand after the measurement, and read as they were: a ceiling's cue
+   right before the amount, «تا», «زیر», «حداکثر», or a comparative with or
+   without «از». The rule as measured read «تا ۴۰۰ میلیون به بالا نمی‌تونم»,
+   whose negation is in no list, as a floor, and «کمتر از ۴۰۰ میلیون به بالا»
+   too: the guard it meant for the comparative looked right before the
+   amount, where «از» stands. The hazard the round before named, «تا ۴۰۰
+   میلیون به بالا نره», is a ceiling after the 13 negations the parser holds
+   and after 5 outside them. Of 122,768 queries composed of parts after the
+   measurement (eight leads, seven years, 40 budget forms, four separators,
+   eleven tails), the 19,240 that change each hold an amount of money with
+   «به بالا» or «به بالاتر» right after it. Left, each pinned by a test: a
+   negation outside the list («۴۰۰ میلیون به بالا نمی‌تونم» is a floor); a
+   figure glued to a word («پراید۴۰۰ میلیون به بالا» is not read); and two
+   floors in one query, where the one with a cue is read and the other
+   amount is taken for the ceiling.
+
+   Not built, measured on made phrasings and a round of its own, with the
+   predictions written first:
    - A range sets no floor, on 96 of 96: «از X تا Y», «بین X تا Y» and
      «X تا Y» give the upper end as the ceiling; «از X الی Y» gives the
      lower end, with the assumption printed.
@@ -532,11 +551,9 @@ names. Durations are for two people part-time.
      باشه»), a word between the phrase and the negation, and a negation after
      a year clause («از X مدل ۹۸ به بالا نباشه»), where it may be the year's.
 
-   Next: the two topics left above, one round each, in the order the owner
-   picks. Each round writes its predictions first, measures on phrasings
-   written for it and on the sets the last rounds used, puts the choice to
-   the owner, and builds only what he chooses, with tests that pin what is
-   read and what is left. The phrasings of the earlier rounds were written
+   Next: ranges, the topic left above. They were measured in the same round
+   as the bare form, with the predictions written first, and the owner chose
+   their rule on 2026-11-18; it is the next change. The phrasings of the earlier rounds were written
    outside the repository; the forms and counts given here are enough to
    write them again.
 

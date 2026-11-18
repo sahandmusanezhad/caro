@@ -251,6 +251,50 @@ def _floor_by_word(q: str):
     return None
 
 
+# The BARE floor: an amount of money and the unit after it, then «به بالا» or
+# «به بالاتر», with no cue before -- «پراید ۴۰۰ میلیون به بالا». It set no
+# floor, and its amount was taken for the ceiling, with «عدد قیمت را سقف بودجه
+# فرض کردیم» printed: the meaning reversed, on 120 of 120 made phrasings of
+# five forms («X به بالا», «X تومان به بالا», «حدود X به بالا», «X به‌بالا»,
+# «X به بالاتر»; six amounts, four contexts), 2026-11-18. It is a floor now,
+# tried after the floors above, on 120 of 120 with nothing printed, and with a
+# year clause after it («… ۴۰۰ میلیون به بالا مدل ۹۸ به بالا») on 6 of 6. It is
+# no floor, and the ceiling rules read the query as they did:
+#
+#   - where a negation follows at once, as for the other floors: «۴۰۰ میلیون
+#     به بالا نباشه» is the ceiling it was, on 24 of 24;
+#   - where a ceiling's cue stands right before the amount -- «تا», «زیر»,
+#     «حداکثر», or a comparative with or without «از» («کمتر از»). «تا ۴۰۰
+#     میلیون به بالا نمی‌تونم» is the ceiling it was, though no negation the
+#     parser holds follows it, and «کمتر از ۴۰۰ میلیون به بالا» says nothing a
+#     floor could. Found by hand after the measurement, which holds no such
+#     phrasing, and read as they were.
+#
+# The 132 phrasings that had to stay as they were («از X به بالا», «X و
+# بالاتر», «زیر X», «تا X», «کمتر از X مدل ۹۸ به بالا», «پژو ۲۰۶ تا X», an
+# odometer, a figure with no scale word, a year's and an odometer's range) did.
+# Left, as for the suffix: a negation outside the list («۴۰۰ میلیون به بالا
+# نمی‌تونم» is a floor), and a figure glued to a word («پراید۴۰۰ میلیون به
+# بالا» is not read).
+_FLOOR_BARE = re.compile(r"(?<![\w.,/٫])" + _SOFT + "(" + _MONEY.pattern + ")"
+                         + _UNIT_TAIL + r"\s*به\s*بالا(?:تر)?(?!\w)")
+_CEILING_BEFORE = re.compile(
+    r"(?<!\w)(?:تا|زیر|حداکثر"
+    r"|(?:کم\s?تر|پایین\s?تر|ارزان\s?تر|ارزون\s?تر)(?:\s*از)?)\s*$")
+
+
+def _floor_bare(q: str):
+    """The first `_FLOOR_BARE` that no ceiling's cue stands right before and
+    no negation follows at once; None if there is none."""
+    for m in _FLOOR_BARE.finditer(q):
+        if _CEILING_BEFORE.search(q[:m.start()]):
+            continue
+        if _NOT_A_FLOOR_AFTER.match(q, m.end()):
+            continue
+        return m
+    return None
+
+
 # Model aliases. Sellers and buyers type the same car a dozen ways; the
 # taxonomy is data, not code. It is one table with the listing parser's since
 # 2026-11-02 (caro/ingest/models.py): the two had drifted, and a buyer who
@@ -723,7 +767,7 @@ class RuleIntentParser:
         # floor's phrase blanked out: «از ۴۰۰ میلیون به بالا» is a floor and
         # nothing else, and its amount was also taken for the ceiling.
         qc = q
-        m = _floor_by_cue(q) or _floor_by_word(q)
+        m = _floor_by_cue(q) or _floor_by_word(q) or _floor_bare(q)
         if m:
             budget_min = parse_amount(m.group(1))
             acted.append(m.group(0))
