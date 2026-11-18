@@ -1153,6 +1153,287 @@ check("DP34: it changes all it was asked or nothing: a name the template does no
       and sorted(x.name for x in _seE.iterdir()) == ["nginx", "production.env", "staging.env", "tls"],
       str(({k: v for k, v in _refused.items() if v[0] != 2}, _se_none, _se_pw)))
 
+# ---------------------------------------------------------------------------
+print("\nthe owner's Grafana steps, through the stack's API with the owner's token")
+import base64 as _b64_gf                                                 # noqa: E402
+
+from scripts import grafana_setup as _gf                                # noqa: E402
+
+_GF_TOKEN = "glsa_made-up-grafana-token_0123456789"
+_GF_URL = "https://caro.grafana.example"
+
+
+class _FakeGrafana:
+    """A Grafana stack's API as the script uses it, kept in memory; every call logged."""
+
+    def __init__(self, datasources=None, routes=(), groups=(), test_fails=None, receivers_api=True, convert=True,
+                 convert_error=None, other_rules=(), other_receivers=()):
+        self.datasources = datasources if datasources is not None else [
+            {"uid": "p1", "name": "grafanacloud-caro-prom", "type": "prometheus"},
+            {"uid": "u1", "name": "grafanacloud-usage", "type": "prometheus"},
+            {"uid": "l1", "name": "grafanacloud-caro-logs", "type": "loki"}]
+        self.dashboard, self.version = None, 0
+        self.groups = {g: "name: " + g + "\n" for g in groups}     # the folder CARO's groups
+        self.contacts = []
+        self.tree = {"receiver": "grafana-default-email", "group_by": ["grafana_folder", "alertname"],
+                     "routes": [dict(r) for r in routes]}
+        self.test_fails, self.receivers_api, self.convert, self.tests = test_fails, receivers_api, convert, []
+        self.convert_error, self.other_rules, self.other_receivers = convert_error, list(other_rules), list(other_receivers)
+        self.calls = []
+
+    def _ok(self, result, raw=None):
+        body = raw if raw is not None else json.dumps(result).encode()
+        return _ctx_cf.nullcontext(type("R", (), {"read": lambda _s: body})())
+
+    def _no(self, req, code, message):
+        raise _ue_cf.HTTPError(req.full_url, code, "No", {}, _io_cf.BytesIO(json.dumps({"message": message}).encode()))
+
+    def __call__(self, req, timeout=30):
+        u = _up_cf.urlparse(req.full_url)
+        q = dict(_up_cf.parse_qsl(u.query))
+        m, path = req.get_method(), _up_cf.unquote(u.path)
+        raw = req.data or b""
+        self.calls.append((m, path, raw, {k.lower(): v for k, v in req.header_items()}, u.netloc))
+        body = json.loads(raw) if raw and req.get_header("Content-type") == "application/json" else None
+        if path == "/api/health":
+            return self._ok({"version": "13.3.0"})
+        if path == "/api/datasources":
+            return self._ok(self.datasources)
+        if path == "/api/dashboards/uid/caro":
+            if self.dashboard is None:
+                self._no(req, 404, "Dashboard not found")
+            return self._ok({"dashboard": self.dashboard, "meta": {}})
+        if path == "/api/dashboards/db" and m == "POST":
+            self.version += 1
+            self.dashboard = {**body["dashboard"], "id": 7, "version": self.version}
+            return self._ok({"status": "success", "uid": "caro", "version": self.version})
+        if path == "/api/folders":
+            return self._ok([{"uid": "f1", "title": "CARO"}] if self.groups else [])
+        if path == "/api/v1/provisioning/alert-rules":
+            return self._ok(self.other_rules + [{"title": f"r{i}", "ruleGroup": g, "folderUID": "f1"}
+                                                for i, g in enumerate(self.groups)])
+        if path == "/api/convert/prometheus/config/v1/rules/CARO" and m == "POST":
+            if not self.convert:
+                self._no(req, 404, "Not found")
+            if self.convert_error:
+                self._no(req, 400, self.convert_error)
+            text_ = raw.decode()
+            self.groups[text_.split("\n", 1)[0].split(":", 1)[1].strip()] = text_
+            return self._ok({"status": "success"})
+        if path.startswith("/api/convert/prometheus/config/v1/rules/CARO/") and m == "DELETE":
+            self.groups.pop(path.rsplit("/", 1)[1])
+            return self._ok({"status": "success"})
+        if path == "/api/v1/provisioning/contact-points":
+            if m == "GET":
+                return self._ok([{**c, "settings": {**c["settings"], "bottoken": "[REDACTED]"}}
+                                 for c in self.contacts if c["name"] == q.get("name")])
+            self.contacts.append({**body, "uid": f"cp{len(self.contacts) + 1}"})
+            return self._ok(self.contacts[-1])
+        if path.startswith("/api/v1/provisioning/contact-points/") and m == "PUT":
+            for c in self.contacts:
+                if c["uid"] == path.rsplit("/", 1)[1]:
+                    c.update(body)
+            return self._ok({"message": "contactpoint updated"})
+        if path == "/api/v1/provisioning/policies":
+            if m == "GET":
+                return self._ok(self.tree)
+            self.tree = body
+            return self._ok({"message": "policies updated"})
+        if path == "/api/frontend/settings":
+            return self._ok({"namespace": "stacks-42"})
+        base = "/apis/notifications.alerting.grafana.app/v1beta1/namespaces/stacks-42/receivers"
+        if path.startswith("/apis/") and not self.receivers_api:
+            self._no(req, 404, "page not found")
+        if path == base:
+            return self._ok({"items": self.other_receivers + [{"metadata": {"name": _b64_gf.urlsafe_b64encode(c["name"].encode()).decode().rstrip("=")},
+                                        "spec": {"title": c["name"], "integrations": [
+                                            {"uid": c["uid"], "type": "telegram", "settings": {"chatid": c["settings"]["chatid"]},
+                                             "secureFields": {"bottoken": True}}]}} for c in self.contacts]})
+        if path.startswith(base + "/") and path.endswith("/test") and m == "POST":
+            self.tests.append((path, body))
+            if self.test_fails:
+                return self._ok({"status": "failure", "error": self.test_fails})
+            return self._ok({"status": "success", "duration": "1s"})
+        raise AssertionError(f"the fake has no {m} {path}")
+
+
+def _gf_run(fake, *argv, env=None, root=None):
+    out, err = _io_cf.StringIO(), _io_cf.StringIO()
+    e = {"GRAFANA_URL": _GF_URL, "GRAFANA_TOKEN": _GF_TOKEN, "CARO_ALERT_TELEGRAM_TOKEN": "123456:made-up-bot",
+         "CARO_ALERT_TELEGRAM_CHAT": "-1009876543210"} if env is None else env
+    with _ctx_cf.redirect_stderr(err):
+        rc = _gf.main(list(argv), env=e, opener=fake, out=lambda line: out.write(line + "\n"),
+                      **({"root": root} if root else {}))
+    return rc, out.getvalue(), err.getvalue()
+
+
+def _gwrites(fake):
+    return [(m, p) for m, p, *_ in fake.calls if m != "GET"]
+
+
+_alerts_text = text("deploy/grafana/alerts.yml")
+_groups = _gf.rule_groups(_alerts_text)
+_rebuilt = "groups:\n" + "\n".join(
+    "\n".join(["  - " + d.split("\n")[0]] + [("    " + ln) if ln.strip() else "" for ln in d.rstrip("\n").split("\n")[1:]])
+    for _, d in _groups)
+_tail = _alerts_text.split("groups:\n", 1)[1].rstrip("\n")
+try:
+    _gf.rule_groups("groups:\n  - name: a\n    rules:\n  oops: 1\n")
+    _bad_layout = "taken"
+except _gf.GrafanaError as e:
+    _bad_layout = str(e)
+check("DP35: the alerts' file is cut into its groups as the ruler API takes them, each a document of its "
+      "own, and put back together they are the file again, every line that is not blank in its place; all "
+      "seven alerts are in them; a line outside a group stops it",
+      [n for n, _ in _groups] == ["caro-availability", "caro-search", "caro-corpus", "caro-collection"]
+      and all(d.startswith("name: " + n + "\n") for n, d in _groups)
+      and [ln.rstrip() for ln in _rebuilt.split("\n") if ln.strip()]
+      == [ln.rstrip() for ln in ("groups:\n" + _tail).split("\n") if ln.strip()]
+      and sum(d.count("\n  - alert: ") for _, d in _groups) == 7 == _alerts_text.count("- alert: ")
+      and "outside its group" in _bad_layout,
+      str([n for n, _ in _groups]))
+
+_g1 = _FakeGrafana()
+_gr1 = [_gf_run(_g1, "dashboard") for _ in range(2)]
+_posted = [c for c in _g1.calls if c[0] == "POST"]
+_sent_board = json.loads(_posted[0][2])["dashboard"] if _posted else {}
+_dsvar = [v for v in _sent_board.get("templating", {}).get("list", []) if v.get("type") == "datasource"]
+_tmp_gf = tempfile.TemporaryDirectory()
+_root_gf = Path(_tmp_gf.name)
+(_root_gf / "deploy/grafana").mkdir(parents=True)
+_changed_board = json.loads(text("deploy/grafana/caro.json"))
+_changed_board["title"] = "CARO, changed"
+(_root_gf / "deploy/grafana/caro.json").write_text(json.dumps(_changed_board))
+_gr1c = _gf_run(_g1, "dashboard", root=_root_gf)
+_g1o = _FakeGrafana(datasources=[{"uid": "only", "name": "prometheus", "type": "prometheus"}])
+_gr1o = _gf_run(_g1o, "dashboard")
+_g1m = _FakeGrafana(datasources=[{"uid": "a", "name": "one-prom", "type": "prometheus"},
+                                 {"uid": "b", "name": "two-prom", "type": "prometheus"}])
+_gr1m = _gf_run(_g1m, "dashboard")
+_gr1n = _gf_run(_g1m, "dashboard", "--datasource", "two-prom")
+_g1p = _FakeGrafana(datasources=[{"uid": "old", "name": "grafanacloud-caro-prom", "type": "prometheus"},
+                                 {"uid": "new", "name": "caro-prom", "type": "prometheus"}])
+_gr1p = _gf_run(_g1p, "dashboard", "--datasource", "caro-prom")
+check("DP36: the dashboard is put on the stack's own Prometheus -- the only one, or the one whose name ends "
+      "-prom, or the one of exactly the name given -- the file as it is but for its datasource chosen; run again it is found "
+      "and not written; a changed file is written over it; two that end -prom and none named stops it, "
+      "naming them",
+      [rc for rc, *_ in _gr1] == [0, 0] and len(_posted) == 1 and _posted[0][1] == "/api/dashboards/db"
+      and json.loads(_posted[0][2])["overwrite"] is True and _sent_board.get("id") is None
+      and _dsvar and _dsvar[0]["current"] == {"selected": True, "text": "grafanacloud-caro-prom", "value": "p1"}
+      and {k: v for k, v in _sent_board.items() if k not in ("templating", "id")}
+      == {k: v for k, v in json.loads(text("deploy/grafana/caro.json")).items() if k != "templating"}
+      and "there already" in _gr1[1][1]
+      and _gr1c[0] == 0 and _g1.dashboard["title"] == "CARO, changed" and "brought to the file" in _gr1c[1]
+      and _gr1o[0] == 0 and _g1o.dashboard["templating"]["list"][0]["current"]["value"] == "only"
+      and _gr1m[0] == 1 and "one-prom, two-prom" in _gr1m[2] and _gwrites(_g1m)[:1] == [("POST", "/api/dashboards/db")]
+      and _g1m.dashboard["templating"]["list"][0]["current"]["value"] == "b"
+      and _gr1p[0] == 0 and _g1p.dashboard["templating"]["list"][0]["current"]["value"] == "new",
+      str((_gr1, _gr1c, _gr1o, _gr1m, _gr1n, _gr1p)))
+
+_g2 = _FakeGrafana(groups=("caro-retired", "caro-search"),
+                   other_rules=[{"title": "theirs", "ruleGroup": "their-group", "folderUID": "f2"}])
+_gr2d = _gf_run(_g2, "alerts", "--dry-run")
+_w2d = _gwrites(_g2)
+_gr2 = _gf_run(_g2, "alerts")
+_conv = [c for c in _g2.calls if c[0] == "POST"]
+_gr2x = _gf_run(_FakeGrafana(convert=False), "alerts")
+_gr2e = _gf_run(_FakeGrafana(convert_error="invalid rule group: unknown function rat"), "alerts")
+check("DP37: the alerts are loaded group by group into the folder CARO through Grafana's conversion of "
+      "Prometheus rules, each group's document as the file has it, as YAML, on the stack's Prometheus; a "
+      "group the folder has and the file no longer does is taken away, and no other, nor any group of "
+      "another folder; --dry-run loads nothing; a Grafana that does not convert them says to load them "
+      "with mimirtool, and any other refusal is said in Grafana's words",
+      _gr2d[0] == 0 and _w2d == [] and _gr2d[1].count("would:") == 5
+      and _gr2[0] == 0 and [c[1] for c in _conv] == ["/api/convert/prometheus/config/v1/rules/CARO"] * 4
+      and [c[2].decode() for c in _conv] == [d for _, d in _groups]
+      and all(c[3].get("content-type") == "application/yaml"
+              and c[3].get("x-grafana-alerting-datasource-uid") == "p1" for c in _conv)
+      and ("DELETE", "/api/convert/prometheus/config/v1/rules/CARO/caro-retired") in _gwrites(_g2)
+      and sorted(_g2.groups) == sorted(n for n, _ in _groups)
+      and _gr2x[0] == 1 and "does not convert Prometheus rules" in _gr2x[2] and "mimirtool" in _gr2x[2]
+      and _gr2e[0] == 1 and "unknown function rat" in _gr2e[2] and "does not convert" not in _gr2e[2]
+      and [p for m, p in _gwrites(_g2) if m == "DELETE"] == ["/api/convert/prometheus/config/v1/rules/CARO/caro-retired"],
+      str((_gr2d, _gr2, _gr2x, _gr2e)))
+
+_theirs = {"receiver": "someone-else", "object_matchers": [["team", "=", "other"]]}
+_g3 = _FakeGrafana(routes=[_theirs])
+_gr3 = [_gf_run(_g3, "telegram") for _ in range(2)]
+_w3 = _gwrites(_g3)
+_tmp_gf2 = tempfile.TemporaryDirectory()
+_envf = Path(_tmp_gf2.name) / "production.env"
+_envf.write_text("CARO_ENV=production\nCARO_ALERT_TELEGRAM_TOKEN=654321:from-the-file\nCARO_ALERT_TELEGRAM_CHAT=-100555\n")
+_g3f = _FakeGrafana()
+_gr3f = _gf_run(_g3f, "telegram", "--env-file", str(_envf), env={"GRAFANA_URL": _GF_URL, "GRAFANA_TOKEN": _GF_TOKEN})
+_gr3n = _gf_run(_FakeGrafana(), "telegram", env={"GRAFANA_URL": _GF_URL, "GRAFANA_TOKEN": _GF_TOKEN})
+_gr3b = _gf_run(_FakeGrafana(), "telegram", env={"GRAFANA_URL": _GF_URL, "GRAFANA_TOKEN": _GF_TOKEN,
+                                                 "CARO_ALERT_TELEGRAM_TOKEN": "123456:made-up-bot"})
+_timing = [(r["group_wait"], r["group_interval"], r["repeat_interval"]) for r in _g3.tree["routes"][:2]]
+check("DP38: the contact point caro-telegram is made once with the server's bot and chat, editable in "
+      "Grafana's pages, and written again on a second run; the two routes -- a page within half a minute and "
+      "again every four hours, tickets every three hours and again each day -- go in front of the stack's own, "
+      "which stay as they were, and on a second run are found and not written; the bot and the chat can "
+      "come from the server's env file; without either it stops before anything",
+      [rc for rc, *_ in _gr3] == [0, 0] and len(_g3.contacts) == 1
+      and _g3.contacts[0]["type"] == "telegram"
+      and _g3.contacts[0]["settings"] == {"bottoken": "123456:made-up-bot", "chatid": "-1009876543210"}
+      and [m for m, _ in _w3] == ["POST", "PUT", "PUT"] and _w3[1] == ("PUT", "/api/v1/provisioning/policies")
+      and all(c[3].get("x-disable-provenance") == "true" for c in _g3.calls if c[0] in ("POST", "PUT"))
+      and _g3.tree["routes"] == _gf.ROUTES + [_theirs] and _g3.tree["receiver"] == "grafana-default-email"
+      and [r["object_matchers"][1] for r in _g3.tree["routes"][:2]] == [["severity", "=", "page"], ["severity", "=", "ticket"]]
+      and all(r["object_matchers"][0] == ["grafana_folder", "=", "CARO"] for r in _g3.tree["routes"][:2])
+      and "there already" in _gr3[1][1] and not any("made-up-bot" in o + e for _, o, e in _gr3)
+      and _gr3f[0] == 0 and _g3f.contacts[0]["settings"] == {"bottoken": "654321:from-the-file", "chatid": "-100555"}
+      and _gr3n[0] == 2 and "CARO_ALERT_TELEGRAM_TOKEN" in _gr3n[2] and _gr3b[0] == 2
+      and _timing == [("30s", "5m", "4h"), ("10m", "3h", "1d")],
+      str((_gr3, _gr3f, _gr3n, _gr3b, _w3, _timing)))
+
+_g4 = _FakeGrafana(other_receivers=[{"metadata": {"name": "ZW1haWw"}, "spec": {"title": "email", "integrations": [
+    {"uid": "em1", "type": "email", "settings": {"addresses": "ops@example.invalid"}}]}}])
+_gr4 = _gf_run(_g4, "all")
+_g4d = _FakeGrafana()
+_gr4d = _gf_run(_g4d, "all", "--dry-run")
+_g4f = _FakeGrafana(test_fails="failed to send telegram message: Bad Request: chat not found")
+_gr4f = _gf_run(_g4f, "all")
+_gr4n = _gf_run(_FakeGrafana(), "test")
+_gr4o = _gf_run(_FakeGrafana(receivers_api=False), "all")
+check("DP39: all does the dashboard, the alerts, the contact point and its routes, then has Grafana send "
+      "a test to the chat, finding the contact point by its title in the stack's own namespace, among others; "
+      "with --dry-run it writes and sends nothing; a test "
+      "Grafana could not send stops it with Grafana's words; with no contact point, or no API to test from, "
+      "it says what to do",
+      _gr4[0] == 0 and _g4.dashboard is not None and len(_g4.groups) == 4 and len(_g4.contacts) == 1
+      and len(_g4.tests) == 1 and _g4.tests[0][0].endswith("/namespaces/stacks-42/receivers/Y2Fyby10ZWxlZ3JhbQ/test")
+      and _g4.tests[0][1]["integration"]["uid"] == "cp1" and "sent by Grafana" in _gr4[1]
+      and _gr4f[0] == 1 and "chat not found" in _gr4f[2]
+      and _gr4n[0] == 1 and "run telegram first" in _gr4n[2]
+      and _gr4o[0] == 1 and "Contact points -> caro-telegram -> Test" in _gr4o[2]
+      and _gr4d[0] == 0 and _gwrites(_g4d) == [] and _g4d.tests == [] and "would: ask Grafana to send a test" in _gr4d[1],
+      str((_gr4, _gr4f, _gr4n, _gr4o, _gr4d)))
+
+
+class _GfRefusing(_FakeGrafana):
+    def __call__(self, req, timeout=30):
+        self.calls.append((req.get_method(), req.full_url, b"", {}, ""))
+        self._no(req, 403, "You'll need additional permissions to perform this action")
+
+
+_gr5a = _gf_run(_FakeGrafana(), "status", env={"GRAFANA_URL": _GF_URL})
+_gr5h = _gf_run(_FakeGrafana(), "status", env={"GRAFANA_URL": "http://caro.grafana.example", "GRAFANA_TOKEN": _GF_TOKEN})
+_gr5l = _gf_run(_FakeGrafana(), "status", env={"GRAFANA_URL": "http://127.0.0.1:3300", "GRAFANA_TOKEN": _GF_TOKEN})
+_gr5r = _gf_run(_GfRefusing(), "dashboard")
+_gevery = [c for f in (_g1, _g2, _g3, _g4) for c in f.calls]
+check("DP40: without the stack's address and token it stops before asking anything; an address that is "
+      "not https stops it, but on this machine's own; a refusal stops it with Grafana's words and what the "
+      "token needs; every request goes to the stack with the token as a bearer, and the token is in no "
+      "line printed",
+      _gr5a[0] == 2 and "GRAFANA_TOKEN" in _gr5a[2]
+      and _gr5h[0] == 2 and "https" in _gr5h[2] and _gr5l[0] == 0
+      and _gr5r[0] == 1 and "additional permissions" in _gr5r[2] and "Admin" in _gr5r[2]
+      and all(c[4] == "caro.grafana.example" and c[3].get("authorization") == f"Bearer {_GF_TOKEN}" for c in _gevery)
+      and not any(_GF_TOKEN in o + e for runs in (_gr1, _gr3, [_gr4, _gr4f, _gr5r]) for _, o, e in runs),
+      str((_gr5a, _gr5h, _gr5l, _gr5r)))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
