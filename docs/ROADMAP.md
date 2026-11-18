@@ -685,13 +685,17 @@ names. Durations are for two people part-time.
    actions are on v7, their Node 24 releases (`ci.yml` says what their majors
    changed and why none of it touches this workflow), and the fonts are files
    of the site (`webapp/web/public/fonts`), so `next lint` reports nothing.
-   What is left is the first run after the push: both jobs green and no
-   warning on either.
+   **Closed** on 2026-11-18: on `4273047`, #28's merge, every job of both
+   workflows on `main` -- `suites`, `web`, `e2e`, `postgres` and `images` --
+   was green and carried no warning, read from their annotations. The one
+   annotation was `reached`'s notice that no environment is named yet.
 2. **After every merge.** CI on `main`, and the site read from the outside:
    `/about`'s counts, and the queries the merge changed. What was read goes
-   into the next D-entry. The sandbox a session works in cannot reach the
-   site, so the owner runs the read -- `python3 scripts/site_check.py`, with
-   `--site` once the address changes -- and passes back what it printed.
+   into the next D-entry. Once the owner's deploy key is set, the images
+   workflow's job `deliver` does the read after each merge, and its log is
+   what was read ([DELIVERY](DELIVERY.md)). Until then the owner runs it --
+   `python3 scripts/site_check.py`, with `--site` once the address changes,
+   or `tecso-release.sh`, which runs it -- and passes back what it printed.
 
 ## The end
 
