@@ -8304,3 +8304,105 @@ and no more: it tells the issues in `Tecso-Dev/caro` nothing, which that
 script did. The deploy key is the owner's to remove when Vercel is retired
 (PHASE6_SETUP, step 4), and the organization's switch theirs to turn off
 again then, if nothing else uses it.
+
+## D111 — A bare «X به بالا» is a floor, and a range gives both ends, by the owner's decision on what was measured
+
+D85 left two of the floor's topics measured and not built: a bare «X به
+بالا», with no cue before the amount, and ranges. The owner chose on
+2026-11-18 to have both measured in one round. The round was measured on
+426 phrasings in 26 cells, each made for it, since no log of what buyers
+type exists. Its predictions were written and locked before the
+measurement (sha256 `5fe63e52…`). The result was put to the owner, who
+chose on it:
+- the bare form is a floor;
+- ranges are read, with the guard that leaves «X تا Y» as it was where it
+  has no «بین» or «از» and no scale word on X;
+- a range written upside down stays as it was.
+
+Merged on 2026-11-18 in #32:
+
+    commit    what it does                                          suites    bare
+    74b3bdb   a bare «X به بالا» is a floor, not the ceiling             3710   2959
+    7fab2d9   a range gives both ends, not only the upper                3796   3045
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `7585632`.
+
+**The bare floor** (`74b3bdb`). «پراید ۴۰۰ میلیون به بالا» set no floor.
+Its amount was taken for the ceiling, with «عدد قیمت را سقف بودجه فرض
+کردیم» printed: the meaning reversed, on 120 of 120 phrasings of five
+forms. It is a floor now, tried after the floors with a cue:
+- 120 of 120, with nothing printed;
+- 6 of 6 with a year clause after it;
+- a negation right after it leaves it to the ceiling rules, as for the
+  other floors (24 of 24).
+
+**Ranges** (`7fab2d9`). «بین ۳۰۰ تا ۴۰۰ میلیون» read no floor. The upper end
+was the ceiling and the lower was dropped, or the first amount was taken for
+the ceiling with the assumption printed: right on 0 of 136 phrasings of six
+forms. Both ends are read now, before the floors, on 120 of the 136. The
+forms are «بین X تا Y», «از X تا Y», «بین X و Y», «X الی Y», «X-Y», and «X تا
+Y» where X has its scale word. A lower end with no scale word takes the
+upper's, or a million below a billion, within ten times. Left as they were:
+- the 16 «X تا Y» that are the guard's cost, written as «پژو ۲۰۶ تا ۴۰۰
+  میلیون» is;
+- «بین ۴۰۰ تا ۳۰۰ میلیون», the ceiling of 300 million it was, on 8 of 8.
+
+**What did not change.** None of the 132 controls. Of the queries the
+suites hand the parser, 6 of 818 change with the first commit and 2 of 929
+with the second: the rows that pinned the two topics as left, each moving
+to the meaning.
+
+**The predictions** held but for two:
+- the controls' count: 132, not 164;
+- P16 for the first candidate. It read «بین ۱.۵ تا ۱ میلیارد» as a floor of
+  1.5 million on 4 phrasings. The ten-times bound was added before the
+  owner was asked, and the built rules read all 426 as the candidate put to
+  them did.
+
+**Found by hand after the measurement**, none of it measured, and each read
+as it was:
+- a ceiling's cue right before the bare amount or a range: «تا», «زیر»,
+  «حداکثر», or a comparative with or without «از». As measured, «تا ۴۰۰
+  میلیون به بالا نمی‌تونم» and «کمتر از ۴۰۰ میلیون به بالا» were floors: the
+  comparative guard looked right before the amount, where «از» stands;
+- a negation right after a range;
+- with neither «بین» nor «از», a dash with a space beside it. As measured,
+  «پژو ۲۰۶ - ۴۰۰ میلیون» was a floor of 206 million;
+- with neither «بین» nor «از», a lower figure that is a model's number.
+
+None of these changes any of the 426. 122,768 queries were composed of parts
+after the measurement. With the bare floor, 19,240 change, and every one
+holds an amount with «به بالا» right after it. Ranges change 27,648 more,
+and each of those holds two figures joined by «تا», «الی», a dash or «و», the
+second an amount of money. A phrase after « و » that the range's «تا» clause
+used to take with it is listed now, as after a floor.
+
+**Mutants:** 56, with bytecode off, 25 and 31. The first run caught 23 and
+30. Three lived:
+- the bare floor tried before the floors with a cue;
+- a space required before «به»;
+- the en dash left out of the spaced-dash guard.
+
+Rows added after the run catch all three:
+- «پراید ۳۰۰ میلیون به بالا، از ۴۰۰ میلیون به بالا», which pins what two
+  floors in one query do;
+- «پراید ۴۰۰ میلیونبه بالا»;
+- «۳۰۰ – ۴۰۰ میلیون».
+
+**Left**, each pinned by a test:
+- a negation outside the list;
+- a figure glued to a word;
+- two floors in one query, where the one with a cue is read and the other
+  amount is the ceiling;
+- a lower end written «۱ میلیارد و ۲۰۰ میلیون»;
+- a year against a price with a bare dash («تیبا ۱۴۰۰-۲ میلیارد» is a range
+  from 1.4 billion);
+- «از» and a figure with no «مدل» («تیبا از ۹۵ تا ۴۰۰ میلیون» is a range from
+  95 million).
+
+**Read from the outside** by the job of D110, which delivered `7585632` to
+the site on 2026-11-19 and read it there. The rules are in the API that
+`deploy-wait` found running. The site check does not ask the parser; the
+suites, in CI and inside the API's image, do.
