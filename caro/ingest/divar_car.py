@@ -52,7 +52,7 @@ from datetime import date
 from typing import Callable, Iterable, Iterator
 
 from caro.ingest.base import salted_fingerprint
-from caro.ingest.models import MAKE_MODEL as MODEL_TABLE
+from caro.ingest.models import MAKE_MODEL as MODEL_TABLE, names
 from caro.ingest.persian import (
     normalize, parse_mileage_km, parse_price, parse_year_jalali,
 )
@@ -138,7 +138,7 @@ DOC_ISSUE_CUES = ("در گرو", "وکالتی", "سند در رهن", "سند �
 def extract_make_model(text: str) -> tuple[str | None, str | None]:
     s = normalize(text)
     for (make, model), aliases in MAKE_MODEL.items():
-        if any(normalize(a) in s for a in aliases):
+        if any(names(s, normalize(a)) for a in aliases):
             return make, model
     return None, None
 

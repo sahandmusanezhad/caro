@@ -42,7 +42,7 @@ from typing import Protocol, Sequence
 import numpy as np
 
 from caro.appraisal import QUANTILES, MarketEstimator, NotBenchmarked, Row
-from caro.ingest.models import search_aliases
+from caro.ingest.models import names, search_aliases
 from caro.ingest.persian import PROVINCE_SPELLINGS, PROVINCES
 
 # ---------------------------------------------------------------------------
@@ -375,7 +375,9 @@ MODEL_ALIASES: dict[str, tuple[str, ...]] = search_aliases()
 # holds 131, which is Pride's, inside an amount of money, and «تیبا مدل ۱۴۰۵»
 # holds 405 inside a year; each added a model nobody wrote (D83). So a number
 # is looked for in the query less its amounts of money, and is not taken beside
-# another digit. A name is matched as ever, anywhere in the query.
+# another digit. A name is a word of its own, by the listing parser's rule
+# (`caro.ingest.models.names`): «گرند ویتارا» names no Tara, and «پراید
+# تهرانپارس» no Pars.
 _NUMERIC_ALIASES = frozenset(a for als in MODEL_ALIASES.values() for a in als
                              if a.isdigit())
 
@@ -384,7 +386,7 @@ def _names_model(q: str, alias: str, bare: str) -> bool:
     """Does `q` name a model by `alias`? `bare` is `q` less its amounts of
     money, which is where a number is read."""
     if alias not in _NUMERIC_ALIASES:
-        return alias in q
+        return names(q, alias)
     for m in re.finditer(re.escape(alias), bare):
         if not ((m.start() and bare[m.start() - 1].isdigit())
                 or (m.end() < len(bare) and bare[m.end()].isdigit())):

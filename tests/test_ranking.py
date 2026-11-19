@@ -1865,6 +1865,44 @@ check("MD2: the search reads IKCO's Samand, Tara and Runna, and the names only t
                 "کوییک زیر ۲ میلیارد": ("quik",), "پراید ۱۳۲": ("pride",), "207i دنده ای": ("207",),
                 "تا ۱۳۲ میلیون": ()}, str(_md_q))
 
+# A model's name is a word of its own (2026-11-19, the owner's call): the
+# search found a name anywhere in the query, as the listing parser did, so «گرند
+# ویتارا» hinted Tara and «پراید تهرانپارس» Pars as well as Pride. Measured on
+# made queries, the predictions locked first: right on 0 of 4, 0 of 3, 0 of 2
+# and 0 of 3 today, and on 12 of 12 ordinary ones.
+for _mn_q, _mn_want, _mn_why in [
+    ("گرند ویتارا زیر ۵ میلیارد", (), "a Grand Vitara names no Tara"),
+    ("ویتارا مونتاژ", (), "  assembled"),
+    ("سوزوکی گرند ویتارا", (), "  with its make"),
+    ("گرندویتارا تا ۴ میلیارد", (), "  written as one word"),
+    ("پارس تندر زیر ۲ میلیارد", (), "Renault's Pars Tondar names no Peugeot Pars"),
+    ("رنو پارس تندر", (), "  with its make"),
+    ("پارس تندر ۹۷", (), "  with a year"),
+    ("پراید در تهرانپارس", ("pride",), "a name inside a place's word"),
+    ("تیبا تهرانپارس زیر ۸۰۰ میلیون", ("tiba",), "  another"),
+    ("پراید در تهران پارس", ("pride",), "a place of two words: «تهران» before"),
+    ("دنا در شاهین شهر", ("dena",), "  «شهر» after"),
+    ("تیبا پارس آباد", ("tiba",), "  «آباد» after"),
+    ("پراید بیمه پارسیان", ("pride",), "a longer word after the name"),
+    ("یه پرایدی زیر ۳۰۰ میلیون", ("pride",), "an ending on the name keeps it, as it was"),
+    ("سمندی تمیز", ("samand",), "  another"),
+    ("پراید غیر از تیبایی", ("pride", "tiba"), "  «یی», as it was"),
+    ("پرایدها زیر ۳۰۰ میلیون", ("pride",), "  «ها»"),
+    ("پراید وتیبا", ("pride", "tiba"), "  a «و» typed on"),
+    ("پارسال پراید خریدم", ("pride",), "a word that holds a name and is none"),
+    ("پژو پارس زیر ۲ میلیارد", ("pars",), "the ordinary ones, as they were"),
+    ("پارس ELX", ("pars",), "  "),
+    ("تارا زیر ۳ میلیارد", ("tara",), "  "),
+    ("شاهین اتومات", ("shahin",), "  "),
+    ("دنا پلاس", ("dena",), "  "),
+    ("تیبا و ساینا", ("tiba", "saina"), "  two"),
+    ("پژو پارس در تهران", ("pars",), "  «تهران» after the name, not before it"),
+    ("پراید شهری", ("pride",), "  «شهری» is not «شهر»"),
+]:
+    _mn_got = P.parse(_mn_q).model_hints
+    check(f"MN: «{_mn_q}» → models {list(_mn_want) or '—'}  ({_mn_why.strip() or 'as it was'})",
+          _mn_got == _mn_want, str(_mn_got))
+
 
 print()
 if FAILS:
