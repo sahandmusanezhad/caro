@@ -42,24 +42,28 @@ the site.
 
 ## The one step: the deploy key
 
-On your own machine, where `gh` is signed in as you, in an empty directory:
+On your own machine, where `gh` is signed in as you, in an empty directory,
+paste these together:
 
 ```
-ssh-keygen -t ed25519 -N "" -C caro-deliver -f caro-deliver
-gh repo deploy-key add caro-deliver.pub -R Tecso-Dev/caro --allow-write --title caro-deliver
+ssh-keygen -t ed25519 -N "" -C caro-deliver -f caro-deliver && \
+gh repo deploy-key add caro-deliver.pub -R Tecso-Dev/caro --allow-write --title caro-deliver && \
 gh secret set TECSO_DEPLOY_KEY -R sahandmusanezhad/caro < caro-deliver
-rm caro-deliver caro-deliver.pub
+rm -f caro-deliver caro-deliver.pub
 ```
 
 - The first line makes a key pair there. The private half goes into this
   repository's secret by the third line, read from the file, and is then
   deleted. It is never on the screen, in a conversation, or anywhere else.
+- Each line runs only if the one before it worked, and the last runs
+  whatever happened. A secret is then never set for a key that
+  `Tecso-Dev/caro` refused.
 - The key can write to `Tecso-Dev/caro` and to nothing else.
-- The second line needs admin rights on `Tecso-Dev/caro`. Where `gh`
-  refuses it, send `caro-deliver.pub` to whoever administers that
-  repository: it is the public half, and nothing in it is secret. They add
-  it under **Settings → Deploy keys → Add deploy key**, with **Allow write
-  access**. You run the third and fourth lines.
+- The second line needs admin rights on `Tecso-Dev/caro`. Without them,
+  run the first line alone and send `caro-deliver.pub` to whoever
+  administers that repository: it is the public half, and nothing in it is
+  secret. They add it under **Settings → Deploy keys → Add deploy key**,
+  with **Allow write access**. You then run the third line, and the last.
 - Where a rule protects that `main`, the key must be among those it lets
   through: **Settings → Rules**, the rule's **Bypass list**, **Deploy
   keys**.
@@ -74,6 +78,14 @@ To try it at once: **Actions → images**, the latest run on `main`,
 **Re-run all jobs**.
 
 **When it fails:**
+- **The second line says `Deploy keys are disabled for this repository`.**
+  The organization allows no deploy keys, which is how GitHub makes a new
+  organization. An owner of `Tecso-Dev` turns them on: the organization's
+  **Settings**, **Deploy keys** in the sidebar, then **Save**. Then all four
+  lines are run again, from the first. So it went on 2026-11-18, when the
+  lines were still run one by one: the secret was set all the same, for a
+  key no repository had, and `deliver` failed at «Tecso-Dev/caro, by its
+  deploy key» until they were run again.
 - **The wait shows `(no build)` until it gives up.** Vercel did not give
   the API the commit it deployed. In the Vercel project, **Settings →
   Environment Variables**, **Automatically expose System Environment

@@ -130,7 +130,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province — the 31 capitals give theirs — with how each was read. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
 | explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
-| deployed | ✅ **from `main`** — one Vercel project of two services (D64, D80), following [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro), which CI brings to each green merge once the owner's deploy key is set ([DELIVERY](docs/DELIVERY.md)). |
+| deployed | ✅ **from `main`** — one Vercel project of two services (D64, D80), following [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro), which CI brings to each green merge by the owner's deploy key, since 2026-11-19 ([DELIVERY](docs/DELIVERY.md), D110). |
 
 Everything that is left until the end of the project — in order, with what
 closes each item and who does it — is in [ROADMAP](docs/ROADMAP.md), in two
@@ -808,9 +808,9 @@ The rules every session keeps are in
 collections; Sobhan builds the platform; each commits under their own name.
 Work lands in [sahandmusanezhad/caro](https://github.com/sahandmusanezhad/caro),
 by pull request; [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro) holds
-the issues and is kept at the same `main` — by CI after each green merge
-once the owner's deploy key is set ([DELIVERY](docs/DELIVERY.md)), by the
-owner until then — and the deployed site follows it.
+the issues and is kept at the same `main` — by CI after each green merge,
+by the owner's deploy key since 2026-11-19 ([DELIVERY](docs/DELIVERY.md)) —
+and the deployed site follows it.
 
 ## Repository layout
 
@@ -826,7 +826,7 @@ scripts/         setup, live runs, promotion, the catalog's loader, replays, the
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D109) · eval · roadmap · readme/ (the README's images)
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D111) · eval · roadmap · readme/ (the README's images)
 ```
 
 ## Documentation
@@ -838,7 +838,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D109) �
 | [DECISIONS](docs/DECISIONS.md) | the design record, including bugs found and what they cost |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
 | [REARCHITECTURE](docs/REARCHITECTURE.md) | the 2026 plan for the platform, phases 0 to 7: Sobhan's, accepted with its review's amendments |
-| [DELIVERY](docs/DELIVERY.md) | what follows a merge: the checks, the images, and the site brought to it and read -- Vercel's by CI once the owner's one deploy key is set, the server's by its own pull |
+| [DELIVERY](docs/DELIVERY.md) | what follows a merge: the checks, the images, and the site brought to it and read -- Vercel's by CI with the owner's one deploy key, the server's by its own pull |
 | [PHASE0_SETUP](docs/PHASE0_SETUP.md) | phase 0's steps in the owner's accounts — GitHub, Sentry, Cloudflare, UptimeRobot — each with what to see when it worked |
 | [PHASE1_SETUP](docs/PHASE1_SETUP.md) | phase 1's steps: the server at Hetzner, its certificate and settings, staging, the first release, and the switch from Vercel |
 | [PHASE2_SETUP](docs/PHASE2_SETUP.md) | phase 2's steps: an SMS account and its template, and the seller listings switched on in staging, then production |

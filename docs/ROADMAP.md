@@ -34,7 +34,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `4273047` when it was read on 2026-11-18 (D109); each green merge reaches it by CI once the owner's deploy key is set ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
+| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `7585632`, #32's merge, when CI read it on 2026-11-19 (D110, D111); each green merge reaches it by CI, by the owner's deploy key ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
 
 ## The order of work
 
@@ -54,8 +54,8 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109, and the
-  owner's two decisions after phase 7 theirs, D107 and D108.
+  Every merge since D84 has its entry, D85 to D106 and D109 to D111, and
+  the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
   of Vercel's retirement, waits as a draft): phase 5 on its conditions
@@ -79,13 +79,13 @@ an item says so.
   and Telegram. Each step's document says what to run, then the same by
   hand. Merged in #28 (D109). None has yet run against the owner's
   accounts.
-- **`Tecso-Dev/caro` brought to `main`.** Once the owner sets one deploy
-  key ([DELIVERY](DELIVERY.md)), CI does it after each green merge: a
-  fast-forward, then the site waited for and read. Until then, the owner
-  after each merge with `tecso-release.sh`, which does the same; its
-  `main` was brought from `1940296` to `7ee3256`, #25's merge, on 2026-11-07
-  (D100), to `2f345dd` the same day (D107), and to `4273047`, #28's merge,
-  on 2026-11-18 (D109).
+- **`Tecso-Dev/caro` brought to `main`** by CI after each green merge,
+  since the owner set its deploy key on 2026-11-19 (D110): a fast-forward,
+  then the site waited for and read ([DELIVERY](DELIVERY.md)). Before that,
+  the owner did it with `tecso-release.sh`: from `1940296` to `7ee3256`,
+  #25's merge, on 2026-11-07 (D100), to `2f345dd` the same day (D107), and to
+  `4273047`, #28's merge, on 2026-11-18 (D109). CI brought it to `7585632`,
+  #32's merge, on 2026-11-19 (D110).
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -502,7 +502,7 @@ names. Durations are for two people part-time.
    «بالاتر از» still read the floor (D84); two floors in one query, and a
    floor by word beside one by cue, are not pinned.
 
-   A bare «X به بالا» — built (2026-11-18, the owner's call). «پراید ۴۰۰
+   A bare «X به بالا» — built (2026-11-18, the owner's call; D111). «پراید ۴۰۰
    میلیون به بالا», with no «از» or «بالای» before the amount, set no floor,
    and the amount was taken for the ceiling with the assumption printed: the
    meaning reversed, on 120 of 120 made phrasings of five forms («X به بالا»,
@@ -533,7 +533,7 @@ names. Durations are for two people part-time.
    amount is taken for the ceiling.
 
    Ranges — built (2026-11-18, the owner's call, measured in the round of the
-   bare form). «بین ۳۰۰ تا ۴۰۰ میلیون» read no floor: the upper end was the
+   bare form; D111). «بین ۳۰۰ تا ۴۰۰ میلیون» read no floor: the upper end was the
    ceiling and the lower end was dropped, or the first amount was taken for
    the ceiling with the assumption printed, which after «بین X و Y» and «X الی
    Y» was the lower end where it had a scale word. Right on 0 of 136 made
@@ -707,7 +707,9 @@ names. Durations are for two people part-time.
    within about three minutes of its push on 2026-10-15 (D80), and
    `4273047` was on the site when it was read on 2026-11-18 (D109). Since
    #30, CI pushes each green merge there itself and reads the site after
-   it, once the owner has set one deploy key ([DELIVERY](DELIVERY.md)). Checked
+   it, by the owner's deploy key ([DELIVERY](DELIVERY.md)); the first was
+   `7585632`, read on the site about a minute after the push on 2026-11-19
+   (D110). Checked
    there on 2026-10-25 (D84):
    the contact page has its inbox off and links to the repository's Issues
    (`CARO_INBOX=off`, D68), and the car page draws the province with how it

@@ -8232,3 +8232,177 @@ owner's, and what it prints is that record. Phase 1's step 1, the server
 itself, and step 5, the packages made public, stay by hand, as do the
 accounts each step needs: the SMS account, the bucket, the bot, the
 Grafana Cloud stack.
+
+## D110 — Each green merge reaches the site by itself: CI brings Tecso-Dev/caro to it by a deploy key, and reads the site after
+
+Until the switch to the server, the site is Vercel's, built from `main` of
+`Tecso-Dev/caro`, and it moved only when the owner ran `tecso-release.sh`
+after a merge. Asked on 2026-11-18 whether CI delivered anything, the owner
+said to set it up. Merged the same day in #30, with #31 after it, which read
+the README whole at the owner's ask and made current what had gone stale:
+
+    commit    what it does                                          suites    bare
+    916c34d   health names the commit Vercel deployed                   3652   2901
+    fdc33c5   deploy/deliver.sh, a fast-forward and never a force        3654   2903
+    0c3b800   the job `deliver` in the images workflow                  3655   2904
+    733262f   docs/DELIVERY.md, and the one deploy key                  3655   2904
+    49d2a2f   the README read whole and made current                    3655   2904
+    37e7520   the roadmap's operations: CI's warnings closed            3655   2904
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+heads and on `main` after `21a7733` and `c366296`.
+
+**What the job does.** After each merge into `main`, once the images job
+has passed:
+- it waits for the ci workflow's run on the very commit, and delivers
+  nothing unless that run succeeded;
+- it reaches `Tecso-Dev/caro` by a deploy key of that repository alone,
+  kept as this repository's secret `TECSO_DEPLOY_KEY`;
+- `deploy/deliver.sh` moves that `main` to the commit, a fast-forward and
+  never a force. Where that `main` has commits of its own, nothing is
+  pushed and the job fails, for a person to sort out;
+- it waits until the site's health names the commit, up to fifteen
+  minutes. The API now gives Vercel's `VERCEL_GIT_COMMIT_SHA` where no
+  image names one;
+- it reads the site from the outside, the lines `tecso-release.sh` printed.
+
+Without the key the job says so and does nothing. It writes nothing in this
+repository. The deploy suite holds DP41 to DP43 for it, the first two with
+real git and a refusing hook; DP13, which says the workflow keeps no key to
+the server, names the one it keeps, which reaches no server. **Mutants:**
+20, with bytecode off, 19 caught at first. The survivor, a re-read of that
+`main` after the push, which no row could reach, was taken out, and a row
+has a push refused; every mutant was run again, 20 caught.
+
+**The key, set on 2026-11-18 and 2026-11-19.** The owner ran the four lines
+of DELIVERY one by one. `Tecso-Dev` allowed no deploy keys, which is how
+GitHub makes a new organization, so the second line was refused: «Deploy
+keys are disabled for this repository». The third ran all the same. The
+secret then held a key no repository had, and on the run tried again
+`deliver` failed at «Tecso-Dev/caro, by its deploy key». The owner turned
+deploy keys on in the organization's settings, on a page of their own,
+**Deploy keys**; the documents found from the sandbox, GitHub Enterprise
+Server's, put the switch under **Member privileges**. The lines, run again,
+set a key that `Tecso-Dev/caro` holds. This entry's
+pull request joins them by `&&`, so a refused key sets no secret, and
+DELIVERY names the refusal and the switch.
+
+**Read from the outside** on 2026-11-19 by the job itself, on the third run
+of the images workflow on `7585632`, #32's merge:
+- `deliver: Tecso-Dev/caro main 4273047… -> 7585632…`, at 12:07;
+- `deploy-wait`: the site first gave `(no build)`, its deployment of
+  `4273047` older than the health that names one, then `7585632` at 12:08;
+- the site check: `/about` 109 decisions, 3796 assertions and 19 suites;
+  the corpus REAL run17, `ad72b16a54cf`, 492 rows; a Samand's page, 32
+  listings; «سمند زیر ۲ میلیارد», 13 shown and 1 held apart; the edge line
+  `models -, public, max-age=60`, its corpus the same as health's; served by
+  Vercel, with no Cloudflare header.
+
+**What this does not settle.** The job reads what `tecso-release.sh` read
+and no more: it tells the issues in `Tecso-Dev/caro` nothing, which that
+script did. The deploy key is the owner's to remove when Vercel is retired
+(PHASE6_SETUP, step 4), and the organization's switch theirs to turn off
+again then, if nothing else uses it.
+
+## D111 — A bare «X به بالا» is a floor, and a range gives both ends, by the owner's decision on what was measured
+
+D85 left two of the floor's topics measured and not built: a bare «X به
+بالا», with no cue before the amount, and ranges. The owner chose on
+2026-11-18 to have both measured in one round. The round was measured on
+426 phrasings in 26 cells, each made for it, since no log of what buyers
+type exists. Its predictions were written and locked before the
+measurement (sha256 `5fe63e52…`). The result was put to the owner, who
+chose on it:
+- the bare form is a floor;
+- ranges are read, with the guard that leaves «X تا Y» as it was where it
+  has no «بین» or «از» and no scale word on X;
+- a range written upside down stays as it was.
+
+Merged on 2026-11-18 in #32:
+
+    commit    what it does                                          suites    bare
+    74b3bdb   a bare «X به بالا» is a floor, not the ceiling             3710   2959
+    7fab2d9   a range gives both ends, not only the upper                3796   3045
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `7585632`.
+
+**The bare floor** (`74b3bdb`). «پراید ۴۰۰ میلیون به بالا» set no floor.
+Its amount was taken for the ceiling, with «عدد قیمت را سقف بودجه فرض
+کردیم» printed: the meaning reversed, on 120 of 120 phrasings of five
+forms. It is a floor now, tried after the floors with a cue:
+- 120 of 120, with nothing printed;
+- 6 of 6 with a year clause after it;
+- a negation right after it leaves it to the ceiling rules, as for the
+  other floors (24 of 24).
+
+**Ranges** (`7fab2d9`). «بین ۳۰۰ تا ۴۰۰ میلیون» read no floor. The upper end
+was the ceiling and the lower was dropped, or the first amount was taken for
+the ceiling with the assumption printed: right on 0 of 136 phrasings of six
+forms. Both ends are read now, before the floors, on 120 of the 136. The
+forms are «بین X تا Y», «از X تا Y», «بین X و Y», «X الی Y», «X-Y», and «X تا
+Y» where X has its scale word. A lower end with no scale word takes the
+upper's, or a million below a billion, within ten times. Left as they were:
+- the 16 «X تا Y» that are the guard's cost, written as «پژو ۲۰۶ تا ۴۰۰
+  میلیون» is;
+- «بین ۴۰۰ تا ۳۰۰ میلیون», the ceiling of 300 million it was, on 8 of 8.
+
+**What did not change.** None of the 132 controls. Of the queries the
+suites hand the parser, 6 of 818 change with the first commit and 2 of 929
+with the second: the rows that pinned the two topics as left, each moving
+to the meaning.
+
+**The predictions** held but for two:
+- the controls' count: 132, not 164;
+- P16 for the first candidate. It read «بین ۱.۵ تا ۱ میلیارد» as a floor of
+  1.5 million on 4 phrasings. The ten-times bound was added before the
+  owner was asked, and the built rules read all 426 as the candidate put to
+  them did.
+
+**Found by hand after the measurement**, none of it measured, and each read
+as it was:
+- a ceiling's cue right before the bare amount or a range: «تا», «زیر»,
+  «حداکثر», or a comparative with or without «از». As measured, «تا ۴۰۰
+  میلیون به بالا نمی‌تونم» and «کمتر از ۴۰۰ میلیون به بالا» were floors: the
+  comparative guard looked right before the amount, where «از» stands;
+- a negation right after a range;
+- with neither «بین» nor «از», a dash with a space beside it. As measured,
+  «پژو ۲۰۶ - ۴۰۰ میلیون» was a floor of 206 million;
+- with neither «بین» nor «از», a lower figure that is a model's number.
+
+None of these changes any of the 426. 122,768 queries were composed of parts
+after the measurement. With the bare floor, 19,240 change, and every one
+holds an amount with «به بالا» right after it. Ranges change 27,648 more,
+and each of those holds two figures joined by «تا», «الی», a dash or «و», the
+second an amount of money. A phrase after « و » that the range's «تا» clause
+used to take with it is listed now, as after a floor.
+
+**Mutants:** 56, with bytecode off, 25 and 31. The first run caught 23 and
+30. Three lived:
+- the bare floor tried before the floors with a cue;
+- a space required before «به»;
+- the en dash left out of the spaced-dash guard.
+
+Rows added after the run catch all three:
+- «پراید ۳۰۰ میلیون به بالا، از ۴۰۰ میلیون به بالا», which pins what two
+  floors in one query do;
+- «پراید ۴۰۰ میلیونبه بالا»;
+- «۳۰۰ – ۴۰۰ میلیون».
+
+**Left**, each pinned by a test:
+- a negation outside the list;
+- a figure glued to a word;
+- two floors in one query, where the one with a cue is read and the other
+  amount is the ceiling;
+- a lower end written «۱ میلیارد و ۲۰۰ میلیون»;
+- a year against a price with a bare dash («تیبا ۱۴۰۰-۲ میلیارد» is a range
+  from 1.4 billion);
+- «از» and a figure with no «مدل» («تیبا از ۹۵ تا ۴۰۰ میلیون» is a range from
+  95 million).
+
+**Read from the outside** by the job of D110, which delivered `7585632` to
+the site on 2026-11-19 and read it there. The rules are in the API that
+`deploy-wait` found running. The site check does not ask the parser; the
+suites, in CI and inside the API's image, do.
