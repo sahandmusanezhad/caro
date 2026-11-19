@@ -34,7 +34,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `7585632`, #32's merge, when CI read it on 2026-11-19 (D110, D111); each green merge reaches it by CI, by the owner's deploy key ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
+| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `abc9c43`, #34's merge, when CI read it on 2026-11-19 (D110, D112); each green merge reaches it by CI, by the owner's deploy key ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
 
 ## The order of work
 
@@ -54,7 +54,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D111, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D112, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -85,7 +85,8 @@ an item says so.
   the owner did it with `tecso-release.sh`: from `1940296` to `7ee3256`,
   #25's merge, on 2026-11-07 (D100), to `2f345dd` the same day (D107), and to
   `4273047`, #28's merge, on 2026-11-18 (D109). CI brought it to `7585632`,
-  #32's merge, on 2026-11-19 (D110).
+  #32's merge, on 2026-11-19 (D110), and since to each green merge, the
+  last read `abc9c43`, #34's, the same day (D112).
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -109,8 +110,8 @@ an item says so.
    [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
 4. **The parser's open topics** (the parser). None is queued. The floor's
    topics were closed on 2026-11-18. On 2026-11-19 a model's name became a
-   word of its own in both readers, and the five ways Khodro45 writes an
-   assembled model's name were measured and left as they are: in run17 no
+   word of its own in both readers (D112), and the five ways Khodro45 writes
+   an assembled model's name were measured and left as they are: in run17 no
    model is under two of them. The models a buyer can name: since 2026-11-02 the search
    and the listing parser read one table (`caro/ingest/models.py`), so IKCO's
    Samand, Tara and Runna are read — 281 of run17's 492 listings are of a
@@ -321,10 +322,10 @@ names. Durations are for two people part-time.
      same, unless it is one of the three the stoplist holds: «حد», «حال»,
      «بودجه».
    - «تهرانپارس», «پارس‌آباد» and «شاهین‌شهر» add no model since 2026-11-19,
-     when a model's name became a word of its own (item 4). «شهریار» still
-     sets a commute use, a cue being matched inside a longer word, and after
-     a cue «تهرانپارس» still lists «در تهران», the part before the alias,
-     which reads as a province: the place reader blanks a model's name
+     when a model's name became a word of its own (item 4, D112). «شهریار»
+     still sets a commute use, a cue being matched inside a longer word, and
+     after a cue «تهرانپارس» still lists «در تهران», the part before the
+     alias, which reads as a province: the place reader blanks a model's name
      wherever it stands. It was so before D82.
 
 4. **What the parser drops without a word** (D83). Three ways, found while
@@ -377,8 +378,8 @@ names. Durations are for two people part-time.
      flexible budget, «بارفروش» a cargo use, «پارس‌آباد» the model `pars`.
      Measured, not changed, and left to the owner, since which letters may
      stand beside a word is a choice about Persian and not a measurement.
-     For a model's name it changed on 2026-11-19, when run17 showed what
-     the old rule did to the site: three Suzuki Grand Vitaras read as IKCO
+     For a model's name it changed on 2026-11-19 (D112), when run17 showed
+     what the old rule did to the site: three Suzuki Grand Vitaras read as IKCO
      Taras («تارا» inside «ویتارا») and two Renault Pars Tondars as Peugeot
      Parses, the Tara page's highest price a Vitara's 7.575 billion toman.
      The owner chose, on two measurements, a name as a word of its own in
