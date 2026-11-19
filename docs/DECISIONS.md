@@ -8406,3 +8406,140 @@ Rows added after the run catch all three:
 the site on 2026-11-19 and read it there. The rules are in the API that
 `deploy-wait` found running. The site check does not ask the parser; the
 suites, in CI and inside the API's image, do.
+
+## D112 — A model's name is a word of its own, in the listings and in the search, by the owner's decision on what was measured
+
+D84 measured which letters may stand beside a word, three ways, and on
+2026-10-18 the owner chose to leave all three unbuilt. On 2026-11-19 the
+owner said «همرو اوکی کن» to the open items, one of them the parser's: the
+five ways Khodro45 writes an assembled model's name. Reading run17 for it,
+the corpus the site serves (D93), found what D84 had left doing harm there:
+- three Suzuki Grand Vitaras are under IKCO Tara, «تارا» being inside
+  «ویتارا». The Tara page's highest price is a Vitara's, 7,575,000,000
+  toman, where a Tara's own is 4,040,000,000;
+- two Renault Pars Tondars are under Peugeot Pars.
+
+The cause, read in the code: `extract_make_model` matched a name anywhere in
+the text, in the table's order, and so did the search for a name with a
+letter in it. A Divar description that says «تهرانپارس» put its car under
+Peugeot Pars, which the table holds before Pride, Tiba, Quik and Dena, and
+the search hinted «pars» for «پراید تهرانپارس» and «tara» for «گرند ویتارا».
+
+Two sets were measured, each made for it, since no Persian title of
+Khodro45's is in the repository. Each set's predictions were written and
+locked before it was measured. The owner chose on each:
+- on the first, the full rule («کامل»), and the assembled forms left as they
+  are («همین بماند»);
+- on the second, the endings Persian puts on a noun, and a «و» typed on,
+  allowed beside a name («با فهرست پسوندها»).
+
+Merged on 2026-11-19 in #34:
+
+    commit    what it does                                            suites    bare
+    4ea6ff8   a model's name is a word of its own, in both readers      3833    3082
+
+The commit was green on its own, with the network off: the suites, the bare
+set, and the site's typecheck, lint and build. CI succeeded on the head and
+on `main` after `abc9c43`.
+
+**The rule** (`caro.ingest.models.names`, one rule for both readers,
+`divar_car.extract_make_model` and `ranking._names_model`). A name of letters
+is a name only where:
+- no letter stands right before it, but a «و» typed on («وتیبا»);
+- no letter stands right after it, but an ending Persian puts on a noun:
+  «ی», «یی», «م», «ت», «ش», «مو», «تو», «شو», «مون», «تون», «شون», «مان»,
+  «تان», «شان», «ها», «های», «هایی»;
+- «تندر», «شهر» or «آباد» is not the next word, nor «تهران» the word before.
+
+A name of digits alone is found anywhere, as it was; the search keeps its own
+rule for those (D83). Both readers fold a zero width non-joiner to a space
+before a name is looked for, so «پارس‌آباد» is «پارس آباد» to the rule.
+
+**The first set** (sha256 `0d5da1c7…`, locked 12:56Z, measured 12:58Z).
+Three rules: R1, no letter on either side; R2, R1 and not before «تندر»; R3,
+R2 and not beside a place. 52 made titles and 24 queries in ten cells, read
+by each:
+
+    cells                               today    R1    R2    R3
+    Vitaras, 8 titles                       0     8     8     8
+    Pars Tondars, 5 titles                  0     0     4     4
+    «تهرانپارس», 5 titles                   0     5     5     5
+    a place in two words, 5 titles          0     0     0     5
+    controls, 29 titles                    29    29    29    29
+    Vitaras, 4 queries                      0     4     4     4
+    Pars Tondars, 3 queries                 0     0     3     3
+    «تهرانپارس», 2 queries                  0     2     2     2
+    a place in two words, 3 queries         0     0     0     3
+    controls, 12 queries                   12    12    12    12
+
+One prediction was wrong: P3 had R2 right on every Pars Tondar, and R2 and
+R3 left «تندر پارس رنو», the words the other way round, as Pars. The
+measurement's script was given two more columns for the second question;
+run again against `main` before the commit, it gives the first run's
+numbers.
+
+**Found after the owner's choice, before any commit.** The rule as chosen
+allowed only «ی» and «یی» after a name. Two things came out:
+- the same question was D84's, measured and left by the owner on
+  2026-10-18, and that had not been said when the owner was asked;
+- what that rule costs. D84's sets were written outside the repository, so a
+  second set was made for it.
+
+**The second set** (sha256 `68084759…`, locked 21:19Z, before its rows
+were written): 27 true forms of a
+model's name with something typed on, and 10 words that hold a name and are
+none. Read today, by the rule as chosen and by the wider one:
+
+    rows                                       today   chosen   wider
+    true forms, 27                                27        3      27
+    words that hold a name and are none, 10        0        9       9
+
+One wanted reading was corrected after the set's first run, before the owner
+was asked: «یا سمند وپراید» names two models, and the listing parser takes the
+table's first, Pride, as it does today. As first written, with Samand wanted,
+the true forms read 26, 4 and 26. Put to the owner again with both, the owner
+chose the wider rule. The one word left is «پارسی», read as Pars, «ی» being
+an ending. The first set reads the same under both. Read with the row as
+corrected, the second set's three predictions held; with the row as first
+written, two would not have, today and the wider rule reading 26 and not 27.
+
+**What did not change.** Of the 80 texts the suites hand the listing parser,
+none. Of their 1,075 queries, one: «پراید تهرانپارس» no longer hints «pars».
+D84's other two examples, a cue inside a longer word («محدوده» setting a
+flexible budget, «بارفروش» a cargo use), are as they were: the rule is for
+models' names.
+
+**Read by the code as built**, after the commit: both sets, through
+`extract_make_model` and the search themselves and not through the
+measurement's copy of the rule, read as the wider rule measured: 8, 4, 5, 5,
+29 titles and 4, 3, 2, 3, 12 queries; 27 true forms and 9 words.
+
+**Mutants**, with bytecode off:
+- the first build, 19, 18 caught. The survivor took out a word-start guard
+  before «تهران» that no Persian word reaches. The guard was dropped and the
+  three mutants on that line were run again, all caught;
+- the rule as built, 33, 26 caught at first. The seven that lived each took
+  out an ending no row used («تو», «تون», «شون», «مان», «تان», «شان»,
+  «هایی»). A row for each was added after the run, and all seven were caught.
+
+**Left:**
+- «تندر پارس رنو» and «زبان پارسی», each read as Pars and pinned by a test;
+- run17's five rows. A snapshot is not parsed again (D87), so they stay as
+  they were read until a later corpus is promoted;
+- the five ways Khodro45 writes an assembled model's name: no model in
+  run17 is under two of them.
+
+**Read from the outside** by the job of D110. It brought `Tecso-Dev/caro`
+from `15810ff` to `abc9c43` at 21:53Z on 2026-11-19, found the site running
+it a minute later, and read it there:
+
+    about    200 ۱۱۱=تصمیم ۳۸۳۳=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+    model    200 IKCO Samand: 32 listings
+    search   200 «سمند زیر ۲ میلیارد»: models ['samand'], 13 shown, 1 apart
+
+/about gave this commit's counts, and 111 decisions, this entry not yet
+among them. The rule is in the API that `deploy-wait` found running. The
+site check's one question names Samand by a word of its own, which reads the
+same under either rule; the rule is checked by the suites, in CI and inside
+the API's image.
