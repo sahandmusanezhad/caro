@@ -68,24 +68,27 @@ MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
 #     noun: «ی», «یی», «م», «ت», «ش», «مو», «تو», «شو», «مون», «تون», «شون»,
 #     «مان», «تان», «شان», «ها», «های», «هایی» («پرایدم», «تیباش», «پرایدها» are
 #     read as they were);
-#   - nor where «تندر», «شهر» or «آباد» is the next word, or «تهران» the word
-#     before: Renault's «پارس تندر», and the places «شاهین شهر», «پارس آباد»
-#     and «تهران پارس».
+#   - nor where «تندر», «شهر» or «آباد» is the next word, or «تهران» or «تندر»
+#     the word before: Renault's «پارس تندر» and «تندر پارس», and the places
+#     «شاهین شهر», «پارس آباد» and «تهران پارس».
 #
 # Read so, 8 of 8, 4 of 5, 5 of 5 and 5 of 5, and 29 of 29. The endings and the
 # «و» were found after the owner's first choice, which read 24 of 27 such true
 # forms as no model, and the owner chose them on the second measurement: 27 of
 # 27 kept, and 9 of 10 words that hold a name and are none cleared («پارسال»,
 # «پارسیان», «پارسا», «سمندر»). The same question was measured in D84's round
-# and left then. Left: «پارسی» is Peugeot's Pars, «ی» being an ending; «تندر
-# پارس رنو», the words the other way round, is too. A name of digits alone is
-# found anywhere, as it was; the search keeps its own rule for those
+# and left then. Left: «پارسی» is Peugeot's Pars, «ی» being an ending. «تندر»
+# as the word before was the owner's choice of the same night, measured, the
+# predictions locked first: right on 7 of 7 titles and 3 of 3 queries with
+# the words the other way round («تندر پارس رنو»), where the rule was right on
+# none, and nothing else read differently. A name of digits alone is found
+# anywhere, as it was; the search keeps its own rule for those
 # (`caro.ranking._names_model`).
 _LETTER = r"[^\W\d_]"
 _BEFORE = r"(?:(?<!" + _LETTER + r")|(?<=(?<!" + _LETTER + r")و))"
 _ENDING = r"(?:ی|یی|م|ت|ش|مو|تو|شو|مون|تون|شون|مان|تان|شان|ها|های|هایی)?"
 _NOT_A_MODEL_AFTER = re.compile(r"\s*(?:تندر|شهر|آباد)(?!\w)")
-_NOT_A_MODEL_BEFORE = re.compile(r"تهران\s*$")
+_NOT_A_MODEL_BEFORE = re.compile(r"(?:تهران|تندر)\s*$")
 
 
 def names(text: str, name: str) -> bool:
