@@ -8232,3 +8232,75 @@ owner's, and what it prints is that record. Phase 1's step 1, the server
 itself, and step 5, the packages made public, stay by hand, as do the
 accounts each step needs: the SMS account, the bucket, the bot, the
 Grafana Cloud stack.
+
+## D110 — Each green merge reaches the site by itself: CI brings Tecso-Dev/caro to it by a deploy key, and reads the site after
+
+Until the switch to the server, the site is Vercel's, built from `main` of
+`Tecso-Dev/caro`, and it moved only when the owner ran `tecso-release.sh`
+after a merge. Asked on 2026-11-18 whether CI delivered anything, the owner
+said to set it up. Merged the same day in #30, with #31 after it, which read
+the README whole at the owner's ask and made current what had gone stale:
+
+    commit    what it does                                          suites    bare
+    916c34d   health names the commit Vercel deployed                   3652   2901
+    fdc33c5   deploy/deliver.sh, a fast-forward and never a force        3654   2903
+    0c3b800   the job `deliver` in the images workflow                  3655   2904
+    733262f   docs/DELIVERY.md, and the one deploy key                  3655   2904
+    49d2a2f   the README read whole and made current                    3655   2904
+    37e7520   the roadmap's operations: CI's warnings closed            3655   2904
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+heads and on `main` after `21a7733` and `c366296`.
+
+**What the job does.** After each merge into `main`, once the images job
+has passed:
+- it waits for the ci workflow's run on the very commit, and delivers
+  nothing unless that run succeeded;
+- it reaches `Tecso-Dev/caro` by a deploy key of that repository alone,
+  kept as this repository's secret `TECSO_DEPLOY_KEY`;
+- `deploy/deliver.sh` moves that `main` to the commit, a fast-forward and
+  never a force. Where that `main` has commits of its own, nothing is
+  pushed and the job fails, for a person to sort out;
+- it waits until the site's health names the commit, up to fifteen
+  minutes. The API now gives Vercel's `VERCEL_GIT_COMMIT_SHA` where no
+  image names one;
+- it reads the site from the outside, the lines `tecso-release.sh` printed.
+
+Without the key the job says so and does nothing. It writes nothing in this
+repository. The deploy suite holds DP41 to DP43 for it, the first two with
+real git and a refusing hook; DP13, which says the workflow keeps no key to
+the server, names the one it keeps, which reaches no server. **Mutants:**
+20, with bytecode off, 19 caught at first. The survivor, a re-read of that
+`main` after the push, which no row could reach, was taken out, and a row
+has a push refused; every mutant was run again, 20 caught.
+
+**The key, set on 2026-11-18 and 2026-11-19.** The owner ran the four lines
+of DELIVERY one by one. `Tecso-Dev` allowed no deploy keys, which is how
+GitHub makes a new organization, so the second line was refused: «Deploy
+keys are disabled for this repository». The third ran all the same. The
+secret then held a key no repository had, and on the run tried again
+`deliver` failed at «Tecso-Dev/caro, by its deploy key». The owner turned
+deploy keys on in the organization's settings, on a page of their own,
+**Deploy keys**; the documents found from the sandbox, GitHub Enterprise
+Server's, put the switch under **Member privileges**. The lines, run again,
+set a key that `Tecso-Dev/caro` holds. This entry's
+pull request joins them by `&&`, so a refused key sets no secret, and
+DELIVERY names the refusal and the switch.
+
+**Read from the outside** on 2026-11-19 by the job itself, on the third run
+of the images workflow on `7585632`, #32's merge:
+- `deliver: Tecso-Dev/caro main 4273047… -> 7585632…`, at 12:07;
+- `deploy-wait`: the site first gave `(no build)`, its deployment of
+  `4273047` older than the health that names one, then `7585632` at 12:08;
+- the site check: `/about` 109 decisions, 3796 assertions and 19 suites;
+  the corpus REAL run17, `ad72b16a54cf`, 492 rows; a Samand's page, 32
+  listings; «سمند زیر ۲ میلیارد», 13 shown and 1 held apart; the edge line
+  `models -, public, max-age=60`, its corpus the same as health's; served by
+  Vercel, with no Cloudflare header.
+
+**What this does not settle.** The job reads what `tecso-release.sh` read
+and no more: it tells the issues in `Tecso-Dev/caro` nothing, which that
+script did. The deploy key is the owner's to remove when Vercel is retired
+(PHASE6_SETUP, step 4), and the organization's switch theirs to turn off
+again then, if nothing else uses it.
