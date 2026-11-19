@@ -142,11 +142,19 @@ jobs:
 
       # Playwright for this job alone: never one of the site's dependencies,
       # so neither its lock file nor any build of it carries a browser.
+      # Ubuntu's mirrors answered 503 for three minutes on 2026-11-19, to the
+      # fonts Playwright installs with Chromium, and the job failed where a
+      # run a minute later passed. A second and a third try, a minute and two
+      # after, outlast an outage of that size; the third failure still fails.
       - name: Playwright and its Chromium
         working-directory: webapp/web
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.63.0
-          npx playwright install --with-deps chromium
+          for try in 1 2 3; do
+            npx playwright install --with-deps chromium && break
+            [ "$try" = 3 ] && exit 1
+            sleep $((60 * try))
+          done
 
       # The seller store in a file of the job's, the fake SMS echoing each code
       # into the API's log for the check to read, and an operator's token made

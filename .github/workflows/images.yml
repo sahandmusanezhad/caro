@@ -111,12 +111,20 @@ jobs:
 
       # Playwright for this job alone, as for CI's e2e job: never one of the
       # site's dependencies, and in neither image.
+      # Ubuntu's mirrors answered 503 for three minutes on 2026-11-19, to the
+      # fonts Playwright installs with Chromium, and the job failed where a
+      # run a minute later passed. A second and a third try, a minute and two
+      # after, outlast an outage of that size; the third failure still fails.
       - name: Playwright and its Chromium
         working-directory: webapp/web
         run: |
           npm ci --no-audit --no-fund
           npm install --no-save --no-audit --no-fund playwright@1.63.0
-          npx playwright install --with-deps chromium
+          for try in 1 2 3; do
+            npx playwright install --with-deps chromium && break
+            [ "$try" = 3 ] && exit 1
+            sleep $((60 * try))
+          done
 
       # What CI's e2e job checks on the tree, against the images: the site's
       # standalone server, its fonts and scripts and its policy, and the
