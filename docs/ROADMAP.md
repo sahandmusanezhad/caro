@@ -767,6 +767,15 @@ names. Durations are for two people part-time.
    what was read ([DELIVERY](DELIVERY.md)). Until then the owner runs it --
    `python3 scripts/site_check.py`, with `--site` once the address changes,
    or `tecso-release.sh`, which runs it -- and passes back what it printed.
+3. **The dependencies, every week.** `audit.yml`, the owner's choice of
+   2026-11-19: `npm audit` of the site's lockfile, red on an advisory rated
+   high or critical, and `pip-audit` of what the API's image installs, red
+   on any, since pip-audit gives no rating. It runs every Monday and by
+   hand, never on a push or a pull request, so an advisory stops no merge
+   and no delivery. Read by hand on 2026-11-19 before it was built: nothing
+   in what the site serves or the API installs, and one moderate advisory in
+   the lint tools (minimatch, GHSA-g3hv-75wg-m249), moved past in the
+   lockfile.
 
 ## The end
 

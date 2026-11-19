@@ -1,0 +1,64 @@
+# The dependencies against the published advisories, every Monday and by
+# hand (the owner's choice of 2026-11-19):
+#
+#   site   `npm audit` of webapp/web's lockfile, every package the site and
+#          its tools install. Red on an advisory rated high or critical;
+#          the lower ones are printed and pass.
+#   api    `pip-audit` of what the API's image installs (Dockerfile): numpy,
+#          the core's one dependency, and webapp/requirements.txt, resolved
+#          on the image's Python. pip-audit gives no rating, so any known
+#          advisory turns it red, the owner's choice too.
+#
+# Apart from ci.yml on purpose. An advisory can be published in a week when
+# no line changes; in ci.yml it would stop every merge, and the job
+# `deliver` waits on ci.yml alone, so the site as well. Here a red run stops
+# nothing. It is a notice, which GitHub mails to whoever last set this
+# schedule, and it leads to a commit of its own: a lockfile moved, or a floor
+# raised in webapp/requirements.txt. ci.yml installs with --no-audit for the
+# same reason. GitHub turns a schedule off in a public repository that has
+# had no activity for sixty days; `workflow_dispatch` still runs it by hand.
+
+name: audit
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  site:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: webapp/web
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: The site's packages, against npm's advisories
+        run: npm audit --audit-level=high
+
+  api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: pip-audit, at a version
+        run: python -m pip install "pip-audit==2.10.1"
+
+      - name: The API image's packages, against PyPI's advisories
+        run: |
+          echo numpy > "$RUNNER_TEMP/core.txt"
+          python -m pip_audit -r "$RUNNER_TEMP/core.txt" -r webapp/requirements.txt
