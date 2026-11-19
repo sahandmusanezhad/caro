@@ -5257,6 +5257,14 @@ for _mn_cell, _mn_rows in [
     ("Renault's Pars Tondar is no Peugeot Pars", [
         ("رنو پارس تندر", _MN_NONE), ("رنو پارس تندر دنده ای", _MN_NONE),
         ("پارس تندر ۱۳۹۷", _MN_NONE), ("پارس تندر مدل ۹۲ تمیز", _MN_NONE)]),
+    ("nor is it with its words the other way round (the same night, measured)", [
+        ("تندر پارس رنو", _MN_NONE), ("رنو تندر پارس", _MN_NONE), ("تندر پارس ۱۳۹۷", _MN_NONE),
+        ("تندر پارس مدل ۹۲ تمیز", _MN_NONE), ("فروش تندر پارس دنده ای", _MN_NONE),
+        ("تندر  پارس", _MN_NONE), ("تندر\u200cپارس", _MN_NONE)]),
+    ("«تندر» not right before a name leaves the name", [
+        ("تندر ۹۰ و پژو پارس", ("Peugeot", "Pars")), ("پژو پارس، تندر هم داریم", ("Peugeot", "Pars")),
+        ("تندر ۹۰", _MN_NONE), ("پارس سفید، معاوضه با تندر", ("Peugeot", "Pars")),
+        ("تندر، پارس", ("Peugeot", "Pars"))]),
     ("a name inside a place's word is no model: the car the text is about", [
         ("پراید ۱۳۱ مدل ۹۸ تحویل در تهرانپارس", ("Saipa", "Pride")),
         ("تیبا ۲ سفید، تهرانپارس", ("Saipa", "Tiba")),
@@ -5300,8 +5308,8 @@ for _mn_cell, _mn_rows in [
         ("پژو ۴۰۵ GLX", ("Peugeot", "405")), ("پراید و تیبا", ("Saipa", "Pride")),
         ("quik r", ("Saipa", "Quik")), ("206SD دنده ای", ("Peugeot", "206")),
         ("پژو پارس ۹۸ تحویل تهران", ("Peugeot", "Pars"))]),
-    ("left: the words the other way round, and «پارسی», «ی» being an ending", [
-        ("تندر پارس رنو", ("Peugeot", "Pars")), ("زبان پارسی", ("Peugeot", "Pars"))]),
+    ("left: «پارسی», «ی» being an ending", [
+        ("زبان پارسی", ("Peugeot", "Pars"))]),
 ]:
     _mn_got = [(t, _md_extract(t)) for t, _ in _mn_rows]
     check(f"MN: {_mn_cell} -- {len(_mn_rows)} titles",
@@ -5316,11 +5324,14 @@ check("MN: Khodro45's Grand Vitara and Pars Tondar take the English names their 
                             ("ایران خودرو", "IKCO", "تارا V4", "Tara V4"))]
       == [("Suzuki", "Grand Vitara-Assembled"), ("Renault", "Pars Tondar"), ("IKCO", "Tara")])
 check("MN: a name of digits alone is found anywhere, as before; one of letters only as a word, an "
-      "ending after it or a «و» typed on allowed, so «پارسی» is still Peugeot's Pars and «سوتیبا» no Tiba",
+      "ending after it or a «و» typed on allowed, so «پارسی» is still Peugeot's Pars and «سوتیبا» no Tiba; "
+      "and none right after «تندر»",
       (_mn_names("1206", "206"), _mn_names("ویتارا", "تارا"), _mn_names("تارا", "تارا"),
        _mn_names("پارس تندر", "پارس"), _mn_names("تهران پارس", "پارس"), _mn_names("پارسی", "پارس"),
-       _mn_names("وتیبا", "تیبا"), _mn_names("پارسال", "پارس"), _mn_names("سوتیبا", "تیبا"))
-      == (True, False, True, False, False, True, True, False, False))
+       _mn_names("وتیبا", "تیبا"), _mn_names("پارسال", "پارس"), _mn_names("سوتیبا", "تیبا"),
+       _mn_names("تندر پارس", "پارس"), _mn_names("تندر، پارس", "پارس"), _mn_names("تندر تیبا", "تیبا"),
+       _mn_names("اسکندر پراید", "پراید"))
+      == (True, False, True, False, False, True, True, False, False, False, True, False, True))
 
 
 # ---------------------------------------------------------------------------
