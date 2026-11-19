@@ -44,7 +44,7 @@ env:
 
 jobs:
   images:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     outputs:
       env: ${{ steps.env.outputs.env }}
@@ -161,7 +161,7 @@ jobs:
   reached:
     needs: images
     if: github.event_name == 'push' && github.repository == 'sahandmusanezhad/caro'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     environment: ${{ needs.images.outputs.env }}
     env:
@@ -190,7 +190,7 @@ jobs:
   deliver:
     needs: images
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'sahandmusanezhad/caro'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 50
     permissions:
       contents: read
