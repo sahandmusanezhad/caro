@@ -1579,6 +1579,34 @@ check("DP43: each merge into this repository's main is delivered only after its 
       and "--force" not in _dj,
       _dj[:300])
 
+# The weekly audit (.github/workflows/audit.yml), the owner's choice of 2026-11-19.
+_au = text(".github/workflows/audit.yml")
+_au_on = _au[_au.index("\non:"):_au.index("\npermissions:")]
+_au_site = _au[_au.index("\n  site:"):_au.index("\n  api:")]
+_au_api = _au[_au.index("\n  api:"):]
+_py_image = re.search(r"^FROM python:(\d+\.\d+)", text("Dockerfile"), re.MULTILINE)
+check("DP44: the dependencies are read against the advisories every week and by hand, never on a push or a "
+      "pull request, so an advisory stops no merge and no delivery; the site's whole lockfile fails on high "
+      "or critical, and what the API's image installs -- numpy and webapp/requirements.txt, on the image's "
+      "Python -- fails on any; pip-audit is at a version, the runners and Node are ci.yml's, and the jobs "
+      "may read the code and nothing more",
+      re.search(r'\n  schedule:\n    - cron: "\d+ \d+ \* \* \d"\n', _au_on) is not None
+      and "\n  workflow_dispatch:\n" in _au_on and "push" not in _au_on and "pull_request" not in _au_on
+      and re.findall(r"^\s*([\w-]+): (read|write)$", _au, re.MULTILINE) == [("contents", "read")]
+      and "    defaults:\n      run:\n        working-directory: webapp/web\n" in _au_site
+      and "        run: npm audit --audit-level=high\n" in _au_site and "--omit" not in _au_site
+      and _py_image is not None and f'python-version: "{_py_image.group(1)}"' in _au_api
+      and "pip install numpy -r webapp/requirements.txt" in text("Dockerfile")
+      and re.search(r'run: python -m pip install "pip-audit==\d+\.\d+\.\d+"\n', _au_api) is not None
+      and 'echo numpy > "$RUNNER_TEMP/core.txt"' in _au_api
+      and 'python -m pip_audit -r "$RUNNER_TEMP/core.txt" -r webapp/requirements.txt\n' in _au_api
+      and len(re.findall(r"runs-on: (\S+)", _au)) == 2 and "continue-on-error" not in _au and "if:" not in _au
+      and set(re.findall(r"runs-on: (\S+)", _au)) == set(re.findall(r"runs-on: (\S+)", _ci))
+      and re.findall(r"node-version: (\S+)", _au) == sorted(set(re.findall(r"node-version: (\S+)", _ci)))
+      and "npm audit" not in _ci and "pip-audit" not in _ci and "npm ci --no-audit" in _ci
+      and "audit" not in _wf.replace("--no-audit", ""),
+      _au[:300])
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

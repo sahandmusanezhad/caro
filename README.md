@@ -597,7 +597,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 3833 assertions, no API key, no network
+python3 tests/run_all.py            # 3834 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -611,10 +611,10 @@ dependency of `caro/`.** Three of the nineteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 3082 assertions across 16 of 19 suites
+python3 tests/run_all.py            # 3083 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3833 across all nineteen
+python3 tests/run_all.py            # 3834 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -628,7 +628,10 @@ every key route of the built site in a browser, and a fourth runs the seller
 store, the catalog and the site served from the catalog once more against a
 real Postgres 16, where a laptop and the other jobs use SQLite. What follows
 a merge — the images, and the site brought to it — is in
-[DELIVERY](docs/DELIVERY.md).
+[DELIVERY](docs/DELIVERY.md). `.github/workflows/audit.yml` reads the site's
+lockfile and what the API's image installs against the published advisories
+every Monday and by hand, never on a push or a pull request, so an advisory
+stops no merge.
 
 <details>
 <summary><b>Why <code>setup.sh</code>, why no scikit-learn, and the scripts that need a corpus no clone has</b></summary>
@@ -817,7 +820,7 @@ and the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3833 assertions across nineteen suites
+tests/           3834 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
