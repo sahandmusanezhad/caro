@@ -107,8 +107,11 @@ an item says so.
    live on the owner's machine since 2026-10-30; none of its runs is
    published. The plan and its predictions:
    [RUN_PLAN_KHODRO45_SHEYPOOR](RUN_PLAN_KHODRO45_SHEYPOOR.md).
-4. **The parser's open topics** (the parser). The five ways Khodro45 writes
-   an assembled model's name; the floor's topics were closed on 2026-11-18. The models a buyer can name: since 2026-11-02 the search
+4. **The parser's open topics** (the parser). None is queued. The floor's
+   topics were closed on 2026-11-18. On 2026-11-19 a model's name became a
+   word of its own in both readers, and the five ways Khodro45 writes an
+   assembled model's name were measured and left as they are: in run17 no
+   model is under two of them. The models a buyer can name: since 2026-11-02 the search
    and the listing parser read one table (`caro/ingest/models.py`), so IKCO's
    Samand, Tara and Runna are read — 281 of run17's 492 listings are of a
    model a query can name, from 217. Offered the same day and not chosen: a
@@ -317,11 +320,12 @@ names. Durations are for two people part-time.
      dropped. And any word after a cue that is no place is listed all the
      same, unless it is one of the three the stoplist holds: «حد», «حال»,
      «بودجه».
-   - «تهرانپارس» adds the model `pars`, because the alias is matched as a
-     substring; «پارس‌آباد» does the same, «شاهین‌شهر» adds `shahin` and
-     «شهریار» sets a commute use. None of them shows the city, and after a
-     cue «تهرانپارس» lists «در تهران», the part before the alias, which
-     reads as a province. It was so before D82; item 4 has the rest.
+   - «تهرانپارس», «پارس‌آباد» and «شاهین‌شهر» add no model since 2026-11-19,
+     when a model's name became a word of its own (item 4). «شهریار» still
+     sets a commute use, a cue being matched inside a longer word, and after
+     a cue «تهرانپارس» still lists «در تهران», the part before the alias,
+     which reads as a province: the place reader blanks a model's name
+     wherever it stands. It was so before D82.
 
 4. **What the parser drops without a word** (D83). Three ways, found while
    the cities were measured and tried on the real parser. The owner asked
@@ -373,6 +377,23 @@ names. Durations are for two people part-time.
      flexible budget, «بارفروش» a cargo use, «پارس‌آباد» the model `pars`.
      Measured, not changed, and left to the owner, since which letters may
      stand beside a word is a choice about Persian and not a measurement.
+     For a model's name it changed on 2026-11-19, when run17 showed what
+     the old rule did to the site: three Suzuki Grand Vitaras read as IKCO
+     Taras («تارا» inside «ویتارا») and two Renault Pars Tondars as Peugeot
+     Parses, the Tara page's highest price a Vitara's 7.575 billion toman.
+     The owner chose, on two measurements, a name as a word of its own in
+     both readers (`caro.ingest.models.names`): no letter before it but a
+     «و» typed on; none after it but an ending Persian puts on a noun («ی»,
+     «م», «ش», «مو», «ها» …); and not before «تندر», «شهر» or «آباد», nor after
+     «تهران». Made titles: 8 of 8 Vitaras, 4 of 5 Pars Tondars, 5 of 5 with
+     «تهرانپارس», 5 of 5 with a place in two words, where the old rule was
+     right on none, and 29 of 29 ordinary titles as before; 27 of 27 true
+     forms with an ending or a «و» kept, and 9 of 10 words that hold a name
+     and are none cleared («پارسال», «پارسیان», «پارسا», «سمندر»). Left:
+     «پارسی» is Pars, «ی» being an ending; «تندر پارس رنو», the words the
+     other way round, is Pars; the cues are still matched inside a longer
+     word; and run17, a published file, keeps its five misread rows until a
+     later corpus is promoted.
      On 69 words that hold a cue or an alias and are no use of it, and 33
      true forms that carry a suffix: no letter before it clears 30 of the
      69 and loses none of the 33, but stops reading a name with a prefix

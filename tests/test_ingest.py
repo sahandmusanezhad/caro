@@ -5237,6 +5237,93 @@ check("MD1: the listing parser and the search read one table -- every model of o
 
 
 # ---------------------------------------------------------------------------
+print("\na model's name is a word of its own (2026-11-19, the owner's call)")
+# A name was found anywhere in a text, in the table's order: three of run17's
+# Grand Vitaras were IKCO Taras, «تارا» inside «ویتارا», two Renault Pars
+# Tondars were Peugeot Parses, and a Divar description that names
+# «تهرانپارس» put the car it is about under Peugeot Pars. Measured on made
+# titles, the predictions locked first: right on 0 of 8, 0 of 5, 0 of 5 and 0
+# of 5 today, and on 29 of 29 ordinary titles. Every title here is made.
+from caro.ingest.khodro45 import _make_model as _mn_k45               # noqa: E402
+from caro.ingest.models import names as _mn_names                      # noqa: E402
+
+_MN_NONE = (None, None)
+for _mn_cell, _mn_rows in [
+    ("a Grand Vitara is no Tara", [
+        ("سوزوکی گرند ویتارا", _MN_NONE), ("سوزوکی گرند ویتارا مونتاژ", _MN_NONE),
+        ("گرند ویتارا ۲۰۱۰ اتوماتیک", _MN_NONE), ("سوزوکی ویتارا", _MN_NONE),
+        ("ویتارا مونتاژ ۱۳۹۰", _MN_NONE), ("گرندویتارا ۲۴۰۰", _MN_NONE),
+        ("سوزوکی گراند ویتارا هیبرید", _MN_NONE), ("فروش گرند ویتارا مدل ۹۷ بی رنگ", _MN_NONE)]),
+    ("Renault's Pars Tondar is no Peugeot Pars", [
+        ("رنو پارس تندر", _MN_NONE), ("رنو پارس تندر دنده ای", _MN_NONE),
+        ("پارس تندر ۱۳۹۷", _MN_NONE), ("پارس تندر مدل ۹۲ تمیز", _MN_NONE)]),
+    ("a name inside a place's word is no model: the car the text is about", [
+        ("پراید ۱۳۱ مدل ۹۸ تحویل در تهرانپارس", ("Saipa", "Pride")),
+        ("تیبا ۲ سفید، تهرانپارس", ("Saipa", "Tiba")),
+        ("کوییک دنده ای ساکن تهرانپارس", ("Saipa", "Quik")),
+        ("دنا پلاس ۱۴۰۰ محل بازدید تهرانپارس", ("IKCO", "Dena")),
+        ("سمند سورن ۹۶ تهرانپارس", ("IKCO", "Samand")),
+        ("پراید ۱۳۱ بیمه پارسیان دارد", ("Saipa", "Pride")),
+        ("پراید شهری کم مصرف", ("Saipa", "Pride"))]),
+    ("a name in a place of two words is no model", [
+        ("پراید ۱۳۱ مدل ۹۸ تحویل در تهران پارس", ("Saipa", "Pride")),
+        ("تیبا ۲ سفید، پارس آباد", ("Saipa", "Tiba")),
+        ("دنا پلاس ۱۴۰۰ شاهین شهر", ("IKCO", "Dena")),
+        ("رانا پلاس ساکن شاهین شهر", ("IKCO", "Runna")),
+        ("کوییک R پارس آباد مغان", ("Saipa", "Quik"))]),
+    ("an ending on a name, or a «و» typed on it, keeps it, as it was (the second measurement)", [
+        ("پرایدی تمیز مدل ۹۰", ("Saipa", "Pride")), ("سمندی سالم میخوام", ("IKCO", "Samand")),
+        ("تیبایی بدون رنگ", ("Saipa", "Tiba")), ("پژویی ۲۰۶", ("Peugeot", "206")),
+        ("پرایدم تمیزه", ("Saipa", "Pride")), ("پرایدمو میفروشم", ("Saipa", "Pride")),
+        ("پرایدشو دیدم", ("Saipa", "Pride")), ("پرایدت چنده", ("Saipa", "Pride")),
+        ("پرایدهای ۹۸", ("Saipa", "Pride")), ("تیباش رنگ نداره", ("Saipa", "Tiba")),
+        ("سمندمون دوگانه", ("IKCO", "Samand")), ("دناها", ("IKCO", "Dena")),
+        ("تارامون", ("IKCO", "Tara")), ("شاهینم اتومات", ("Saipa", "Shahin")),
+        ("فقط وتیبا", ("Saipa", "Tiba")), ("وپراید", ("Saipa", "Pride")),
+        ("پرایدتو میخرم", ("Saipa", "Pride")), ("تیباتون", ("Saipa", "Tiba")),
+        ("سمندشون", ("IKCO", "Samand")), ("پرایدمان", ("Saipa", "Pride")),
+        ("دناتان", ("IKCO", "Dena")), ("رانا شان", ("IKCO", "Runna")), ("ساینا‌شان", ("Saipa", "Saina")),
+        ("شاهینشان", ("Saipa", "Shahin")), ("پرایدهایی که دیدم", ("Saipa", "Pride"))]),
+    ("a word that holds a name and is none is no model", [
+        ("پارسال خریدم", _MN_NONE), ("اسم پسرم پارسا", _MN_NONE), ("سمندر", _MN_NONE),
+        ("بیمه پارسیان", _MN_NONE)]),
+    ("the thirteen as titles are written, as they were", [
+        ("پژو پارس سال ۹۸", ("Peugeot", "Pars")), ("پارس ELX مدل ۱۴۰۰", ("Peugeot", "Pars")),
+        ("پژو پارس XU7P", ("Peugeot", "Pars")), ("تارا V4 اتوماتیک", ("IKCO", "Tara")),
+        ("ایران خودرو تارا دستی", ("IKCO", "Tara")), ("پراید ۱۳۱ SE", ("Saipa", "Pride")),
+        ("پراید۱۳۱", ("Saipa", "Pride")), ("سایپا ۱۳۱", ("Saipa", "Pride")),
+        ("تیبا ۲ هاچبک", ("Saipa", "Tiba")), ("کوئیک دنده ای", ("Saipa", "Quik")),
+        ("ساینا S", ("Saipa", "Saina")), ("شاهین G", ("Saipa", "Shahin")),
+        ("دنا پلاس توربو", ("IKCO", "Dena")), ("رانا پلاس", ("IKCO", "Runna")),
+        ("سمند LX", ("IKCO", "Samand")), ("پژو206", ("Peugeot", "206")),
+        ("۲۰۶ صندوقدار", ("Peugeot", "206")), ("پژو 207i", ("Peugeot", "207")),
+        ("پژو ۴۰۵ GLX", ("Peugeot", "405")), ("پراید و تیبا", ("Saipa", "Pride")),
+        ("quik r", ("Saipa", "Quik")), ("206SD دنده ای", ("Peugeot", "206")),
+        ("پژو پارس ۹۸ تحویل تهران", ("Peugeot", "Pars"))]),
+    ("left: the words the other way round, and «پارسی», «ی» being an ending", [
+        ("تندر پارس رنو", ("Peugeot", "Pars")), ("زبان پارسی", ("Peugeot", "Pars"))]),
+]:
+    _mn_got = [(t, _md_extract(t)) for t, _ in _mn_rows]
+    check(f"MN: {_mn_cell} -- {len(_mn_rows)} titles",
+          [g for _, g in _mn_got] == [w for _, w in _mn_rows],
+          str([(t, g) for (t, g), (_, w) in zip(_mn_got, _mn_rows) if g != w]))
+
+check("MN: Khodro45's Grand Vitara and Pars Tondar take the English names their pages give, "
+      "and a Tara is still a Tara",
+      [_mn_k45({"brand": {"title": b, "title_en": be}, "model": {"title": m, "title_en": me}})
+       for b, be, m, me in (("سوزوکی", "Suzuki", "گرند ویتارا مونتاژ", "Grand Vitara-Assembled"),
+                            ("رنو", "Renault", "پارس تندر", "Pars Tondar"),
+                            ("ایران خودرو", "IKCO", "تارا V4", "Tara V4"))]
+      == [("Suzuki", "Grand Vitara-Assembled"), ("Renault", "Pars Tondar"), ("IKCO", "Tara")])
+check("MN: a name of digits alone is found anywhere, as before; one of letters only as a word, an "
+      "ending after it or a «و» typed on allowed, so «پارسی» is still Peugeot's Pars and «سوتیبا» no Tiba",
+      (_mn_names("1206", "206"), _mn_names("ویتارا", "تارا"), _mn_names("تارا", "تارا"),
+       _mn_names("پارس تندر", "پارس"), _mn_names("تهران پارس", "پارس"), _mn_names("پارسی", "پارس"),
+       _mn_names("وتیبا", "تیبا"), _mn_names("پارسال", "پارس"), _mn_names("سوتیبا", "تیبا"))
+      == (True, False, True, False, False, True, True, False, False))
+
+
+# ---------------------------------------------------------------------------
 print("\nsite_check: the site read from the outside, after a merge")
 # The owner runs it (a session's sandbox cannot reach the site); here it is
 # read on made pages, and pointed at a closed port on 127.0.0.1.
