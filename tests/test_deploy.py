@@ -1607,6 +1607,57 @@ check("DP44: the dependencies are read against the advisories every week and by 
       and "audit" not in _wf.replace("--no-audit", ""),
       _au[:300])
 
+# The Chromium install's tries, in CI's e2e job and in the images job: each step's own lines,
+# run by bash as GitHub runs them, with an npx that fails a given number of times and a
+# sleep that only notes how long it was asked to wait.
+import os as _os_pw, subprocess as _sp_pw, tempfile as _tf_pw          # noqa: E402
+
+
+def _run_block(step: str) -> str:
+    """The lines under a step's `run: |`, as bash reads them."""
+    lines = step.split("\n")
+    at = next((k for k, ln in enumerate(lines) if ln.strip() == "run: |"), None)
+    if at is None:
+        return ""
+    body = []
+    for ln in lines[at + 1:]:
+        if ln.strip() and not ln.startswith(" " * 10):
+            break
+        body.append(ln[10:])
+    return "\n".join(body)
+
+
+def _tries(block: str, fails: int) -> tuple[int, int, list[str]]:
+    """Exit status, npx's calls and the waits asked for, npx failing its first `fails` calls."""
+    with _tf_pw.TemporaryDirectory() as d:
+        for name, src in (("npx", f'n=$(cat "{d}/n" 2>/dev/null || echo 0); echo $((n + 1)) > "{d}/n"; '
+                                  f'[ "$n" -ge {fails} ]'),
+                          ("npm", "exit 0"), ("sleep", f'echo "$1" >> "{d}/slept"')):
+            path = _os_pw.path.join(d, name)
+            with open(path, "w") as fh:
+                fh.write("#!/bin/sh\n" + src + "\n")
+            _os_pw.chmod(path, 0o755)
+        r = _sp_pw.run(["bash", "-e", "-c", block], env={"PATH": d + ":/usr/bin:/bin"},
+                       capture_output=True, text=True, timeout=60)
+        n_path, s_path = _os_pw.path.join(d, "n"), _os_pw.path.join(d, "slept")
+        calls = int(open(n_path).read()) if _os_pw.path.exists(n_path) else 0
+        slept = open(s_path).read().split() if _os_pw.path.exists(s_path) else []
+        return r.returncode, calls, slept
+
+
+_pw_blocks = {wf: _run_block(_step(text(f".github/workflows/{wf}"), "Playwright and its Chromium"))
+              for wf in ("ci.yml", "images.yml")}
+_pw_got = {wf: [_tries(b, k) for k in range(4)] for wf, b in _pw_blocks.items()}
+_pw_want = [(0, 1, []), (0, 2, ["60"]), (0, 3, ["60", "120"]), (1, 3, ["60", "120"])]
+check("DP45: the Chromium install, in CI's e2e job and in the images job, is tried up to three times, "
+      "a minute and then two minutes after a failure, and the step fails on the third failure; both "
+      "install the same Playwright, and neither installs it outside the tries",
+      all(b for b in _pw_blocks.values())
+      and all(g == _pw_want for g in _pw_got.values())
+      and len({tuple(re.findall(r"playwright@(\S+)", b)) for b in _pw_blocks.values()}) == 1
+      and all(b.count("npx playwright install") == 1 for b in _pw_blocks.values()),
+      str(_pw_got))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

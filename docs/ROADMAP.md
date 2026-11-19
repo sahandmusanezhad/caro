@@ -777,6 +777,12 @@ names. Durations are for two people part-time.
    in what the site serves or the API installs, and one moderate advisory in
    the lint tools (minimatch, GHSA-g3hv-75wg-m249), moved past in the
    lockfile.
+4. **The Chromium install, three tries.** On 2026-11-19 Ubuntu's mirrors
+   answered 503 for three minutes to the fonts Playwright installs with
+   Chromium, and CI's e2e job and the images job failed where a run a
+   minute later passed. Both steps now try the install up to three times, a
+   minute and then two apart, and still fail on the third failure; DP45 runs
+   each step's own lines with an install that fails.
 
 ## The end
 
