@@ -19,9 +19,9 @@
 #             laptop has; production uses Postgres, and the two differ in
 #             exactly the places caro/sql.py exists for.
 #
-# Nothing here deploys. Vercel builds the site and the API from each push to
-# main of Tecso-Dev/caro, until the server takes them over; the server's
-# images are images.yml's (docs/PHASE1_SETUP.md).
+# Nothing here deploys. The server runs the images images.yml pushes, and
+# pulls them itself (docs/PHASE1_SETUP.md); Vercel, which built the site and
+# the API from Tecso-Dev/caro until phase 6, is retired (docs/PHASE6_SETUP.md).
 #
 # The actions are on their Node 24 releases, v7 of all three (2026-10-30, the
 # owner's choice): v4 and v5 ran on Node 20, which GitHub deprecates and every

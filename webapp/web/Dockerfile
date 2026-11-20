@@ -9,7 +9,7 @@
 # What the site reads at BUILD time is a build argument, because Next.js
 # writes it into the bundle: where /api/* goes (CARO_API, the API's container
 # by default), the error reports' DSN and the seller listings' flag. Unset,
-# reports are off and the seller links are out of the nav, as on Vercel.
+# reports are off and the seller links are out of the nav.
 
 FROM node:22-bookworm-slim AS deps
 WORKDIR /web

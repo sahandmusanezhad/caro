@@ -72,7 +72,7 @@ DEFAULT_TARGETS = (
     Target("Hetzner, Helsinki", "hel1-speed.hetzner.com"),
     Target("Neon's console", "console.neon.tech"),
     Target("Cloudflare (a control)", "www.cloudflare.com"),
-    Target("the site on Vercel", "caro-rho.vercel.app"),
+    Target("the site", "caro.noxioai.com"),
     Target("GitHub (a control)", "github.com"),
     Target("GitHub's container registry", "ghcr.io"),
 )

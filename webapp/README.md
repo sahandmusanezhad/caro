@@ -72,50 +72,21 @@ python3 -m venv .venv                      # apt install python3.X-venv if this 
 
 `.venv/` is already in `.gitignore`.
 
-## Deploying on Vercel
+## Deploying
 
-`vercel.json` at the repository root makes one Vercel project of two
-services on one domain: the site from `webapp/web`, and the API from the
-repository root, so that its function carries `caro/` and `data/corpora/`.
-It needs nothing under `tests/`: the SYNTHETIC fallback is built by
-`caro/synthetic.py`. `/api/*` goes to the API and everything else to the
-site. The API sees the original path, so its routes are the ones above, and
-the site's own `/api` rewrite is never reached: `CARO_API` is not needed
-there.
+The site and the API run on the server as two images, behind its one nginx
+and Cloudflare. [PHASE1_SETUP](../docs/PHASE1_SETUP.md) sets the server up;
+the images workflow builds both images, runs the API's suites inside its
+own, walks both in a browser and pushes them; the server pulls them every
+minute (`deploy/pull.sh`). Nothing reaches the server to deploy.
 
-Services is in beta on Vercel and may need enabling for the account. Then:
-
-1. import the repository as one project, with the root directory left at the
-   repository root, where `vercel.json` is;
-2. set `CARO_INBOX=off`, so the contact page shows GitHub Issues instead of a
-   form. Left unset, the form is drawn and every message is refused with a
-   503, because a function's disk does not keep what is written;
-3. leave `CARO_RUN` unset to serve run16, and `CARO_ADMIN_TOKEN` unset — with
-   the inbox off there is nothing for it to open;
-4. deploy a preview, and look at `/`, `/search`, `/car/bama:q571duyy`,
-   `/compare` and `/api/listing/bama:q571duyy` before promoting it.
-
-The API installs numpy and `webapp/requirements.txt` through the service's
-`installCommand`, which keeps fastapi out of the package's dependencies.
-`vercel dev` does not start the API service — it installs from
-`pyproject.toml` and ignores that command — so for local work use the two
-terminals above.
-
-Measured before this was written, with Vercel CLI 60.1.3 and `vercel build`
-on the tree: both services build; the API function is 97 MB of a 500 MB
-limit; served from those files alone it answers the listing and contact
-endpoints, switches the inbox off with `CARO_INBOX=off`, and refuses a message
-with 503 when it cannot write. What the first real deployment showed, page by
-page, and the region its function runs in, iad1, are in D64
-(docs/DECISIONS.md).
-
-Cold start was measured once, on 2026-09-27, from one machine, straight
-after a deploy, each request on a new connection: the API's first answer came
-in 1.40 s to its first byte, the five after it in 0.82 to 1.29 s, and a
-static page, which never reaches the API, in 1.27 s. Whatever the first
-answer paid for starting is not distinguishable from the network at that
-resolution: it was 0.40 s slower than the median of the five that followed,
-and those five spread over 0.46 s.
+Until phase 6 the site and the API were one Vercel project of two services,
+built from a `vercel.json` on each push to `main` of `Tecso-Dev/caro`. It was
+retired once the server had served the site for a week
+([PHASE6_SETUP](../docs/PHASE6_SETUP.md)). What that deployment showed, page
+by page, and the region its function ran in are in D64 (docs/DECISIONS.md);
+how it was set up, and its cold start, measured once on 2026-09-27, are in
+this file's history.
 
 ## Why the requirements file is separate
 

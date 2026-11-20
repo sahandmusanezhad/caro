@@ -38,7 +38,7 @@ const nextConfig = {
   poweredByHeader: false,
   // The site's own image (webapp/web/Dockerfile) runs the standalone server
   // Next.js writes: the files the server needs and nothing else. Set only
-  // there, so a build elsewhere -- Vercel's, CI's -- is as it was.
+  // there, so the tree's own build -- CI's e2e job's, a laptop's -- is as it was.
   ...(process.env.CARO_SITE_STANDALONE === '1' ? { output: 'standalone' } : {}),
   // The API is FastAPI, served beside this app. In development it runs on
   // 8000; in production nginx puts both behind one origin, so the rewrite
