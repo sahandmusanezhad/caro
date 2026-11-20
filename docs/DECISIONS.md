@@ -8676,3 +8676,51 @@ it a minute later, and read it there:
 /about gave this commit's counts. The rule is in the API that `deploy-wait`
 found running; the site check's question names no Pars Tondar, so the
 suites, in CI and inside the API's image, are what read it.
+
+## D115 — The Chromium install is tried three times, after Ubuntu's mirrors answered 503
+
+On 2026-11-19, at #33's merge, CI's e2e job and the images job both failed at
+"Playwright and its Chromium". Read in the log: the runner's EC2 mirror,
+then archive.ubuntu.com, then security.ubuntu.com answered «503 Service
+Unavailable» for 3 minutes 21 seconds to the fonts Playwright installs with
+Chromium (fonts-ipafont-gothic, fonts-freefont-ttf, xfonts-scalable and five
+more), and apt gave up. Each job passed when run again a minute later:
+nothing in this repository was at fault, and the step had one try. The
+change was on the list of the night's work put to the owner on 2026-11-19,
+a fix to CI rather than a question.
+
+Merged on 2026-11-19 in #38:
+
+    commit    what it does                                            suites    bare
+    005b640   three tries for the Chromium install, in both steps       3841    3090
+
+The commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `4e0e7d2`.
+
+**The change.** In both steps the install is tried up to three times, a
+minute and then two minutes after a failure, and the step fails on the
+third failure. Nothing else in either step moved.
+
+**Tests.** DP45 in tests/test_deploy.py runs each step's own lines with
+`bash -e`, as GitHub runs them, against an npx that fails 0 to 3 times and a
+sleep that notes its wait: 1, 2 and 3 calls with waits of nothing, 60, and
+60 then 120, all passing; 3 calls and a failure when every call fails. It
+also checks that both steps install the same Playwright and none outside the
+tries. Mutants, bytecode off, 11, all caught: one try, two tries, no failure
+at the end, the third failure passing, a try that never stops, the same
+wait each time, a second's wait, `;` for `&&`, another Playwright, and an
+install outside the tries.
+
+**What it does not settle.** An outage longer than about four minutes
+still fails the job, as it should; it is read and run again once.
+
+**Read from the outside** by the job of D110. It brought `Tecso-Dev/caro`
+from `8c333d7` to `4e0e7d2` at 23:26Z on 2026-11-19, found the site running
+it a minute later, and read it there:
+
+    about    200 ۱۱۲=تصمیم ۳۸۴۱=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+
+The change is in the workflows, not the site; the read shows the merge
+reached it, its counts with it.
