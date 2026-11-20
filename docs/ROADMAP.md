@@ -34,7 +34,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `abc9c43`, #34's merge, when CI read it on 2026-11-19 (D110, D112); each green merge reaches it by CI, by the owner's deploy key ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
+| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `7e897c5`, #39's merge, when CI read it on 2026-11-20 (D110, D116); each green merge reaches it by CI, by the owner's deploy key ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
 
 ## The order of work
 
@@ -54,7 +54,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D112, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D116, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -86,7 +86,7 @@ an item says so.
   #25's merge, on 2026-11-07 (D100), to `2f345dd` the same day (D107), and to
   `4273047`, #28's merge, on 2026-11-18 (D109). CI brought it to `7585632`,
   #32's merge, on 2026-11-19 (D110), and since to each green merge, the
-  last read `abc9c43`, #34's, the same day (D112).
+  last read `7e897c5`, #39's, on 2026-11-20 (D116).
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -378,23 +378,23 @@ names. Durations are for two people part-time.
      flexible budget, «بارفروش» a cargo use, «پارس‌آباد» the model `pars`.
      Measured, not changed, and left to the owner, since which letters may
      stand beside a word is a choice about Persian and not a measurement.
-     For a model's name it changed on 2026-11-19 (D112), when run17 showed
-     what the old rule did to the site: three Suzuki Grand Vitaras read as IKCO
+     For a model's name it changed on 2026-11-19 (D112), when run17 showed what
+     the old rule did to the site: three Suzuki Grand Vitaras read as IKCO
      Taras («تارا» inside «ویتارا») and two Renault Pars Tondars as Peugeot
-     Parses, the Tara page's highest price a Vitara's 7.575 billion toman.
-     The owner chose, on two measurements, a name as a word of its own in
-     both readers (`caro.ingest.models.names`): no letter before it but a
-     «و» typed on; none after it but an ending Persian puts on a noun («ی»,
-     «م», «ش», «مو», «ها» …); and not before «تندر», «شهر» or «آباد», nor after
-     «تهران» or «تندر» (that last the same night, measured: 7 of 7 titles and 3
+     Parses, the Tara page's highest price a Vitara's 7.575 billion toman. The
+     owner chose, on two measurements, a name as a word of its own in both
+     readers (`caro.ingest.models.names`): no letter before it but a «و» typed
+     on; none after it but an ending Persian puts on a noun («ی», «م», «ش»,
+     «مو», «ها» …); and not before «تندر», «شهر» or «آباد», nor after «تهران»
+     or «تندر» (that last the same night, D114, measured: 7 of 7 titles and 3
      of 3 queries with the words the other way round, «تندر پارس رنو», where
-     the rule had none). Made titles: 8 of 8 Vitaras, 4 of 5 Pars Tondars, 5 of 5 with
-     «تهرانپارس», 5 of 5 with a place in two words, where the old rule was
-     right on none, and 29 of 29 ordinary titles as before; 27 of 27 true
-     forms with an ending or a «و» kept, and 9 of 10 words that hold a name
-     and are none cleared («پارسال», «پارسیان», «پارسا», «سمندر»). Left:
-     «پارسی» is Pars, «ی» being an ending; the cues are still matched inside
-     a longer word; and run17, a published file, keeps its five misread rows until a
+     the rule had none). Made titles: 8 of 8 Vitaras, 4 of 5 Pars Tondars, 5 of
+     5 with «تهرانپارس», 5 of 5 with a place in two words, where the old rule
+     was right on none, and 29 of 29 ordinary titles as before; 27 of 27 true
+     forms with an ending or a «و» kept, and 9 of 10 words that hold a name and
+     are none cleared («پارسال», «پارسیان», «پارسا», «سمندر»). Left: «پارسی» is
+     Pars, «ی» being an ending; the cues are still matched inside a longer
+     word; and run17, a published file, keeps its five misread rows until a
      later corpus is promoted.
      On 69 words that hold a cue or an alias and are no use of it, and 33
      true forms that carry a suffix: no letter before it clears 30 of the
@@ -769,20 +769,23 @@ names. Durations are for two people part-time.
    `python3 scripts/site_check.py`, with `--site` once the address changes,
    or `tecso-release.sh`, which runs it -- and passes back what it printed.
 3. **The dependencies, every week.** `audit.yml`, the owner's choice of
-   2026-11-19: `npm audit` of the site's lockfile, red on an advisory rated
-   high or critical, and `pip-audit` of what the API's image installs, red
-   on any, since pip-audit gives no rating. It runs every Monday and by
-   hand, never on a push or a pull request, so an advisory stops no merge
-   and no delivery. Read by hand on 2026-11-19 before it was built: nothing
-   in what the site serves or the API installs, and one moderate advisory in
-   the lint tools (minimatch, GHSA-g3hv-75wg-m249), moved past in the
-   lockfile.
-4. **The Chromium install, three tries.** On 2026-11-19 Ubuntu's mirrors
-   answered 503 for three minutes to the fonts Playwright installs with
-   Chromium, and CI's e2e job and the images job failed where a run a
+   2026-11-19 (D113): `npm audit` of the site's lockfile, red on an advisory
+   rated high or critical, and `pip-audit` of what the API's image installs,
+   red on any, since pip-audit gives no rating. It runs every Monday and by
+   hand, never on a push or a pull request, so an advisory stops no merge and
+   no delivery. Read by hand on 2026-11-19 before it was built: nothing in what
+   the site serves or the API installs, and one moderate advisory in the lint
+   tools (minimatch, GHSA-g3hv-75wg-m249), moved past in the lockfile.
+4. **The Chromium install, three tries** (D115). On 2026-11-19 Ubuntu's
+   mirrors answered 503 for three minutes to the fonts Playwright installs
+   with Chromium, and CI's e2e job and the images job failed where a run a
    minute later passed. Both steps now try the install up to three times, a
    minute and then two apart, and still fail on the third failure; DP45 runs
    each step's own lines with an install that fails.
+5. **Ubuntu 26.04** (D116). Every job of the three workflows runs on it
+   since 2026-11-20, the owner's choice: tried on a pull request, audit.yml
+   by hand, and merged once each passed; `deliver` and `reached` passed on it
+   at the first merge after.
 
 ## The end
 

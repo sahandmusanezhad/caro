@@ -8543,3 +8543,225 @@ among them. The rule is in the API that `deploy-wait` found running. The
 site check's one question names Samand by a word of its own, which reads the
 same under either rule; the rule is checked by the suites, in CI and inside
 the API's image.
+
+## D113 — The dependencies are read against the advisories every Monday and by hand, and stop no merge
+
+Nothing read the dependencies against the published advisories. ci.yml
+installs with `--no-audit`, and there is no Dependabot. Read by hand on
+2026-11-19, the site's lockfile had no advisory in what the site serves and
+six moderate ones in its lint tools, all one: minimatch from 7.0.0 to before
+11.0.1 (GHSA-g3hv-75wg-m249), which @typescript-eslint brings for `npm run
+lint`. `pip-audit` of the API's requirements found nothing. The owner chose
+the same night, on what was read:
+- a workflow of its own, every week and by hand, not a step of ci.yml, so
+  that an advisory published in a quiet week stops no merge, and, `deliver`
+  waiting on ci.yml alone, no delivery;
+- red on an advisory rated high or critical for the site;
+- red on any advisory for the API, since pip-audit gives no rating.
+
+Merged on 2026-11-19 in #36:
+
+    commit    what it does                                            suites    bare
+    18aaa65   the site's lint tools past minimatch's advisory           3833    3082
+    e4cc236   audit.yml, every Monday and by hand                       3834    3083
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `d20b0dd`.
+
+**The lockfile** (`18aaa65`). `npm audit fix`, package.json as it was:
+@typescript-eslint's ten packages 8.70.0 to 8.73.0, the minimatch
+typescript-estree carries 10.2.6 to 11.0.9, its brace-expansion 5.0.12 to
+5.0.13, and @isaacs/nonrecursive-glob-match 1.1.0 added, which that
+minimatch needs. Every package it moved is a development one; `npm audit`
+finds nothing after it.
+
+**The workflow** (`e4cc236`), `.github/workflows/audit.yml`:
+- on a schedule, Mondays at 05:23 UTC, and by hand; never on a push or a
+  pull request;
+- `site`: `npm audit --audit-level=high` of webapp/web's whole lockfile,
+  the lint tools with the rest; the lower ratings are printed and pass;
+- `api`: pip-audit 2.10.1 of what the Dockerfile installs, numpy and
+  webapp/requirements.txt, resolved on the image's Python, 3.12;
+- the jobs may read the code and nothing more, and their runner and Node
+  are ci.yml's.
+A red run stops nothing: GitHub mails it to whoever last set the schedule,
+and what follows is a commit of its own. GitHub turns a schedule off in a
+public repository with no activity for sixty days; a run by hand still
+works then.
+
+**Tests.** DP44 in tests/test_deploy.py reads the workflow against ci.yml,
+images.yml and the Dockerfile. Mutants, 23, bytecode off, all caught: 20 of
+the workflow, 2 of the Dockerfile (its Python moved alone, one package more
+installed) and 1 of ci.yml (an audit on each merge). DP44's last two
+conditions, no `continue-on-error` and no `if:`, were added while the
+mutants were written, before the run.
+
+**Run by hand** once on `main`, at `d20b0dd`, on 2026-11-19 at 22:55Z: both
+jobs green, `site` in two seconds and `api` in ten. The first scheduled run
+is Monday 2026-11-23.
+
+**Read from the outside** by the job of D110, which brought
+`Tecso-Dev/caro` to `d20b0dd` and found the site running it at 22:57Z:
+
+    about    200 ۱۱۲=تصمیم ۳۸۳۴=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+
+The site check reads no dependency; what it shows is that the merge reached
+the site and its counts with it.
+
+## D114 — «تندر» before a name refuses it too: Renault's Pars Tondar with its words the other way round
+
+D112's measurement left one form, and it was its one wrong prediction: «تندر
+پارس رنو», Pars Tondar with its words the other way round, was read as
+Peugeot Pars, and «تندر پارس» hinted «pars» in the search. The rule refused a
+name before «تندر» and after «تهران», not after «تندر». The model table holds
+no Renault Tondar 90, so «تندر» alone names no model.
+
+The owner chose on 2026-11-19, before going to sleep, to have it measured
+and built only if it was clean, which was put to them as: every reversed
+form read right, no control changes, and no row of the suites changes but
+the pinned left one. The predictions were locked at 22:45Z (sha256
+`3fcd34a4…`) and the measurement run at 22:46Z.
+
+Merged on 2026-11-19 in #37:
+
+    commit    what it does                                            suites    bare
+    7f1ecd9   «تندر» as the word before a name, as «تهران» is           3840    3089
+
+The commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `8c333d7`.
+
+**The rule.** `caro.ingest.models.names` refuses a name where «تندر» is the
+word right before it, as it does after «تهران»; both readers take it. A rule
+for «پارس» alone read every cell the same, so the one built mirrors the
+rule after a name, which refuses any name before «تندر».
+
+**Measured**, two rules against the one merged:
+
+    cells                                          as merged    built
+    reversed titles, 7                                     0        7
+    reversed queries, 3                                    0        3
+    «تندر» not right before a name, 5 controls            5        5
+    D112's first set, its Pars Tondars of 5                4        5
+    D112's first set, the other cells                   as merged
+    D112's second set, 27 true forms and 10 words      27 and 9   27 and 9
+
+Of the 158 texts the suites hand the listing parser one changes, the pinned
+«تندر پارس رنو», and none of their 1,101 queries. Every prediction held.
+They gave the suites' counts as 80 and 1,075, which were the counts before
+#34's rows.
+
+**Mutants**, bytecode off, 8, 6 caught at first:
+- one that refused a name after any word ending in «ندر» lived; a row was
+  added after the run («اسکندر پراید» is Pride), and it is caught;
+- one lives and reads every input alike: a space required after «تندر»
+  rather than allowed. A name glued to the word before it is refused by the
+  letter rule already, as for «تهران».
+
+**Left:** «پارسی» is Pars, «ی» being an ending, pinned by a test. Found
+the same night, while the cues were measured for the owner (nothing built):
+D112's endings hold no copula, so «ماشینم پرایده» and «تیباست» name no
+model. It is the owner's to decide.
+
+**Read from the outside** by the job of D110. It brought `Tecso-Dev/caro`
+from `d20b0dd` to `8c333d7` at 23:11Z on 2026-11-19, found the site running
+it a minute later, and read it there:
+
+    about    200 ۱۱۲=تصمیم ۳۸۴۰=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+    search   200 «سمند زیر ۲ میلیارد»: models ['samand'], 13 shown, 1 apart
+
+/about gave this commit's counts. The rule is in the API that `deploy-wait`
+found running; the site check's question names no Pars Tondar, so the
+suites, in CI and inside the API's image, are what read it.
+
+## D115 — The Chromium install is tried three times, after Ubuntu's mirrors answered 503
+
+On 2026-11-19, at #33's merge, CI's e2e job and the images job both failed at
+"Playwright and its Chromium". Read in the log: the runner's EC2 mirror,
+then archive.ubuntu.com, then security.ubuntu.com answered «503 Service
+Unavailable» for 3 minutes 21 seconds to the fonts Playwright installs with
+Chromium (fonts-ipafont-gothic, fonts-freefont-ttf, xfonts-scalable and five
+more), and apt gave up. Each job passed when run again a minute later:
+nothing in this repository was at fault, and the step had one try. The
+change was on the list of the night's work put to the owner on 2026-11-19,
+a fix to CI rather than a question.
+
+Merged on 2026-11-19 in #38:
+
+    commit    what it does                                            suites    bare
+    005b640   three tries for the Chromium install, in both steps       3841    3090
+
+The commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `4e0e7d2`.
+
+**The change.** In both steps the install is tried up to three times, a
+minute and then two minutes after a failure, and the step fails on the
+third failure. Nothing else in either step moved.
+
+**Tests.** DP45 in tests/test_deploy.py runs each step's own lines with
+`bash -e`, as GitHub runs them, against an npx that fails 0 to 3 times and a
+sleep that notes its wait: 1, 2 and 3 calls with waits of nothing, 60, and
+60 then 120, all passing; 3 calls and a failure when every call fails. It
+also checks that both steps install the same Playwright and none outside the
+tries. Mutants, bytecode off, 11, all caught: one try, two tries, no failure
+at the end, the third failure passing, a try that never stops, the same
+wait each time, a second's wait, `;` for `&&`, another Playwright, and an
+install outside the tries.
+
+**What it does not settle.** An outage longer than about four minutes
+still fails the job, as it should; it is read and run again once.
+
+**Read from the outside** by the job of D110. It brought `Tecso-Dev/caro`
+from `8c333d7` to `4e0e7d2` at 23:26Z on 2026-11-19, found the site running
+it a minute later, and read it there:
+
+    about    200 ۱۱۲=تصمیم ۳۸۴۱=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+
+The change is in the workflows, not the site; the read shows the merge
+reached it, its counts with it.
+
+## D116 — Every job runs on Ubuntu 26.04, tried on a pull request and merged once each passed
+
+GitHub moved the label `ubuntu-latest` from Ubuntu 24.04 to 26.04 between
+2026-10-19 and 2026-11-19, and warned that workflows tied to 24.04 may be
+affected. Every job here had been pinned to 24.04 since D84, so that the
+move would be a change made on purpose, in a commit and a run of its own.
+Asked on 2026-11-19, before going to sleep, whether to move, the owner
+chose to have it tried that night and merged only once every job of every
+workflow passed on the new image.
+
+Merged on 2026-11-20 in #39:
+
+    commit    what it does                                            suites    bare
+    7b33061   every job on Ubuntu 26.04, and ci.yml's note              3841    3090
+
+**The change.** `runs-on: ubuntu-26.04` for the nine jobs, four in ci.yml,
+three in images.yml and two in audit.yml, and ci.yml's note on the pin.
+DP44 holds audit.yml's runners to ci.yml's, so the two moved together.
+
+**Tried before the merge.** On the pull request, every job of ci.yml
+(`suites`, `web`, `e2e`, `postgres`) and images.yml's `images` passed on
+26.04. audit.yml, which runs on no pull request, was run by hand on the
+branch, and both its jobs passed. Python 3.12, Node 22, Postgres 16 in its
+container, Docker's builds and Playwright's Chromium with its fonts all
+came up on the new image.
+
+**On `main` after `7e897c5`**, the first runs on 26.04: `ci` and `images`
+passed, and so did `reached` and `deliver`, the two that run only after a
+merge. The Chromium install took 37 seconds on 26.04, where on 24.04 that
+night it took four to six minutes.
+
+**Read from the outside** by the job of D110, itself on 26.04 now. It
+brought `Tecso-Dev/caro` from `4e0e7d2` to `7e897c5` at 02:07Z on
+2026-11-20, found the site running it a minute later, and read it there:
+
+    about    200 ۱۱۲=تصمیم ۳۸۴۱=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+
+**What it does not settle.** The jobs now follow what GitHub ships on 26.04;
+a later image is another such change, made the same way.
