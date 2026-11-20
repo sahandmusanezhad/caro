@@ -322,11 +322,11 @@ names. Durations are for two people part-time.
      same, unless it is one of the three the stoplist holds: «حد», «حال»,
      «بودجه».
    - «تهرانپارس», «پارس‌آباد» and «شاهین‌شهر» add no model since 2026-11-19,
-     when a model's name became a word of its own (item 4, D112). «شهریار»
-     still sets a commute use, a cue being matched inside a longer word, and
-     after a cue «تهرانپارس» still lists «در تهران», the part before the
-     alias, which reads as a province: the place reader blanks a model's name
-     wherever it stands. It was so before D82.
+     when a model's name became a word of its own (item 4, D112), and
+     «شهریار» sets no commute use since 2026-11-20, when a cue became one too
+     (item 4). After a cue «تهرانپارس» still lists «در تهران», the part
+     before the alias, which reads as a province: the place reader blanks a
+     model's name wherever it stands. It was so before D82.
 
 4. **What the parser drops without a word** (D83). Three ways, found while
    the cities were measured and tried on the real parser. The owner asked
@@ -374,10 +374,22 @@ names. Durations are for two people part-time.
      purpose: a number after «و» that follows a scale word is the amount's
      («تا ۳۰۰ میلیون و ۲۰۶»), as it was for the budget; and a name is matched
      as ever, so «پژو۲۰۶۹» and «پژو 206 میلیون» still read 206.
-   - A cue or a model alias is matched inside a longer word: «محدوده» sets a
+   - A cue or a model alias was matched inside a longer word: «محدوده» set a
      flexible budget, «بارفروش» a cargo use, «پارس‌آباد» the model `pars`.
      Measured, not changed, and left to the owner, since which letters may
      stand beside a word is a choice about Persian and not a measurement.
+     For the cues it changed on 2026-11-20, the owner's choice on two
+     measurements, the predictions locked first each time: a cue is a word
+     of its own by the model names' rule, with the adverb's «ا» and the
+     spoken copula also allowed after it; «کار », written with a trailing
+     space, takes no ending; and «تاکسیرانی», «بارکش», «باربر», «سودآور» and
+     «پرسود» are cues of their own. On a fresh set: 9 of 11 words that hold
+     a cue and are no use of it cleared, where the old rule cleared 4, and
+     10 of 10 true forms and 10 of 10 plain cues read as before; none of the
+     suites' 1,107 queries reads differently. «پراید آبی رنگ», a blue Pride,
+     is no longer the red line «بی رنگ». Left: «بارها» and «شهریه», an ending
+     each; «این بار», a cue that is a word of another meaning; and «کم
+     مصرفترین», a cue glued to «ترین».
      For a model's name it changed on 2026-11-19 (D112), when run17 showed what
      the old rule did to the site: three Suzuki Grand Vitaras read as IKCO
      Taras («تارا» inside «ویتارا») and two Renault Pars Tondars as Peugeot
@@ -395,9 +407,8 @@ names. Durations are for two people part-time.
      forms with an ending or a «و» kept, and 9 of 10 words that hold a name and
      are none cleared («پارسال», «پارسیان», «پارسا», «سمندر»). Left: «پارسی» is
      Pars, «ی» being an ending, and «پارسه» and «شاهینه» are models since the
-     copula, as they were before the rule; the cues are still matched inside a
-     longer word; and run17, a published file, keeps its five misread rows
-     until a later corpus is promoted.
+     copula, as they were before the rule; and run17, a published file, keeps
+     its five misread rows until a later corpus is promoted.
      On 69 words that hold a cue or an alias and are no use of it, and 33
      true forms that carry a suffix: no letter before it clears 30 of the
      69 and loses none of the 33, but stops reading a name with a prefix

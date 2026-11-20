@@ -394,13 +394,46 @@ def _names_model(q: str, alias: str, bare: str) -> bool:
     return False
 
 
+# A CUE IS A WORD OF ITS OWN (2026-11-20, the owner's call). The use cases,
+# the red lines, the soft budget and «کم مصرف» were found anywhere in the
+# query, so «محدوده» set a flexible budget, «اعتبار», «انبار» and «باران» a
+# cargo use, «فرسوده» and «آسوده» a resale one, «شهریار» and «شهریور» a
+# commute, and «برای سرکار رفتن» was ride-hailing, «کار » being inside
+# «سرکار ». D84 measured it and the owner left it on 2026-10-18. Measured
+# again on 2026-11-19 and 2026-11-20, the predictions locked first each time:
+# a cue is read where no letter stands right before it but a «و» typed on,
+# and none right after it but a noun's ending (the model names' list), the
+# adverb's «ا» («حدودا») or the spoken copula («ه», «ست»); a cue written with
+# a trailing space, «کار », takes no ending, so «کارت ماشین» and «کارش» are
+# no ride-hailing. On the first set it cleared 12 of 13 words that hold a cue
+# and are no use of it, and lost 5 compounds of 15 true forms, which are
+# cues of their own now («تاکسیرانی», «بارکش», «باربر», «سودآور», «پرسود»). On a
+# fresh set, as built: 9 of 11 words cleared where today cleared 4, 10 of 10
+# true forms and 10 of 10 plain cues read as today, and none of the 1,107
+# queries the suites hand the parser reads differently. Left: «بارها»
+# («times», «ها» an ending), «شهریه» («ه» allowed), and a cue that is a word
+# of another meaning («این بار»), which no rule of letters can tell.
 USE_CASE_CUES: dict[str, tuple[str, ...]] = {
-    "ride_hailing": ("اسنپ", "تپسی", "مسافرکشی", "تاکسی", "کار "),
+    "ride_hailing": ("اسنپ", "تپسی", "مسافرکشی", "تاکسی", "کار ", "تاکسیرانی"),
     "family_first_car": ("خانواده", "خانوادگی", "ماشین اول", "بچه"),
     "commute": ("سرکار", "رفت و آمد", "شهری", "داخل شهر"),
-    "resale_flip": ("سرمایه", "فروش مجدد", "سود"),
-    "cargo": ("بار", "وانت", "باربری"),
+    "resale_flip": ("سرمایه", "فروش مجدد", "سود", "سودآور", "پرسود"),
+    "cargo": ("بار", "وانت", "باربری", "بارکش", "باربر"),
 }
+_FLEX_CUES = ("انعطاف", "تقریبا", "حدود", "کمی بیشتر")
+_FRUGAL_CUES = ("کم مصرف", "کم خرج", "کم هزینه")
+_CUE_LETTER = r"[^\W\d_]"
+_CUE_BEFORE = r"(?:(?<!" + _CUE_LETTER + r")|(?<=(?<!" + _CUE_LETTER + r")و))"
+_CUE_ENDING = (r"(?:ی|یی|م|ت|ش|مو|تو|شو|مون|تون|شون|مان|تان|شان|ها|های|هایی"
+               r"|ا|ه|ست)?")
+
+
+def _cue_at(q: str, cue: str) -> re.Match | None:
+    """Where `cue` stands in the normalized query `q` as a word of its own,
+    or None. A cue written with a trailing space takes no ending."""
+    ending = "" if cue.endswith(" ") else _CUE_ENDING
+    return re.search(_CUE_BEFORE + re.escape(cue.strip()) + ending
+                     + r"(?!" + _CUE_LETTER + ")", q)
 
 # What each use case is called on the page. The intent panel prints these
 # names under «کاربرد» (USE_CASE_FA in components/IntentPanel.tsx), and the
@@ -880,7 +913,8 @@ class RuleIntentParser:
             if budget_max is not None:
                 acted.append(mm.group(0))
                 assumptions.append("عدد قیمت را سقف بودجه فرض کردیم")
-        m = re.search(r"(انعطاف|تقریبا|حدود|کمی بیشتر)", q)
+        flex = [x for c in _FLEX_CUES if (x := _cue_at(q, c))]
+        m = min(flex, key=lambda x: x.start()) if flex else None
         if m:
             hard = False
             acted.append(m.group(0))
@@ -941,18 +975,19 @@ class RuleIntentParser:
 
         use_case = "unspecified"
         for uc, cues in USE_CASE_CUES.items():
-            if any(c in q for c in cues):
+            hits = [x for c in cues if (x := _cue_at(q, c))]
+            if hits:
                 use_case = uc
-                acted.extend(c for c in cues if c in q)
+                acted.extend(x.group(0) for x in hits)
                 break
-        if use_case == "unspecified" and re.search(r"(کم مصرف|کم خرج|کم هزینه)", q):
+        if use_case == "unspecified" and any(_cue_at(q, c) for c in _FRUGAL_CUES):
             use_case = "commute"
             assumptions.append("از «کم‌خرج» کاربری روزمره برداشت شد")
 
         breakers = tuple(k for k, cues in DEAL_BREAKER_CUES.items()
-                         if any(c in q for c in cues))
+                         if any(_cue_at(q, c) for c in cues))
         for k in breakers:
-            acted.extend(c for c in DEAL_BREAKER_CUES[k] if c in q)
+            acted.extend(x.group(0) for c in DEAL_BREAKER_CUES[k] if (x := _cue_at(q, c)))
 
         place = read_provinces(q)
         acted.extend(place.understood)
