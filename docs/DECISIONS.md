@@ -8609,3 +8609,70 @@ is Monday 2026-11-23.
 
 The site check reads no dependency; what it shows is that the merge reached
 the site and its counts with it.
+
+## D114 — «تندر» before a name refuses it too: Renault's Pars Tondar with its words the other way round
+
+D112's measurement left one form, and it was its one wrong prediction: «تندر
+پارس رنو», Pars Tondar with its words the other way round, was read as
+Peugeot Pars, and «تندر پارس» hinted «pars» in the search. The rule refused a
+name before «تندر» and after «تهران», not after «تندر». The model table holds
+no Renault Tondar 90, so «تندر» alone names no model.
+
+The owner chose on 2026-11-19, before going to sleep, to have it measured
+and built only if it was clean, which was put to them as: every reversed
+form read right, no control changes, and no row of the suites changes but
+the pinned left one. The predictions were locked at 22:45Z (sha256
+`3fcd34a4…`) and the measurement run at 22:46Z.
+
+Merged on 2026-11-19 in #37:
+
+    commit    what it does                                            suites    bare
+    7f1ecd9   «تندر» as the word before a name, as «تهران» is           3840    3089
+
+The commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `8c333d7`.
+
+**The rule.** `caro.ingest.models.names` refuses a name where «تندر» is the
+word right before it, as it does after «تهران»; both readers take it. A rule
+for «پارس» alone read every cell the same, so the one built mirrors the
+rule after a name, which refuses any name before «تندر».
+
+**Measured**, two rules against the one merged:
+
+    cells                                          as merged    built
+    reversed titles, 7                                     0        7
+    reversed queries, 3                                    0        3
+    «تندر» not right before a name, 5 controls            5        5
+    D112's first set, its Pars Tondars of 5                4        5
+    D112's first set, the other cells                   as merged
+    D112's second set, 27 true forms and 10 words      27 and 9   27 and 9
+
+Of the 158 texts the suites hand the listing parser one changes, the pinned
+«تندر پارس رنو», and none of their 1,101 queries. Every prediction held.
+They gave the suites' counts as 80 and 1,075, which were the counts before
+#34's rows.
+
+**Mutants**, bytecode off, 8, 6 caught at first:
+- one that refused a name after any word ending in «ندر» lived; a row was
+  added after the run («اسکندر پراید» is Pride), and it is caught;
+- one lives and reads every input alike: a space required after «تندر»
+  rather than allowed. A name glued to the word before it is refused by the
+  letter rule already, as for «تهران».
+
+**Left:** «پارسی» is Pars, «ی» being an ending, pinned by a test. Found
+the same night, while the cues were measured for the owner (nothing built):
+D112's endings hold no copula, so «ماشینم پرایده» and «تیباست» name no
+model. It is the owner's to decide.
+
+**Read from the outside** by the job of D110. It brought `Tecso-Dev/caro`
+from `d20b0dd` to `8c333d7` at 23:11Z on 2026-11-19, found the site running
+it a minute later, and read it there:
+
+    about    200 ۱۱۲=تصمیم ۳۸۴۰=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+    search   200 «سمند زیر ۲ میلیارد»: models ['samand'], 13 shown, 1 apart
+
+/about gave this commit's counts. The rule is in the API that `deploy-wait`
+found running; the site check's question names no Pars Tondar, so the
+suites, in CI and inside the API's image, are what read it.
