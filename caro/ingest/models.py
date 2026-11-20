@@ -67,7 +67,8 @@ MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
 #     on («وتیبا»), or right after it but for an ending Persian puts on a
 #     noun: «ی», «یی», «م», «ت», «ش», «مو», «تو», «شو», «مون», «تون», «شون»,
 #     «مان», «تان», «شان», «ها», «های», «هایی» («پرایدم», «تیباش», «پرایدها» are
-#     read as they were);
+#     read as they were), and the spoken copula «ه» and «ست» («ماشینم پرایده»,
+#     «تیباست»);
 #   - nor where «تندر», «شهر» or «آباد» is the next word, or «تهران» or «تندر»
 #     the word before: Renault's «پارس تندر» and «تندر پارس», and the places
 #     «شاهین شهر», «پارس آباد» and «تهران پارس».
@@ -77,7 +78,12 @@ MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
 # forms as no model, and the owner chose them on the second measurement: 27 of
 # 27 kept, and 9 of 10 words that hold a name and are none cleared («پارسال»,
 # «پارسیان», «پارسا», «سمندر»). The same question was measured in D84's round
-# and left then. Left: «پارسی» is Peugeot's Pars, «ی» being an ending. «تندر»
+# and left then. Left: «پارسی» is Peugeot's Pars, «ی» being an ending, and so,
+# since the copula, are «پارسه» (Persepolis) and «شاهینه» Shahin, as they were
+# before the rule. The copula was the owner's choice of 2026-11-20, on the
+# night's measurement: «ماشینم پرایده», «تیباست», «سمنده», «دناست» and «یه پژو
+# پارسه» had named no model since the rule, where they had before it, and
+# nothing else the suites hand either reader reads differently. «تندر»
 # as the word before was the owner's choice of the same night, measured, the
 # predictions locked first: right on 7 of 7 titles and 3 of 3 queries with
 # the words the other way round («تندر پارس رنو»), where the rule was right on
@@ -86,7 +92,7 @@ MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
 # (`caro.ranking._names_model`).
 _LETTER = r"[^\W\d_]"
 _BEFORE = r"(?:(?<!" + _LETTER + r")|(?<=(?<!" + _LETTER + r")و))"
-_ENDING = r"(?:ی|یی|م|ت|ش|مو|تو|شو|مون|تون|شون|مان|تان|شان|ها|های|هایی)?"
+_ENDING = r"(?:ی|یی|م|ت|ش|مو|تو|شو|مون|تون|شون|مان|تان|شان|ها|های|هایی|ه|ست)?"
 _NOT_A_MODEL_AFTER = re.compile(r"\s*(?:تندر|شهر|آباد)(?!\w)")
 _NOT_A_MODEL_BEFORE = re.compile(r"(?:تهران|تندر)\s*$")
 

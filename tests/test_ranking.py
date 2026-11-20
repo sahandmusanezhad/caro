@@ -1893,6 +1893,8 @@ for _mn_q, _mn_want, _mn_why in [
     ("پراید غیر از تیبایی", ("pride", "tiba"), "  «یی», as it was"),
     ("پرایدها زیر ۳۰۰ میلیون", ("pride",), "  «ها»"),
     ("پراید وتیبا", ("pride", "tiba"), "  a «و» typed on"),
+    ("ماشینم پرایده زیر ۳۰۰ میلیون", ("pride",), "  the spoken copula «ه» (2026-11-20)"),
+    ("تیباست یا دناست", ("tiba", "dena"), "  and «ست»"),
     ("پارسال پراید خریدم", ("pride",), "a word that holds a name and is none"),
     ("پژو پارس زیر ۲ میلیارد", ("pars",), "the ordinary ones, as they were"),
     ("پارس ELX", ("pars",), "  "),
