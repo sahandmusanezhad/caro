@@ -1910,6 +1910,58 @@ for _mn_q, _mn_want, _mn_why in [
           _mn_got == _mn_want, str(_mn_got))
 
 
+# A cue is a word of its own (2026-11-20, the owner's call), the model names' rule
+# with the adverb's «ا» and the copula allowed after it and the five compounds cues of
+# their own; «کار », written with a trailing space, takes no ending. Measured on two
+# made sets, the predictions locked first each time.
+def _cw_read(q, what):
+    s = P.parse(q)
+    return {"use": s.use_case, "flex": not s.budget_hard, "brk": s.deal_breakers}[what]
+
+
+for _cw_q, _cw_what, _cw_want, _cw_why in [
+    ("پراید در محدوده تهران", "flex", False, "«حدود» inside «محدوده» is no soft budget"),
+    ("محدودیت بودجه دارم", "flex", False, "  nor inside «محدودیت»"),
+    ("اعتبار دارم پراید میخوام", "use", "unspecified", "«بار» inside «اعتبار» is no cargo"),
+    ("پراید انبار شده", "use", "unspecified", "  nor inside «انبار»"),
+    ("باران زده نباشه", "use", "unspecified", "  nor inside «باران»"),
+    ("سمند فرسوده نباشه", "use", "unspecified", "«سود» inside «فرسوده» is no resale"),
+    ("پراید در شهریار", "use", "unspecified", "«شهری» inside «شهریار» is no commute"),
+    ("مدل شهریور ۹۸ پراید", "use", "unspecified", "  nor inside «شهریور»"),
+    ("کارت ماشین دارد", "use", "unspecified", "«کار » takes no ending: «کارت» is no ride-hailing"),
+    ("کارش تمیزه", "use", "unspecified", "  nor «کارش»"),
+    ("برای سرکار رفتن", "use", "commute", "«سرکار» is commute, no longer «کار » inside it"),
+    ("حدودا ۵۰۰ میلیون پراید", "flex", True, "the adverb's «ا» keeps the cue"),
+    ("تقریباً ۵۰۰ میلیون", "flex", True, "  and the tanvin"),
+    ("پراید اتوماتیکه", "brk", ("manual",), "the copula «ه» keeps the cue"),
+    ("وانته میخوام", "use", "cargo", "  another"),
+    ("ماشین خانوادگیه", "use", "family_first_car", "  another"),
+    ("ماشین خانوادگیست", "use", "family_first_car", "  and «ست»"),
+    ("پراید وتاکسی میخوام", "use", "ride_hailing", "a «و» typed on keeps the cue"),
+    ("برای سرکارم", "use", "commute", "a noun's ending keeps it"),
+    ("پراید برای بچه‌هام", "use", "family_first_car", "  another"),
+    ("وانت بارکش", "use", "cargo", "the compounds are cues of their own: «بارکش»"),
+    ("پراید باربر", "use", "cargo", "  «باربر»"),
+    ("پراید برای تاکسیرانی", "use", "ride_hailing", "  «تاکسیرانی»"),
+    ("پراید سودآور", "use", "resale_flip", "  «سودآور»"),
+    ("معامله پرسود", "use", "resale_flip", "  «پرسود»"),
+    ("یه ماشین برای کار میخوام", "use", "ride_hailing", "the cues as words, as they were: «کار »"),
+    ("اسنپ کار کنم", "use", "ride_hailing", "  «اسنپ»"),
+    ("وانت برای بار", "use", "cargo", "  «بار»"),
+    ("برای رفت و آمد", "use", "commute", "  a cue of words"),
+    ("پراید کم مصرف", "use", "commute", "  «کم مصرف»"),
+    ("حدود ۳۰۰ میلیون پراید", "flex", True, "  «حدود»"),
+    ("پراید بدون رنگ", "brk", ("repaint",), "  a red line"),
+    ("پراید آبی رنگ", "brk", (), "«بی رنگ» inside «آبی رنگ», a blue car, is no red line"),
+    ("سند آزاد باشه", "brk", ("unclear_documents",), "  another"),
+    ("بارها گفتم پراید", "use", "cargo", "left: «بارها», «ها» an ending"),
+    ("شهریه دانشگاه دارم", "use", "commute", "left: «شهریه», «ه» allowed"),
+    ("این بار پراید میخوام", "use", "cargo", "left: «بار» a word of another meaning"),
+    ("کم مصرفترین ماشین", "use", "unspecified", "left: «کم مصرف» glued to «ترین» is no longer read"),
+]:
+    _cw_got = _cw_read(_cw_q, _cw_what)
+    check(f"CW: «{_cw_q}» → {_cw_what} {_cw_want}  ({_cw_why.strip()})", _cw_got == _cw_want, str(_cw_got))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))
