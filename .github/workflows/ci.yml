@@ -29,10 +29,11 @@
 # no fork checkout on pull_request_target, the npm and pip caches named
 # explicitly, no pip-install input, Python 3.12.
 #
-# The jobs are pinned to Ubuntu 24.04, the image `ubuntu-latest` has been.
-# GitHub moves that label to Ubuntu 26.04 from 2026-10-19, to be done by
-# 2026-11-19, and warns that workflows tied to 24.04 may be affected. Moving
-# to 26.04 is a change to make on purpose, in a commit and a run of its own.
+# The jobs are pinned to Ubuntu 26.04, the image `ubuntu-latest` names since
+# GitHub moved the label (2026-10-19 to 2026-11-19). They were on 24.04
+# until then, so that the move would be a change made on purpose, in a
+# commit and a run of its own: the owner's choice of 2026-11-19, tried on a
+# pull request and merged only once every job of every workflow passed.
 
 name: ci
 
@@ -50,7 +51,7 @@ concurrency:
 
 jobs:
   suites:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -93,7 +94,7 @@ jobs:
             prom/prometheus:v3.16.0 test rules alerts_test.yml
 
   web:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     defaults:
       run:
@@ -113,7 +114,7 @@ jobs:
       - run: npm run build
 
   e2e:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -186,7 +187,7 @@ jobs:
         run: tail -n 100 api.log site.log
 
   postgres:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     # A database for this job alone, gone with it. Trust instead of a
     # password: nothing outside the job can reach it, and no password is
