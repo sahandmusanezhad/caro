@@ -8724,3 +8724,44 @@ it a minute later, and read it there:
 
 The change is in the workflows, not the site; the read shows the merge
 reached it, its counts with it.
+
+## D116 — Every job runs on Ubuntu 26.04, tried on a pull request and merged once each passed
+
+GitHub moved the label `ubuntu-latest` from Ubuntu 24.04 to 26.04 between
+2026-10-19 and 2026-11-19, and warned that workflows tied to 24.04 may be
+affected. Every job here had been pinned to 24.04 since D84, so that the
+move would be a change made on purpose, in a commit and a run of its own.
+Asked on 2026-11-19, before going to sleep, whether to move, the owner
+chose to have it tried that night and merged only once every job of every
+workflow passed on the new image.
+
+Merged on 2026-11-20 in #39:
+
+    commit    what it does                                            suites    bare
+    7b33061   every job on Ubuntu 26.04, and ci.yml's note              3841    3090
+
+**The change.** `runs-on: ubuntu-26.04` for the nine jobs, four in ci.yml,
+three in images.yml and two in audit.yml, and ci.yml's note on the pin.
+DP44 holds audit.yml's runners to ci.yml's, so the two moved together.
+
+**Tried before the merge.** On the pull request, every job of ci.yml
+(`suites`, `web`, `e2e`, `postgres`) and images.yml's `images` passed on
+26.04. audit.yml, which runs on no pull request, was run by hand on the
+branch, and both its jobs passed. Python 3.12, Node 22, Postgres 16 in its
+container, Docker's builds and Playwright's Chromium with its fonts all
+came up on the new image.
+
+**On `main` after `7e897c5`**, the first runs on 26.04: `ci` and `images`
+passed, and so did `reached` and `deliver`, the two that run only after a
+merge. The Chromium install took 37 seconds on 26.04, where on 24.04 that
+night it took four to six minutes.
+
+**Read from the outside** by the job of D110, itself on 26.04 now. It
+brought `Tecso-Dev/caro` from `4e0e7d2` to `7e897c5` at 02:07Z on
+2026-11-20, found the site running it a minute later, and read it there:
+
+    about    200 ۱۱۲=تصمیم ۳۸۴۱=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+
+**What it does not settle.** The jobs now follow what GitHub ships on 26.04;
+a later image is another such change, made the same way.
