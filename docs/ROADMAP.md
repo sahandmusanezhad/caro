@@ -385,7 +385,8 @@ names. Durations are for two people part-time.
      owner chose, on two measurements, a name as a word of its own in both
      readers (`caro.ingest.models.names`): no letter before it but a «و» typed
      on; none after it but an ending Persian puts on a noun («ی», «م», «ش»,
-     «مو», «ها» …); and not before «تندر», «شهر» or «آباد», nor after «تهران»
+     «مو», «ها» …, and the spoken copula «ه» and «ست» since 2026-11-20, the
+     owner's choice); and not before «تندر», «شهر» or «آباد», nor after «تهران»
      or «تندر» (that last the same night, D114, measured: 7 of 7 titles and 3
      of 3 queries with the words the other way round, «تندر پارس رنو», where
      the rule had none). Made titles: 8 of 8 Vitaras, 4 of 5 Pars Tondars, 5 of
@@ -393,9 +394,10 @@ names. Durations are for two people part-time.
      was right on none, and 29 of 29 ordinary titles as before; 27 of 27 true
      forms with an ending or a «و» kept, and 9 of 10 words that hold a name and
      are none cleared («پارسال», «پارسیان», «پارسا», «سمندر»). Left: «پارسی» is
-     Pars, «ی» being an ending; the cues are still matched inside a longer
-     word; and run17, a published file, keeps its five misread rows until a
-     later corpus is promoted.
+     Pars, «ی» being an ending, and «پارسه» and «شاهینه» are models since the
+     copula, as they were before the rule; the cues are still matched inside a
+     longer word; and run17, a published file, keeps its five misread rows
+     until a later corpus is promoted.
      On 69 words that hold a cue or an alias and are no use of it, and 33
      true forms that carry a suffix: no letter before it clears 30 of the
      69 and loses none of the 33, but stops reading a name with a prefix

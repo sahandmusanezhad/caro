@@ -5308,8 +5308,13 @@ for _mn_cell, _mn_rows in [
         ("پژو ۴۰۵ GLX", ("Peugeot", "405")), ("پراید و تیبا", ("Saipa", "Pride")),
         ("quik r", ("Saipa", "Quik")), ("206SD دنده ای", ("Peugeot", "206")),
         ("پژو پارس ۹۸ تحویل تهران", ("Peugeot", "Pars"))]),
-    ("left: «پارسی», «ی» being an ending", [
-        ("زبان پارسی", ("Peugeot", "Pars"))]),
+    ("the spoken copula after a name keeps it, as before the rule (2026-11-20, the owner's call)", [
+        ("ماشینم پرایده", ("Saipa", "Pride")), ("تیباست", ("Saipa", "Tiba")), ("سمنده", ("IKCO", "Samand")),
+        ("دناست", ("IKCO", "Dena")), ("یه پژو پارسه", ("Peugeot", "Pars")), ("پرایدست", ("Saipa", "Pride")),
+        ("پژوهش", _MN_NONE)]),
+    ("left: «پارسی», «ی» being an ending, and «پارسه» and «شاهینه», the copula's", [
+        ("زبان پارسی", ("Peugeot", "Pars")), ("تخت جمشید یا پارسه", ("Peugeot", "Pars")),
+        ("شاهینه", ("Saipa", "Shahin"))]),
 ]:
     _mn_got = [(t, _md_extract(t)) for t, _ in _mn_rows]
     check(f"MN: {_mn_cell} -- {len(_mn_rows)} titles",
