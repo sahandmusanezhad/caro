@@ -8543,3 +8543,69 @@ among them. The rule is in the API that `deploy-wait` found running. The
 site check's one question names Samand by a word of its own, which reads the
 same under either rule; the rule is checked by the suites, in CI and inside
 the API's image.
+
+## D113 — The dependencies are read against the advisories every Monday and by hand, and stop no merge
+
+Nothing read the dependencies against the published advisories. ci.yml
+installs with `--no-audit`, and there is no Dependabot. Read by hand on
+2026-11-19, the site's lockfile had no advisory in what the site serves and
+six moderate ones in its lint tools, all one: minimatch from 7.0.0 to before
+11.0.1 (GHSA-g3hv-75wg-m249), which @typescript-eslint brings for `npm run
+lint`. `pip-audit` of the API's requirements found nothing. The owner chose
+the same night, on what was read:
+- a workflow of its own, every week and by hand, not a step of ci.yml, so
+  that an advisory published in a quiet week stops no merge, and, `deliver`
+  waiting on ci.yml alone, no delivery;
+- red on an advisory rated high or critical for the site;
+- red on any advisory for the API, since pip-audit gives no rating.
+
+Merged on 2026-11-19 in #36:
+
+    commit    what it does                                            suites    bare
+    18aaa65   the site's lint tools past minimatch's advisory           3833    3082
+    e4cc236   audit.yml, every Monday and by hand                       3834    3083
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `d20b0dd`.
+
+**The lockfile** (`18aaa65`). `npm audit fix`, package.json as it was:
+@typescript-eslint's ten packages 8.70.0 to 8.73.0, the minimatch
+typescript-estree carries 10.2.6 to 11.0.9, its brace-expansion 5.0.12 to
+5.0.13, and @isaacs/nonrecursive-glob-match 1.1.0 added, which that
+minimatch needs. Every package it moved is a development one; `npm audit`
+finds nothing after it.
+
+**The workflow** (`e4cc236`), `.github/workflows/audit.yml`:
+- on a schedule, Mondays at 05:23 UTC, and by hand; never on a push or a
+  pull request;
+- `site`: `npm audit --audit-level=high` of webapp/web's whole lockfile,
+  the lint tools with the rest; the lower ratings are printed and pass;
+- `api`: pip-audit 2.10.1 of what the Dockerfile installs, numpy and
+  webapp/requirements.txt, resolved on the image's Python, 3.12;
+- the jobs may read the code and nothing more, and their runner and Node
+  are ci.yml's.
+A red run stops nothing: GitHub mails it to whoever last set the schedule,
+and what follows is a commit of its own. GitHub turns a schedule off in a
+public repository with no activity for sixty days; a run by hand still
+works then.
+
+**Tests.** DP44 in tests/test_deploy.py reads the workflow against ci.yml,
+images.yml and the Dockerfile. Mutants, 23, bytecode off, all caught: 20 of
+the workflow, 2 of the Dockerfile (its Python moved alone, one package more
+installed) and 1 of ci.yml (an audit on each merge). DP44's last two
+conditions, no `continue-on-error` and no `if:`, were added while the
+mutants were written, before the run.
+
+**Run by hand** once on `main`, at `d20b0dd`, on 2026-11-19 at 22:55Z: both
+jobs green, `site` in two seconds and `api` in ten. The first scheduled run
+is Monday 2026-11-23.
+
+**Read from the outside** by the job of D110, which brought
+`Tecso-Dev/caro` to `d20b0dd` and found the site running it at 22:57Z:
+
+    about    200 ۱۱۲=تصمیم ۳۸۳۴=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+
+The site check reads no dependency; what it shows is that the merge reached
+the site and its counts with it.
