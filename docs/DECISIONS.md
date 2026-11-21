@@ -8765,3 +8765,200 @@ brought `Tecso-Dev/caro` from `4e0e7d2` to `7e897c5` at 02:07Z on
 
 **What it does not settle.** The jobs now follow what GitHub ships on 26.04;
 a later image is another such change, made the same way.
+
+## D117 — The spoken copula after a model's name, «ه» and «ست», as before D112's rule
+
+Since D112 a model's name is a word of its own, and only the listed endings
+may follow it. The list held no copula, so «ماشینم پرایده», «تیباست»,
+«سمنده», «دناست» and «یه پژو پارسه» named no model, in the listings and in
+the search, where they had before the rule. It was found on the night of
+2026-11-19 while the cues were measured for the owner, the predictions
+locked first (sha256 `791548a8…`): the rule as merged read 0 of the 5, and
+with «ه» and «ست» allowed all 5, and «پارسه» (Persepolis) as Pars and «شاهینه»
+as Shahin, as before the rule. Put to the owner on 2026-11-20 with both, the
+owner chose to add them.
+
+Merged on 2026-11-20 in #41:
+
+    commit    what it does                                            suites    bare
+    6024dac   «ه» and «ست» after a model's name                         3844    3093
+
+The commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `94d5cc3`.
+
+**The change.** «ه» and «ست» join the endings in
+`caro.ingest.models._ENDING`; nothing else.
+
+**What did not change**, read before the commit under both rules: none of
+D112's two sets (the first set's ten cells, the second set's 27 true forms
+and 10 words), and none of the 169 texts and 1,105 queries the suites hand
+the two readers. «پژوهش» names no model under either.
+
+**Mutants**, bytecode off, 6, 5 caught: no «ه», no «ست», «است» for «ست»,
+«هه» for «ه», and «ا» as well, which makes «پارسا» Pars. The sixth adds an
+ending already in the list and reads every input alike.
+
+**Left**, each pinned by a test: «پارسی», «پارسه» and «شاهینه» are models,
+an ending each.
+
+**Read from the outside** by the job of D110, on Ubuntu 26.04 (D116). It
+brought `Tecso-Dev/caro` to `94d5cc3` at 07:15Z on 2026-11-20, found the
+site running it a minute later, and read it there:
+
+    about    200 ۱۱۶=تصمیم ۳۸۴۴=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+
+run17 is not parsed again (D87); the rule reads the runs to come and every
+search.
+
+## D118 — A cue is a word of its own, as a model's name is, by the owner's decision on two measurements
+
+The use cases, the red lines, the soft budget and «کم مصرف» were found
+anywhere in the query. «محدوده» and «محدودیت» set a flexible budget;
+«اعتبار», «انبار» and «باران» a cargo use; «فرسوده» and «آسوده» a resale one;
+«شهریار» and «شهریور» a commute; «برای سرکار رفتن» was ride-hailing, «کار »
+being inside «سرکار »; and «پراید آبی رنگ», a blue Pride, carried the red
+line «بی رنگ». D84 measured the question and on 2026-10-18 the owner chose
+to leave it.
+
+Asked on 2026-11-19, before going to sleep, the owner chose to have it
+measured only. The first set (sha256 `791548a8…`, the same night) put three
+rules side by side; on it, on 2026-11-20, the owner chose K2, the model
+names' rule with the adverb's «ا» and the spoken copula allowed after a cue,
+and the five compounds K2 lost («تاکسیرانی», «بارکش», «باربر», «سودآور»,
+«پرسود») made cues of their own, to be measured first on a fresh set, since
+the five were rows of the first, and built only if no control changed.
+
+Merged on 2026-11-20 in #42:
+
+    commit    what it does                                            suites    bare
+    1631023   a cue is a word of its own                                3882    3131
+
+The commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `b9f9090`.
+
+**The rule** (`caro.ranking._cue_at`). A cue is read where no letter stands
+right before it but a «و» typed on, and none right after it but a noun's
+ending (the model names' list), the adverb's «ا» or the copula «ه», «ست». A
+cue written with a trailing space, «کار », takes no ending. The use cases,
+the red lines, the soft budget and «کم مصرف» are read so.
+
+**The first set** (2026-11-19), today against two rules:
+
+    cells                                          today    K1    K2
+    words that hold a cue and are none, 13             1    13    12
+    true forms with something typed on, 15            15     6    10
+    the cues as words, 15                             14    15    15
+    the suites' queries, 1,105, changed                     0     0
+
+K2's five losses were the compounds, made cues for the fresh set. The
+first set's predictions missed in four places: today was right on one of
+the 13 words (a query ending in «سرکار», «کار » having no space after it)
+and wrong on one of the 15 plain cues («برای سرکار رفتن»), which none said;
+K2 read «شهریه» as commute, where it was predicted to clear what K1
+cleared; and the suites' queries changed under neither rule, where some
+were predicted to. Its cell for the copula held (D117).
+
+**The fresh set** (2026-11-20, sha256 `1556c08a…`), the rule built against
+the same with endings for «کار » too:
+
+    cells                                          today    built    «کار» with endings
+    words that hold a cue and are none, 11             4       9        6
+    true forms, 10                                    10      10       10
+    the cues as words (controls), 10                  10      10       10
+    the suites' queries, 1,107, changed                        0        0
+
+Every prediction held. «کار » with endings read «کارت ماشین», «کارت سوخت»
+and «کارش» as ride-hailing; that is why it takes none. No control
+changed, so the owner's rule for building held.
+
+**Mutants**, bytecode off, 13, 11 caught at first. The red lines and «کم
+مصرف» read back as substrings lived; a row was added for each after the
+run, «پراید آبی رنگ» and «کم مصرفترین ماشین», and both are caught. The
+first is a reading today got wrong that neither set held.
+
+**Left**, each pinned by a test: «بارها» and «شهریه», an ending each; «این
+بار» and «سه بار تصادف», a cue that is a word of another meaning, which no
+rule of letters can tell; and «کم مصرفترین», a cue glued to «ترین», no
+longer read.
+
+**Read from the outside** by the job of D110, on Ubuntu 26.04 (D116). It
+brought `Tecso-Dev/caro` from `94d5cc3` to `b9f9090` at 07:29Z on
+2026-11-20, found the site running it a minute later, and read it there:
+
+    about    200 ۱۱۶=تصمیم ۳۸۸۲=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+    search   200 «سمند زیر ۲ میلیارد»: models ['samand'], 13 shown, 1 apart
+
+/about gave this commit's counts. The site check's question holds no cue,
+so the suites, in CI and inside the API's image, are what read the rule.
+
+## D119 — Nothing is pushed to Tecso-Dev/caro, for good: the job `deliver` out, by the owner's choice
+
+On 2026-11-21 the owner said, to be kept for good, that the work is no
+longer pushed to Tecso, only to the owner's own repository. The one thing
+here that pushed there was the images workflow's job `deliver` (D110):
+after each green merge it brought `main` of `Tecso-Dev/caro` to the merge by
+a deploy key of that repository's, waited for the site Vercel builds from
+it, and read the site. Its last push was `b9f9090`, #42's merge, at 07:29Z
+on 2026-11-20 (D118). Nothing was merged between the owner's word and this
+change, so nothing else went there.
+
+Merged on 2026-11-21 in #43:
+
+    commit    what it does                                            suites    bare
+    0181250   the job deliver and deploy/deliver.sh out                 3880    3129
+    e2834dd   the working agreement: nothing pushed to Tecso-Dev/caro   3880    3129
+    fd59a17   the documents that said each merge reaches the site       3880    3129
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `e905c9c`.
+
+**The change.** The job and its script are gone, and the notes of the three
+workflows say so. The working agreement holds the rule: no session,
+workflow or script of this repository pushes to `Tecso-Dev/caro`, and the
+work is pushed to `sahandmusanezhad/caro` alone. Its round's sixth step
+reads CI on `main`, whose images job reads both images from the outside,
+and the site where one runs `main`.
+
+**Tests.** DP41 to DP43, which held the script and the job, went with them.
+DP46 holds that no workflow checks out a repository but this one, holds a
+key but the token GitHub gives each run, runs `git push` or names
+`Tecso-Dev/caro` outside its comments; that the images workflow has no job
+`deliver`; and that `deploy/deliver.sh` is gone. DP13 allows no ssh in the
+images workflow. Mutants, bytecode off, 10, all caught: the old job back
+whole, a checkout of `Tecso-Dev/caro` by its key, a checkout of another
+repository without one, a `git push` in a step, `Tecso-Dev/caro` named by an
+env line of ci.yml, a secret other than GitHub's token, the script back, a
+job named `deliver` that only echoes, a new `.yaml` workflow that pushes,
+and ssh in a step.
+
+**What it means for the site.** https://caro-rho.vercel.app is built from
+`main` of `Tecso-Dev/caro`, which stays at `b9f9090`: no merge since reaches
+it. A site runs `main` again once the server serves it (PHASE1_SETUP,
+PHASE6_SETUP), where the server pulls the images and nothing is pushed.
+Until then a merge is read by CI on `main` and its images job's read of
+both images; this one was read so, and the site was not, since it does not
+run it.
+
+**Left, the owner's.** The deploy key `caro-deliver` can still write to
+`Tecso-Dev/caro`, and this repository still holds its private half as the
+secret `TECSO_DEPLOY_KEY`; nothing reads either, and DELIVERY gives the two
+lines that take them out. Later the same day the owner chose to delete
+`Tecso-Dev/caro` altogether, so that caro is on the owner's account alone:
+its issues in this repository's Issues, the site's contact page sending
+people there instead of to `Tecso-Dev/caro` (D68), and its open issues
+recreated here from a copy. A session can delete nothing there: its access
+reaches this repository alone, and deleting that one takes an admin's
+rights on it and the owner's own token. The move and the delete are
+recorded when they are made.
+
+**On `main` after `e905c9c`**, read on 2026-11-21: `ci` passed, and
+`images` ran two jobs and no `deliver`. The job `images` passed, its step
+that starts both images together and reads them from the outside among its
+steps, at 15:47Z, before both were pushed as `:staging`; `reached` said
+that no environment is named yet. Nothing was pushed to `Tecso-Dev/caro`.
+The site on Vercel was not read: it runs `b9f9090`, not this merge.

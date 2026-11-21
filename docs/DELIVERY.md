@@ -20,7 +20,7 @@ Every merge into `main` runs two workflows, in this repository alone:
 ## Nothing pushed to Tecso-Dev/caro
 
 The owner chose on 2026-11-21, for good, that the work is pushed to this
-repository alone: nothing goes to `Tecso-Dev/caro`, by a session, by a
+repository alone (D119): nothing goes to `Tecso-Dev/caro`, by a session, by a
 workflow or by hand ([WORKING_AGREEMENT](WORKING_AGREEMENT.md)).
 
 Until then its `main` was brought to the merges: by the owner, by hand,
@@ -33,7 +33,7 @@ the token GitHub gives each run, or runs `git push`.
 **The site on Vercel stays where it was left.** Vercel builds
 https://caro-rho.vercel.app from `main` of `Tecso-Dev/caro`, which stays at
 `b9f9090`, #42's merge, the last commit it was given, at 07:29Z on
-2026-11-20; the job read it on the site a minute later. A site runs `main`
+2026-11-20; the job read it on the site a minute later (D118). A site runs `main`
 again once the server serves it ([PHASE1_SETUP](PHASE1_SETUP.md),
 [PHASE6_SETUP](PHASE6_SETUP.md)), where nothing is pushed either: the
 server pulls the images.

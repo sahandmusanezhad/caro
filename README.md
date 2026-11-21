@@ -130,7 +130,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province — the 31 capitals give theirs — with how each was read. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
 | explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
-| deployed | ⚠️ **at `b9f9090`, not at `main`.** One Vercel project of two services (D64, D80), built from [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro), which CI brought to each green merge from 2026-11-19 (D110) until the owner chose on 2026-11-21 that nothing is pushed there; it stays at #42's merge until the server serves the site ([DELIVERY](docs/DELIVERY.md)). |
+| deployed | ⚠️ **at `b9f9090`, not at `main`.** One Vercel project of two services (D64, D80), built from [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro), which CI brought to each green merge from 2026-11-19 (D110) until the owner chose on 2026-11-21 that nothing is pushed there (D119); it stays at #42's merge until the server serves the site ([DELIVERY](docs/DELIVERY.md)). |
 
 Everything that is left until the end of the project — in order, with what
 closes each item and who does it — is in [ROADMAP](docs/ROADMAP.md), in two
@@ -831,7 +831,7 @@ scripts/         setup, live runs, promotion, the catalog's loader, replays, the
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
 demo/            index.html is hand-maintained; export_demo.py writes demo_data.json
-docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D116) · eval · roadmap · readme/ (the README's images)
+docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D119) · eval · roadmap · readme/ (the README's images)
 ```
 
 ## Documentation
