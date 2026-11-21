@@ -8765,3 +8765,49 @@ brought `Tecso-Dev/caro` from `4e0e7d2` to `7e897c5` at 02:07Z on
 
 **What it does not settle.** The jobs now follow what GitHub ships on 26.04;
 a later image is another such change, made the same way.
+
+## D117 — The spoken copula after a model's name, «ه» and «ست», as before D112's rule
+
+Since D112 a model's name is a word of its own, and only the listed endings
+may follow it. The list held no copula, so «ماشینم پرایده», «تیباست»,
+«سمنده», «دناست» and «یه پژو پارسه» named no model, in the listings and in
+the search, where they had before the rule. It was found on the night of
+2026-11-19 while the cues were measured for the owner, the predictions
+locked first (sha256 `791548a8…`): the rule as merged read 0 of the 5, and
+with «ه» and «ست» allowed all 5, and «پارسه» (Persepolis) as Pars and «شاهینه»
+as Shahin, as before the rule. Put to the owner on 2026-11-20 with both, the
+owner chose to add them.
+
+Merged on 2026-11-20 in #41:
+
+    commit    what it does                                            suites    bare
+    6024dac   «ه» and «ست» after a model's name                         3844    3093
+
+The commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `94d5cc3`.
+
+**The change.** «ه» and «ست» join the endings in
+`caro.ingest.models._ENDING`; nothing else.
+
+**What did not change**, read before the commit under both rules: none of
+D112's two sets (the first set's ten cells, the second set's 27 true forms
+and 10 words), and none of the 169 texts and 1,105 queries the suites hand
+the two readers. «پژوهش» names no model under either.
+
+**Mutants**, bytecode off, 6, 5 caught: no «ه», no «ست», «است» for «ست»,
+«هه» for «ه», and «ا» as well, which makes «پارسا» Pars. The sixth adds an
+ending already in the list and reads every input alike.
+
+**Left**, each pinned by a test: «پارسی», «پارسه» and «شاهینه» are models,
+an ending each.
+
+**Read from the outside** by the job of D110, on Ubuntu 26.04 (D116). It
+brought `Tecso-Dev/caro` to `94d5cc3` at 07:15Z on 2026-11-20, found the
+site running it a minute later, and read it there:
+
+    about    200 ۱۱۶=تصمیم ۳۸۴۴=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+
+run17 is not parsed again (D87); the rule reads the runs to come and every
+search.
