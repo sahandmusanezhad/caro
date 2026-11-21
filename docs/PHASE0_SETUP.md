@@ -10,9 +10,9 @@ only the owner can take them. On 2026-11-03 the owner closed phase 0 before
 they were taken and carried them to an issue of their own in
 `Tecso-Dev/caro` (D99); they are the steps below, unchanged. Each says what
 to do, what to see when it worked, and what to send back. Steps 2 and 3 test
-what the site runs, so first bring `Tecso-Dev/caro` to `main`
-(WORKING_AGREEMENT): the test report and the site's error reports are in
-it, and the site is deployed from it.
+what the site runs: the site on Vercel, built from `Tecso-Dev/caro` at
+`b9f9090`, which holds the test report and the site's error reports.
+Nothing is pushed there any more ([DELIVERY](DELIVERY.md)).
 
 No step asks for a key to be written here or in a conversation: a DSN, a
 token or a password is typed into the service that holds it, and stays

@@ -1,8 +1,8 @@
-# Delivery — from a merge to the site, by itself
+# Delivery — what follows a merge, and where the work is pushed
 
-What happens after a pull request is merged into `main`, and the one step
-in the owner's accounts that makes the site follow it with no one at a
-keyboard.
+What happens after a pull request is merged into `main`. The work is pushed
+to `github.com/sahandmusanezhad/caro` alone; nothing here pushes to another
+repository.
 
 ## After a merge
 
@@ -12,91 +12,65 @@ Every merge into `main` runs two workflows, in this repository alone:
   lint and build, and every key route in a browser.
 - **`images`**:
   - both images built, the API's suites run inside its image, the two
-    started together, read, and walked in a browser;
+    started together, read from the outside, and walked in a browser;
   - then both pushed to `ghcr.io/sahandmusanezhad` as `:staging`, and as
     `:production` on a release tag `v*`;
-  - then two jobs, `reached` and `deliver`, below.
+  - then the job `reached`, below.
 
-**Until the switch to the server, the site is Vercel's.** Vercel builds it
-from `main` of `Tecso-Dev/caro`. The job `deliver` brings that `main` to
-each merge, only when both workflows passed on the very commit:
-1. a fast-forward, never a force (`deploy/deliver.sh`). Where that `main`
-   has commits of its own, nothing is pushed, the job fails, and a person
-   sorts it out;
-2. it waits until the site's `/api/health` names the commit
-   (`scripts/deploy_wait.py`), up to fifteen minutes;
-3. it reads the site from the outside (`scripts/site_check.py`), the same
-   lines `tecso-release.sh` printed.
+## Nothing pushed to Tecso-Dev/caro
 
-It reaches `Tecso-Dev/caro` by a deploy key of that repository alone, kept
-as this repository's secret `TECSO_DEPLOY_KEY`. Without it, the job says so
-and does nothing, and the owner's `tecso-release.sh` stays the way to move
-the site.
+The owner chose on 2026-11-21, for good, that the work is pushed to this
+repository alone: nothing goes to `Tecso-Dev/caro`, by a session, by a
+workflow or by hand ([WORKING_AGREEMENT](WORKING_AGREEMENT.md)).
 
-**Once the server serves the site** ([PHASE1_SETUP](PHASE1_SETUP.md)):
+Until then its `main` was brought to the merges: by the owner, by hand,
+until 2026-11-18, then by the images workflow's job `deliver`, a
+fast-forward by a deploy key of that repository's, which read the site
+after each (D110). The job is gone, and `deploy/deliver.sh` with it. DP46
+holds that no workflow here checks out another repository, holds a key but
+the token GitHub gives each run, or runs `git push`.
+
+**The site on Vercel stays where it was left.** Vercel builds
+https://caro-rho.vercel.app from `main` of `Tecso-Dev/caro`, which stays at
+`b9f9090`, #42's merge, the last commit it was given, at 07:29Z on
+2026-11-20; the job read it on the site a minute later. A site runs `main`
+again once the server serves it ([PHASE1_SETUP](PHASE1_SETUP.md),
+[PHASE6_SETUP](PHASE6_SETUP.md)), where nothing is pushed either: the
+server pulls the images.
+
+## The key that is left
+
+Nothing reads it now, but the deploy key `caro-deliver` can still write to
+`Tecso-Dev/caro`, and this repository still holds its private half as the
+secret `TECSO_DEPLOY_KEY`. Both go. On your own machine, where `gh` is
+signed in as you, paste these together:
+
+```
+gh secret delete TECSO_DEPLOY_KEY -R sahandmusanezhad/caro
+for id in $(gh repo deploy-key list -R Tecso-Dev/caro --json id,title -q '.[] | select(.title == "caro-deliver") | .id'); do gh repo deploy-key delete "$id" -R Tecso-Dev/caro; done
+```
+
+- The first line takes the secret out of this repository.
+- The second takes the key out of `Tecso-Dev/caro`, found by its title,
+  and needs admin rights there. Without them, whoever administers that
+  repository removes `caro-deliver` under **Settings → Deploy keys**.
+- Neither prints a key, and neither pushes anything.
+
+Worked when `gh secret list -R sahandmusanezhad/caro` no longer names
+`TECSO_DEPLOY_KEY`, and `gh repo deploy-key list -R Tecso-Dev/caro` no
+longer names `caro-deliver`.
+
+## Once the server serves the site
+
+[PHASE1_SETUP](PHASE1_SETUP.md):
 - the server brings each environment to its tag's image every minute
   (`deploy/pull.sh`), and nothing here reaches the server;
 - with the GitHub variable `CARO_STAGING_URL` set, the job `reached` waits
   until staging runs the commit and reads it from the outside;
 - production follows a release tag, `CARO_PRODUCTION_URL` the same way.
 
-## The one step: the deploy key
-
-On your own machine, where `gh` is signed in as you, in an empty directory,
-paste these together:
-
-```
-ssh-keygen -t ed25519 -N "" -C caro-deliver -f caro-deliver && \
-gh repo deploy-key add caro-deliver.pub -R Tecso-Dev/caro --allow-write --title caro-deliver && \
-gh secret set TECSO_DEPLOY_KEY -R sahandmusanezhad/caro < caro-deliver
-rm -f caro-deliver caro-deliver.pub
-```
-
-- The first line makes a key pair there. The private half goes into this
-  repository's secret by the third line, read from the file, and is then
-  deleted. It is never on the screen, in a conversation, or anywhere else.
-- Each line runs only if the one before it worked, and the last runs
-  whatever happened. A secret is then never set for a key that
-  `Tecso-Dev/caro` refused.
-- The key can write to `Tecso-Dev/caro` and to nothing else.
-- The second line needs admin rights on `Tecso-Dev/caro`. Without them,
-  run the first line alone and send `caro-deliver.pub` to whoever
-  administers that repository: it is the public half, and nothing in it is
-  secret. They add it under **Settings → Deploy keys → Add deploy key**,
-  with **Allow write access**. You then run the third line, and the last.
-- Where a rule protects that `main`, the key must be among those it lets
-  through: **Settings → Rules**, the rule's **Bypass list**, **Deploy
-  keys**.
-
-Worked when, after the next merge, the images run on `main` shows the job
-`deliver` green, with:
-- `deliver: Tecso-Dev/caro main <before> -> <the merge>`;
-- `deploy-wait: https://caro-rho.vercel.app runs <the merge>`;
-- the site check's lines.
-
-To try it at once: **Actions → images**, the latest run on `main`,
-**Re-run all jobs**.
-
-**When it fails:**
-- **The second line says `Deploy keys are disabled for this repository`.**
-  The organization allows no deploy keys, which is how GitHub makes a new
-  organization. An owner of `Tecso-Dev` turns them on: the organization's
-  **Settings**, **Deploy keys** in the sidebar, then **Save**. Then all four
-  lines are run again, from the first. So it went on 2026-11-18, when the
-  lines were still run one by one: the secret was set all the same, for a
-  key no repository had, and `deliver` failed at «Tecso-Dev/caro, by its
-  deploy key» until they were run again.
-- **The wait shows `(no build)` until it gives up.** Vercel did not give
-  the API the commit it deployed. In the Vercel project, **Settings →
-  Environment Variables**, **Automatically expose System Environment
-  Variables** must be on. It is on unless someone turned it off, and the
-  project is its holder's to change.
-- **`deliver` says `has commits ... does not`.** Someone pushed to
-  `Tecso-Dev/caro`'s `main` by hand. Nothing was pushed over it.
-
 ## When Vercel is retired
 
-[PHASE6_SETUP](PHASE6_SETUP.md)'s step 4 takes the job `deliver` out with
-the rest of Vercel's side. The deploy key is then removed from
-`Tecso-Dev/caro`'s **Deploy keys**, and the secret from this repository's
-**Settings → Secrets and variables → Actions**.
+[PHASE6_SETUP](PHASE6_SETUP.md)'s steps 3 and 4: the Vercel project
+deleted by its holder, then this repository without `vercel.json`, in the
+pull request #24, a draft until then.

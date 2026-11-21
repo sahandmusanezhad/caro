@@ -43,8 +43,9 @@ and then `exit 0`.
 ## 2. A week on the server
 
 The switch stays undoable while the Vercel project exists: the CNAME put
-back, and Vercel serves `main` of `Tecso-Dev/caro` again. Keep it so for a
-week, as PHASE1_SETUP says, and read the line above once a day.
+back, and Vercel serves `main` of `Tecso-Dev/caro` again, which stays at
+`b9f9090` since nothing is pushed there ([DELIVERY](DELIVERY.md)). Keep it
+so for a week, as PHASE1_SETUP says, and read the line above once a day.
 
 Worked when seven days' reads each ended `exit 0`.
 
@@ -79,9 +80,10 @@ The CNAME it would put back points at a project that is gone.
 Tell a session that step 3 is done. It brings `phase6-vercel-gone` up to
 `main`, marks its pull request ready, and merges it once CI is green, with
 the README's and the roadmap's lines that say where the site is served.
-It takes out the images workflow's job `deliver` too, which brought each
-merge to Vercel's site ([DELIVERY](DELIVERY.md)). Then remove its deploy
-key from `Tecso-Dev/caro` and its secret from this repository.
+The images workflow's job `deliver`, which brought each merge to
+Vercel's site, is gone already, since 2026-11-21; its deploy key and
+secret go by [DELIVERY](DELIVERY.md)'s two lines, if they are still
+there.
 
 ## Then
 

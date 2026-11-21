@@ -34,7 +34,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ✅ **from each push to `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `7e897c5`, #39's merge, when CI read it on 2026-11-20 (D110, D116); each green merge reaches it by CI, by the owner's deploy key ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
+| deployed | ⚠️ **at `b9f9090`, not at `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `b9f9090`, #42's merge, when CI read it on 2026-11-20 (D110); it is built from `Tecso-Dev/caro`, to which nothing is pushed since the owner's choice of 2026-11-21, so no merge since reaches it ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
 
 ## The order of work
 
@@ -79,14 +79,17 @@ an item says so.
   and Telegram. Each step's document says what to run, then the same by
   hand. Merged in #28 (D109). None has yet run against the owner's
   accounts.
-- **`Tecso-Dev/caro` brought to `main`** by CI after each green merge,
-  since the owner set its deploy key on 2026-11-19 (D110): a fast-forward,
-  then the site waited for and read ([DELIVERY](DELIVERY.md)). Before that,
-  the owner did it with `tecso-release.sh`: from `1940296` to `7ee3256`,
-  #25's merge, on 2026-11-07 (D100), to `2f345dd` the same day (D107), and to
-  `4273047`, #28's merge, on 2026-11-18 (D109). CI brought it to `7585632`,
-  #32's merge, on 2026-11-19 (D110), and since to each green merge, the
-  last read `7e897c5`, #39's, on 2026-11-20 (D116).
+- **Nothing pushed to `Tecso-Dev/caro`** since 2026-11-21, the owner's
+  choice, for good: the work is pushed to `sahandmusanezhad/caro` alone, and
+  the images workflow's job `deliver` is gone ([DELIVERY](DELIVERY.md)). Its
+  `main` stays at `b9f9090`, #42's merge, the last commit it was given, on
+  2026-11-20. Before, the owner brought it to the merges with
+  `tecso-release.sh`: from `1940296` to `7ee3256`, #25's merge, on
+  2026-11-07 (D100), to `2f345dd` the same day (D107), and to `4273047`,
+  #28's merge, on 2026-11-18 (D109); then CI did, by the owner's deploy key,
+  from `7585632`, #32's merge, on 2026-11-19 (D110), to `b9f9090`. Left, the
+  owner's: the deploy key out of `Tecso-Dev/caro` and its secret out of this
+  repository, DELIVERY's two lines.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -741,11 +744,13 @@ names. Durations are for two people part-time.
    owner's, and its holder deployed `main` from `Tecso-Dev/caro` on
    2026-10-14 (D78). A push to `main` deploys: `1ebbf4a` was on the site
    within about three minutes of its push on 2026-10-15 (D80), and
-   `4273047` was on the site when it was read on 2026-11-18 (D109). Since
-   #30, CI pushes each green merge there itself and reads the site after
-   it, by the owner's deploy key ([DELIVERY](DELIVERY.md)); the first was
-   `7585632`, read on the site about a minute after the push on 2026-11-19
-   (D110). Checked
+   `4273047` was on the site when it was read on 2026-11-18 (D109). From
+   #30, CI pushed each green merge there itself and read the site after
+   it, by the owner's deploy key; the first was `7585632`, read on the site
+   about a minute after the push on 2026-11-19 (D110), and the last
+   `b9f9090`, #42's merge, on 2026-11-20. The owner chose on 2026-11-21 that
+   nothing is pushed to `Tecso-Dev/caro` any more ([DELIVERY](DELIVERY.md)):
+   the site stays at `b9f9090` until the server serves it. Checked
    there on 2026-10-25 (D84):
    the contact page has its inbox off and links to the repository's Issues
    (`CARO_INBOX=off`, D68), and the car page draws the province with how it
@@ -774,19 +779,20 @@ names. Durations are for two people part-time.
    workflows on `main` -- `suites`, `web`, `e2e`, `postgres` and `images` --
    was green and carried no warning, read from their annotations. The one
    annotation was `reached`'s notice that no environment is named yet.
-2. **After every merge.** CI on `main`, and the site read from the outside:
-   `/about`'s counts, and the queries the merge changed. What was read goes
-   into the next D-entry. Once the owner's deploy key is set, the images
-   workflow's job `deliver` does the read after each merge, and its log is
-   what was read ([DELIVERY](DELIVERY.md)). Until then the owner runs it --
-   `python3 scripts/site_check.py`, with `--site` once the address changes,
-   or `tecso-release.sh`, which runs it -- and passes back what it printed.
+2. **After every merge.** CI on `main`, its images read from the outside,
+   and the site where one runs `main`: `/about`'s counts, and the queries the
+   merge changed. What was read goes into the next D-entry. From 2026-11-19
+   to 2026-11-20 the images workflow's job `deliver` read Vercel's site after
+   each merge; since nothing is pushed to `Tecso-Dev/caro`, that site runs
+   `main` no more, and the job is gone ([DELIVERY](DELIVERY.md)). The next
+   read of a site after a merge is the job `reached`'s, once
+   `CARO_STAGING_URL` names the server's staging.
 3. **The dependencies, every week.** `audit.yml`, the owner's choice of
    2026-11-19 (D113): `npm audit` of the site's lockfile, red on an advisory
    rated high or critical, and `pip-audit` of what the API's image installs,
    red on any, since pip-audit gives no rating. It runs every Monday and by
-   hand, never on a push or a pull request, so an advisory stops no merge and
-   no delivery. Read by hand on 2026-11-19 before it was built: nothing in what
+   hand, never on a push or a pull request, so an advisory stops no merge.
+   Read by hand on 2026-11-19 before it was built: nothing in what
    the site serves or the API installs, and one moderate advisory in the lint
    tools (minimatch, GHSA-g3hv-75wg-m249), moved past in the lockfile.
 4. **The Chromium install, three tries** (D115). On 2026-11-19 Ubuntu's
@@ -804,7 +810,8 @@ names. Durations are for two people part-time.
 
 The demo is the last item. `docs/DEMO_SCRIPT.md` was written for the
 submission and last changed on 2026-10-05; it describes the site as it was
-then, and is brought
+then, and its last screen names `github.com/Tecso-Dev/caro`, which the work
+is no longer pushed to. It is brought
 up to date with the site as it is, and every number it films is either
 re-derived on a clean clone or a committed transcript, as the script itself
 requires. Then it is recorded, and sent where the owner decides. The README

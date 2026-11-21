@@ -130,7 +130,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make and model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province — the 31 capitals give theirs — with how each was read. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` reads a Persian request, filters, relaxes and scores. No estimator has cleared the gate on a real corpus, so the site shows evidence, not a ranking. On the synthetic corpus, where the gate passes, the ranking is served and measured. |
 | explain the best choice | ✅ **built.** A frozen verdict, an evidence ledger, and an adversarial review that is code, not a prompt. |
-| deployed | ✅ **from `main`** — one Vercel project of two services (D64, D80), following [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro), which CI brings to each green merge by the owner's deploy key, since 2026-11-19 ([DELIVERY](docs/DELIVERY.md), D110). |
+| deployed | ⚠️ **at `b9f9090`, not at `main`.** One Vercel project of two services (D64, D80), built from [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro), which CI brought to each green merge from 2026-11-19 (D110) until the owner chose on 2026-11-21 that nothing is pushed there; it stays at #42's merge until the server serves the site ([DELIVERY](docs/DELIVERY.md)). |
 
 Everything that is left until the end of the project — in order, with what
 closes each item and who does it — is in [ROADMAP](docs/ROADMAP.md), in two
@@ -627,7 +627,7 @@ each pull request, and fails when a suite is skipped. A third job walks
 every key route of the built site in a browser, and a fourth runs the seller
 store, the catalog and the site served from the catalog once more against a
 real Postgres 16, where a laptop and the other jobs use SQLite. What follows
-a merge — the images, and the site brought to it — is in
+a merge — the images, and nothing pushed to another repository — is in
 [DELIVERY](docs/DELIVERY.md). `.github/workflows/audit.yml` reads the site's
 lockfile and what the API's image installs against the published advisories
 every Monday and by hand, never on a push or a pull request, so an advisory
@@ -804,16 +804,18 @@ The rules every session keeps are in
    mutated and the survivors named; every commit green on its own.
 5. **A pull request** into `main` of this repository, merged with a merge
    commit once CI is green, never red.
-6. **After the merge**, CI on `main` and the site are read from the outside,
-   and only then is the decision recorded.
+6. **After the merge**, CI on `main` is read, its images read from the
+   outside, and the site where one runs `main`; only then is the decision
+   recorded.
 
-**Two people, two repositories.** The owner decides and runs the live
-collections; Sobhan builds the platform; each commits under their own name.
-Work lands in [sahandmusanezhad/caro](https://github.com/sahandmusanezhad/caro),
-by pull request; [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro) holds
-the issues and is kept at the same `main` — by CI after each green merge,
-by the owner's deploy key since 2026-11-19 ([DELIVERY](docs/DELIVERY.md)) —
-and the deployed site follows it.
+**Two people, one repository for the work.** The owner decides and runs
+the live collections; Sobhan builds the platform; each commits under their
+own name. Work lands in
+[sahandmusanezhad/caro](https://github.com/sahandmusanezhad/caro), by pull
+request, and is pushed nowhere else, the owner's choice of 2026-11-21;
+[Tecso-Dev/caro](https://github.com/Tecso-Dev/caro) holds the issues, and
+its `main`, which the site on Vercel is built from, stays at `b9f9090`, the
+last commit it was given ([DELIVERY](docs/DELIVERY.md)).
 
 ## Repository layout
 
@@ -824,7 +826,7 @@ tests/           3880 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)
-deploy/          the edge's nginx, Cloudflare's ranges, the server's pull script and timers, its bootstrap and its settings' helper, the delivery to Vercel's site
+deploy/          the edge's nginx, Cloudflare's ranges, the server's pull script and timers, its bootstrap and its settings' helper
 scripts/         setup, live runs, promotion, the catalog's loader, replays, the benchmarks, the probes, the charts, the owner's Cloudflare and Grafana steps
 data/corpora/    the published runs — run11, run13, run14, run16 (Bama), run17 (Khodro45); snapshots are never committed
 data/derived/    the date-watch rounds' summaries
@@ -841,7 +843,7 @@ docs/            architecture · DATA_CONTRACT (frozen) · DECISIONS (D1-D116) �
 | [DECISIONS](docs/DECISIONS.md) | the design record, including bugs found and what they cost |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | the layers, and which components are deliberately *not* agents |
 | [REARCHITECTURE](docs/REARCHITECTURE.md) | the 2026 plan for the platform, phases 0 to 7: Sobhan's, accepted with its review's amendments |
-| [DELIVERY](docs/DELIVERY.md) | what follows a merge: the checks, the images, and the site brought to it and read -- Vercel's by CI with the owner's one deploy key, the server's by its own pull |
+| [DELIVERY](docs/DELIVERY.md) | what follows a merge: the checks, the images and the server's own pull, and nothing pushed to another repository |
 | [PHASE0_SETUP](docs/PHASE0_SETUP.md) | phase 0's steps in the owner's accounts — GitHub, Sentry, Cloudflare, UptimeRobot — each with what to see when it worked |
 | [PHASE1_SETUP](docs/PHASE1_SETUP.md) | phase 1's steps: the server at Hetzner, its certificate and settings, staging, the first release, and the switch from Vercel |
 | [PHASE2_SETUP](docs/PHASE2_SETUP.md) | phase 2's steps: an SMS account and its template, and the seller listings switched on in staging, then production |
