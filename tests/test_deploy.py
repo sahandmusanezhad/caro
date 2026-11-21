@@ -1560,6 +1560,155 @@ check("DP45: the Chromium install, in CI's e2e job and in the images job, is tri
       and all(b.count("npx playwright install") == 1 for b in _pw_blocks.values()),
       str(_pw_got))
 
+# ---------------------------------------------------------------------------
+print("\nTecso-Dev/caro's open issues, made again here from a copy")
+# scripts/move_issues.py, the owner's choice of 2026-11-21 (docs/LEAVING_TECSO.md):
+# run against a gh that writes down what it was asked and answers as GitHub
+# would, never the real one.
+from scripts import move_issues as _mi                                 # noqa: E402
+
+_MI_GH = r"""#!PYTHON
+import json, os, sys
+a = sys.argv[1:]
+body = None
+if "--body-file" in a:
+    body = open(a[a.index("--body-file") + 1], encoding="utf-8").read()
+with open(os.environ["FAKE_GH_LOG"], "a", encoding="utf-8") as f:
+    f.write(json.dumps({"argv": a, "body": body}) + "\n")
+if a[:2] == ["repo", "view"]:
+    print(os.environ.get("FAKE_GH_ISSUES", "true"))
+    sys.exit(0)
+if a[:2] == ["issue", "create"]:
+    n_path = os.environ["FAKE_GH_LOG"] + ".n"
+    n = int(open(n_path).read()) + 1 if os.path.exists(n_path) else 1
+    open(n_path, "w").write(str(n))
+    if str(n) == os.environ.get("FAKE_GH_FAIL_AT"):
+        print("HTTP 502: Bad Gateway", file=sys.stderr)
+        sys.exit(1)
+    print("https://github.com/sahandmusanezhad/caro/issues/" + str(100 + n))
+    sys.exit(0)
+print("unexpected: " + " ".join(a), file=sys.stderr)
+sys.exit(3)
+"""
+
+_MI_COPY = [
+    {"number": 12, "title": "Phases 1 to 7: the owner's steps", "state": "OPEN", "body": "",
+     "author": {"login": "sahandmusanezhad"}, "createdAt": "2026-11-07T10:00:00Z", "labels": [], "comments": []},
+    {"number": 3, "title": "Phase 0", "state": "CLOSED", "body": "done", "author": {"login": "sobhanaz"},
+     "createdAt": "2026-11-02T09:00:00Z", "labels": [], "comments": []},
+    {"number": 1, "title": "Epic: the 2026 plan", "state": "OPEN",
+     "body": "Asked by @sobhanaz, see #4.\nmail a@b.com, code `@x` and `see @y`\n```\n@inside a fence\n```\n@after",
+     "author": {"login": "sobhanaz"}, "createdAt": "2026-11-02T08:00:00Z",
+     "labels": [{"name": "epic"}, {"name": "plan"}], "comments": []},
+    {"number": 11, "title": "Phase 0: four account steps", "state": "OPEN", "body": "The four steps.",
+     "author": {"login": "sahandmusanezhad"}, "createdAt": "2026-11-03T12:00:00Z", "labels": [{"name": "owner"}],
+     "comments": [{"author": {"login": "sobhanaz"}, "createdAt": "2026-11-04T08:00:00Z", "body": "first, @sahandmusanezhad"},
+                  {"author": {"login": "sahandmusanezhad"}, "createdAt": "2026-11-05T08:00:00Z", "body": "second"}]},
+    {"number": 7, "title": "Phase 4", "state": "CLOSED", "body": "", "author": None,
+     "createdAt": "2026-11-02T09:30:00Z", "labels": [], "comments": []},
+]
+
+
+def _mi_world(fail_at=None, issues_on="true", copy=None):
+    d = Path(tempfile.mkdtemp())
+    gh_path = d / "bin" / "gh"
+    gh_path.parent.mkdir()
+    gh_path.write_text(_MI_GH.replace("PYTHON", sys.executable, 1))
+    gh_path.chmod(0o755)
+    (d / "backup").mkdir()
+    cp = d / "backup" / "issues.json"
+    cp.write_text(json.dumps(_MI_COPY if copy is None else copy) if not isinstance(copy, str) else copy)
+    env = {**os.environ, "PATH": f"{gh_path.parent}:{os.environ.get('PATH', '')}",
+           "FAKE_GH_LOG": str(d / "gh.log"), "FAKE_GH_ISSUES": issues_on}
+    if fail_at:
+        env["FAKE_GH_FAIL_AT"] = str(fail_at)
+    return d, cp, env
+
+
+def _mi_run(cp, env, *args):
+    p = subprocess.run([sys.executable, str(ROOT / "scripts/move_issues.py"), str(cp), *args],
+                       capture_output=True, text=True, env=env, timeout=60)
+    log = Path(env["FAKE_GH_LOG"])
+    calls = [json.loads(ln) for ln in log.read_text().splitlines()] if log.exists() else []
+    log.unlink(missing_ok=True)
+    moved = cp.with_name("moved.tsv")
+    return p.returncode, p.stdout, p.stderr, calls, (moved.read_text() if moved.exists() else None)
+
+
+_mi_d, _mi_cp, _mi_env = _mi_world()
+_mi_dry = _mi_run(_mi_cp, _mi_env, "--dry-run")
+_mi_go = _mi_run(_mi_cp, _mi_env)
+_mi_creates = [c for c in _mi_go[3] if c["argv"][:2] == ["issue", "create"]]
+_mi_b1 = _mi_creates[0]["body"] if _mi_creates else ""
+_mi_b11 = _mi_creates[1]["body"] if len(_mi_creates) > 1 else ""
+_mi_b12 = _mi_creates[2]["body"] if len(_mi_creates) > 2 else ""
+check("DP47: the open issues of the copy, and only they, are made here in their order there, each with its "
+      "title, where it came from, who opened it and when, its labels, its body and its comments in order; "
+      "a mention outside code is written as code; what is made is written to moved.tsv and printed; "
+      "--dry-run asks gh nothing",
+      _mi_dry[0] == 0 and _mi_dry[3] == [] and _mi_dry[4] is None
+      and "5 issues in the copy, 3 open; 0 made here already; 3 to make in sahandmusanezhad/caro" in _mi_dry[1]
+      and _before(_mi_dry[1], "Tecso-Dev/caro#1:", "Tecso-Dev/caro#11:")
+      and _before(_mi_dry[1], "Tecso-Dev/caro#11:", "Tecso-Dev/caro#12:")
+      and "#3:" not in _mi_dry[1] and "#7:" not in _mi_dry[1]
+      and _mi_go[0] == 0 and len(_mi_go[3]) == 4
+      and _mi_go[3][0]["argv"] == ["repo", "view", "sahandmusanezhad/caro", "--json", "hasIssuesEnabled",
+                                   "-q", ".hasIssuesEnabled"]
+      and [c["argv"][c["argv"].index("--title") + 1] for c in _mi_creates]
+      == ["Epic: the 2026 plan", "Phase 0: four account steps", "Phases 1 to 7: the owner's steps"]
+      and all(c["argv"][2:4] == ["-R", "sahandmusanezhad/caro"] for c in _mi_creates)
+      and _mi_b1.startswith("Moved from Tecso-Dev/caro#1, which the owner chose on 2026-11-21 to delete")
+      and "Opened there by sobhanaz on 2026-11-02; its labels there: epic, plan." in _mi_b1
+      and "Asked by `@sobhanaz`, see #4." in _mi_b1 and "mail a@b.com, code `@x` and `see @y`" in _mi_b1
+      and "```\n@inside a fence\n```\n`@after`" in _mi_b1 and "@sobhanaz," not in _mi_b1.replace("`@sobhanaz`", "")
+      and "its labels there: owner." in _mi_b11
+      and _before(_mi_b11, "The four steps.", "**sobhanaz, 2026-11-04:**\n\nfirst, `@sahandmusanezhad`")
+      and _before(_mi_b11, "**sobhanaz, 2026-11-04:**\n\nfirst, `@sahandmusanezhad`",
+                  "**sahandmusanezhad, 2026-11-05:**\n\nsecond")
+      and "its labels there: none." in _mi_b12 and "_(no description)_" in _mi_b12
+      and _mi_go[4] == ("1\thttps://github.com/sahandmusanezhad/caro/issues/101\n"
+                        "11\thttps://github.com/sahandmusanezhad/caro/issues/102\n"
+                        "12\thttps://github.com/sahandmusanezhad/caro/issues/103\n")
+      and "Tecso-Dev/caro#11\thttps://github.com/sahandmusanezhad/caro/issues/102" in _mi_go[1],
+      str((_mi_dry[:3], _mi_go[:3], [c["argv"][:4] for c in _mi_go[3]])))
+
+_mi_d2, _mi_cp2, _mi_env2 = _mi_world(fail_at=2)
+_mi_f1 = _mi_run(_mi_cp2, _mi_env2)
+_mi_env2.pop("FAKE_GH_FAIL_AT")
+_mi_f2 = _mi_run(_mi_cp2, _mi_env2)
+_mi_f3 = _mi_run(_mi_cp2, _mi_env2)
+_mi_titles2 = [c["argv"][c["argv"].index("--title") + 1] for c in _mi_f2[3] if c["argv"][:2] == ["issue", "create"]]
+check("DP48: a run gh fails in stops there, the issues before it made and written down; run again, it makes "
+      "only what moved.tsv does not hold, and once every open issue is here it asks gh nothing at all",
+      _mi_f1[0] == 1 and "gh failed on Tecso-Dev/caro#11, and nothing after it was made: HTTP 502" in _mi_f1[2]
+      and _mi_f1[4] == "1\thttps://github.com/sahandmusanezhad/caro/issues/101\n"
+      and _mi_f2[0] == 0 and "1 made here already; 2 to make" in _mi_f2[1]
+      and _mi_titles2 == ["Phase 0: four account steps", "Phases 1 to 7: the owner's steps"]
+      and _mi_f2[4].count("\n") == 3 and _mi_f2[4].startswith("1\t")
+      and _mi_f3[0] == 0 and _mi_f3[3] == [] and "3 made here already; 0 to make" in _mi_f3[1],
+      str((_mi_f1[:3], _mi_f2[:3], _mi_f3[:3])))
+
+_mi_tecso = [_mi_run(_mi_cp, _mi_env, "--repo", r) for r in ("Tecso-Dev/caro", "tecso-dev/anything")]
+_mi_d3, _mi_cp3, _mi_env3 = _mi_world(issues_on="false")
+_mi_off = _mi_run(_mi_cp3, _mi_env3)
+_mi_none = _mi_run(_mi_d3 / "nowhere" / "issues.json", _mi_env3)
+_mi_bad = [_mi_run(*_mi_world(copy=c)[1:]) for c in ("not json", json.dumps({"a": 1}),
+                                                     json.dumps([{"number": 1, "title": "t"}]))]
+_mi_big = _mi.body({"number": 9, "title": "t", "state": "OPEN", "body": "b", "author": {"login": "x"},
+                    "createdAt": "2026-11-01", "labels": [],
+                    "comments": [{"author": {"login": "y"}, "createdAt": "2026-11-02", "body": "c" * 9000}] * 12})
+check("DP49: it refuses before it makes anything: a target in Tecso-Dev, whatever its case, before asking gh; "
+      "Issues off in the target; no copy, or a copy that is not gh's list; and an issue too long for GitHub "
+      "keeps the comments that fit and says how many are only in the copy",
+      all(r[0] == 2 and r[3] == [] and "refused: nothing is written to Tecso-Dev" in r[2] for r in _mi_tecso)
+      and _mi_off[0] == 2 and [c["argv"][:2] for c in _mi_off[3]] == [["repo", "view"]]
+      and "refused: Issues is not on in sahandmusanezhad/caro" in _mi_off[2] and _mi_off[4] is None
+      and _mi_none[0] == 2 and "refused: no copy at" in _mi_none[2] and _mi_none[3] == []
+      and all(r[0] == 2 and "is not gh's list of issues" in r[2] and r[3] == [] for r in _mi_bad)
+      and len(_mi_big) <= _mi.LIMIT + 200 and _mi_big.count("**y, 2026-11-02:**") == 6
+      and "_6 later comments did not fit in one issue; they are in the copy, issues.json._" in _mi_big,
+      str((_mi_tecso[0][:3], _mi_off[:3], _mi_none[:3], [r[:3] for r in _mi_bad], len(_mi_big))))
+
 print()
 if FAILS:
     print(f"FAILED ({len(FAILS)}): " + ", ".join(FAILS))

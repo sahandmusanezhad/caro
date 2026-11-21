@@ -42,8 +42,10 @@ server pulls the images.
 
 Nothing reads it now, but the deploy key `caro-deliver` can still write to
 `Tecso-Dev/caro`, and this repository still holds its private half as the
-secret `TECSO_DEPLOY_KEY`. Both go. On your own machine, where `gh` is
-signed in as you, paste these together:
+secret `TECSO_DEPLOY_KEY`. Both go. Deleting `Tecso-Dev/caro`, which the
+owner chose the same day ([LEAVING_TECSO](LEAVING_TECSO.md)), takes the key
+with it, and then the first line below is all that is left. Before that,
+on your own machine, where `gh` is signed in as you, paste these together:
 
 ```
 gh secret delete TECSO_DEPLOY_KEY -R sahandmusanezhad/caro

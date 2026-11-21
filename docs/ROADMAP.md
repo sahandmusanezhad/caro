@@ -16,7 +16,10 @@ Who does what ([WORKING_AGREEMENT](WORKING_AGREEMENT.md), «Who works on it»):
   product; and decides what is sent where.
 - **Sobhan** builds the platform track below and proposes; each of its
   phases is an issue in [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues),
-  under the epic #2 there.
+  under the epic #2 there. caro is on the owner's account alone since
+  2026-11-21, the owner's choice: the open ones are made again in this
+  repository's Issues before the owner deletes `Tecso-Dev/caro`
+  ([LEAVING_TECSO](LEAVING_TECSO.md)).
 - **The deploy holder** owns the Vercel project and makes every change there
   (D78) until phase 6 of the platform track retires it.
 - **A session** measures, builds what the owner has chosen, commits under the
@@ -88,8 +91,13 @@ an item says so.
   2026-11-07 (D100), to `2f345dd` the same day (D107), and to `4273047`,
   #28's merge, on 2026-11-18 (D109); then CI did, by the owner's deploy key,
   from `7585632`, #32's merge, on 2026-11-19 (D110), to `b9f9090`. Left, the
-  owner's: the deploy key out of `Tecso-Dev/caro` and its secret out of this
-  repository, DELIVERY's two lines.
+  owner's: [LEAVING_TECSO](LEAVING_TECSO.md)'s five steps, the owner's
+  choice of the same day that caro is on the owner's account alone --
+  Issues on here, a check that this repository is not deleted with it, a
+  full copy, its open issues made here (`scripts/move_issues.py`), and
+  `Tecso-Dev/caro` deleted, its deploy key with it, then the secret taken
+  out of this repository. Then a session moves the issue numbers the
+  documents cite to their new ones here.
 - **Khodro45 every day** on the owner's machine, 60 pages a run since
   2026-11-02, with a replicate (TEMPORAL_CONTRACT §11).
 
@@ -136,7 +144,8 @@ an item says so.
 ### The platform track
 
 Each phase is one issue in `Tecso-Dev/caro` — the issue numbers below are
-that repository's — and a phase starts when the one before it is closed, and never before the owner has made the decisions it
+that repository's, until its open issues are made again here and the
+numbers they get here replace them ([LEAVING_TECSO](LEAVING_TECSO.md)) — and a phase starts when the one before it is closed, and never before the owner has made the decisions it
 names. Durations are for two people part-time.
 
 0. **Foundation and governance** (issue #3; a week; both). **Closed** on
