@@ -138,7 +138,9 @@ tracks. The evidence track is the owner's: Divar live, a larger corpus over
 time, an estimator that clears the gate. The platform track is the 2026
 plan, [REARCHITECTURE](docs/REARCHITECTURE.md), Sobhan's, accepted on
 2026-11-02 with its review's amendments, each phase an issue in
-[Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues):
+[Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues), which the owner
+chose on 2026-11-21 to delete, its open issues made again in this
+repository's ([LEAVING_TECSO](docs/LEAVING_TECSO.md)):
 
 | Phase | What | State |
 |---|---|---|
@@ -812,10 +814,13 @@ The rules every session keeps are in
 the live collections; Sobhan builds the platform; each commits under their
 own name. Work lands in
 [sahandmusanezhad/caro](https://github.com/sahandmusanezhad/caro), by pull
-request, and is pushed nowhere else, the owner's choice of 2026-11-21;
-[Tecso-Dev/caro](https://github.com/Tecso-Dev/caro) holds the issues, and
-its `main`, which the site on Vercel is built from, stays at `b9f9090`, the
-last commit it was given ([DELIVERY](docs/DELIVERY.md)).
+request, is pushed nowhere else, and is tracked here as issues, the
+owner's choices of 2026-11-21: caro is on the owner's account alone.
+[Tecso-Dev/caro](https://github.com/Tecso-Dev/caro) held the issues until
+then, and its `main`, which the site on Vercel is built from, stays at
+`b9f9090`, the last commit it was given ([DELIVERY](docs/DELIVERY.md)),
+until the owner deletes it, its open issues made here first
+([LEAVING_TECSO](docs/LEAVING_TECSO.md)).
 
 ## Repository layout
 
