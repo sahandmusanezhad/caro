@@ -34,7 +34,7 @@ intent → explain the best choice**.
 | normalize messy data | ✅ **built.** Persian numerals and amount words, toman and rial, mileage, Jalali and Gregorian years, make/model aliases, trim, gearbox, fuel, colour, body condition from free text, and the province. |
 | rank by user intent | ⚠️ **built, not served on real data.** `caro/ranking.py` parses Persian intent, filters, relaxes and scores. No estimator has cleared the acceptance gate on a real corpus (D43), so the site shows evidence, not a ranking. |
 | explain the best choice | ✅ **built.** |
-| deployed | ⚠️ **at `b9f9090`, not at `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `b9f9090`, #42's merge, when CI read it on 2026-11-20 (D110); it is built from `Tecso-Dev/caro`, to which nothing is pushed since the owner's choice of 2026-11-21, so no merge since reaches it ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
+| deployed | ⚠️ **at `b9f9090`, not at `main`.** https://caro-rho.vercel.app — one Vercel project of two services (D64) — served `b9f9090`, #42's merge, when CI read it on 2026-11-20 (D110, D118); it is built from `Tecso-Dev/caro`, to which nothing is pushed since the owner's choice of 2026-11-21 (D119), so no merge since reaches it ([DELIVERY](DELIVERY.md)); see «Deploying» below. |
 
 ## The order of work
 
@@ -54,7 +54,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D116, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D119, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -80,7 +80,7 @@ an item says so.
   hand. Merged in #28 (D109). None has yet run against the owner's
   accounts.
 - **Nothing pushed to `Tecso-Dev/caro`** since 2026-11-21, the owner's
-  choice, for good: the work is pushed to `sahandmusanezhad/caro` alone, and
+  choice, for good (D119): the work is pushed to `sahandmusanezhad/caro` alone, and
   the images workflow's job `deliver` is gone ([DELIVERY](DELIVERY.md)). Its
   `main` stays at `b9f9090`, #42's merge, the last commit it was given, on
   2026-11-20. Before, the owner brought it to the merges with
@@ -327,7 +327,7 @@ names. Durations are for two people part-time.
    - «تهرانپارس», «پارس‌آباد» and «شاهین‌شهر» add no model since 2026-11-19,
      when a model's name became a word of its own (item 4, D112), and
      «شهریار» sets no commute use since 2026-11-20, when a cue became one too
-     (item 4). After a cue «تهرانپارس» still lists «در تهران», the part
+     (item 4, D118). After a cue «تهرانپارس» still lists «در تهران», the part
      before the alias, which reads as a province: the place reader blanks a
      model's name wherever it stands. It was so before D82.
 
@@ -381,7 +381,7 @@ names. Durations are for two people part-time.
      flexible budget, «بارفروش» a cargo use, «پارس‌آباد» the model `pars`.
      Measured, not changed, and left to the owner, since which letters may
      stand beside a word is a choice about Persian and not a measurement.
-     For the cues it changed on 2026-11-20, the owner's choice on two
+     For the cues it changed on 2026-11-20 (D118), the owner's choice on two
      measurements, the predictions locked first each time: a cue is a word
      of its own by the model names' rule, with the adverb's «ا» and the
      spoken copula also allowed after it; «کار », written with a trailing
@@ -401,7 +401,7 @@ names. Durations are for two people part-time.
      readers (`caro.ingest.models.names`): no letter before it but a «و» typed
      on; none after it but an ending Persian puts on a noun («ی», «م», «ش»,
      «مو», «ها» …, and the spoken copula «ه» and «ست» since 2026-11-20, the
-     owner's choice); and not before «تندر», «شهر» or «آباد», nor after «تهران»
+     owner's choice, D117); and not before «تندر», «شهر» or «آباد», nor after «تهران»
      or «تندر» (that last the same night, D114, measured: 7 of 7 titles and 3
      of 3 queries with the words the other way round, «تندر پارس رنو», where
      the rule had none). Made titles: 8 of 8 Vitaras, 4 of 5 Pars Tondars, 5 of
@@ -749,7 +749,7 @@ names. Durations are for two people part-time.
    it, by the owner's deploy key; the first was `7585632`, read on the site
    about a minute after the push on 2026-11-19 (D110), and the last
    `b9f9090`, #42's merge, on 2026-11-20. The owner chose on 2026-11-21 that
-   nothing is pushed to `Tecso-Dev/caro` any more ([DELIVERY](DELIVERY.md)):
+   nothing is pushed to `Tecso-Dev/caro` any more (D119, [DELIVERY](DELIVERY.md)):
    the site stays at `b9f9090` until the server serves it. Checked
    there on 2026-10-25 (D84):
    the contact page has its inbox off and links to the repository's Issues
@@ -784,7 +784,7 @@ names. Durations are for two people part-time.
    merge changed. What was read goes into the next D-entry. From 2026-11-19
    to 2026-11-20 the images workflow's job `deliver` read Vercel's site after
    each merge; since nothing is pushed to `Tecso-Dev/caro`, that site runs
-   `main` no more, and the job is gone ([DELIVERY](DELIVERY.md)). The next
+   `main` no more, and the job is gone (D119, [DELIVERY](DELIVERY.md)). The next
    read of a site after a merge is the job `reached`'s, once
    `CARO_STAGING_URL` names the server's staging.
 3. **The dependencies, every week.** `audit.yml`, the owner's choice of
