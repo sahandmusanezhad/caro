@@ -8962,3 +8962,69 @@ that starts both images together and reads them from the outside among its
 steps, at 15:47Z, before both were pushed as `:staging`; `reached` said
 that no environment is named yet. Nothing was pushed to `Tecso-Dev/caro`.
 The site on Vercel was not read: it runs `b9f9090`, not this merge.
+
+## D120 — caro on the owner's account alone: its issues here, the contact page sending people here, and the owner's steps for leaving Tecso-Dev/caro
+
+Later on 2026-11-21, after D119, the owner asked for the caro repository in
+Tecso to be deleted altogether, and for caro to be on the owner's account.
+A session can delete nothing there: its access reaches this repository
+alone, and deleting a repository takes an admin's rights on it and the
+owner's own sign-in, which stays on the owner's machine. Put to the owner
+first, with what the delete takes with it -- the issues there, the phases'
+and the account steps' among them; two branches only that repository had;
+the contact page of the site on Vercel, whose link goes to its Issues --
+the owner chose this repository's Issues for the issues and for the
+contact page, and the open issues made again here from a copy.
+
+Merged on 2026-11-21 in #45:
+
+    commit    what it does                                            suites    bare
+    8089a8d   the owner's steps, and the script for the open issues     3883    3132
+    b215419   the contact page sends people to this repository's       3883    3132
+    51185eb   the working agreement: caro on the owner's account       3883    3132
+    0bcc8ac   where the issues live, in README, ROADMAP and DELIVERY    3883    3132
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `1012e64`.
+
+**The owner's steps** (`docs/LEAVING_TECSO.md`), five, each with what to
+see when it worked: Issues turned on here; a check that this repository is
+not deleted with it, since deleting a private repository deletes its forks
+(D68 found `Tecso-Dev/caro` to be the fork); a full copy, a mirror clone and
+every issue and pull request with its comments; the open issues made here;
+and the delete, in the browser, then the secret `TECSO_DEPLOY_KEY` taken
+out, the deploy key going with the repository.
+
+**The script** (`scripts/move_issues.py`) does the fourth step with `gh`,
+as the owner. It makes each open issue of the copy here, in number order,
+with its title, where it came from, who opened it and when, its labels
+there, its body and its comments. A mention outside code is written as
+code, so that no one is notified again. What it makes goes to `moved.tsv`
+beside the copy as each is made, and a run again makes only what is not
+there. It refuses a target in Tecso-Dev, Issues off in the target, no copy
+and a copy that is not gh's list, and keeps an issue under GitHub's length.
+DP47 to DP49 run it against a gh that writes down what it was asked.
+Mutants, bytecode off, 19, 18 caught; the one that lives takes an answer of
+gh's with no address as a success, which `gh issue create` does not give.
+
+**The contact page.** `ELSEWHERE` is `https://github.com/sahandmusanezhad/caro/issues`,
+where D68 had `Tecso-Dev/caro`'s; its check holds it there, and 3 mutants of
+it were caught. Issues must be on here before a site sends anyone to it:
+the steps' first. The site on Vercel, at `b9f9090`, keeps the old link; no
+merge reaches it (D119).
+
+**The working agreement** says that caro is on the owner's account alone,
+for good: the work lands here, is pushed nowhere else, and is tracked here
+as issues.
+
+**Left, the owner's**: the five steps. Then a session moves the issue
+numbers the documents cite to the ones they get here, and records the move
+and the delete.
+
+**On `main` after `1012e64`**, read on 2026-11-21: `ci` passed, and
+`images` ran its two jobs. `images` passed, its step that starts both
+images together and reads them from the outside among its steps, at 16:21Z,
+before both were pushed as `:staging`; `reached` said that no environment
+is named yet. Nothing was pushed to `Tecso-Dev/caro`, and the site on
+Vercel was not read: it runs `b9f9090`, not this merge (D119).

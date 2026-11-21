@@ -17,7 +17,7 @@ Who does what ([WORKING_AGREEMENT](WORKING_AGREEMENT.md), «Who works on it»):
 - **Sobhan** builds the platform track below and proposes; each of its
   phases is an issue in [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues),
   under the epic #2 there. caro is on the owner's account alone since
-  2026-11-21, the owner's choice: the open ones are made again in this
+  2026-11-21, the owner's choice (D120): the open ones are made again in this
   repository's Issues before the owner deletes `Tecso-Dev/caro`
   ([LEAVING_TECSO](LEAVING_TECSO.md)).
 - **The deploy holder** owns the Vercel project and makes every change there
@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D119, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D120, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -92,7 +92,7 @@ an item says so.
   #28's merge, on 2026-11-18 (D109); then CI did, by the owner's deploy key,
   from `7585632`, #32's merge, on 2026-11-19 (D110), to `b9f9090`. Left, the
   owner's: [LEAVING_TECSO](LEAVING_TECSO.md)'s five steps, the owner's
-  choice of the same day that caro is on the owner's account alone --
+  choice of the same day that caro is on the owner's account alone (D120) --
   Issues on here, a check that this repository is not deleted with it, a
   full copy, its open issues made here (`scripts/move_issues.py`), and
   `Tecso-Dev/caro` deleted, its deploy key with it, then the secret taken
