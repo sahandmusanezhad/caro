@@ -55,10 +55,12 @@ _EMAIL = re.compile(r"^[^@\s]+@[^@\s.]+(?:\.[^@\s.]+)+$")
 
 # Where a person is sent when this deployment keeps no inbox. The repository is
 # public, and an issue stays where it was written — publicly, which the page
-# says before anyone writes one. It is the repository the code lives in,
-# Tecso-Dev/caro; a fork starts with Issues off, so it has to be on there
-# before a deployment sends anyone to it.
-ELSEWHERE = "https://github.com/Tecso-Dev/caro/issues"
+# says before anyone writes one. It is this repository's Issues, on the
+# owner's account, the owner's choice of 2026-11-21: caro is on that account
+# alone, and Tecso-Dev/caro, which D68 named, is deleted
+# (docs/LEAVING_TECSO.md). Issues has to be on here before a deployment sends
+# anyone to it; that document's first step turns it on.
+ELSEWHERE = "https://github.com/sahandmusanezhad/caro/issues"
 CLOSED_FA = ("صندوق پیام در این استقرار خاموش است، چون اینجا پیامی ماندگار "
              f"ذخیره نمی‌شود. پیامت را در GitHub Issues بنویس: {ELSEWHERE}")
 UNWRITABLE_FA = ("این استقرار نتوانست پیام را ذخیره کند، پس ثبت نشد. "
