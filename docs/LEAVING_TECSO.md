@@ -1,6 +1,7 @@
 # Leaving Tecso-Dev/caro — caro on the owner's account alone
 
-The owner chose on 2026-11-21 that caro is on the owner's account alone:
+The owner chose on 2026-11-21 that caro is on the owner's account alone
+(D120):
 nothing is pushed to `Tecso-Dev/caro` (D119), its open issues move to this
 repository's Issues, the site's contact page sends people here, and
 `Tecso-Dev/caro` is deleted. A session can take none of the steps in the
