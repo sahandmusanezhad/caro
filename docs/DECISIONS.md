@@ -9028,3 +9028,48 @@ images together and reads them from the outside among its steps, at 16:21Z,
 before both were pushed as `:staging`; `reached` said that no environment
 is named yet. Nothing was pushed to `Tecso-Dev/caro`, and the site on
 Vercel was not read: it runs `b9f9090`, not this merge (D119).
+
+## D121 — The steps for leaving Tecso-Dev/caro run from any folder, and DP46 reads a secret and git's push in any form
+
+Two fixes merged on 2026-11-21 after D120, each to something merged that day.
+
+**#47, the steps.** The owner ran the fourth step of
+`docs/LEAVING_TECSO.md` from `~/Downloads`, and `python3` could not open
+`scripts/move_issues.py`: the document asked for this repository's checkout
+in one sentence at its top, and took the owner's machine for a Mac, which it
+is not. The owner had turned Issues on here, the first step, by then. The
+steps run on the owner's own machine from any folder now. The third clones
+the mirror only where it is not there yet, so it can be run again, and takes
+the lists afresh; the fourth takes the script from `main` through `gh` -- the
+contents API's base64, decoded -- into the copy's folder, checks that it is
+the script, and runs it there, the dry run first. A response shaped as
+GitHub's, decoded the way gh's `--jq` prints it, gave the script byte for
+byte.
+
+**#48, DP46.** Read again the same day, DP46, which holds that nothing here
+pushes to another repository (D119), read a secret only as `secrets.NAME`
+and a push only as the words `git push`. Three mutants of images.yml with no
+name in them that says Tecso lived: a secret by its index, every secret at
+once (`toJSON(secrets)`), and `git -C other push`. A fourth, `git
+--git-dir=other/.git push`, was caught only because `.git push` holds the
+words. Now no workflow's code may name `secrets` but `secrets.GITHUB_TOKEN`,
+and no line may hold the word git and, after it, the word push. The token
+GitHub gives a run reaches this repository alone, so a push anywhere else
+needs another credential, and none can be named. The four are caught, bytecode
+off, and the ten of D119 as before.
+
+Merged on 2026-11-21:
+
+    commit    what it does                                            suites    bare
+    2c1f444   #47: the steps from any folder, on any machine            3883    3132
+    f137ea9   #48: DP46 reads a secret and git's push in any form       3883    3132
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on each
+head and on `main` after `b00effd` and `d181174`.
+
+**On `main`** after `b00effd` and after `d181174`, read on 2026-11-21: `ci`
+and `images` passed on each, the images job's read of both images among its
+steps, and `reached` said that no environment is named yet. Nothing was
+pushed to `Tecso-Dev/caro`. The site on Vercel was not read: it runs
+`b9f9090`, not these merges (D119).
