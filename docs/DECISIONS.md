@@ -8811,3 +8811,86 @@ site running it a minute later, and read it there:
 
 run17 is not parsed again (D87); the rule reads the runs to come and every
 search.
+
+## D118 — A cue is a word of its own, as a model's name is, by the owner's decision on two measurements
+
+The use cases, the red lines, the soft budget and «کم مصرف» were found
+anywhere in the query. «محدوده» and «محدودیت» set a flexible budget;
+«اعتبار», «انبار» and «باران» a cargo use; «فرسوده» and «آسوده» a resale one;
+«شهریار» and «شهریور» a commute; «برای سرکار رفتن» was ride-hailing, «کار »
+being inside «سرکار »; and «پراید آبی رنگ», a blue Pride, carried the red
+line «بی رنگ». D84 measured the question and on 2026-10-18 the owner chose
+to leave it.
+
+Asked on 2026-11-19, before going to sleep, the owner chose to have it
+measured only. The first set (sha256 `791548a8…`, the same night) put three
+rules side by side; on it, on 2026-11-20, the owner chose K2, the model
+names' rule with the adverb's «ا» and the spoken copula allowed after a cue,
+and the five compounds K2 lost («تاکسیرانی», «بارکش», «باربر», «سودآور»,
+«پرسود») made cues of their own, to be measured first on a fresh set, since
+the five were rows of the first, and built only if no control changed.
+
+Merged on 2026-11-20 in #42:
+
+    commit    what it does                                            suites    bare
+    1631023   a cue is a word of its own                                3882    3131
+
+The commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `b9f9090`.
+
+**The rule** (`caro.ranking._cue_at`). A cue is read where no letter stands
+right before it but a «و» typed on, and none right after it but a noun's
+ending (the model names' list), the adverb's «ا» or the copula «ه», «ست». A
+cue written with a trailing space, «کار », takes no ending. The use cases,
+the red lines, the soft budget and «کم مصرف» are read so.
+
+**The first set** (2026-11-19), today against two rules:
+
+    cells                                          today    K1    K2
+    words that hold a cue and are none, 13             1    13    12
+    true forms with something typed on, 15            15     6    10
+    the cues as words, 15                             14    15    15
+    the suites' queries, 1,105, changed                     0     0
+
+K2's five losses were the compounds, made cues for the fresh set. The
+first set's predictions missed in four places: today was right on one of
+the 13 words (a query ending in «سرکار», «کار » having no space after it)
+and wrong on one of the 15 plain cues («برای سرکار رفتن»), which none said;
+K2 read «شهریه» as commute, where it was predicted to clear what K1
+cleared; and the suites' queries changed under neither rule, where some
+were predicted to. Its cell for the copula held (D117).
+
+**The fresh set** (2026-11-20, sha256 `1556c08a…`), the rule built against
+the same with endings for «کار » too:
+
+    cells                                          today    built    «کار» with endings
+    words that hold a cue and are none, 11             4       9        6
+    true forms, 10                                    10      10       10
+    the cues as words (controls), 10                  10      10       10
+    the suites' queries, 1,107, changed                        0        0
+
+Every prediction held. «کار » with endings read «کارت ماشین», «کارت سوخت»
+and «کارش» as ride-hailing; that is why it takes none. No control
+changed, so the owner's rule for building held.
+
+**Mutants**, bytecode off, 13, 11 caught at first. The red lines and «کم
+مصرف» read back as substrings lived; a row was added for each after the
+run, «پراید آبی رنگ» and «کم مصرفترین ماشین», and both are caught. The
+first is a reading today got wrong that neither set held.
+
+**Left**, each pinned by a test: «بارها» and «شهریه», an ending each; «این
+بار» and «سه بار تصادف», a cue that is a word of another meaning, which no
+rule of letters can tell; and «کم مصرفترین», a cue glued to «ترین», no
+longer read.
+
+**Read from the outside** by the job of D110, on Ubuntu 26.04 (D116). It
+brought `Tecso-Dev/caro` from `94d5cc3` to `b9f9090` at 07:29Z on
+2026-11-20, found the site running it a minute later, and read it there:
+
+    about    200 ۱۱۶=تصمیم ۳۸۸۲=گزاره ۱۹=مجموعه
+    corpus   200 REAL run17 ad72b16a54cf 492 rows
+    search   200 «سمند زیر ۲ میلیارد»: models ['samand'], 13 shown, 1 apart
+
+/about gave this commit's counts. The site check's question holds no cue,
+so the suites, in CI and inside the API's image, are what read the rule.
