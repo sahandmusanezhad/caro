@@ -8894,3 +8894,71 @@ brought `Tecso-Dev/caro` from `94d5cc3` to `b9f9090` at 07:29Z on
 
 /about gave this commit's counts. The site check's question holds no cue,
 so the suites, in CI and inside the API's image, are what read the rule.
+
+## D119 — Nothing is pushed to Tecso-Dev/caro, for good: the job `deliver` out, by the owner's choice
+
+On 2026-11-21 the owner said, to be kept for good, that the work is no
+longer pushed to Tecso, only to the owner's own repository. The one thing
+here that pushed there was the images workflow's job `deliver` (D110):
+after each green merge it brought `main` of `Tecso-Dev/caro` to the merge by
+a deploy key of that repository's, waited for the site Vercel builds from
+it, and read the site. Its last push was `b9f9090`, #42's merge, at 07:29Z
+on 2026-11-20 (D118). Nothing was merged between the owner's word and this
+change, so nothing else went there.
+
+Merged on 2026-11-21 in #43:
+
+    commit    what it does                                            suites    bare
+    0181250   the job deliver and deploy/deliver.sh out                 3880    3129
+    e2834dd   the working agreement: nothing pushed to Tecso-Dev/caro   3880    3129
+    fd59a17   the documents that said each merge reaches the site       3880    3129
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `e905c9c`.
+
+**The change.** The job and its script are gone, and the notes of the three
+workflows say so. The working agreement holds the rule: no session,
+workflow or script of this repository pushes to `Tecso-Dev/caro`, and the
+work is pushed to `sahandmusanezhad/caro` alone. Its round's sixth step
+reads CI on `main`, whose images job reads both images from the outside,
+and the site where one runs `main`.
+
+**Tests.** DP41 to DP43, which held the script and the job, went with them.
+DP46 holds that no workflow checks out a repository but this one, holds a
+key but the token GitHub gives each run, runs `git push` or names
+`Tecso-Dev/caro` outside its comments; that the images workflow has no job
+`deliver`; and that `deploy/deliver.sh` is gone. DP13 allows no ssh in the
+images workflow. Mutants, bytecode off, 10, all caught: the old job back
+whole, a checkout of `Tecso-Dev/caro` by its key, a checkout of another
+repository without one, a `git push` in a step, `Tecso-Dev/caro` named by an
+env line of ci.yml, a secret other than GitHub's token, the script back, a
+job named `deliver` that only echoes, a new `.yaml` workflow that pushes,
+and ssh in a step.
+
+**What it means for the site.** https://caro-rho.vercel.app is built from
+`main` of `Tecso-Dev/caro`, which stays at `b9f9090`: no merge since reaches
+it. A site runs `main` again once the server serves it (PHASE1_SETUP,
+PHASE6_SETUP), where the server pulls the images and nothing is pushed.
+Until then a merge is read by CI on `main` and its images job's read of
+both images; this one was read so, and the site was not, since it does not
+run it.
+
+**Left, the owner's.** The deploy key `caro-deliver` can still write to
+`Tecso-Dev/caro`, and this repository still holds its private half as the
+secret `TECSO_DEPLOY_KEY`; nothing reads either, and DELIVERY gives the two
+lines that take them out. Later the same day the owner chose to delete
+`Tecso-Dev/caro` altogether, so that caro is on the owner's account alone:
+its issues in this repository's Issues, the site's contact page sending
+people there instead of to `Tecso-Dev/caro` (D68), and its open issues
+recreated here from a copy. A session can delete nothing there: its access
+reaches this repository alone, and deleting that one takes an admin's
+rights on it and the owner's own token. The move and the delete are
+recorded when they are made.
+
+**On `main` after `e905c9c`**, read on 2026-11-21: `ci` passed, and
+`images` ran two jobs and no `deliver`. The job `images` passed, its step
+that starts both images together and reads them from the outside among its
+steps, at 15:47Z, before both were pushed as `:staging`; `reached` said
+that no environment is named yet. Nothing was pushed to `Tecso-Dev/caro`.
+The site on Vercel was not read: it runs `b9f9090`, not this merge.
