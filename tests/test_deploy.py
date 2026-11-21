@@ -1470,13 +1470,16 @@ _wfs = {p.name: p.read_text(encoding="utf-8")
         for p in sorted([*(ROOT / ".github/workflows").glob("*.yml"), *(ROOT / ".github/workflows").glob("*.yaml")])}
 _wfs_code = {n: "\n".join(ln for ln in t.splitlines() if not ln.lstrip().startswith("#")) for n, t in _wfs.items()}
 check("DP46: nothing here pushes to another repository, the owner's choice of 2026-11-21: no workflow "
-      "checks out a repository but this one, holds a key but the token GitHub gives each run, runs git "
-      "push or names Tecso-Dev/caro but in a comment; the images workflow has no job deliver, and "
-      "deploy/deliver.sh is gone",
+      "checks out a repository but this one, names a secret in any form but the token GitHub gives each "
+      "run, runs git's push in any form or names Tecso-Dev/caro but in a comment; the images workflow "
+      "has no job deliver, and deploy/deliver.sh is gone",
       {"audit.yml", "ci.yml", "images.yml"} <= set(_wfs)
       and not any(re.search(r"^\s*(?:-\s+)?repository:", t, re.MULTILINE) for t in _wfs_code.values())
-      and all(set(re.findall(r"secrets\.(\w+)", t)) <= {"GITHUB_TOKEN"} for t in _wfs_code.values())
-      and not any("ssh-key" in t or "git push" in t or "tecso" in t.lower() for t in _wfs_code.values())
+      # Any other secret, however it is named -- secrets.X, secrets['X'], toJSON(secrets) -- and git's
+      # push however it is spelled -- git push, git -C dir push -- is refused.
+      and not any(re.search(r"\bsecrets\b", t.replace("secrets.GITHUB_TOKEN", "")) for t in _wfs_code.values())
+      and not any(re.search(r"\bgit\b[^\n]*\bpush\b", t) for t in _wfs_code.values())
+      and not any("ssh-key" in t or "tecso" in t.lower() for t in _wfs_code.values())
       and "\n  deliver:" not in _wf and "deliver.sh" not in _wf
       and not (ROOT / "deploy/deliver.sh").exists(),
       str({n: sorted(set(re.findall(r"secrets\.(\w+)", t))) for n, t in _wfs_code.items()}))
