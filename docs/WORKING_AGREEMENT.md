@@ -13,8 +13,8 @@ What is left to do, and in what order, is in [ROADMAP](ROADMAP.md).
 Two people, since 2026-11-02, by the owner's choice of that day:
 
 - **The owner**, `sahandmusanezhad`, decides — technology, rules about
-  Persian, product, scope, what is sent where — starts every live request to
-  a source, and keeps `Tecso-Dev/caro` in step.
+  Persian, product, scope, what is sent where — and starts every live
+  request to a source.
 - **Sobhan**, `sobhanaz`, builds the platform: the phases of
   [REARCHITECTURE](REARCHITECTURE.md) — containers, environments, the edge,
   observability, the front end's design system — and proposes; what he
@@ -24,7 +24,8 @@ Two people, since 2026-11-02, by the owner's choice of that day:
 Each commits under their own name. The work is tracked as issues in
 [Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues), one per phase of
 the plan under an epic, and lands only by pull request into `main` of
-`github.com/sahandmusanezhad/caro`, from either person or a session.
+`github.com/sahandmusanezhad/caro`, from either person or a session. It is
+pushed to no other repository (below).
 
 ## The round
 
@@ -63,9 +64,13 @@ change looks small.
    `main` of `github.com/sahandmusanezhad/caro`, merged by the session itself
    once CI on it is green. A red pull request is fixed or left open with the
    reason; it is never merged red.
-6. **After the merge,** read CI on `main` and the site from the outside, and
-   only then write the D-entry, with the merged hashes and what was seen. No
-   D-number is cited anywhere before its entry exists.
+6. **After the merge,** read CI on `main` — its images job starts both
+   images together and reads them from the outside — and the site from the
+   outside where one runs `main`, and only then write the D-entry, with the
+   merged hashes and what was seen. Since 2026-11-21 none does, until the
+   server's staging does and the images workflow's job `reached` reads it:
+   the site on Vercel is built from `Tecso-Dev/caro`, to which nothing is
+   pushed (below). No D-number is cited anywhere before its entry exists.
 
 ## Commits and pushes
 
@@ -92,9 +97,16 @@ change looks small.
   patches, with a script that applies them with `git am`, checks the state it
   starts from and refuses any other, and is rehearsed on a fresh clone before
   he gets it.
-- **The owner keeps `github.com/Tecso-Dev/caro` in step**: after a merge he
-  brings its `main` to the same commit. Never handle his GitHub token or any
-  other credential; the credentials live on his machine and stay there.
+- **Nothing is pushed to `github.com/Tecso-Dev/caro`, ever** — the owner's
+  choice of 2026-11-21, for good. The work is pushed to
+  `github.com/sahandmusanezhad/caro` alone: no session, workflow or script of
+  this repository pushes to `Tecso-Dev/caro`. The owner brought its `main` to
+  the merges by hand until 2026-11-18, and the images workflow's job
+  `deliver` from 2026-11-19, the last time on 2026-11-20; the job is gone,
+  and that `main` stays at `b9f9090`, the last commit it was given
+  ([DELIVERY](DELIVERY.md); DP46 holds it).
+- **Never handle the owner's GitHub token or any other credential**; the
+  credentials live on the owner's machine and stay there.
 - **Prepare each commit so it is green on its own.** The working tree may
   hold several pending changes at once, so `run_all.py` before a commit
   reports the tree rather than the commit. When more than one commit is

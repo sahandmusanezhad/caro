@@ -280,8 +280,10 @@ To undo it, in the same directory:
 python3 scripts/cloudflare_setup.py undo-switch
 ```
 
-or put the CNAME back by hand. Vercel keeps deploying `Tecso-Dev/caro`
+or put the CNAME back by hand. Vercel keeps serving `Tecso-Dev/caro`
 until it is retired, which waits until the server has served for a week.
+That is `b9f9090`, since nothing is pushed there ([DELIVERY](DELIVERY.md)),
+so an undo serves an older site than the server's.
 
 ## Then
 
