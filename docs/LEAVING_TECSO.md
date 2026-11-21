@@ -9,9 +9,10 @@ owner's accounts: its access reaches this repository alone, and deleting a
 repository takes an admin's rights on it and the owner's own sign-in. These
 are the owner's steps, each with what to see when it worked.
 
-They run on your own Mac, where `gh` is signed in as you, in a terminal, in
-this repository's checkout. Paste one block at a time, and read what it
-prints before the next. No step asks for a token or prints one.
+They run on your own machine, where `gh` is signed in as you, in a
+terminal, from any folder: none needs this repository's checkout. Paste one
+block at a time, and read what it prints before the next. No step asks for
+a token or prints one.
 
 ## 1. Issues on here
 
@@ -43,25 +44,37 @@ in a new folder. Nothing is pushed anywhere:
 
 ```
 mkdir -p ~/caro-tecso-backup && cd ~/caro-tecso-backup && \
-git clone -q --mirror https://github.com/Tecso-Dev/caro.git caro.git && \
+{ [ -d caro.git ] || git clone -q --mirror https://github.com/Tecso-Dev/caro.git caro.git; } && \
 gh issue list -R Tecso-Dev/caro --state all --limit 1000 --json number,title,body,state,labels,author,createdAt,closedAt,comments > issues.json && \
 gh pr list -R Tecso-Dev/caro --state all --limit 1000 --json number,title,body,state,headRefName,author,createdAt,closedAt,comments > prs.json && \
-git -C caro.git branch --list && ls -l issues.json prs.json; cd -
+git -C caro.git branch --list && ls -l issues.json prs.json
 ```
 
-Worked when it lists the branches and the two files, neither empty. On
-2026-11-20 it had two branches this repository does not, besides `main`:
+Run again, it clones nothing twice and takes the lists afresh. Worked when
+it lists the branches and the two files, neither empty. On 2026-11-20 it had
+two branches this repository does not, besides `main`:
 `docs/rearchitecture-plan` and one a session made; the copy keeps both.
 
 ## 4. Its open issues, made here
 
-The first line prints what it would make and makes nothing; the second
-makes it:
+The first block takes `scripts/move_issues.py` from this repository's
+`main`, through `gh`, into the copy's folder, and prints what it would make,
+making nothing:
 
 ```
-python3 scripts/move_issues.py ~/caro-tecso-backup/issues.json --dry-run
-python3 scripts/move_issues.py ~/caro-tecso-backup/issues.json
+cd ~/caro-tecso-backup && \
+gh api repos/sahandmusanezhad/caro/contents/scripts/move_issues.py --jq .content | base64 -d > move_issues.py && \
+grep -q "def main" move_issues.py && python3 move_issues.py issues.json --dry-run
 ```
+
+Where that list is right, the second makes them:
+
+```
+cd ~/caro-tecso-backup && python3 move_issues.py issues.json
+```
+
+From a checkout of this repository, `python3 scripts/move_issues.py
+~/caro-tecso-backup/issues.json` is the same.
 
 Each open issue is made here with its title, where it came from, who opened
 it and when, its labels there, its body and its comments in order. A
