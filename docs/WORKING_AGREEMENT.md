@@ -21,11 +21,14 @@ Two people, since 2026-11-02, by the owner's choice of that day:
   proposes is the owner's to decide, as anything else here is.
 - **A session** builds what the owner has chosen, under the rules below.
 
-Each commits under their own name. The work is tracked as issues in
-[Tecso-Dev/caro](https://github.com/Tecso-Dev/caro/issues), one per phase of
-the plan under an epic, and lands only by pull request into `main` of
-`github.com/sahandmusanezhad/caro`, from either person or a session. It is
-pushed to no other repository (below).
+Each commits under their own name. **caro is on the owner's account
+alone**, the owner's choice of 2026-11-21, for good: the work lands only by
+pull request into `main` of `github.com/sahandmusanezhad/caro`, from either
+person or a session, is pushed to no other repository (below), and is
+tracked there as issues, one per phase of the plan under an epic. The
+issues were in `Tecso-Dev/caro` until that day; its open ones are made
+again here and it is deleted, the owner's steps
+([LEAVING_TECSO](LEAVING_TECSO.md)).
 
 ## The round
 
@@ -104,7 +107,10 @@ change looks small.
   the merges by hand until 2026-11-18, and the images workflow's job
   `deliver` from 2026-11-19, the last time on 2026-11-20; the job is gone,
   and that `main` stays at `b9f9090`, the last commit it was given
-  ([DELIVERY](DELIVERY.md); DP46 holds it).
+  ([DELIVERY](DELIVERY.md); DP46 holds it). The owner chose the same day to
+  delete it; until then nothing is written to it either, and the only thing
+  read from it is the copy [LEAVING_TECSO](LEAVING_TECSO.md)'s third step
+  takes.
 - **Never handle the owner's GitHub token or any other credential**; the
   credentials live on the owner's machine and stay there.
 - **Prepare each commit so it is green on its own.** The working tree may
