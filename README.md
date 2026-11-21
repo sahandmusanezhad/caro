@@ -597,7 +597,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 3882 assertions, no API key, no network
+python3 tests/run_all.py            # 3880 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -611,10 +611,10 @@ dependency of `caro/`.** Three of the nineteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 3131 assertions across 16 of 19 suites
+python3 tests/run_all.py            # 3129 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3882 across all nineteen
+python3 tests/run_all.py            # 3880 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -820,7 +820,7 @@ and the deployed site follows it.
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3882 assertions across nineteen suites
+tests/           3880 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)

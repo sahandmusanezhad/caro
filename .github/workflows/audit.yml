@@ -10,8 +10,7 @@
 #          advisory turns it red, the owner's choice too.
 #
 # Apart from ci.yml on purpose. An advisory can be published in a week when
-# no line changes; in ci.yml it would stop every merge, and the job
-# `deliver` waits on ci.yml alone, so the site as well. Here a red run stops
+# no line changes; in ci.yml it would stop every merge. Here a red run stops
 # nothing. It is a notice, which GitHub mails to whoever last set this
 # schedule, and it leads to a commit of its own: a lockfile moved, or a floor
 # raised in webapp/requirements.txt. ci.yml installs with --no-audit for the
