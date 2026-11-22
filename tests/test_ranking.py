@@ -847,9 +847,8 @@ for q_rng, want, why in [
         ("پژو ۲۰۶ تا ۴۰۰ میلیون", (None, 400_000_000), "D111's guard: a model's number"),
         ("پراید ۱.۵ تا ۱ میلیارد", (None, 1_000_000_000), "upside down, as before"),
         ("۱.۵ تا ۲ میلیارد نباشه", (None, 2_000_000_000), "a negation after it, as before"),
-        ("سی سی ۱.۶ تا ۲ میلیارد", (1_600_000_000, 2_000_000_000),
-         "left: an engine written with another word is read as the lower end"),
-        ("توربو ۱.۷ تا ۲ میلیارد", (1_700_000_000, 2_000_000_000), "left: the same after «توربو»")]:
+        ("سی سی ۱.۶ تا ۲ میلیارد", (None, 2_000_000_000), "after «سی سی» too, since E2"),
+        ("توربو ۱.۷ تا ۲ میلیارد", (None, 2_000_000_000), "  after «توربو»")]:
     sp_rng = P.parse(q_rng)
     check(f"«{q_rng}» → floor {want[0]}, ceiling {want[1]}  ({why})",
           (sp_rng.budget_min_toman, sp_rng.budget_max_toman) == want,
@@ -891,6 +890,33 @@ for q_rng, want, why in [
         ("۱۴۰۰ تا ۱۸۰۰ میلیون", (None, 1_800_000_000), "left: the same, one that is a year"),
         ("۲۰۰۰ تا ۲۵۰۰ میلیون", (None, 2_500_000_000), "  a Gregorian one"),
         ("۷۰ تا ۹۰ میلیارد", (None, 90_000_000_000), "  two digits")]:
+    sp_rng = P.parse(q_rng)
+    check(f"«{q_rng}» → floor {want[0]}, ceiling {want[1]}  ({why})",
+          (sp_rng.budget_min_toman, sp_rng.budget_max_toman) == want,
+          f"{sp_rng.budget_min_toman} {sp_rng.budget_max_toman}")
+# An engine's size after a word other than «موتور» or «حجم» (E2, the owner's choice of 2026-11-22
+# on a measurement): «پیشرانه», «توربو», «سی سی» and «cc» hold the X after them back from being a
+# range's lower end, «سی سی» and «cc» not right after a number, which has said the size already.
+for q_rng, want, why in [
+        ("سی‌سی ۱.۶ تا ۲ میلیارد", (None, 2_000_000_000), "«سی‌سی» with a ZWNJ"),
+        ("سیسی ۱.۶ تا ۲ میلیارد", (None, 2_000_000_000), "  glued"),
+        ("cc 1.6 تا 2 میلیارد", (None, 2_000_000_000), "«cc»"),
+        ("CC ۱.۸ تا ۳ میلیارد", (None, 3_000_000_000), "  in capitals"),
+        ("پیشرانه ۱.۶ تا ۲ میلیارد", (None, 2_000_000_000), "«پیشرانه»"),
+        ("دنا پلاس توربو ۱.۷ تا ۲ میلیارد", (None, 2_000_000_000), "«توربو» after a model's name"),
+        ("سی سی ۱۶۰۰ تا ۲ میلیارد", (None, 2_000_000_000), "a whole X"),
+        ("پیشرانه ۱۸۰۰ تا ۳ میلیارد", (None, 3_000_000_000), "  another"),
+        ("۱۶۰۰ سی سی ۱.۵ تا ۲ میلیارد", (1_500_000_000, 2_000_000_000),
+         "«سی سی» after a number has said the size: a price's range"),
+        ("۱۶۰۰سی سی ۱.۵ تا ۲ میلیارد", (1_500_000_000, 2_000_000_000), "  the number glued to it"),
+        ("موتور ۱۶۰۰ سی سی ۱.۲ تا ۱.۸ میلیارد", (1_200_000_000, 1_800_000_000), "  after «موتور ۱۶۰۰»"),
+        ("حجم ۱۸۰۰ cc ۲ تا ۳ میلیارد", (2_000_000_000, 3_000_000_000), "  «cc», and a whole X"),
+        ("۱.۶ لیتر ۱.۵ تا ۲ میلیارد", (1_500_000_000, 2_000_000_000), "«لیتر» is no such word"),
+        ("پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد", (1_600_000_000, 2_000_000_000),
+         "left: a model's number before «سی سی» reads as a size said, and 1.6 as the lower end"),
+        ("دنا توربو ۱.۵ تا ۲ میلیارد", (None, 2_000_000_000),
+         "left: «توربو» after a model's name holds back a price's lower end"),
+        ("تارا توربو ۲ تا ۳ میلیارد", (None, 3_000_000_000), "  a whole one")]:
     sp_rng = P.parse(q_rng)
     check(f"«{q_rng}» → floor {want[0]}, ceiling {want[1]}  ({why})",
           (sp_rng.budget_min_toman, sp_rng.budget_max_toman) == want,
