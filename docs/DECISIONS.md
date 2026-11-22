@@ -9149,3 +9149,66 @@ passed, the images job's read of both images among its steps, and `reached`
 said that no environment is named yet. Nothing was pushed to
 `Tecso-Dev/caro`. The site on Vercel was not read: it runs `b9f9090`, not
 this merge (D119); the rule reaches a site once the server serves `main`.
+
+## D123 — A range's lower end with a decimal passes D111's guard, but not after «موتور» or «حجم», by the owner's choice on a measurement (G3)
+
+«1.5 تا 2 میلیارد» was a ceiling of 2 billion, the 1.5 dropped, with every
+decimal mark. D111's guard, the owner's choice of 2026-11-18, leaves «X تا Y»
+with neither «بین» nor «از» and no scale word on X as it was, X being perhaps
+a model's number, as in «پژو ۲۰۶ تا ۴۰۰ میلیون». It was found by hand on
+2026-11-22 while «،» was built (D122). A model's number and a year have no
+decimal part. The owner asked the same day for it to be measured.
+
+**Measured** the same day, the predictions locked first (sha256
+`8080a0e9…`, 11:14Z), in a worktree of `main` with the network off, each
+rule `_range` with the guard changed:
+
+    cells                                          today    G1    G3
+    ranges with a decimal lower end, 20                0    20    20
+    controls, 10                                      10     8    10
+    the guard's cost, whole lower ends, 2              0     0     0
+    the suites' 1,171 queries, changed                       2     2
+
+G1 let every decimal lower end through, and read «موتور ۱.۸ تا ۲ میلیارد»
+and «پژو ۲۰۷ موتور ۱.۶ تا ۲ میلیارد» as ranges from an engine's size. G3
+does not let through one right after «موتور» or «حجم». The ten-times bound
+already kept «موتور ۱.۶ تا ۵۰۰ میلیون» a ceiling under both. The two queries
+of the suites each changed were the rows that pinned «۱،۵ تا ۲ میلیارد» and
+«1.5 تا 2 میلیارد» as a ceiling alone. Every prediction held. Put to the
+owner the same day, the owner chose G3.
+
+Merged on 2026-11-22 in #52:
+
+    commit    what it does                                            suites    bare
+    263a521   a decimal lower end passes D111's guard (G3)              3925    3174
+    291483f   the roadmap's ranges and decimal marks                    3925    3174
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `1bdac9a`.
+
+**The rule** (`caro.ranking._range`): the guard lets X through where it has
+a decimal part (`_DECIMAL_PART`: «.», «,», «/», «٫», and «،» as D122 writes
+it) and does not stand right after «موتور» or «حجم» (`_ENGINE_BEFORE`). The
+rest of the rule is as it was. The parser as built reads the measurement's
+32 phrasings and the suites' 1,184 queries as the measured G3 did.
+
+**Tried by hand first**, outside the sets: «حدود» (a soft range), «الی», a
+negation after it, a ceiling's cue before it, a year before it, and «حجم
+موتور ۱.۸» are read as the rule says. Found the same way, and left: an
+engine written with another word is read as the lower end, «سی سی ۱.۶ تا ۲
+میلیارد» from 1.6 billion and «توربو ۱.۷ تا ۲ میلیارد» from 1.7.
+
+**Mutants**, bytecode off, 10, 9 caught. The one that lives reads an engine
+word anywhere before the range rather than right before it; no row holds
+«موتور» earlier in a query with a decimal range after it.
+
+**Left**, each pinned by a test: the two engine words above; and «X تا Y»
+with a whole X, D111's guard's cost as it was («۵۰۰ تا ۸۰۰ میلیون» is a
+ceiling of 800 million).
+
+**On `main` after `1bdac9a`**, read on 2026-11-22: `ci` and `images`
+passed, the images job's read of both images among its steps, and `reached`
+said that no environment is named yet. Nothing was pushed to
+`Tecso-Dev/caro`. The site on Vercel was not read: it runs `b9f9090`, not
+this merge (D119); the rule reaches a site once the server serves `main`.

@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D122, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D123, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -595,7 +595,7 @@ names. Durations are for two people part-time.
    میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are written the same way — since
    2026-11-22 an X with a decimal part is let through, a model's number and a
    year having none, unless it stands right after «موتور» or «حجم» (G3, the
-   owner's choice on a measurement; item 6); and a range
+   owner's choice on a measurement, D123; item 6); and a range
    written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون», the ceiling of 300 million it
    was (8 of 8). The predictions held but for two: the controls' count, and
    the upside-down range for the first candidate, which read «بین ۱.۵ تا ۱
@@ -663,7 +663,7 @@ names. Durations are for two people part-time.
      ceiling alone, with every decimal mark: «1.5 تا 2 میلیارد» was a ceiling
      of 2 billion, the 1.5 dropped. Found by hand on 2026-11-22, while «،» was
      built, it was measured the same day, the predictions locked first, every
-     one held, and the owner chose G3: D111's guard lets through an X with a
+     one held, and the owner chose G3 (D123): D111's guard lets through an X with a
      decimal part, unless right after «موتور» or «حجم». 20 of 20 made ranges
      are read, where today read none; 10 of 10 controls as before, where
      letting every decimal through read 8; and of the suites' 1,171 queries
