@@ -847,10 +847,50 @@ for q_rng, want, why in [
         ("پژو ۲۰۶ تا ۴۰۰ میلیون", (None, 400_000_000), "D111's guard: a model's number"),
         ("پراید ۱.۵ تا ۱ میلیارد", (None, 1_000_000_000), "upside down, as before"),
         ("۱.۵ تا ۲ میلیارد نباشه", (None, 2_000_000_000), "a negation after it, as before"),
-        ("۵۰۰ تا ۸۰۰ میلیون", (None, 800_000_000), "left: D111's guard, an X with no decimal part"),
         ("سی سی ۱.۶ تا ۲ میلیارد", (1_600_000_000, 2_000_000_000),
          "left: an engine written with another word is read as the lower end"),
         ("توربو ۱.۷ تا ۲ میلیارد", (1_700_000_000, 2_000_000_000), "left: the same after «توربو»")]:
+    sp_rng = P.parse(q_rng)
+    check(f"«{q_rng}» → floor {want[0]}, ceiling {want[1]}  ({why})",
+          (sp_rng.budget_min_toman, sp_rng.budget_max_toman) == want,
+          f"{sp_rng.budget_min_toman} {sp_rng.budget_max_toman}")
+# A range whose lower end is a whole number with no scale word (W3, the owner's choice of
+# 2026-11-22 on a measurement): D111's guard held back every such X, as perhaps a model's number
+# or a year, so «۵۰۰ تا ۸۰۰ میلیون» was a ceiling of 800 million alone. It holds back a year (two
+# digits from 60 to 99, four from 1300 to 1499 or 1950 to 2030), an X right after «سال», «موتور»
+# or «حجم», and an X of three or four digits that is not a multiple of 50; the range rule judges
+# the rest as it judges the X of «الی».
+for q_rng, want, why in [
+        ("۵۰۰ تا ۸۰۰ میلیون", (500_000_000, 800_000_000), "a range, where it was a ceiling alone"),
+        ("پراید ۳۰۰ تا ۴۵۰ میلیون", (300_000_000, 450_000_000), "after a model's name"),
+        ("یه ماشین خانوادگی ۱ تا ۲ میلیارد میخوام", (1_000_000_000, 2_000_000_000),
+         "one digit, in billions"),
+        ("سمند ۸۰۰ تا ۱.۲ میلیارد سفید", (800_000_000, 1_200_000_000), "a million below a billion"),
+        ("۱۲۰۰ تا ۱۵۰۰ میلیون", (1_200_000_000, 1_500_000_000), "four digits, no year"),
+        ("پراید شیراز ۳۰۰ تا ۴۰۰ میلیون", (300_000_000, 400_000_000), "after a place"),
+        ("۱۵ تا ۲۰ میلیارد", (15_000_000_000, 20_000_000_000), "two digits, no year"),
+        ("پراید ۱۳۱ تا ۳۰۰ میلیون", (None, 300_000_000), "the table's model number, as before"),
+        ("پراید ۹۸ تا ۴۰۰ میلیون", (None, 400_000_000), "a year of two digits"),
+        ("هیوندای ۲۰۱۵ تا ۳ میلیارد", (None, 3_000_000_000), "a Gregorian year"),
+        ("پراید سال ۹۵ تا ۲۵۰ میلیون", (None, 250_000_000), "a year after «سال»"),
+        ("بنز سال ۵۵ تا ۴۰۰ میلیون", (None, 400_000_000),
+         "after «سال», though its two digits are below 60"),
+        ("تندر ۹۰ تا ۸۰۰ میلیون", (None, 800_000_000), "a model's number of two digits, read as a year"),
+        ("پراید ۱۴۱ تا ۳۰۰ میلیون", (None, 300_000_000), "three digits, not round: a model's number"),
+        ("پژو ۳۰۱ تا ۹۰۰ میلیون", (None, 900_000_000), "  another"),
+        ("پژو ۵۰۸ تا ۲ میلیارد", (None, 2_000_000_000), "  in billions"),
+        ("پژو ۳۰۰۸ تا ۵ میلیارد", (None, 5_000_000_000), "  four digits"),
+        ("موتور ۱۶۰۰ تا ۲ میلیارد", (None, 2_000_000_000), "after «موتور», a whole engine's size"),
+        ("۲۰۶ تیپ ۲ تا ۹۰۰ میلیون", (None, 900_000_000), "a trim's number, by the ten-times bound"),
+        ("پراید ۵۰۰ تا ۴۰۰ میلیون", (None, 400_000_000), "upside down, as before"),
+        ("۵۰۰ تا ۸۰۰ میلیون نباشه", (None, 800_000_000), "a negation after it, as before"),
+        ("ام وی ام ۵۵۰ تا ۹۰۰ میلیون", (550_000_000, 900_000_000),
+         "left: a model's number that is round is read as the lower end"),
+        ("تیگو ۸ تا ۹ میلیارد", (8_000_000_000, 9_000_000_000), "left: the same, of one digit"),
+        ("۳۸۰ تا ۴۲۰ میلیون", (None, 420_000_000), "left: a lower end that is not round is held back"),
+        ("۱۴۰۰ تا ۱۸۰۰ میلیون", (None, 1_800_000_000), "left: the same, one that is a year"),
+        ("۲۰۰۰ تا ۲۵۰۰ میلیون", (None, 2_500_000_000), "  a Gregorian one"),
+        ("۷۰ تا ۹۰ میلیارد", (None, 90_000_000_000), "  two digits")]:
     sp_rng = P.parse(q_rng)
     check(f"«{q_rng}» → floor {want[0]}, ceiling {want[1]}  ({why})",
           (sp_rng.budget_min_toman, sp_rng.budget_max_toman) == want,
@@ -1080,15 +1120,16 @@ for text, want_f, want_c, why in [
      "after a year's range, whose «تا» took the lower end for the ceiling"),
     ("کارکرد زیر ۱۰۰ هزار، بین ۳۰۰ تا ۴۰۰ میلیون", 300_000_000, 400_000_000,
      "after an odometer"),
-    # with neither «بین» nor «از», read as it was
-    ("پراید ۳۰۰ تا ۴۰۰ میلیون", None, 400_000_000, "«X تا Y», X with no scale word"),
-    ("کوییک ۸۰۰ تا ۹۰۰ میلیون", None, 900_000_000, "  another"),
+    # with neither «بین» nor «از»: a whole X, read since W3 (2026-11-22) where it is no
+    # model's number and no year; the rest read as it was
+    ("پراید ۳۰۰ تا ۴۰۰ میلیون", 300_000_000, 400_000_000, "«X تا Y», X with no scale word"),
+    ("کوییک ۸۰۰ تا ۹۰۰ میلیون", 800_000_000, 900_000_000, "  another"),
     ("پژو ۲۰۶ تا ۴۰۰ میلیون", None, 400_000_000, "  a model's number and a ceiling"),
     ("تیبا ۱۴۰۰ تا ۲ میلیارد", None, 2_000_000_000, "  a year and a ceiling"),
     ("۳۰۰ و ۴۰۰ میلیون", None, 400_000_000, "«و» without «بین»"),
     ("از ۳۰۰ و ۴۰۰ میلیون", None, 400_000_000, "  after «از»"),
-    ("پراید شیراز ۳۰۰ تا ۴۰۰ میلیون", None, 400_000_000,
-     "the «از» that ends a word is no «از»"),
+    ("پراید شیراز ۹۸ تا ۴۰۰ میلیون", None, 400_000_000,
+     "the «از» that ends a word is no «از», which would let the year through"),
     ("۳۰۰ - ۴۰۰ میلیون", None, 400_000_000, "a spaced dash"),
     ("۳۰۰ -۴۰۰ میلیون", None, 400_000_000, "  a space before it only"),
     ("۳۰۰- ۴۰۰ میلیون", None, 400_000_000, "  a space after it only"),
