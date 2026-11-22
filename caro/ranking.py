@@ -389,20 +389,27 @@ def _held_back(q: str, m) -> bool:
         or from 1950 to 2030 -- or an X right after «سال»; and an X of three or
         four digits that is not a multiple of 50, a price a buyer names being
         round and a model's number seldom so («پراید ۱۴۱», «پژو ۳۰۱», «پژو ۵۰۸»)
-        (W3).
+        (W3);
+      - an X right after «سی سی» or «cc» that follow one of the table's model
+        numbers, which is a model's and no engine's size said («پژو ۲۰۷ سی سی
+        ۱.۶ تا ۲ میلیارد»; `_CC_AFTER_MODEL`), and a whole X that is one of the
+        numbers the owner's list gives the name right before it («تیگو ۸ تا ۹
+        میلیارد», «ام وی ام ۵۵۰ تا ۹۰۰ میلیون»; `_NUMBERS_OF`) (M3).
 
     What it lets through, the rest of `_range` judges as it judges the X of
     «الی»: the table's model numbers and a year after «مدل» are refused, and
     the upper end is no more than ten times the lower.
     """
     before = q[:m.start(3)]
-    if _ENGINE_BEFORE.search(before):
+    if _ENGINE_BEFORE.search(before) or _CC_AFTER_MODEL.search(before):
         return True
     low = m.group(3)
     if _DECIMAL_PART.search(low):
         return False
+    name = _NAME_BEFORE.search(before)
     return (_a_year(low) or _YEAR_BEFORE.search(before) is not None
-            or (len(low) in (3, 4) and int(low) % 50 != 0))
+            or (len(low) in (3, 4) and int(low) % 50 != 0)
+            or (name is not None and int(low) in _NUMBERS_OF[name.group(1)]))
 
 
 def _range(q: str):
@@ -454,6 +461,24 @@ MODEL_ALIASES: dict[str, tuple[str, ...]] = search_aliases()
 # تهرانپارس» no Pars.
 _NUMERIC_ALIASES = frozenset(a for als in MODEL_ALIASES.values() for a in als
                              if a.isdigit())
+
+# For D111's guard (`_held_back`), the owner's choice of 2026-11-22 on a
+# measurement (M3). «سی سی» or «cc» right after one of the numbers above is no
+# engine's size said, as «۱۶۰۰ سی سی» is: «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد» is
+# the 207's engine of 1.6 and a ceiling of 2 billion. And the numbers a name
+# the model table does not hold is written with, a model's and not a price's
+# lower end: «تیگو ۸ تا ۹ میلیارد» is a ceiling of 9 billion, «تیگو ۴ تا ۵
+# میلیارد» a range. The list is the owner's; it makes no model a query names,
+# and holds a number back from a range alone.
+_CC_AFTER_MODEL = re.compile(
+    r"(?<!\d)(?:" + "|".join(sorted(_NUMERIC_ALIASES)) + r") (?:سی ?سی|cc)\s*$", re.IGNORECASE)
+_NUMBERS_OF: dict[str, frozenset[int]] = {
+    "تیگو": frozenset({5, 7, 8}),
+    "آریزو": frozenset({5, 6}),
+    "مزدا": frozenset({2, 3, 6}),
+    "ام وی ام": frozenset({110, 315, 530, 550}),
+}
+_NAME_BEFORE = re.compile(r"(?<!\w)(" + "|".join(_NUMBERS_OF) + r")\s*$")
 
 
 def _names_model(q: str, alias: str, bare: str) -> bool:
