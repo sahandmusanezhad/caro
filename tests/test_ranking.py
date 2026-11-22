@@ -789,22 +789,52 @@ for text in ("پراید زیر ۴۰۰ میلیون مدل ۹۸ به بالا", 
 
 
 # ---------------------------------------------------------------------------
-print("\nthe decimal part of an amount: «.» «,» «/» «٫» (2026-10-29, the owner's call)")
+print("\nthe decimal part of an amount: «.» «,» «/» «٫» (2026-10-29), and «،» (2026-11-22), the owner's calls")
 # «۱/۵ میلیارد» and «۱٫۵ میلیارد» (U+066B) were read as 5 billion, silently; «.» and
 # «,» were read right. 20 phrasings a separator were made (five amounts, four
-# shapes): «/» and «٫» 0 of 20 before and 20 of 20 now. «،» is not a decimal
-# mark here: it is the clause separator and a thousands separator, and stays
-# 0 of 20. A part of three digits is not a decimal («۱۱۱/۳۰۰ میلیون»).
-for sep, name in [(".", "«.»"), (",", "«,»"), ("/", "«/»"), ("٫", "«٫» (U+066B)")]:
+# shapes): «/» and «٫» 0 of 20 before and 20 of 20 then. «،» stayed 0 of 20,
+# being the clause separator and a thousands separator too, until the owner
+# chose on 2026-11-22, on a measurement, to read it as a decimal mark where one
+# or two digits stand on each side of it and no year before it (C2): 20 of 20
+# then, the ten separators measured as before. A part of three digits is not a
+# decimal («۱۱۱/۳۰۰ میلیون»).
+for sep, name in [(".", "«.»"), (",", "«,»"), ("/", "«/»"), ("٫", "«٫» (U+066B)"),
+                  ("،", "«،», one or two digits each side")]:
     for amount, want in [("۱{s}۵ میلیارد", 1_500_000_000), ("۲{s}۵ میلیارد", 2_500_000_000),
                          ("۱{s}۲۵ میلیارد", 1_250_000_000), ("۳{s}۷۵ میلیارد", 3_750_000_000)]:
         for shape in ("پراید زیر {a}", "{a} پراید", "بودجه {a}، پراید سفید"):
             q_dec = shape.format(a=amount.format(s=sep))
             got_dec = P.parse(q_dec).budget_max_toman
             check(f"«{q_dec}» → ceiling {want:,}  ({name})", got_dec == want, str(got_dec))
-q_dec = "پراید زیر ۱،۵ میلیارد"
-check(f"«{q_dec}» → NOT 1.5 billion: «،» is left  (clause and thousands separator)",
-      P.parse(q_dec).budget_max_toman != 1_500_000_000, str(P.parse(q_dec).budget_max_toman))
+# «،» between digits (C2): read where it is a decimal, left where it is not.
+for q_dec, want, why in [
+        ("پراید زیر ۱،۵ میلیارد", (None, 1_500_000_000), "was 5 billion"),
+        ("بین ۱،۲ تا ۱،۵ میلیارد", (1_200_000_000, 1_500_000_000), "a range, both ends"),
+        ("پراید از ۱،۲ میلیارد به بالا", (1_200_000_000, None), "a floor"),
+        ("حداقل ۱،۲ میلیارد", (1_200_000_000, None), "a floor by its word"),
+        ("مدل ۹۹،۲ میلیارد", (None, 2_000_000_000), "after «مدل» the number is a year"),
+        ("مدل۹۸،۵ میلیارد", (None, 5_000_000_000), "after «مدل» with no space too"),
+        ("سال ۹۹،۳ میلیارد", (None, 3_000_000_000), "after «سال»"),
+        ("سال۹۹،۳ میلیارد", (None, 3_000_000_000), "after «سال» with no space"),
+        ("پراید زیر ۱۲،۵ میلیارد", (None, 12_500_000_000), "a whole part of two digits"),
+        ("پژو ۴۰۵،۲ میلیارد", (None, 2_000_000_000), "a whole part of three digits is a model"),
+        ("مدل ۱۴۰۰،۲ میلیارد", (None, 2_000_000_000), "a year of four digits"),
+        ("سفید،۵۰۰ میلیون", (None, 500_000_000), "no digit before it"),
+        ("پراید زیر ۱،۵۰۰ میلیون", (None, 500_000_000),
+         "left: three digits after it are a thousands separator or a clause, not read"),
+        ("۱،۵ تا ۲ میلیارد", (None, 2_000_000_000),
+         "left: a range's lower end with a decimal and no scale word is not read, as with «.»"),
+        ("1.5 تا 2 میلیارد", (None, 2_000_000_000), "left: the same with «.»")]:
+    sp_dec = P.parse(q_dec)
+    check(f"«{q_dec}» → floor {want[0]}, ceiling {want[1]}  ({why})",
+          (sp_dec.budget_min_toman, sp_dec.budget_max_toman) == want,
+          f"{sp_dec.budget_min_toman} {sp_dec.budget_max_toman}")
+sp_dec = P.parse("مدل ۹۹،۲ میلیارد")
+check("«مدل ۹۹،۲ میلیارد» → the year 1399, read as before", sp_dec.year_min == 1399, str(sp_dec.year_min))
+sp_dec = P.parse("موتور ۱،۶ باشه")
+check("«موتور ۱،۶ باشه» → no budget, and «موتور 1/6 باشه» not understood, «،» written as «/» (left)",
+      (sp_dec.budget_min_toman, sp_dec.budget_max_toman, sp_dec.unparsed) == (None, None, ("موتور 1/6 باشه",)),
+      f"{sp_dec.budget_min_toman} {sp_dec.budget_max_toman} {sp_dec.unparsed}")
 for q_dec, want in [("پراید ۱۱۱/۳۰۰ میلیون", 300_000_000),
                     ("پراید ۱۳۱/۱۱۱ تا ۳۰۰ میلیون", 300_000_000),
                     ("پراید مدل ۱۴۰۰/۰۵/۰۲ زیر ۳۰۰ میلیون", 300_000_000)]:
