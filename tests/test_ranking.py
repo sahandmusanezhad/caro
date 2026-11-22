@@ -883,9 +883,9 @@ for q_rng, want, why in [
         ("۲۰۶ تیپ ۲ تا ۹۰۰ میلیون", (None, 900_000_000), "a trim's number, by the ten-times bound"),
         ("پراید ۵۰۰ تا ۴۰۰ میلیون", (None, 400_000_000), "upside down, as before"),
         ("۵۰۰ تا ۸۰۰ میلیون نباشه", (None, 800_000_000), "a negation after it, as before"),
-        ("ام وی ام ۵۵۰ تا ۹۰۰ میلیون", (550_000_000, 900_000_000),
-         "left: a model's number that is round is read as the lower end"),
-        ("تیگو ۸ تا ۹ میلیارد", (8_000_000_000, 9_000_000_000), "left: the same, of one digit"),
+        ("ام وی ام ۵۵۰ تا ۹۰۰ میلیون", (None, 900_000_000),
+         "a model's number that is round, held back since M3 by the owner's list"),
+        ("تیگو ۸ تا ۹ میلیارد", (None, 9_000_000_000), "  of one digit"),
         ("۳۸۰ تا ۴۲۰ میلیون", (None, 420_000_000), "left: a lower end that is not round is held back"),
         ("۱۴۰۰ تا ۱۸۰۰ میلیون", (None, 1_800_000_000), "left: the same, one that is a year"),
         ("۲۰۰۰ تا ۲۵۰۰ میلیون", (None, 2_500_000_000), "  a Gregorian one"),
@@ -912,11 +912,41 @@ for q_rng, want, why in [
         ("موتور ۱۶۰۰ سی سی ۱.۲ تا ۱.۸ میلیارد", (1_200_000_000, 1_800_000_000), "  after «موتور ۱۶۰۰»"),
         ("حجم ۱۸۰۰ cc ۲ تا ۳ میلیارد", (2_000_000_000, 3_000_000_000), "  «cc», and a whole X"),
         ("۱.۶ لیتر ۱.۵ تا ۲ میلیارد", (1_500_000_000, 2_000_000_000), "«لیتر» is no such word"),
-        ("پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد", (1_600_000_000, 2_000_000_000),
-         "left: a model's number before «سی سی» reads as a size said, and 1.6 as the lower end"),
+        ("پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد", (None, 2_000_000_000),
+         "the table's model number before «سی سی» is no size said, since M3"),
         ("دنا توربو ۱.۵ تا ۲ میلیارد", (None, 2_000_000_000),
          "left: «توربو» after a model's name holds back a price's lower end"),
         ("تارا توربو ۲ تا ۳ میلیارد", (None, 3_000_000_000), "  a whole one")]:
+    sp_rng = P.parse(q_rng)
+    check(f"«{q_rng}» → floor {want[0]}, ceiling {want[1]}  ({why})",
+          (sp_rng.budget_min_toman, sp_rng.budget_max_toman) == want,
+          f"{sp_rng.budget_min_toman} {sp_rng.budget_max_toman}")
+# A model's number right after a name (M3, the owner's choice of 2026-11-22 on a measurement):
+# «سی سی» or «cc» after one of the table's model numbers holds X back, the number being a model's
+# and no size said; and a whole X that is one of the numbers the owner's list gives the name
+# right before it («تیگو» 5, 7, 8; «آریزو» 5, 6; «مزدا» 2, 3, 6; «ام وی ام» 110, 315, 530, 550) is
+# a model's, not a price's lower end.
+for q_rng, want, why in [
+        ("چری تیگو ۷ تا ۹ میلیارد", (None, 9_000_000_000), "«تیگو» 7, after its make"),
+        ("آریزو ۵ تا ۶ میلیارد", (None, 6_000_000_000), "«آریزو» 5"),
+        ("مزدا ۳ تا ۵ میلیارد", (None, 5_000_000_000), "«مزدا» 3"),
+        ("ام‌وی‌ام ۵۵۰ تا ۹۰۰ میلیون", (None, 900_000_000), "«ام وی ام» with ZWNJs"),
+        ("پژو ۴۰۵ سی سی ۱.۸ تا ۲ میلیارد", (None, 2_000_000_000), "405 before «سی سی»"),
+        ("پژو ۲۰۶ CC ۱.۴ تا ۲ میلیارد", (None, 2_000_000_000), "  «CC», in capitals"),
+        ("پژو ۲۰۷ سیسی ۱.۶ تا ۲ میلیارد", (None, 2_000_000_000), "  «سیسی», glued"),
+        ("مزدا سفید ۳ تا ۵ میلیارد", (3_000_000_000, 5_000_000_000),
+         "a listed number not right after the name is a price's lower end"),
+        ("تیگو ۷.۵ تا ۹ میلیارد", (7_500_000_000, 9_000_000_000), "  and so is a decimal after it"),
+        ("۱۲۰۶ سی سی ۱.۵ تا ۲ میلیارد", (1_500_000_000, 2_000_000_000),
+         "a number that holds 206 is a size said: a price's range"),
+        ("تیگو ۴ تا ۵ میلیارد", (4_000_000_000, 5_000_000_000), "a number the list does not give the name"),
+        ("سمند ۱ تا ۲ میلیارد", (1_000_000_000, 2_000_000_000), "a name the list does not hold"),
+        ("ام وی ام ۶۰۰ تا ۸۰۰ میلیون", (600_000_000, 800_000_000), "  «ام وی ام» 600"),
+        ("یه ماشین خانوادگی ۲ تا ۳ میلیارد میخوام", (2_000_000_000, 3_000_000_000), "no name before it"),
+        ("هایما ۷ تا ۹ میلیارد", (7_000_000_000, 9_000_000_000),
+         "left: a model's number after a name the list does not hold is the lower end"),
+        ("مزدا ۲ تا ۳ میلیارد", (None, 3_000_000_000),
+         "left: a number the list gives the name is held back, a price meant or not")]:
     sp_rng = P.parse(q_rng)
     check(f"«{q_rng}» → floor {want[0]}, ceiling {want[1]}  ({why})",
           (sp_rng.budget_min_toman, sp_rng.budget_max_toman) == want,
