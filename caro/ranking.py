@@ -74,9 +74,24 @@ _SCALE = {"میلیارد": 1_000_000_000, "ملیارد": 1_000_000_000,
 # The decimal part of an amount is «.» or «,», as before, or «/» or «٫» (the
 # Arabic decimal separator, U+066B) with one or two digits and no digit after
 # them: «۱/۵ میلیارد» is 1.5 billion, and «۱۱۱/۳۰۰ میلیون» (a model, a slash and
-# an amount) is still 300 million. «،» is not one: it is also the clause
-# separator and a thousands separator (docs/ROADMAP.md, the parser, item 5).
+# an amount) is still 300 million. «،» is one only where `_comma_decimals`
+# says so, below: it is also the clause separator and a thousands separator.
 _DECIMAL = r"(?:[.,]\d+|[/٫]\d{1,2}(?!\d))?"
+
+# «،» as a decimal mark, the owner's choice of 2026-11-22 on a measurement
+# (C2): one or two digits, «،», one or two digits and no digit after, and not
+# right after «مدل» or «سال», whose number is a year. Such a «،» is written as
+# «/», which the rules above read, so «پراید تا ۱،۵ میلیارد» is 1.5 billion
+# where it was 5, and «مدل ۹۹،۲ میلیارد» is still a year and 2 billion, as is
+# «پژو ۴۰۵،۲ میلیارد», a whole part of three digits. Three digits after «،»
+# are left as they were, a thousands separator or a clause: «۱،۵۰۰ میلیون» is
+# still read as 500 million, the owner having chosen the decimal alone.
+_COMMA_DECIMAL = re.compile(r"(?<!\d)(?<!مدل )(?<!مدل)(?<!سال )(?<!سال)(\d{1,2})،(\d{1,2})(?!\d)")
+
+
+def _comma_decimals(q: str) -> str:
+    """`q`, normalized, with each «،» that is a decimal mark written as «/»."""
+    return _COMMA_DECIMAL.sub(r"\1/\2", q)
 _AMOUNT = re.compile(
     r"(\d+" + _DECIMAL + r")\s*(میلیارد|ملیارد|میلیون|ملیون|م)?(?:\s*و\s*(\d+))?")
 
@@ -856,7 +871,7 @@ class RuleIntentParser:
     """
 
     def parse(self, query: str) -> IntentSpec:
-        q = normalize_fa(query)
+        q = _comma_decimals(normalize_fa(query))
         assumptions: list[str] = []
         consumed: list[str] = []
         # Cues that changed the spec — a use case, a red line, a weight, a
