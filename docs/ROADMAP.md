@@ -635,12 +635,20 @@ names. Durations are for two people part-time.
    every one held: 20 of 20 made ranges are read; 14 of 16 controls as
    before, where letting every whole X through read 6 and the year guard
    alone 11; and of the 1,184 queries the suites hand the parser, the four
-   rows that pinned it changed, each to both ends. Left, each pinned by a
-   test: a model's number that is round or of one digit is read as the lower
-   end («ام وی ام ۵۵۰ تا ۹۰۰ میلیون» from 550 million, «تیگو ۸ تا ۹ میلیارد»
-   from 8 billion); and a lower end that is not round, or is also a year, is
-   held back as before, a ceiling alone («۳۸۰ تا ۴۲۰ میلیون», «۱۴۰۰ تا ۱۸۰۰
-   میلیون», «۲۰۰۰ تا ۲۵۰۰ میلیون», «۷۰ تا ۹۰ میلیارد»).
+   rows that pinned it changed, each to both ends. A model's number that is
+   round or of one digit was read as the lower end («ام وی ام ۵۵۰ تا ۹۰۰
+   میلیون» from 550 million, «تیگو ۸ تا ۹ میلیارد» from 8 billion); measured
+   the same day, the owner's call, it is held back since then where the
+   owner's list gives it to the name right before it (M3): «تیگو» 5, 7, 8;
+   «آریزو» 5, 6; «مزدا» 2, 3, 6; «ام وی ام» 110, 315, 530, 550. The list
+   makes no model a query names; of 7 model numbers made for it 6 are a
+   ceiling alone, and of 7 prices' ranges after a word 6 are read as before.
+   Left, each pinned by a test: a model's number after a name the list does
+   not hold is the lower end («هایما ۷ تا ۹ میلیارد»); a listed number meant
+   as a price is held back («مزدا ۲ تا ۳ میلیارد»); and a lower end that is
+   not round, or is also a year, is held back as before, a ceiling alone
+   («۳۸۰ تا ۴۲۰ میلیون», «۱۴۰۰ تا ۱۸۰۰ میلیون», «۲۰۰۰ تا ۲۵۰۰ میلیون», «۷۰ تا
+   ۹۰ میلیارد»).
 
    A negated floor — built (2026-10-30). «پراید از ۴۰۰ میلیون به بالا نباشه»
    was read as a floor of 400 million with no ceiling: the meaning reversed,
@@ -698,10 +706,12 @@ names. Durations are for two people part-time.
      engine's size too since then, the last two not right after a number,
      which has said the size already (E2, D125): 9 of 10 made engines are a ceiling
      alone, where today read none, and 4 of 6 prices' ranges after such a
-     phrase are read as before. Left: «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد» is a
-     range from 1.6 billion, the model's number before «سی سی» read as a size
-     said, and «دنا توربو ۱.۵ تا ۲ میلیارد» and «تارا توربو ۲ تا ۳ میلیارد» a
-     ceiling alone. «X تا Y» with a
+     phrase are read as before. «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد» was a range
+     from 1.6 billion, the model's number before «سی سی» read as a size said;
+     since M3 the same day, one of the table's model numbers before «سی سی»
+     or «cc» is no size said (item 5, «A range's whole lower end»). Left:
+     «دنا توربو ۱.۵ تا ۲ میلیارد» and «تارا توربو ۲ تا ۳ میلیارد» a ceiling
+     alone. «X تا Y» with a
      whole X, D111's guard's cost, was measured next, the owner's call, and
      is read since the same day where X is no year and, of three or four
      digits, round (W3, D124; item 5, «A range's whole lower end»).
