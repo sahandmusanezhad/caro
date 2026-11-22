@@ -822,15 +822,43 @@ for q_dec, want, why in [
         ("سفید،۵۰۰ میلیون", (None, 500_000_000), "no digit before it"),
         ("پراید زیر ۱،۵۰۰ میلیون", (None, 500_000_000),
          "left: three digits after it are a thousands separator or a clause, not read"),
-        ("۱،۵ تا ۲ میلیارد", (None, 2_000_000_000),
-         "left: a range's lower end with a decimal and no scale word is not read, as with «.»"),
-        ("1.5 تا 2 میلیارد", (None, 2_000_000_000), "left: the same with «.»")]:
+        ("۱،۵ تا ۲ میلیارد", (1_500_000_000, 2_000_000_000),
+         "a range's lower end with a decimal and no scale word, D111's guard letting it through (G3)"),
+        ("1.5 تا 2 میلیارد", (1_500_000_000, 2_000_000_000), "the same with «.»")]:
     sp_dec = P.parse(q_dec)
     check(f"«{q_dec}» → floor {want[0]}, ceiling {want[1]}  ({why})",
           (sp_dec.budget_min_toman, sp_dec.budget_max_toman) == want,
           f"{sp_dec.budget_min_toman} {sp_dec.budget_max_toman}")
 sp_dec = P.parse("مدل ۹۹،۲ میلیارد")
 check("«مدل ۹۹،۲ میلیارد» → the year 1399, read as before", sp_dec.year_min == 1399, str(sp_dec.year_min))
+
+# A range whose lower end has a decimal and no scale word (G3, the owner's choice of 2026-11-22
+# on a measurement): D111's guard left «X تا Y» with neither «بین» nor «از» and no scale word on X
+# as it was, X being perhaps a model's number; a model's number and a year have no decimal part,
+# so an X with one is a range's lower end, unless it stands right after «موتور» or «حجم».
+for q_rng, want, why in [
+        ("پراید ۱.۲ تا ۱.۸ میلیارد", (1_200_000_000, 1_800_000_000), "a range"),
+        ("سمند ۲.۵ تا ۳ میلیارد سفید", (2_500_000_000, 3_000_000_000), "a range, a word after it"),
+        ("یه ماشین خانوادگی ۱/۵ تا ۲ میلیارد میخوام", (1_500_000_000, 2_000_000_000), "with «/»"),
+        ("موتور ۱.۸ تا ۲ میلیارد", (None, 2_000_000_000), "after «موتور» it is an engine's size"),
+        ("حجم ۱.۸ تا ۲ میلیارد", (None, 2_000_000_000), "after «حجم» too"),
+        ("پژو ۲۰۷ موتور ۱.۶ تا ۲ میلیارد", (None, 2_000_000_000), "a model, then the engine"),
+        ("موتور ۱.۶ تا ۵۰۰ میلیون", (None, 500_000_000), "the ten-times bound"),
+        ("پژو ۲۰۶ تا ۴۰۰ میلیون", (None, 400_000_000), "D111's guard: a model's number"),
+        ("پراید ۱.۵ تا ۱ میلیارد", (None, 1_000_000_000), "upside down, as before"),
+        ("۱.۵ تا ۲ میلیارد نباشه", (None, 2_000_000_000), "a negation after it, as before"),
+        ("۵۰۰ تا ۸۰۰ میلیون", (None, 800_000_000), "left: D111's guard, an X with no decimal part"),
+        ("سی سی ۱.۶ تا ۲ میلیارد", (1_600_000_000, 2_000_000_000),
+         "left: an engine written with another word is read as the lower end"),
+        ("توربو ۱.۷ تا ۲ میلیارد", (1_700_000_000, 2_000_000_000), "left: the same after «توربو»")]:
+    sp_rng = P.parse(q_rng)
+    check(f"«{q_rng}» → floor {want[0]}, ceiling {want[1]}  ({why})",
+          (sp_rng.budget_min_toman, sp_rng.budget_max_toman) == want,
+          f"{sp_rng.budget_min_toman} {sp_rng.budget_max_toman}")
+sp_rng = P.parse("حدود ۱.۵ تا ۲ میلیارد")
+check("«حدود ۱.۵ تا ۲ میلیارد» → 1.5 to 2 billion, soft",
+      (sp_rng.budget_min_toman, sp_rng.budget_max_toman, sp_rng.budget_hard) == (1_500_000_000, 2_000_000_000, False),
+      f"{sp_rng.budget_min_toman} {sp_rng.budget_max_toman} {sp_rng.budget_hard}")
 sp_dec = P.parse("موتور ۱،۶ باشه")
 check("«موتور ۱،۶ باشه» → no budget, and «موتور 1/6 باشه» not understood, «،» written as «/» (left)",
       (sp_dec.budget_min_toman, sp_dec.budget_max_toman, sp_dec.unparsed) == (None, None, ("موتور 1/6 باشه",)),
