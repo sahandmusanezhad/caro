@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D124, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D125, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -595,7 +595,7 @@ names. Durations are for two people part-time.
    میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are written the same way — since
    2026-11-22 an X with a decimal part is let through, a model's number and a
    year having none, unless it stands right after «موتور» or «حجم» (G3, the
-   owner's choice on a measurement, D123; item 6) or, since E2 the same day,
+   owner's choice on a measurement, D123; item 6) or, since E2 (D125),
    «پیشرانه», «توربو», «سی سی» or «cc», and so is a whole X that
    is neither, as far as its digits say (W3, D124, «A range's whole lower
    end» below); and a range written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون»,
@@ -696,7 +696,7 @@ names. Durations are for two people part-time.
      تا ۲ میلیارد» from 1.6 and 1.7 billion; measured the same day, the
      owner's call, «پیشرانه», «توربو», «سی سی» and «cc» are words before an
      engine's size too since then, the last two not right after a number,
-     which has said the size already (E2): 9 of 10 made engines are a ceiling
+     which has said the size already (E2, D125): 9 of 10 made engines are a ceiling
      alone, where today read none, and 4 of 6 prices' ranges after such a
      phrase are read as before. Left: «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد» is a
      range from 1.6 billion, the model's number before «سی سی» read as a size
