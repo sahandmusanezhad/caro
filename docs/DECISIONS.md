@@ -9297,3 +9297,73 @@ in a browser among its steps, and `reached` said that no environment is
 named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
 not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
 once the server serves `main`.
+
+## D125 — «پیشرانه», «توربو», «سی سی» and «cc» before a range's lower end mark an engine's size, the last two not right after a number, by the owner's choice on a measurement (E2)
+
+«سی سی ۱.۶ تا ۲ میلیارد» and «توربو ۱.۷ تا ۲ میلیارد» were ranges from 1.6
+and 1.7 billion, an engine's size taken for the lower end. G3 (D123) holds
+back X right after «موتور» or «حجم» alone, and left these two, found by
+hand; W3 (D124) lets a whole X through, so «سی سی ۱۶۰۰ تا ۲ میلیارد» was a
+range from 1.6 billion too. Offered three rounds on 2026-11-22, after D124
+-- this one, the model numbers the table lacks («تیگو ۸», «ام وی ام ۵۵۰»),
+and a city read as its province -- the owner chose this one.
+
+**Measured** the same day, the predictions locked first (sha256
+`5fa71d17…`, 14:42Z), on `main` at `20591ee`, each rule a different
+`_ENGINE_BEFORE`:
+
+    cells                                          today    E1    E2    E3
+    engines' sizes after a word, 10                    0    10     9     7
+    prices' ranges after such a phrase, 6              6     1     4     6
+    the suites' 1,210 queries, changed                       2     2     1
+
+E1 held back X after «پیشرانه», «توربو», «سی سی» (spaced or glued) and «cc»
+in any case, wherever they stood, and read five of the six ranges as a
+ceiling alone: «۱۶۰۰ سی سی ۱.۵ تا ۲ میلیارد» and the like, where the word
+ends a phrase that has said the engine's size already. E2 does not hold X
+back after «سی سی» or «cc» right after a number, and lost two ranges after
+«توربو» («دنا توربو ۱.۵ تا ۲ میلیارد», «تارا توربو ۲ تا ۳ میلیارد») and one
+engine, «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد», where the model's number reads as
+a size said. E3, E2 without «توربو», kept the six ranges and lost the two
+engines after «توربو» too. A miss on the engines is a floor that is no
+price; on the ranges, a floor dropped, a ceiling alone. The suites' queries
+that changed were the two rows that pinned the two engines as ranges. Every
+prediction held. Put to the owner the same day, the owner chose E2.
+
+Merged on 2026-11-22 in #56:
+
+    commit    what it does                                            suites    bare
+    4b0d35a   the four words before an engine's size (E2)              3967    3216
+    7e726e5   the roadmap's engine words                               3967    3216
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `d0720f1`.
+
+**The rule** (`caro.ranking._ENGINE_BEFORE`): «موتور» and «حجم» as before;
+«پیشرانه» and «توربو» as words of their own; «سی سی» (with a space or glued,
+a ZWNJ being a space by then) and «cc» in any case, as words of their own
+and not right after a number and a space. The parser as built reads the
+measurement's 16 phrasings and the suites' 1,210 queries as the measured E2
+did, and its expression is the one measured.
+
+**Tests**, in `tests/test_ranking.py`: the two rows that pinned «سی سی» and
+«توربو» as left read a ceiling alone; rows for the measurement's engines and
+ranges; and two written beside them, «سیسی» glued and «۱۶۰۰سی سی ۱.۵ تا ۲
+میلیارد», the number glued, a range.
+
+**Mutants**, bytecode off, 13, 12 caught. The one that lives reads
+«پیشرانه» or «توربو» at the end of a longer word: no row holds one glued to
+the word before it. D123's mutant that lived, an engine word anywhere before
+the range, is caught now, by «موتور ۱۶۰۰ سی سی ۱.۲ تا ۱.۸ میلیارد».
+
+**Left**, each pinned by a test: «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد» is a range
+from 1.6 billion; «دنا توربو ۱.۵ تا ۲ میلیارد» and «تارا توربو ۲ تا ۳ میلیارد»
+are a ceiling alone; and what D111, D123 and D124 left.
+
+**On `main` after `d0720f1`**, read on 2026-11-22: `ci` and `images`
+passed, the images job's read of both images and its walk of the key routes
+in a browser among its steps, and `reached` said that no environment is
+named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
+not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
+once the server serves `main`.
