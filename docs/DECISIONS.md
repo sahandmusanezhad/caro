@@ -9367,3 +9367,79 @@ in a browser among its steps, and `reached` said that no environment is
 named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
 not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
 once the server serves `main`.
+
+## D126 — A model's number right after a name is no range's lower end, by the owner's list, and «سی سی» after one of the table's model numbers holds it back, by the owner's choice on a measurement (M3)
+
+«تیگو ۸ تا ۹ میلیارد» was a range from 8 billion and «ام وی ام ۵۵۰ تا ۹۰۰
+میلیون» one from 550 million, model numbers taken for the lower end, left by
+W3 (D124): one of one digit, the other round. «پژو ۲۰۷ سی سی ۱.۶ تا ۲
+میلیارد» was a range from 1.6 billion, left by E2 (D125): «سی سی» right after
+a number holds nothing back, the number being an engine's size said, and
+207 is a model's. Offered three rounds on 2026-11-22, after D125 -- this
+one, a city read as its province, and «بالای X» without «به بالا» -- the
+owner chose this one.
+
+**Measured** the same day, the predictions locked first (sha256
+`edcd9827…`, 21:41Z), on `main` at `ff9689b`, each rule an addition to
+`_held_back`:
+
+    cells                                          today    M1    M2    M3
+    model numbers right after a name, 7                0     1     6     6
+    prices' ranges right after a word, 7               7     7     3     6
+    the suites' 1,226 queries, changed                       1     4     3
+
+M1 holds X back after «سی سی» or «cc» that follow one of the table's six
+model numbers, and read «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد» alone. M2 also
+holds back any one-digit X right after a letter, and lost four ranges
+(«تیگو ۴ تا ۵ میلیارد», «سمند ۱ تا ۲ میلیارد», «یه ماشین خانوادگی ۲ تا ۳
+میلیارد میخوام», «مزدا ۲ تا ۳ میلیارد») and the round «ام وی ام ۵۵۰». M3,
+M1 and a list of names and the numbers they take, written for the round,
+lost «هایما ۷ تا ۹ میلیارد», a name the list lacks, and «مزدا ۲ تا ۳
+میلیارد» meant as a price, a number the list gives Mazda. The cells were
+written knowing the list, so M3's counts show what it does and costs on
+them, not how complete it is. The suites' queries that changed were the
+rows that pinned these as left, and under M2 «یه ماشین خانوادگی ۱ تا ۲
+میلیارد میخوام» and «حجم ۱۸۰۰ cc ۲ تا ۳ میلیارد» too. Every prediction held.
+Put to the owner the same day, the owner chose M3, with the list as
+proposed: «تیگو» 5, 7, 8; «آریزو» 5, 6; «مزدا» 2, 3, 6; «ام وی ام» 110,
+315, 530, 550.
+
+Merged on 2026-11-22 in #58:
+
+    commit    what it does                                            suites    bare
+    0355e28   model numbers after a name held back (M3)                3983    3232
+    dc3123b   the roadmap's model numbers after a name                 3983    3232
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `719d7f1`.
+
+**The rule** (`caro.ranking._held_back`): it also holds X back after «سی
+سی» or «cc» that follow one of the table's model numbers and a space
+(`_CC_AFTER_MODEL`), and holds back a whole X that is one of the numbers
+`_NUMBERS_OF` gives the name right before it (`_NAME_BEFORE`). The list is
+the owner's; it makes no model a query names, and holds a number back from
+a range alone. The parser as built reads the measurement's 14 phrasings and
+the suites' 1,226 queries as the measured M3 did.
+
+**Tests**, in `tests/test_ranking.py`: the three rows that pinned these as
+left read a ceiling alone; rows for the measurement's model numbers and
+ranges; and seven written beside them: «ام‌وی‌ام» with ZWNJs, 405 before «سی
+سی», «CC» in capitals, «سیسی» glued, «۱۲۰۶ سی سی» (a number that holds 206 is
+a size said), «مزدا سفید ۳ تا ۵ میلیارد» (a listed number not right after the
+name is a price's) and «تیگو ۷.۵ تا ۹ میلیارد» (nor is a decimal).
+
+**Mutants**, bytecode off, 14, 13 caught. The one that lives reads a listed
+name at the end of a longer word: no row holds one glued to the word before
+it.
+
+**Left**, each pinned by a test: «هایما ۷ تا ۹ میلیارد» is a range from 7
+billion; «مزدا ۲ تا ۳ میلیارد» is a ceiling alone; and what D111, D123, D124
+and D125 left.
+
+**On `main` after `719d7f1`**, read on 2026-11-22: `ci` and `images`
+passed, the images job's read of both images and its walk of the key routes
+in a browser among its steps, and `reached` said that no environment is
+named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
+not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
+once the server serves `main`.

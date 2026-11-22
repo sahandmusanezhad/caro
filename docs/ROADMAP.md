@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D125, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D126, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -639,7 +639,7 @@ names. Durations are for two people part-time.
    round or of one digit was read as the lower end («ام وی ام ۵۵۰ تا ۹۰۰
    میلیون» from 550 million, «تیگو ۸ تا ۹ میلیارد» from 8 billion); measured
    the same day, the owner's call, it is held back since then where the
-   owner's list gives it to the name right before it (M3): «تیگو» 5, 7, 8;
+   owner's list gives it to the name right before it (M3, D126): «تیگو» 5, 7, 8;
    «آریزو» 5, 6; «مزدا» 2, 3, 6; «ام وی ام» 110, 315, 530, 550. The list
    makes no model a query names; of 7 model numbers made for it 6 are a
    ceiling alone, and of 7 prices' ranges after a word 6 are read as before.
@@ -708,7 +708,7 @@ names. Durations are for two people part-time.
      alone, where today read none, and 4 of 6 prices' ranges after such a
      phrase are read as before. «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد» was a range
      from 1.6 billion, the model's number before «سی سی» read as a size said;
-     since M3 the same day, one of the table's model numbers before «سی سی»
+     since M3 (D126) the same day, one of the table's model numbers before «سی سی»
      or «cc» is no size said (item 5, «A range's whole lower end»). Left:
      «دنا توربو ۱.۵ تا ۲ میلیارد» and «تارا توربو ۲ تا ۳ میلیارد» a ceiling
      alone. «X تا Y» with a
