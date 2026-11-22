@@ -9212,3 +9212,88 @@ passed, the images job's read of both images among its steps, and `reached`
 said that no environment is named yet. Nothing was pushed to
 `Tecso-Dev/caro`. The site on Vercel was not read: it runs `b9f9090`, not
 this merge (D119); the rule reaches a site once the server serves `main`.
+
+## D124 — A range's whole lower end passes D111's guard where it is no year, nor right after «سال», and, of three or four digits, a multiple of 50, by the owner's choice on a measurement (W3)
+
+«۵۰۰ تا ۸۰۰ میلیون» was a ceiling of 800 million, the 500 dropped, and so
+was «پراید ۳۰۰ تا ۴۰۰ میلیون». D111's guard, the owner's choice of
+2026-11-18, leaves «X تا Y» with neither «بین» nor «از» and no scale word on X
+as it was, X being perhaps a model's number («پژو ۲۰۶ تا ۴۰۰ میلیون») or a
+year («تیبا ۱۴۰۰ تا ۲ میلیارد»). G3 let a decimal X through (D123); a whole
+one was still held. Offered three rounds on 2026-11-22, after D123 -- this
+one, the engine written «سی سی» or «توربو», and a city read as its province
+-- the owner chose this one.
+
+**Measured** the same day, the predictions locked first (sha256
+`145e1385…`, 12:10Z), on `main` at `70c6050`, each rule `_range` with the
+guard changed and only where it applies, «تا» with no cue and no scale word
+on X:
+
+    cells                                          today    W1    W2    W3
+    ranges with a whole lower end, 20                  0    20    20    20
+    controls, 16                                      16     6    11    14
+    ranges at the new guards' edges, 5                 0     5     2     1
+    the suites' 1,184 queries, changed                       5     4     4
+
+W1 let every whole X through, judged as the X of «الی» is: the table's six
+model numbers and a year after «مدل» refused, and the ten-times bound. It
+read four years as the lower end («پراید سال ۹۵», «تیبا ۱۴۰۰», «پراید ۹۸»,
+«هیوندای ۲۰۱۵») and six model numbers the table lacks («پراید ۱۴۱», «پژو
+۳۰۱», «پژو ۵۰۸», «ام وی ام ۵۵۰», «تیگو ۸», «تندر ۹۰»). W2 also held back a
+year -- two digits from 60 to 99, four from 1300 to 1499 or from 1950 to
+2030 -- and an X right after «سال», and lost five of the model numbers,
+«تندر ۹۰» being read as a year. W3 also held back an X of three or four
+digits that is not a multiple of 50, a price a buyer names being round, and
+lost two: «ام وی ام ۵۵۰ تا ۹۰۰ میلیون», a round number, and «تیگو ۸ تا ۹
+میلیارد», one digit. The edges are true ranges each new guard holds back:
+W2 and W3 hold back «۱۴۰۰ تا ۱۸۰۰ میلیون», «۲۰۰۰ تا ۲۵۰۰ میلیون» and «۷۰ تا
+۹۰ میلیارد» as years, and W3 «۳۸۰ تا ۴۲۰ میلیون» as not round. Each is read
+as today, a ceiling alone. The queries of the suites that changed were the
+four rows that pinned a whole-X range as a ceiling alone, and under W1
+«تیبا ۱۴۰۰ تا ۲ میلیارد» too. Every prediction held. Put to the owner the
+same day, the owner chose W3.
+
+Merged on 2026-11-22 in #54:
+
+    commit    what it does                                            suites    bare
+    5318d21   a whole lower end passes D111's guard (W3)               3951    3200
+    ac93a72   the roadmap's ranges, and the date it was last revised   3951    3200
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `51fafbd`.
+
+**The rule** (`caro.ranking._held_back`): D111's guard holds X back where it
+stands right after «موتور» or «حجم», as before; where a whole X is a year
+(`_a_year`) or stands right after «سال» (`_YEAR_BEFORE`); and where a whole
+X of three or four digits is not a multiple of 50. The rest of `_range`
+judges what it lets through as before. The parser as built reads the
+measurement's 41 phrasings and the suites' 1,184 queries as the measured W3
+did.
+
+**Tests**, in `tests/test_ranking.py`: the four rows that pinned a whole-X
+range as a ceiling alone read both ends. The row that holds the «از» ending
+«شیراز» to be no «از» reads «پراید شیراز ۹۸ تا ۴۰۰ میلیون» now, since with
+300 the range is read either way. Three rows were written beside the
+measurement's: «بنز سال ۵۵ تا ۴۰۰ میلیون», held back after «سال» though its
+two digits are below 60; «پژو ۳۰۰۸ تا ۵ میلیارد», four digits not round; and
+a negation after a whole-X range, a ceiling as before.
+
+**Mutants**, bytecode off, 21, 18 caught. The three that live read «سال»
+anywhere before the range rather than right before it, two-digit years from
+50, and Jalali years from 1400: no row holds «سال» earlier in a query with a
+range after it, a two-digit X from 50 to 59 with no «سال», or a round X from
+1300 to 1399.
+
+**Left**, each pinned by a test: a model's number that is round or of one
+digit is read as the lower end («ام وی ام ۵۵۰ تا ۹۰۰ میلیون» from 550
+million, «تیگو ۸ تا ۹ میلیارد» from 8 billion); a lower end that is not
+round, or is also a year, is held back, a ceiling alone, as before; and what
+D111 and D123 left.
+
+**On `main` after `51fafbd`**, read on 2026-11-22: `ci` and `images`
+passed, the images job's read of both images and its walk of the key routes
+in a browser among its steps, and `reached` said that no environment is
+named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
+not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
+once the server serves `main`.
