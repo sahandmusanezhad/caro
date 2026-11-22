@@ -635,6 +635,32 @@ names. Durations are for two people part-time.
    repository; the forms and counts given here are enough to write them
    again.
 
+6. **Decimal marks — what is read, and what is left.** «۱/۵ میلیارد» and
+   «۱٫۵ میلیارد» (U+066B) are read as 1.5 billion since 2026-10-29, and were
+   read as 5 billion (0 of 20 phrasings each, five amounts and four shapes;
+   «.» and «,» were 20 of 20, and are). The decimal part is one or two digits
+   after «/» or «٫» with no digit after them, inside an amount with a scale
+   word: «۱۱۱/۳۰۰ میلیون» is still 300 million and a date is no amount. «،»
+   is read as a decimal mark since 2026-11-22, the owner's choice on a
+   measurement (C2): one or two digits on each side of it, and not right
+   after «مدل» or «سال», whose number is a year. Measured first, the
+   predictions locked, every one held: 20 of 20 true decimals, where today
+   read none, and 10 of 10 «،» that separate, as today; of the 1,145 queries
+   the suites hand the parser one changed, the row that pinned «۱،۵
+   میلیارد» as 5 billion. The five published corpora hold no «،» between
+   digits, so the listing parser needs no rule for it. Known, and left, each
+   pinned by a test:
+   - «۱۰/۱۲ میلیون», two numbers with a slash between and a scale word, is
+     10.12 million (read as a range it would be 10 to 12).
+   - «،» before three digits is not read: «۱،۵۰۰ میلیون» is 500 million.
+     Reading it as thousands too (C3) read all 20 measured right and one
+     separator of 10 wrong, «رانا پلاس ۹۹،۹۰۰ میلیون» as 99.9 billion; the
+     owner chose the decimal alone.
+   - A range whose lower end has a decimal and no scale word of its own is a
+     ceiling alone, with every decimal mark: «۱،۵ تا ۲ میلیارد» and «1.5 تا 2
+     میلیارد» are a ceiling of 2 billion, the 1.5 dropped. Found by hand on
+     2026-11-22, while «،» was built; not measured.
+
 ## The product gaps
 
 1. **Data.**
@@ -831,16 +857,7 @@ is read once more against the tree, and the last round gets its D-entry.
 Items to add. Each one moves into a list above once it has been measured and
 decided.
 
-- **Decimal separators — «،» still.** «۱/۵ میلیارد» and «۱٫۵ میلیارد» (U+066B)
-  are read as 1.5 billion, and were read as 5 billion (0 of 20 phrasings each,
-  five amounts and four shapes; «.» and «,» were 20 of 20, and are). The
-  decimal part is one or two digits after «/» or «٫» with no digit after
-  them, inside an amount with a scale word: «۱۱۱/۳۰۰ میلیون» is still 300
-  million and a date is no amount. Known, and left, each pinned by a test:
-  «۱۰/۱۲ میلیون», two numbers with a slash between and a scale word, is
-  10.12 million (read as a range it would be 10 to 12); and «۱،۵ میلیارد»
-  is read as before, wrong, on 20 of 20, because «،» is also the clause
-  separator and a thousands separator — a rule for it is the owner's.
+None now.
 
 ## Deliberately not planned
 
