@@ -354,7 +354,13 @@ _RANGE = re.compile(
 # the words before an engine's size and before a year, for D111's guard in
 # `_range`.
 _DECIMAL_PART = re.compile(r"[.,/٫]\d")
-_ENGINE_BEFORE = re.compile(r"(?:موتور|حجم)\s*$")
+# The words before an engine's size: «موتور» and «حجم» (G3), and since the
+# owner's choice of 2026-11-22 on a measurement (E2) «پیشرانه», «توربو», «سی
+# سی» (a ZWNJ is a space by then, and «سیسی» glued) and «cc» in any case --
+# but «سی سی» and «cc» not right after a number: «۱۶۰۰ سی سی» has said the
+# engine's size already, and «۱۶۰۰ سی سی ۱.۵ تا ۲ میلیارد» is a price's range.
+_ENGINE_BEFORE = re.compile(
+    r"(?:موتور|حجم|(?<!\w)(?:پیشرانه|توربو)|(?<!\w)(?<!\d )(?:سی ?سی|cc))\s*$", re.IGNORECASE)
 _YEAR_BEFORE = re.compile(r"سال\s*$")
 
 
@@ -372,11 +378,12 @@ def _held_back(q: str, m) -> bool:
 
     D111 held back every such X, as perhaps a model's number («پژو ۲۰۶ تا ۴۰۰
     میلیون») or a year («تیبا ۱۴۰۰ تا ۲ میلیارد»), so «۵۰۰ تا ۸۰۰ میلیون» was a
-    ceiling of 800 million alone. By the owner's choices of 2026-11-22 on two
+    ceiling of 800 million alone. By the owner's choices of 2026-11-22 on three
     measurements it holds back:
 
-      - an X right after «موتور» or «حجم», an engine's size («موتور ۱.۸ تا ۲
-        میلیارد», «موتور ۱۶۰۰ تا ۲ میلیارد»);
+      - an X right after a word before an engine's size (`_ENGINE_BEFORE`:
+        «موتور ۱.۸ تا ۲ میلیارد», «موتور ۱۶۰۰ تا ۲ میلیارد», «سی سی ۱.۶ تا ۲
+        میلیارد», «توربو ۱.۷ تا ۲ میلیارد»; G3, E2);
       - of a whole X (an X with a decimal part is neither a model's number nor
         a year, G3), a year -- two digits from 60 to 99, four from 1300 to 1499
         or from 1950 to 2030 -- or an X right after «سال»; and an X of three or

@@ -595,7 +595,8 @@ names. Durations are for two people part-time.
    میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are written the same way — since
    2026-11-22 an X with a decimal part is let through, a model's number and a
    year having none, unless it stands right after «موتور» or «حجم» (G3, the
-   owner's choice on a measurement, D123; item 6), and so is a whole X that
+   owner's choice on a measurement, D123; item 6) or, since E2 the same day,
+   «پیشرانه», «توربو», «سی سی» or «cc», and so is a whole X that
    is neither, as far as its digits say (W3, D124, «A range's whole lower
    end» below); and a range written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون»,
    the ceiling of 300 million it was (8 of 8). The predictions held but for
@@ -690,9 +691,17 @@ names. Durations are for two people part-time.
      decimal part, unless right after «موتور» or «حجم». 20 of 20 made ranges
      are read, where today read none; 10 of 10 controls as before, where
      letting every decimal through read 8; and of the suites' 1,171 queries
-     the two rows that pinned it changed. Left: an engine written with
-     another word is read as the lower end, «سی سی ۱.۶ تا ۲ میلیارد» and
-     «توربو ۱.۷ تا ۲ میلیارد» from 1.6 and 1.7 billion. «X تا Y» with a
+     the two rows that pinned it changed. An engine written with another
+     word was read as the lower end, «سی سی ۱.۶ تا ۲ میلیارد» and «توربو ۱.۷
+     تا ۲ میلیارد» from 1.6 and 1.7 billion; measured the same day, the
+     owner's call, «پیشرانه», «توربو», «سی سی» and «cc» are words before an
+     engine's size too since then, the last two not right after a number,
+     which has said the size already (E2): 9 of 10 made engines are a ceiling
+     alone, where today read none, and 4 of 6 prices' ranges after such a
+     phrase are read as before. Left: «پژو ۲۰۷ سی سی ۱.۶ تا ۲ میلیارد» is a
+     range from 1.6 billion, the model's number before «سی سی» read as a size
+     said, and «دنا توربو ۱.۵ تا ۲ میلیارد» and «تارا توربو ۲ تا ۳ میلیارد» a
+     ceiling alone. «X تا Y» with a
      whole X, D111's guard's cost, was measured next, the owner's call, and
      is read since the same day where X is no year and, of three or four
      digits, round (W3, D124; item 5, «A range's whole lower end»).
