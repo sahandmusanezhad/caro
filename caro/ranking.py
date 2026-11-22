@@ -348,6 +348,12 @@ _RANGE = re.compile(
     + "(" + _MONEY.pattern + ")" + _UNIT_TAIL)
 
 
+# A lower end's decimal part («1.5», «۱/۵», «۱٫۵»; «،» is «/» by then), and
+# the words before an engine's size, for D111's guard in `_range`.
+_DECIMAL_PART = re.compile(r"[.,/٫]\d")
+_ENGINE_BEFORE = re.compile(r"(?:موتور|حجم)\s*$")
+
+
 def _range(q: str):
     """(match, floor, ceiling) of the first range in `q`, or None."""
     for m in _RANGE.finditer(q):
@@ -355,7 +361,14 @@ def _range(q: str):
         low, unit, sep, high = m.group(3), m.group(4), m.group(5), m.group(6)
         if sep == "و" and m.group(1) is None:
             continue
-        if not cue and sep == "تا" and not unit:
+        # D111's guard: «X تا Y» with neither «بین» nor «از» and no scale word on X
+        # is left as it was, X being perhaps a model's number («پژو ۲۰۶ تا ۴۰۰
+        # میلیون»). A model's number and a year have no decimal part, so an X with
+        # one is let through, «1.5 تا 2 میلیارد» a range (the owner's choice of
+        # 2026-11-22 on a measurement, G3), unless it stands right after «موتور»
+        # or «حجم», where it is an engine's size («موتور ۱.۸ تا ۲ میلیارد»).
+        if not cue and sep == "تا" and not unit and (
+                not _DECIMAL_PART.search(low) or _ENGINE_BEFORE.search(q[:m.start(3)])):
             continue
         if not cue and sep in ("-", "–") and " " in (q[m.start(5) - 1], q[m.end(5)]):
             continue
