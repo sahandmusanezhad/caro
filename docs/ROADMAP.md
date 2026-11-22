@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D123, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D124, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -596,9 +596,10 @@ names. Durations are for two people part-time.
    2026-11-22 an X with a decimal part is let through, a model's number and a
    year having none, unless it stands right after «موتور» or «حجم» (G3, the
    owner's choice on a measurement, D123; item 6), and so is a whole X that
-   is neither, as far as its digits say (W3, «A range's whole lower end»
-   below); and a range written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون», the ceiling of 300 million it
-   was (8 of 8). The predictions held but for two: the controls' count, and
+   is neither, as far as its digits say (W3, D124, «A range's whole lower
+   end» below); and a range written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون»,
+   the ceiling of 300 million it was (8 of 8). The predictions held but for
+   two: the controls' count, and
    the upside-down range for the first candidate, which read «بین ۱.۵ تا ۱
    میلیارد» as a floor of 1.5 million on 4 phrasings. The ten-times bound was
    added before the owner was asked, and the candidate put to them holds it.
@@ -620,7 +621,7 @@ names. Durations are for two people part-time.
    ۴۰۰ میلیون» is a range from 95 million); and a figure glued to a word.
 
    A range's whole lower end — built (2026-11-22, the owner's call on a
-   measurement). With neither «بین» nor «از» and no scale word, «۵۰۰ تا ۸۰۰
+   measurement; D124). With neither «بین» nor «از» and no scale word, «۵۰۰ تا ۸۰۰
    میلیون» was a ceiling of 800 million, the 500 dropped: D111's guard held
    back every whole X, and read 0 of 20 made ranges (five pairs, four
    shapes). It holds back now a whole X that may be a year -- two digits
@@ -694,7 +695,7 @@ names. Durations are for two people part-time.
      «توربو ۱.۷ تا ۲ میلیارد» from 1.6 and 1.7 billion. «X تا Y» with a
      whole X, D111's guard's cost, was measured next, the owner's call, and
      is read since the same day where X is no year and, of three or four
-     digits, round (W3; item 5, «A range's whole lower end»).
+     digits, round (W3, D124; item 5, «A range's whole lower end»).
 
 ## The product gaps
 
