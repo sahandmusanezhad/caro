@@ -592,7 +592,10 @@ names. Durations are for two people part-time.
    billion, so that the upper is above it and no more than ten times it. Left
    as they were, by the owner's choice on the measurement: the 16 «X تا Y»
    with neither «بین» nor «از» and no scale word on X, since «پژو ۲۰۶ تا ۴۰۰
-   میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are written the same way; and a range
+   میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are written the same way — since
+   2026-11-22 an X with a decimal part is let through, a model's number and a
+   year having none, unless it stands right after «موتور» or «حجم» (G3, the
+   owner's choice on a measurement; item 6); and a range
    written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون», the ceiling of 300 million it
    was (8 of 8). The predictions held but for two: the controls' count, and
    the upside-down range for the first candidate, which read «بین ۱.۵ تا ۱
@@ -656,10 +659,19 @@ names. Durations are for two people part-time.
      Reading it as thousands too (C3) read all 20 measured right and one
      separator of 10 wrong, «رانا پلاس ۹۹،۹۰۰ میلیون» as 99.9 billion; the
      owner chose the decimal alone.
-   - A range whose lower end has a decimal and no scale word of its own is a
-     ceiling alone, with every decimal mark: «۱،۵ تا ۲ میلیارد» and «1.5 تا 2
-     میلیارد» are a ceiling of 2 billion, the 1.5 dropped. Found by hand on
-     2026-11-22, while «،» was built; not measured.
+   - A range whose lower end has a decimal and no scale word of its own was a
+     ceiling alone, with every decimal mark: «1.5 تا 2 میلیارد» was a ceiling
+     of 2 billion, the 1.5 dropped. Found by hand on 2026-11-22, while «،» was
+     built, it was measured the same day, the predictions locked first, every
+     one held, and the owner chose G3: D111's guard lets through an X with a
+     decimal part, unless right after «موتور» or «حجم». 20 of 20 made ranges
+     are read, where today read none; 10 of 10 controls as before, where
+     letting every decimal through read 8; and of the suites' 1,171 queries
+     the two rows that pinned it changed. Left: an engine written with
+     another word is read as the lower end, «سی سی ۱.۶ تا ۲ میلیارد» and
+     «توربو ۱.۷ تا ۲ میلیارد» from 1.6 and 1.7 billion; and «X تا Y» with a
+     whole X is D111's guard's cost, as it was («۵۰۰ تا ۸۰۰ میلیون» is a
+     ceiling of 800 million).
 
 ## The product gaps
 
