@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D121, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D122, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -642,7 +642,7 @@ names. Durations are for two people part-time.
    after «/» or «٫» with no digit after them, inside an amount with a scale
    word: «۱۱۱/۳۰۰ میلیون» is still 300 million and a date is no amount. «،»
    is read as a decimal mark since 2026-11-22, the owner's choice on a
-   measurement (C2): one or two digits on each side of it, and not right
+   measurement (C2, D122): one or two digits on each side of it, and not right
    after «مدل» or «سال», whose number is a year. Measured first, the
    predictions locked, every one held: 20 of 20 true decimals, where today
    read none, and 10 of 10 «،» that separate, as today; of the 1,145 queries
