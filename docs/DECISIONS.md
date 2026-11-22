@@ -9073,3 +9073,79 @@ and `images` passed on each, the images job's read of both images among its
 steps, and `reached` said that no environment is named yet. Nothing was
 pushed to `Tecso-Dev/caro`. The site on Vercel was not read: it runs
 `b9f9090`, not these merges (D119).
+
+## D122 — «،» between one or two digits each side is a decimal mark, the owner's choice on a measurement (C2)
+
+«پراید تا ۱،۵ میلیارد» was a ceiling of 5 billion: «،» is also the clause
+separator and a thousands separator, so the budget clause stopped at it and
+the amount after it was read alone. D85 left it as the owner's rule about
+Persian, and the roadmap's one Request held it.
+
+**Measured** on 2026-11-21, while the owner was away and had asked not to be
+asked, the predictions locked first (sha256 `e4c82c2b…`, 16:53Z), in a
+worktree of `main` with the network off. Each rule was a step after
+`normalize_fa` that writes as «/» a «،» it takes for a decimal (D85's rules
+read «/») and drops one it takes for thousands:
+
+    cells                                      today    C1    C2    C3
+    true decimals, 20 (five amounts, four shapes)  0    20    20    20
+    thousands, 20                                  0     0     0    20
+    «،» that separates, 10                        10     6    10     9
+    the suites' 1,145 queries, changed                   1     1     1
+
+C1 took any whole part and read «پژو ۴۰۵،۲», «مدل ۱۴۰۰،۲», «سال ۹۹،۳» and
+«مدل ۹۹،۲ میلیارد» as hundreds or thousands of billions. C2 takes one or two
+digits each side, not right after «مدل» or «سال». C3 adds one or two digits,
+«،» and three as thousands, and read «رانا پلاس ۹۹،۹۰۰ میلیون», a year with
+no word before it, as 99.9 billion. The one query of the suites each changed
+was the row that pinned «پراید زیر ۱،۵ میلیارد» as 5 billion. Every
+prediction held; the script's own count of years compared them with the
+years as typed, not as the parser gives them (1398 for 98), and printed 1
+of 4 for every rule alike, the rules reading each year as today does. Read
+after it: the five published corpora, 792 listings, hold no «،» between
+digits, so the question is the search's alone. Put to the owner on
+2026-11-22, the owner chose C2.
+
+Merged on 2026-11-22 in #50:
+
+    commit    what it does                                            suites    bare
+    e333e32   «،» between one or two digits each side, a decimal       3911    3160
+    e59d855   the roadmap: decimal marks, out of the Requests          3911    3160
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `f16635e`.
+
+**The rule** (`caro.ranking._comma_decimals`), after `normalize_fa` in the
+parser: a «،» with one or two digits before it and no digit before those,
+and one or two after it and no digit after, not right after «مدل» or «سال»,
+is written as «/». The amount, the budget clause, the floor, the range and
+«م» read it as they read «/». Run against the measurement, the parser as
+built reads its 50 phrasings as C2 did and changes none of the suites'
+1,145 queries but that row.
+
+**Tried by hand first**, outside the sets: a range of two decimals, a floor
+by «از» and by «حداقل», «حدود», «یا کمتر», «قیمت», «نهایتا» and «م» are read;
+«موتور ۱،۶» and «کارکرد زیر ۵۰،۵ هزار» set nothing, as before, the clause
+not understood now written with «/». Found the same way, and left as it is
+with «.»: a range whose lower end has a decimal and no scale word of its
+own, «۱،۵ تا ۲ میلیارد» and «1.5 تا 2 میلیارد», is a ceiling of 2 billion
+alone. It is not measured.
+
+**Mutants**, bytecode off, 12, 10 caught. Two live, alike: three digits
+after «،», and no guard on the digit after. Each writes a «،» before three
+digits as «/», which D85's rules read as no decimal, so every budget reads
+alike; what differs is the clause the budget is read from, and with it
+whether «عدد قیمت را سقف بودجه فرض کردیم» is printed, which no row reads.
+Two rows were written after the tests and before the run: «سال۹۹،۳ میلیارد»
+and «پراید زیر ۱۲،۵ میلیارد».
+
+**Left**, each pinned by a test: «،» before three digits is not read
+(«۱،۵۰۰ میلیون» is 500 million), the owner having chosen the decimal alone;
+the range above; and «موتور ۱،۶ باشه», not understood, shown with «/».
+
+**On `main` after `f16635e`**, read on 2026-11-22: `ci` and `images`
+passed, the images job's read of both images among its steps, and `reached`
+said that no environment is named yet. Nothing was pushed to
+`Tecso-Dev/caro`. The site on Vercel was not read: it runs `b9f9090`, not
+this merge (D119); the rule reaches a site once the server serves `main`.
