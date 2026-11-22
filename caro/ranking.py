@@ -328,7 +328,9 @@ def _floor_bare(q: str):
 #   - «X تا Y» with neither «بین» nor «از», where X has no scale word, is no
 #     range: «پژو ۲۰۶ تا ۴۰۰ میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are a model or
 #     a year and a ceiling. These are the 16 of the 136 left as they were;
-#     «۳۰۰ میلیون تا ۴۰۰ میلیون», with a scale word, is a range;
+#     «۳۰۰ میلیون تا ۴۰۰ میلیون», with a scale word, is a range. Since
+#     2026-11-22 the guard holds X back only where it may be a model's number,
+#     a year or an engine's size (`_held_back`, below);
 #   - a figure right after «مدل» is a year, not the lower end.
 #
 # Found by hand after the measurement, which holds no such phrasing, and read
@@ -349,9 +351,51 @@ _RANGE = re.compile(
 
 
 # A lower end's decimal part («1.5», «۱/۵», «۱٫۵»; «،» is «/» by then), and
-# the words before an engine's size, for D111's guard in `_range`.
+# the words before an engine's size and before a year, for D111's guard in
+# `_range`.
 _DECIMAL_PART = re.compile(r"[.,/٫]\d")
 _ENGINE_BEFORE = re.compile(r"(?:موتور|حجم)\s*$")
+_YEAR_BEFORE = re.compile(r"سال\s*$")
+
+
+def _a_year(n: str) -> bool:
+    """Is the whole number `n` written as a year: two digits from 60 to 99, or
+    four from 1300 to 1499 or from 1950 to 2030?"""
+    v = int(n)
+    return ((len(n) == 2 and 60 <= v <= 99)
+            or (len(n) == 4 and (1300 <= v <= 1499 or 1950 <= v <= 2030)))
+
+
+def _held_back(q: str, m) -> bool:
+    """Does D111's guard hold back the X of «X تا Y» that `m` matched, with
+    neither «بین» nor «از» and no scale word on X, from being a lower end?
+
+    D111 held back every such X, as perhaps a model's number («پژو ۲۰۶ تا ۴۰۰
+    میلیون») or a year («تیبا ۱۴۰۰ تا ۲ میلیارد»), so «۵۰۰ تا ۸۰۰ میلیون» was a
+    ceiling of 800 million alone. By the owner's choices of 2026-11-22 on two
+    measurements it holds back:
+
+      - an X right after «موتور» or «حجم», an engine's size («موتور ۱.۸ تا ۲
+        میلیارد», «موتور ۱۶۰۰ تا ۲ میلیارد»);
+      - of a whole X (an X with a decimal part is neither a model's number nor
+        a year, G3), a year -- two digits from 60 to 99, four from 1300 to 1499
+        or from 1950 to 2030 -- or an X right after «سال»; and an X of three or
+        four digits that is not a multiple of 50, a price a buyer names being
+        round and a model's number seldom so («پراید ۱۴۱», «پژو ۳۰۱», «پژو ۵۰۸»)
+        (W3).
+
+    What it lets through, the rest of `_range` judges as it judges the X of
+    «الی»: the table's model numbers and a year after «مدل» are refused, and
+    the upper end is no more than ten times the lower.
+    """
+    before = q[:m.start(3)]
+    if _ENGINE_BEFORE.search(before):
+        return True
+    low = m.group(3)
+    if _DECIMAL_PART.search(low):
+        return False
+    return (_a_year(low) or _YEAR_BEFORE.search(before) is not None
+            or (len(low) in (3, 4) and int(low) % 50 != 0))
 
 
 def _range(q: str):
@@ -361,14 +405,9 @@ def _range(q: str):
         low, unit, sep, high = m.group(3), m.group(4), m.group(5), m.group(6)
         if sep == "و" and m.group(1) is None:
             continue
-        # D111's guard: «X تا Y» with neither «بین» nor «از» and no scale word on X
-        # is left as it was, X being perhaps a model's number («پژو ۲۰۶ تا ۴۰۰
-        # میلیون»). A model's number and a year have no decimal part, so an X with
-        # one is let through, «1.5 تا 2 میلیارد» a range (the owner's choice of
-        # 2026-11-22 on a measurement, G3), unless it stands right after «موتور»
-        # or «حجم», where it is an engine's size («موتور ۱.۸ تا ۲ میلیارد»).
-        if not cue and sep == "تا" and not unit and (
-                not _DECIMAL_PART.search(low) or _ENGINE_BEFORE.search(q[:m.start(3)])):
+        # D111's guard, for «X تا Y» with neither «بین» nor «از» and no scale
+        # word on X: see `_held_back`.
+        if not cue and sep == "تا" and not unit and _held_back(q, m):
             continue
         if not cue and sep in ("-", "–") and " " in (q[m.start(5) - 1], q[m.end(5)]):
             continue

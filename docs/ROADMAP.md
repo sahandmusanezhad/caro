@@ -7,7 +7,7 @@ the predictions are written first, the measurement is run, the owner decides
 on it, and the change goes in, in its own commit
 ([WORKING_AGREEMENT](WORKING_AGREEMENT.md)).
 
-Last revised 2026-11-02.
+Last revised 2026-11-22.
 
 Who does what ([WORKING_AGREEMENT](WORKING_AGREEMENT.md), «Who works on it»):
 
@@ -595,8 +595,9 @@ names. Durations are for two people part-time.
    میلیون» and «تیبا ۱۴۰۰ تا ۲ میلیارد» are written the same way — since
    2026-11-22 an X with a decimal part is let through, a model's number and a
    year having none, unless it stands right after «موتور» or «حجم» (G3, the
-   owner's choice on a measurement, D123; item 6); and a range
-   written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون», the ceiling of 300 million it
+   owner's choice on a measurement, D123; item 6), and so is a whole X that
+   is neither, as far as its digits say (W3, «A range's whole lower end»
+   below); and a range written upside down, «بین ۴۰۰ تا ۳۰۰ میلیون», the ceiling of 300 million it
    was (8 of 8). The predictions held but for two: the controls' count, and
    the upside-down range for the first candidate, which read «بین ۱.۵ تا ۱
    میلیارد» as a floor of 1.5 million on 4 phrasings. The ten-times bound was
@@ -617,6 +618,27 @@ names. Durations are for two people part-time.
    میلیون»; a year against a price with a bare dash («تیبا ۱۴۰۰-۲ میلیارد» is
    a range from 1.4 billion); «از» and a figure with no «مدل» («تیبا از ۹۵ تا
    ۴۰۰ میلیون» is a range from 95 million); and a figure glued to a word.
+
+   A range's whole lower end — built (2026-11-22, the owner's call on a
+   measurement). With neither «بین» nor «از» and no scale word, «۵۰۰ تا ۸۰۰
+   میلیون» was a ceiling of 800 million, the 500 dropped: D111's guard held
+   back every whole X, and read 0 of 20 made ranges (five pairs, four
+   shapes). It holds back now a whole X that may be a year -- two digits
+   from 60 to 99, four from 1300 to 1499 or from 1950 to 2030, or one right
+   after «سال» -- or a model's number: of three or four digits, one that is
+   not a multiple of 50, a price a buyer names being round («پراید ۱۴۱»,
+   «پژو ۳۰۱»). What it lets through, the range rule judges as it judges the
+   X of «الی»: the table's model numbers and a year after «مدل» are refused,
+   and the ten-times bound holds. Measured first, the predictions locked,
+   every one held: 20 of 20 made ranges are read; 14 of 16 controls as
+   before, where letting every whole X through read 6 and the year guard
+   alone 11; and of the 1,184 queries the suites hand the parser, the four
+   rows that pinned it changed, each to both ends. Left, each pinned by a
+   test: a model's number that is round or of one digit is read as the lower
+   end («ام وی ام ۵۵۰ تا ۹۰۰ میلیون» from 550 million, «تیگو ۸ تا ۹ میلیارد»
+   from 8 billion); and a lower end that is not round, or is also a year, is
+   held back as before, a ceiling alone («۳۸۰ تا ۴۲۰ میلیون», «۱۴۰۰ تا ۱۸۰۰
+   میلیون», «۲۰۰۰ تا ۲۵۰۰ میلیون», «۷۰ تا ۹۰ میلیارد»).
 
    A negated floor — built (2026-10-30). «پراید از ۴۰۰ میلیون به بالا نباشه»
    was read as a floor of 400 million with no ceiling: the meaning reversed,
@@ -669,9 +691,10 @@ names. Durations are for two people part-time.
      letting every decimal through read 8; and of the suites' 1,171 queries
      the two rows that pinned it changed. Left: an engine written with
      another word is read as the lower end, «سی سی ۱.۶ تا ۲ میلیارد» and
-     «توربو ۱.۷ تا ۲ میلیارد» from 1.6 and 1.7 billion; and «X تا Y» with a
-     whole X is D111's guard's cost, as it was («۵۰۰ تا ۸۰۰ میلیون» is a
-     ceiling of 800 million).
+     «توربو ۱.۷ تا ۲ میلیارد» from 1.6 and 1.7 billion. «X تا Y» with a
+     whole X, D111's guard's cost, was measured next, the owner's call, and
+     is read since the same day where X is no year and, of three or four
+     digits, round (W3; item 5, «A range's whole lower end»).
 
 ## The product gaps
 
