@@ -158,22 +158,26 @@ How the work is done, and the rules every session keeps, are in
 
 ### Try it
 
-Four requests, asked of this commit's API on run17, on 2026-11-02 and again on 2026-11-18, with the same answers:
+Five requests, asked of this commit's API on run17 on 2026-11-25. The first four were asked on 2026-11-02 and again on 2026-11-18 too, with the same answers but for «دنا در مشهد», whose city was not read then:
 
 ```
 دنا از ۳ میلیارد به بالا          a budget floor of 3 billion and no ceiling:
                                   17 of run17's 40 Dena listings meet it, and
                                   2 are held apart because they carry no price
 
-دنا در مشهد                       a city is not read, so it is not used; the
-                                  page lists «در مشهد» under «نفهمیدیم» and
-                                  shows the 40 Dena listings
+دنا در مشهد                       Mashhad, a province's capital, is read as
+                                  Razavi Khorasan, and the page says so: 2
+                                  of the 40 Dena listings are there
 
 دنا زیر ۱۰۰ هزار کیلومتر          the model Dena and an odometer cap of
                                   100,000 km: 33 of the 40 meet it
 
 کوییک در تهران                    the province is a constraint like the
                                   budget: 9 of run17's 36 Quiks are in Tehran
+
+دنا در کاشان                      a city that is no capital is not read, so
+                                  it is not used; the page lists «در کاشان»
+                                  under «نفهمیدیم» and shows the 40 listings
 ```
 
 The search page's panel is «آنچه از جمله‌ی تو فهمیدیم»: the model, the
@@ -456,19 +460,24 @@ floor (an amount of money and «به بالا», with «از» or «بالای»
 none, unless a ceiling's cue such as «تا» stands right before it; or «حداقل»,
 with «قیمت» if it is written, and an amount; or an amount and «و بالاتر», «و
 بیشتر» or «یا بیشتر»), both ends of a range («بین X تا Y», «از X تا Y», «بین X
-و Y», «X الی Y», «X-Y», and «X تا Y» where X has its scale word), the minimum
-year, an odometer cap in five shapes, the province where the car should be,
-the use, the risk profile and the red lines. It lists under «نفهمیدیم» what it
-does not read: a city after a cue it knows («در مشهد»), a figure with no scale
-word, a phrase it cannot place.
+و Y», «X الی Y», «X-Y», and «X تا Y» where X has its scale word, is a decimal,
+or is a whole number taken for no year, no model's number and no engine's
+size: «۵۰۰ تا ۸۰۰ میلیون», D123 to D127), the minimum year, an odometer cap in
+five shapes, the province where the car should be (by its name, or by its
+capital's, with the assumption printed: «در مشهد» is Razavi Khorasan), the
+use, the risk profile and the red lines. It lists under «نفهمیدیم» what it
+does not read: another city after a cue it knows («در کاشان»), a figure with
+no scale word, a phrase it cannot place.
 
 What it does not read yet, each pinned by a test so that it changes on
-purpose, is in the roadmap with the numbers measured for it: a city, «بیشتر
-از», «بیش از», «بالاتر از» and «حداقل بودجه» as a floor, the lower end of «X تا
-Y» with no «بین» or «از» and no scale word on X, a range written upside down,
-a negated floor, and «بالای X» without «به بالا», which is read as a ceiling by
-the owner's choice. No log of what buyers type exists, so what the parser does
-is measured on made phrasings, and what buyers write is not.
+purpose, is in the roadmap with the numbers measured for it: a city that is no
+province's capital, «بیشتر از», «بیش از», «بالاتر از» and «حداقل بودجه» as a
+floor, the lower end of «X تا Y» with no «بین» or «از» and no scale word on X
+where X may be a year, a model's number or an engine's size («۱۴۰۰ تا ۱۸۰۰
+میلیون», «۳۸۰ تا ۴۲۰ میلیون», «تیگو ۸ تا ۹ میلیارد»), a range written upside
+down, a negated floor, and «بالای X» without «به بالا», which is read as a
+ceiling by the owner's choice. No log of what buyers type exists, so what the
+parser does is measured on made phrasings, and what buyers write is not.
 
 ---
 
@@ -599,7 +608,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 3994 assertions, no API key, no network
+python3 tests/run_all.py            # 4037 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -613,10 +622,10 @@ dependency of `caro/`.** Three of the nineteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 3243 assertions across 16 of 19 suites
+python3 tests/run_all.py            # 3286 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 3994 across all nineteen
+python3 tests/run_all.py            # 4037 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -827,7 +836,7 @@ until the owner deletes it, its open issues made here first
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           3994 assertions across nineteen suites
+tests/           4037 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)

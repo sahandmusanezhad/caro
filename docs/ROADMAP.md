@@ -7,7 +7,7 @@ the predictions are written first, the measurement is run, the owner decides
 on it, and the change goes in, in its own commit
 ([WORKING_AGREEMENT](WORKING_AGREEMENT.md)).
 
-Last revised 2026-11-22.
+Last revised 2026-11-25.
 
 Who does what ([WORKING_AGREEMENT](WORKING_AGREEMENT.md), «Who works on it»):
 
@@ -301,38 +301,55 @@ names. Durations are for two people part-time.
    decided before it is written.
 
 3. **Reading the place a buyer writes — what is not covered** (D82). The
-   reader takes a full province name, with a locative («در», «توی», «ساکن»,
-   «استان») or without, and declines what is not a place the car should be
-   in: a negation before or after the name («غیر از تهران», «تهران
-   نباشه»), a nearness («نزدیک», «اطراف»), a plate («پلاک»), «خراسان» or
-   «آذربایجان» alone, which begin several names, and «خلیج فارس», which
-   holds one. What it declines stays under «نفهمیدیم». It was built and
-   checked on constructed phrasings: no log of what buyers write exists, so
-   how they write a place is not measured. Known, and left:
+   reader takes a full province name or a province's capital (below), with
+   a locative («در», «توی», «ساکن», «استان») or without, and declines what
+   is not a place the car should be in: a negation before or after the name
+   («غیر از تهران», «تهران نباشه»), a nearness («نزدیک», «اطراف»), a plate
+   («پلاک»), «خراسان» or «آذربایجان» alone, which begin several names, and
+   «خلیج فارس», which holds one. What it declines stays under «نفهمیدیم».
+   It was built and checked on constructed phrasings: no log of what buyers
+   write exists, so how they write a place is not measured. Known, and left:
    - A province's name inside a longer name that is not a place is read as
      the province, with the assumption shown: «کرمان موتور», «یزد خودرو»,
-     «گیلان خودرو». «خلیجفارس» with no space is not matched at all, and
-     «خلیجِ فارس» typed with a kasra is read as the province, since a
-     diacritic is not stripped.
-   - A city (مشهد, شیراز, کرج) is not read (D74). In a clause that names a
-     model it was dropped without a word, because such a clause is taken
-     as understood whole: of 350 phrasings of 35 cities, 10 were listed
-     under «نفهمیدیم» and 340 dropped (D83). A cue the reader already
-     knows («در», «توی», «ساکن», «اطراف», «نزدیک به», «غیر از», «پلاک» …) is
-     now listed with the one or two words after it, past «شهر» and
-     «استان»: «در مشهد», «ساکن در شهر بندر عباس», and «پلاک ملی در مشهد» as
-     two, «پلاک ملی» and «در مشهد». So is one after a budget's amount, which
-     the budget clause used to take whole (item 4). Nothing is read from it;
-     the page says the city was seen and not used, and the province panel
-     and the ranked path are as they were. On the prototype it shows the
-     city in 220 of the 350 phrasings. Known, and left, each pinned by a
-     test so that it changes on purpose: a city no cue stands before
-     («پراید مشهد»); a second one after « و » or «یا», where «یا» is itself
-     taken as the second word of «در مشهد یا»; and «نه» and «بدون», which
-     the reader knows and this does not, so «پراید نه مشهد» is still
-     dropped. And any word after a cue that is no place is listed all the
-     same, unless it is one of the three the stoplist holds: «حد», «حال»,
-     «بودجه».
+     «گیلان خودرو»; so is a capital's since 2026-11-25. «خلیجفارس» with no
+     space is not matched at all, and «خلیجِ فارس» typed with a kasra is read
+     as the province, since a diacritic is not stripped.
+   - A province's capital is read as its province since 2026-11-25, the
+     owner's choice on a measurement (P1): the eighteen whose name is not
+     their province's, `OTHER_CAPITALS`, the table the listing parser reads
+     (D93), read wherever a province's name is read and declined wherever
+     one is. The page always says which province it took a capital for
+     («مشهد» را استان خراسان رضوی گرفتیم), after a locative too, where a
+     province's own name says nothing. Measured before it was built, the
+     predictions locked, every one held: after «در», 20 of their 20
+     spellings are read; with nothing before them, 6 of 6; two joined by
+     «یا», 2 of 2; after a negation, a nearness or a plate, 6 of 6 are
+     declined; and none of 5 words that only hold a capital's letters
+     («مشهدی», «درشت») is read. Of the 1,253 queries the suites handed the
+     parser, 96 name a capital, and the provinces changed on 69 of them and
+     on no other. Known, and left, pinned by a test: a distance from a
+     capital is read as its province («پراید تا ۵۰ کیلومتر فاصله از کرج» as
+     Alborz), as a distance from a province's own name is.
+   - Any other city is not read (D74): «کاشان», «دزفول», «بندر انزلی». In a
+     clause that names a model a city was dropped without a word, because
+     such a clause is taken as understood whole: of 350 phrasings of 35
+     cities, 10 were listed under «نفهمیدیم» and 340 dropped (D83). A cue
+     the reader already knows («در», «توی», «ساکن», «اطراف», «نزدیک به»,
+     «غیر از», «پلاک» …) is now listed with the one or two words after it,
+     past «شهر» and «استان»: «در کاشان», «ساکن در شهر بندر انزلی», and
+     «پلاک ملی در کاشان» as two, «پلاک ملی» and «در کاشان». So is one after
+     a budget's amount, which the budget clause used to take whole (item 4).
+     Nothing is read from it; the page says the city was seen and not used,
+     and the province panel and the ranked path are as they were. On the
+     prototype it showed the city in 220 of the 350 phrasings, before a
+     capital was read. Known, and left, each pinned by a test so that it
+     changes on purpose: a city no cue stands before («پراید کاشان»); a
+     second one after « و » or «یا», where «یا» is itself taken as the
+     second word of «در کاشان یا»; and «نه» and «بدون», which the reader
+     knows and this does not, so «پراید نه کاشان» is still dropped, where
+     «پراید نه مشهد» lists «نه مشهد». And any word after a cue that is no
+     place is listed all the same, unless it is one of the three the
+     stoplist holds: «حد», «حال», «بودجه».
    - «تهرانپارس», «پارس‌آباد» and «شاهین‌شهر» add no model since 2026-11-19,
      when a model's name became a word of its own (item 4, D112), and
      «شهریار» sets no commute use since 2026-11-20, when a cue became one too
@@ -367,11 +384,12 @@ names. Durations are for two people part-time.
      stands after the amount is now read as one more clause by the rule of
      item 3, for a cue and no more, cut the way the rest of the query is
      (a year clause taken out, what was acted on blanked). Of 35 cities
-     written after a budget, 35 are listed; none of the 171 queries the
+     written after a budget, 35 are listed (a capital is read as its province
+     instead since 2026-11-25, item 3); none of the 171 queries the
      suites and the measurement hold changes; a colour, a filler, a trim
      or a unit word after the amount lists nothing, as before. Known, and
      left, each pinned by a test so that it changes on purpose: what stands
-     between the cue and the amount («قیمت در مشهد ۳۰۰ میلیون») is still
+     between the cue and the amount («قیمت در کاشان ۳۰۰ میلیون») is still
      taken with the clause and dropped; and a second budget in the same
      clause lends its «تا» to the place before it, as «یا» does.
    - A model's number inside an amount or a year added a model nobody wrote:
