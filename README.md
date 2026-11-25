@@ -158,22 +158,26 @@ How the work is done, and the rules every session keeps, are in
 
 ### Try it
 
-Four requests, asked of this commit's API on run17, on 2026-11-02 and again on 2026-11-18, with the same answers:
+Five requests, asked of this commit's API on run17 on 2026-11-25. The first four were asked on 2026-11-02 and again on 2026-11-18 too, with the same answers but for «دنا در مشهد», whose city was not read then:
 
 ```
 دنا از ۳ میلیارد به بالا          a budget floor of 3 billion and no ceiling:
                                   17 of run17's 40 Dena listings meet it, and
                                   2 are held apart because they carry no price
 
-دنا در مشهد                       a city is not read, so it is not used; the
-                                  page lists «در مشهد» under «نفهمیدیم» and
-                                  shows the 40 Dena listings
+دنا در مشهد                       Mashhad, a province's capital, is read as
+                                  Razavi Khorasan, and the page says so: 2
+                                  of the 40 Dena listings are there
 
 دنا زیر ۱۰۰ هزار کیلومتر          the model Dena and an odometer cap of
                                   100,000 km: 33 of the 40 meet it
 
 کوییک در تهران                    the province is a constraint like the
                                   budget: 9 of run17's 36 Quiks are in Tehran
+
+دنا در کاشان                      a city that is no capital is not read, so
+                                  it is not used; the page lists «در کاشان»
+                                  under «نفهمیدیم» and shows the 40 listings
 ```
 
 The search page's panel is «آنچه از جمله‌ی تو فهمیدیم»: the model, the
@@ -457,18 +461,20 @@ none, unless a ceiling's cue such as «تا» stands right before it; or «حد�
 with «قیمت» if it is written, and an amount; or an amount and «و بالاتر», «و
 بیشتر» or «یا بیشتر»), both ends of a range («بین X تا Y», «از X تا Y», «بین X
 و Y», «X الی Y», «X-Y», and «X تا Y» where X has its scale word), the minimum
-year, an odometer cap in five shapes, the province where the car should be,
-the use, the risk profile and the red lines. It lists under «نفهمیدیم» what it
-does not read: a city after a cue it knows («در مشهد»), a figure with no scale
-word, a phrase it cannot place.
+year, an odometer cap in five shapes, the province where the car should be
+(by its name, or by its capital's, with the assumption printed: «در مشهد» is
+Razavi Khorasan), the use, the risk profile and the red lines. It lists under
+«نفهمیدیم» what it does not read: another city after a cue it knows («در کاشان»),
+a figure with no scale word, a phrase it cannot place.
 
 What it does not read yet, each pinned by a test so that it changes on
-purpose, is in the roadmap with the numbers measured for it: a city, «بیشتر
-از», «بیش از», «بالاتر از» and «حداقل بودجه» as a floor, the lower end of «X تا
-Y» with no «بین» or «از» and no scale word on X, a range written upside down,
-a negated floor, and «بالای X» without «به بالا», which is read as a ceiling by
-the owner's choice. No log of what buyers type exists, so what the parser does
-is measured on made phrasings, and what buyers write is not.
+purpose, is in the roadmap with the numbers measured for it: a city that is no
+province's capital, «بیشتر از», «بیش از», «بالاتر از» and «حداقل بودجه» as a
+floor, the lower end of «X تا Y» with no «بین» or «از» and no scale word on X,
+a range written upside down, a negated floor, and «بالای X» without «به بالا»,
+which is read as a ceiling by the owner's choice. No log of what buyers type
+exists, so what the parser does is measured on made phrasings, and what buyers
+write is not.
 
 ---
 
