@@ -20,7 +20,7 @@ from caro.ranking import (
     features_from_listing, risk_from_condition, _passes,
     USE_CASE_CUES, USE_CASE_FA, read_provinces, _CUE_WORDS, _CUE_PAIRS,
 )
-from caro.ingest.persian import PROVINCES
+from caro.ingest.persian import OTHER_CAPITALS, PROVINCES
 from caro.synthetic import build, true_utility
 
 FAILS: list[str] = []
@@ -570,7 +570,7 @@ for text, want, why in [   # what the floor's phrase and a ceiling clause leave 
     ("از ۲۰۰ میلیون به بالا", (), "  and without a model"),
     ("تا ۸۰۰ میلیون و از ۲۰۰ میلیون به بالا", (),
      "a floor's phrase inside the ceiling's clause goes with it"),
-    ("پراید از ۲۰۰ میلیون به بالا، تا ۳۰۰ میلیون در مشهد", ("در مشهد",),
+    ("پراید از ۲۰۰ میلیون به بالا، تا ۳۰۰ میلیون در کاشان", ("در کاشان",),
      "a place after the ceiling's amount is listed, as it is without a floor"),
 ]:
     got_u = tuple(t.strip() for t in P.parse(text).unparsed)
@@ -683,9 +683,9 @@ for text, want, why in [   # what the floor's phrase leaves behind
     ("پراید ۴۰۰ میلیون و بالاتر باشه", (),
      "the leftover after « و » was listed as «بالاتر باشه»"),
     ("پراید ۴۰۰ میلیون و بیشتر می‌خوام", (), "  the same"),
-    ("پراید در مشهد حداقل ۴۰۰ میلیون", ("در مشهد",),
+    ("پراید در کاشان حداقل ۴۰۰ میلیون", ("در کاشان",),
      "the city, without the word that stood after it"),
-    ("پراید ۴۰۰ میلیون و بالاتر در مشهد", ("در مشهد",),
+    ("پراید ۴۰۰ میلیون و بالاتر در کاشان", ("در کاشان",),
      "  and without the leftover of the suffix"),
 ]:
     got_u = tuple(t.strip() for t in P.parse(text).unparsed)
@@ -1111,7 +1111,7 @@ for text, want_f, want_c, why in [
 for text, printed, year, listed, why in [   # what is said, read and listed beside it
     ("پراید ۴۰۰ میلیون به بالا", False, None, (), "a floor: nothing assumed or listed"),
     ("پراید ۴۰۰ میلیون به بالا مدل ۹۸ به بالا", False, 1398, (), "  and the year read"),
-    ("۴۰۰ میلیون به بالا در مشهد", False, None, ("در مشهد",), "a city after it is listed"),
+    ("۴۰۰ میلیون به بالا در کاشان", False, None, ("در کاشان",), "a city after it is listed"),
     ("پراید ۴۰۰ میلیون به بالا نباشه", True, None, (),
      "negated: the ceiling is assumed, and said so"),
 ]:
@@ -1239,7 +1239,7 @@ for text, want_f, want_c, why in [
 for text, year, listed, why in [   # what is read beside a range, and what is listed
     ("بین ۳۰۰ تا ۴۰۰ میلیون", None, (), "the lower end is read, not listed"),
     ("بین ۳۰۰ و ۴۰۰ میلیون", None, (), "  and nothing assumed"),
-    ("بین ۳۰۰ تا ۴۰۰ میلیون در مشهد", None, ("در مشهد",), "a city after it is listed"),
+    ("بین ۳۰۰ تا ۴۰۰ میلیون در کاشان", None, ("در کاشان",), "a city after it is listed"),
     ("پراید بین ۳۰۰ تا ۴۰۰ میلیون مدل ۱۴۰۰ به بالا", 1400, (), "a year clause after it"),
     ("پراید مدل ۹۵ تا ۹۸ ۳۰۰ میلیون تا ۴۰۰ میلیون", 1395, (), "  a year's range before it"),
 ]:
@@ -1409,10 +1409,53 @@ for q, phrase in [   # named, and not read: listed as not understood
           and sp.model_hints == ("pride",),
           f"{sp.provinces} {left} {sp.model_hints}")
 
-for q in [f"{_Q} در مشهد", f"{_Q} در شیراز", f"{_Q} در کرج",
+for q in [f"{_Q} در کاشان", f"{_Q} در دزفول", f"{_Q} در ساوه",
           f"{_Q} تهرانی", f"{_Q} تهرانپارس"]:
     check(f"«{q}» → no province: a city, or a word that only holds a name",
           P.parse(q).provinces == (), str(P.parse(q).provinces))
+
+# A province's capital is read as its province (P1, the owner's choice of 2026-11-25 on a
+# measurement): the eighteen whose name is not their province's, `OTHER_CAPITALS`, the listing
+# parser's table, wherever a province's name is read and declined wherever one is; the page says
+# which province each was taken for.
+for c, prov in OTHER_CAPITALS.items():
+    sp = P.parse(f"{_Q} در {c}")
+    check(f"«{_Q} در {c}» → province {prov}, the note says so, nothing left",
+          sp.provinces == (prov,)
+          and f"«{normalize_fa(c)}» را استان {prov} گرفتیم" in sp.assumptions
+          and not sp.unparsed,
+          f"{sp.provinces} {sp.assumptions} {sp.unparsed}")
+for q, want, why in [
+        ("پراید مشهد", ("خراسان رضوی",), "with nothing before it"),
+        ("سمند شیراز زیر ۵۰۰ میلیون", ("فارس",), "  beside a budget"),
+        ("تبریز تیبا سفید", ("آذربایجان شرقی",), "  first"),
+        ("ماشین کرج", ("البرز",), "  after a plain word"),
+        ("اهواز پژو ۲۰۶", ("خوزستان",), "  before a model's number"),
+        ("رشت دنا", ("گیلان",), "  before a model"),
+        ("پراید در مشهد یا شیراز", ("خراسان رضوی", "فارس"), "two, joined by «یا»"),
+        ("در تهران یا مشهد", ("تهران", "خراسان رضوی"), "a province, then a capital"),
+        ("پراید غیر از مشهد", (), "declined after «غیر از»"),
+        ("پراید نزدیک شیراز", (), "  after «نزدیک»"),
+        ("پلاک تبریز", (), "  after «پلاک»"),
+        ("پراید در کرج نباشه", (), "  before «نباشه»"),
+        ("اطراف اهواز", (), "  after «اطراف»"),
+        ("سمند بجز رشت", (), "  after «بجز»"),
+        ("ماشین مشهدی", (), "a word that holds a capital's letters"),
+        ("پراید شیرازی", (), "  another"),
+        ("لاستیک درشت", (), "  «رشت» inside a word"),
+        ("پژو ۲۰۶ تبریزی", (), "  another"),
+        ("سمند کرجی", (), "  another"),
+        ("پراید تا ۵۰ کیلومتر فاصله از کرج", ("البرز",),
+         "left: a distance from a capital is read as its province"),
+        ("پراید حداکثر ۱۰۰ کیلومتر از شیراز", ("فارس",), "  the same")]:
+    sp = P.parse(q)
+    check(f"«{q}» → provinces {want}  ({why})", sp.provinces == want, f"{sp.provinces} {sp.unparsed}")
+sp = P.parse("پراید مشهد")
+check("«پراید مشهد» → the note says Mashhad was taken for Razavi Khorasan",
+      "«مشهد» را استان خراسان رضوی گرفتیم" in sp.assumptions, str(sp.assumptions))
+sp = P.parse("پراید نه مشهد")
+check("«پراید نه مشهد» → no province, and «نه مشهد» listed, where nothing was",
+      sp.provinces == () and sp.unparsed == ("نه مشهد",), f"{sp.provinces} {sp.unparsed}")
 
 # What a province beside other constraints does to them, and they to it.
 _sb = P.parse(f"{_Q} زیر ۸۰۰ میلیون در تهران")
@@ -1467,7 +1510,7 @@ check(f"none of the {len(_chips)} examples under the search box names a "
 
 # ---------------------------------------------------------------------------
 print("\na city is listed under «نفهمیدیم», not dropped (D83)")
-# «پراید در مشهد» names a model, so its clause was understood whole and the
+# «پراید در کاشان» names a model, so its clause was understood whole and the
 # city was dropped without a word. A cue the province reader knows is now
 # listed with the one or two words after it. Nothing is read from them: the
 # city narrows nothing, and the page says so. Every phrasing is made here; no
@@ -1478,38 +1521,38 @@ def _listed(q):
 
 
 for q, want in [   # each cue alone, before a word nothing knows
-    (f"{_Q} در مشهد", ["در مشهد"]),
-    (f"{_Q} توی مشهد", ["توی مشهد"]),
-    (f"{_Q} تو مشهد", ["تو مشهد"]),
-    (f"{_Q} ساکن مشهد", ["ساکن مشهد"]),
-    (f"{_Q} اطراف مشهد", ["اطراف مشهد"]),
-    (f"{_Q} حوالی مشهد", ["حوالی مشهد"]),
-    (f"{_Q} حومه مشهد", ["حومه مشهد"]),
-    (f"{_Q} بجز مشهد", ["بجز مشهد"]),
-    (f"{_Q} پلاک مشهد", ["پلاک مشهد"]),
-    (f"{_Q} نزدیک مشهد", ["نزدیک مشهد"]),
-    (f"{_Q} نزدیکی مشهد", ["نزدیکی مشهد"]),
-    (f"{_Q} غیر مشهد", ["غیر مشهد"]),
+    (f"{_Q} در کاشان", ["در کاشان"]),
+    (f"{_Q} توی کاشان", ["توی کاشان"]),
+    (f"{_Q} تو کاشان", ["تو کاشان"]),
+    (f"{_Q} ساکن کاشان", ["ساکن کاشان"]),
+    (f"{_Q} اطراف کاشان", ["اطراف کاشان"]),
+    (f"{_Q} حوالی کاشان", ["حوالی کاشان"]),
+    (f"{_Q} حومه کاشان", ["حومه کاشان"]),
+    (f"{_Q} بجز کاشان", ["بجز کاشان"]),
+    (f"{_Q} پلاک کاشان", ["پلاک کاشان"]),
+    (f"{_Q} نزدیک کاشان", ["نزدیک کاشان"]),
+    (f"{_Q} نزدیکی کاشان", ["نزدیکی کاشان"]),
+    (f"{_Q} غیر کاشان", ["غیر کاشان"]),
     # a cue of two words, before a name of two: the pair is one cue
-    (f"{_Q} نزدیک به بندر عباس", ["نزدیک به بندر عباس"]),
-    (f"{_Q} نزدیکی به بندر عباس", ["نزدیکی به بندر عباس"]),
-    (f"{_Q} غیر از بندر عباس", ["غیر از بندر عباس"]),
-    (f"{_Q} به جز بندر عباس", ["به جز بندر عباس"]),
-    (f"{_Q} خارج از بندر عباس", ["خارج از بندر عباس"]),
-    (f"{_Q} نزدیک{_ZWNJ}به بندر عباس", ["نزدیک به بندر عباس"]),
+    (f"{_Q} نزدیک به بندر انزلی", ["نزدیک به بندر انزلی"]),
+    (f"{_Q} نزدیکی به بندر انزلی", ["نزدیکی به بندر انزلی"]),
+    (f"{_Q} غیر از بندر انزلی", ["غیر از بندر انزلی"]),
+    (f"{_Q} به جز بندر انزلی", ["به جز بندر انزلی"]),
+    (f"{_Q} خارج از بندر انزلی", ["خارج از بندر انزلی"]),
+    (f"{_Q} نزدیک{_ZWNJ}به بندر انزلی", ["نزدیک به بندر انزلی"]),
     # two words are taken, not one and not three
-    (f"{_Q} ساکن در بندر عباس", ["ساکن در بندر عباس"]),
+    (f"{_Q} ساکن در بندر انزلی", ["ساکن در بندر انزلی"]),
     (f"{_Q} در بندر ماهشهر میخوام", ["در بندر ماهشهر"]),
     # «شهر» and «استان» are skipped, and so is a cue after a cue
-    (f"{_Q} ساکن در شهر مشهد", ["ساکن در شهر مشهد"]),
-    (f"{_Q} در شهر بندر عباس", ["در شهر بندر عباس"]),
-    (f"{_Q} پلاک ملی در مشهد", ["پلاک ملی", "در مشهد"]),
+    (f"{_Q} ساکن در شهر کاشان", ["ساکن در شهر کاشان"]),
+    (f"{_Q} در شهر بندر انزلی", ["در شهر بندر انزلی"]),
+    (f"{_Q} پلاک ملی در کاشان", ["پلاک ملی", "در کاشان"]),
     # listed once: the clause rule already lists this one whole
-    ("ماشین سفید در مشهد", ["ماشین سفید در مشهد"]),
+    ("ماشین سفید در کاشان", ["ماشین سفید در کاشان"]),
     # after what is already there, and not counted in its cap of four
-    (f"{_Q} غیر از تهران در مشهد", ["غیر از تهران", "در مشهد"]),
-    ("ماشین قرمز، دوست دارم، حتما سالم، خیلی تمیز، پراید در مشهد",
-     ["ماشین قرمز", "دوست دارم", "حتما سالم", "خیلی تمیز", "در مشهد"]),
+    (f"{_Q} غیر از تهران در کاشان", ["غیر از تهران", "در کاشان"]),
+    ("ماشین قرمز، دوست دارم، حتما سالم، خیلی تمیز، پراید در کاشان",
+     ["ماشین قرمز", "دوست دارم", "حتما سالم", "خیلی تمیز", "در کاشان"]),
 ]:
     left, got_p = _listed(q)
     check(f"«{q}» → listed: {want}", left == want and got_p == (),
@@ -1521,15 +1564,15 @@ for q, why in [   # a cue with nothing to take: nothing is listed
     (f"{_Q} در استان", "«استان» is a link, not a name"),
     (f"{_Q} در شهر", "«شهر» is a link, not a name"),
     (f"{_Q} خارج از استان", "a pair, then a link, then nothing"),
-    (f"{_Q} ساکن، مشهد", "a comma ends the phrase"),
+    (f"{_Q} ساکن، کاشان", "a comma ends the phrase"),
     (f"{_Q} در حد نو", "«حد» is no name"),
     (f"{_Q} در حال حاضر", "«حال» is no name"),
     (f"{_Q} توی بودجه ام باشه", "«بودجه» is no name"),
     (f"{_Q} غیر از تیبا", "a model's name is blanked, so it is no word"),
     (f"{_Q} غیر از تیبایی", "what a blanked name leaves is no word of its own"),
-    (f"{_Q} در تیبا مشهد", "a blanked name between ends the run"),
+    (f"{_Q} در تیبا کاشان", "a blanked name between ends the run"),
     (f"{_Q} پلاک ب", "one letter is no word"),
-    (f"{_Q} نزدیک؛ به مشهد", "a mark between the two words of a pair ends it"),
+    (f"{_Q} نزدیک؛ به کاشان", "a mark between the two words of a pair ends it"),
     ("ماشین برای مسافرکشی در اسنپ", "what the parser acted on is blanked"),
     (f"{_Q} پلاک 12 ایران", "a number is blanked"),
 ]:
@@ -1545,7 +1588,7 @@ for q, want, prov in [
     (f"{_Q} در تهران", [], ("تهران",)),
     (f"{_Q} پلاک ملی در تهران", ["پلاک ملی"], ("تهران",)),
     (f"{_Q} پلاک ملی تهران", ["پلاک ملی"], ("تهران",)),
-    (f"{_Q} در تهران در مشهد", ["در مشهد"], ("تهران",)),
+    (f"{_Q} در تهران در کاشان", ["در کاشان"], ("تهران",)),
     (f"{_Q} نزدیک تهران باشه", ["نزدیک تهران"], ()),
     (f"{_Q} غیر از تهران باشه", ["غیر از تهران"], ()),
     (f"{_Q} تا ۳۰۰ میلیون در تهران", [], ("تهران",)),
@@ -1560,30 +1603,30 @@ for q, want, prov in [
 # stands after the amount is now one more clause for the rule, and what stands
 # before it is not.
 for q, want, why in [
-    (f"{_Q} تا ۳۰۰ میلیون در مشهد", ["در مشهد"], "after «تا»"),
-    (f"{_Q} زیر ۳۰۰ میلیون ساکن شیراز", ["ساکن شیراز"], "after «زیر»"),
-    (f"{_Q} بودجه ۳۰۰ میلیون نزدیک کرج", ["نزدیک کرج"], "after «بودجه»"),
-    (f"{_Q} حداکثر ۱.۵ میلیارد توی تبریز", ["توی تبریز"], "a decimal amount"),
-    (f"{_Q} تا ۳۰۰ میلیون تومان در مشهد", ["در مشهد"], "a unit word between"),
-    (f"{_Q} تا ۳۰۰ میلیون پلاک ملی در مشهد", ["پلاک ملی", "در مشهد"],
+    (f"{_Q} تا ۳۰۰ میلیون در کاشان", ["در کاشان"], "after «تا»"),
+    (f"{_Q} زیر ۳۰۰ میلیون ساکن دزفول", ["ساکن دزفول"], "after «زیر»"),
+    (f"{_Q} بودجه ۳۰۰ میلیون نزدیک ساوه", ["نزدیک ساوه"], "after «بودجه»"),
+    (f"{_Q} حداکثر ۱.۵ میلیارد توی مراغه", ["توی مراغه"], "a decimal amount"),
+    (f"{_Q} تا ۳۰۰ میلیون تومان در کاشان", ["در کاشان"], "a unit word between"),
+    (f"{_Q} تا ۳۰۰ میلیون پلاک ملی در کاشان", ["پلاک ملی", "در کاشان"],
      "two phrases"),
-    (f"{_Q} تا ۳۰۰ میلیون در شهر بندر عباس", ["در شهر بندر عباس"],
+    (f"{_Q} تا ۳۰۰ میلیون در شهر بندر انزلی", ["در شهر بندر انزلی"],
      "two words are taken"),
-    (f"{_Q} تا ۳۰۰ میلیون نزدیک به بندر عباس", ["نزدیک به بندر عباس"],
+    (f"{_Q} تا ۳۰۰ میلیون نزدیک به بندر انزلی", ["نزدیک به بندر انزلی"],
      "a pair"),
-    (f"{_Q} تا ۳۰۰ میلیون غیر از مشهد در شیراز", ["غیر از مشهد", "در شیراز"],
+    (f"{_Q} تا ۳۰۰ میلیون غیر از کاشان در دزفول", ["غیر از کاشان", "در دزفول"],
      "two cues in it"),
-    (f"{_Q} تا ۳۰۰ میلیون در مشهد، ساکن شیراز", ["ساکن شیراز", "در مشهد"],
+    (f"{_Q} تا ۳۰۰ میلیون در کاشان، ساکن دزفول", ["ساکن دزفول", "در کاشان"],
      "the clause ends at «،»; what it holds is listed last"),
-    ("ماشین سفید در مشهد، تا ۳۰۰ میلیون در شیراز",
-     ["ماشین سفید در مشهد", "در شیراز"], "one before the budget, one after"),
-    ("ماشین تا ۳۰۰ میلیون در مشهد، ماشین سفید در مشهد",
-     ["ماشین سفید در مشهد"], "listed once, since a phrase holds it"),
-    (f"{_Q} تا ۳۰۰ میلیون در مشهد ۴۰۰ میلیون", ["در مشهد"],
+    ("ماشین سفید در کاشان، تا ۳۰۰ میلیون در دزفول",
+     ["ماشین سفید در کاشان", "در دزفول"], "one before the budget, one after"),
+    ("ماشین تا ۳۰۰ میلیون در کاشان، ماشین سفید در کاشان",
+     ["ماشین سفید در کاشان"], "listed once, since a phrase holds it"),
+    (f"{_Q} تا ۳۰۰ میلیون در کاشان ۴۰۰ میلیون", ["در کاشان"],
      "the first amount is the budget; a second is a figure, blanked"),
-    (f"{_Q} تا ۳۰۰ میلیون در مشهد مدل ۹۵", ["در مشهد"],
+    (f"{_Q} تا ۳۰۰ میلیون در کاشان مدل ۹۵", ["در کاشان"],
      "the year clause is cut from it, as from the rest"),
-    (f"{_Q} تا ۳۰۰ میلیون در مشهد مدل ۱۴۰۱ به بالا", ["در مشهد"],
+    (f"{_Q} تا ۳۰۰ میلیون در کاشان مدل ۱۴۰۱ به بالا", ["در کاشان"],
      "the same, with «به بالا»"),
 ]:
     left, got_p = _listed(q)
@@ -1606,16 +1649,16 @@ for q, why in [   # what stands after an amount and is no cue: nothing is listed
 
 # What it leaves dropped, pinned so that it changes on purpose.
 for q, want, prov, why in [
-    (f"{_Q} مشهد", [], (), "no cue stands before it"),
-    (f"{_Q} قیمت در مشهد ۳۰۰ میلیون", [], (),
+    (f"{_Q} کاشان", [], (), "no cue stands before it"),
+    (f"{_Q} قیمت در کاشان ۳۰۰ میلیون", [], (),
      "before the amount, the budget clause takes it whole"),
-    (f"{_Q} تا ۳۰۰ میلیون در مشهد تا ۴۰۰ میلیون", ["در مشهد تا"], (),
+    (f"{_Q} تا ۳۰۰ میلیون در کاشان تا ۴۰۰ میلیون", ["در کاشان تا"], (),
      "a second budget lends its «تا» to the place, as «یا» does"),
-    (f"{_Q} در تهران و مشهد", [], ("تهران",),
+    (f"{_Q} در تهران و کاشان", [], ("تهران",),
      "a second name after « و » has no cue"),
-    (f"{_Q} غیر از شیراز و مشهد", ["غیر از شیراز"], (), "the same, after a cue"),
-    (f"{_Q} در مشهد یا شیراز", ["در مشهد یا"], (), "«یا» is taken as a word"),
-    (f"{_Q} نه مشهد", [], (), "«نه» is the reader's cue and not this one's"),
+    (f"{_Q} غیر از دزفول و کاشان", ["غیر از دزفول"], (), "the same, after a cue"),
+    (f"{_Q} در کاشان یا دزفول", ["در کاشان یا"], (), "«یا» is taken as a word"),
+    (f"{_Q} نه کاشان", [], (), "«نه» is the reader's cue and not this one's"),
     (f"{_Q} بدون کیلومتر", [], (),
      "«بدون» is the reader's cue and not this one's"),
 ]:
@@ -1628,29 +1671,29 @@ check("a listed phrase changes nothing in the spec but the list",
       all(dataclasses.replace(P.parse(a), raw_query="", unparsed=())
           == dataclasses.replace(P.parse(b), raw_query="", unparsed=())
           for a, b in [
-              (f"{_Q} در مشهد", _Q),
-              (f"{_Q} پلاک ملی در مشهد", _Q),
-              (f"{_Q} ساکن در شهر بندر عباس", _Q),
-              (f"{_Q} زیر ۳۰۰ میلیون، نزدیک مشهد", f"{_Q} زیر ۳۰۰ میلیون"),
-              (f"{_Q} اسنپ، توی بندر عباس", f"{_Q} اسنپ"),
-              (f"{_Q} غیر از تهران در مشهد", f"{_Q} غیر از تهران"),
+              (f"{_Q} در کاشان", _Q),
+              (f"{_Q} پلاک ملی در کاشان", _Q),
+              (f"{_Q} ساکن در شهر بندر انزلی", _Q),
+              (f"{_Q} زیر ۳۰۰ میلیون، نزدیک کاشان", f"{_Q} زیر ۳۰۰ میلیون"),
+              (f"{_Q} اسنپ، توی بندر انزلی", f"{_Q} اسنپ"),
+              (f"{_Q} غیر از تهران در کاشان", f"{_Q} غیر از تهران"),
           ]))
 check("a place is listed the same with a budget before it as without",
       all(_listed(f"{_Q} تا ۳۰۰ میلیون {t}") == _listed(f"{_Q} {t}")
-          for t in ["در مشهد", "ساکن شیراز", "پلاک ملی در مشهد",
-                    "نزدیک به بندر عباس", "در تهران", "غیر از تهران",
-                    "در مشهد مدل ۹۵", "در مشهد مدل ۱۴۰۱ به بالا"]),
-      str([t for t in ["در مشهد", "ساکن شیراز", "پلاک ملی در مشهد",
-                       "نزدیک به بندر عباس", "در تهران", "غیر از تهران",
-                       "در مشهد مدل ۹۵", "در مشهد مدل ۱۴۰۱ به بالا"]
+          for t in ["در کاشان", "ساکن دزفول", "پلاک ملی در کاشان",
+                    "نزدیک به بندر انزلی", "در تهران", "غیر از تهران",
+                    "در کاشان مدل ۹۵", "در کاشان مدل ۱۴۰۱ به بالا"]),
+      str([t for t in ["در کاشان", "ساکن دزفول", "پلاک ملی در کاشان",
+                       "نزدیک به بندر انزلی", "در تهران", "غیر از تهران",
+                       "در کاشان مدل ۹۵", "در کاشان مدل ۱۴۰۱ به بالا"]
            if _listed(f"{_Q} تا ۳۰۰ میلیون {t}") != _listed(f"{_Q} {t}")]))
 check("a phrase listed after a budget changes nothing in the spec but the list",
       all(dataclasses.replace(P.parse(a), raw_query="", unparsed=())
           == dataclasses.replace(P.parse(b), raw_query="", unparsed=())
           for a, b in [
-              (f"{_Q} تا ۳۰۰ میلیون در مشهد", f"{_Q} تا ۳۰۰ میلیون"),
-              (f"{_Q} زیر ۳۰۰ میلیون پلاک ملی در مشهد", f"{_Q} زیر ۳۰۰ میلیون"),
-              (f"{_Q} بودجه ۱.۵ میلیارد نزدیک به بندر عباس",
+              (f"{_Q} تا ۳۰۰ میلیون در کاشان", f"{_Q} تا ۳۰۰ میلیون"),
+              (f"{_Q} زیر ۳۰۰ میلیون پلاک ملی در کاشان", f"{_Q} زیر ۳۰۰ میلیون"),
+              (f"{_Q} بودجه ۱.۵ میلیارد نزدیک به بندر انزلی",
                f"{_Q} بودجه ۱.۵ میلیارد"),
           ]))
 check("every cue of the rule is one the reader knows: a province after it "

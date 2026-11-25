@@ -43,7 +43,7 @@ import numpy as np
 
 from caro.appraisal import QUANTILES, MarketEstimator, NotBenchmarked, Row
 from caro.ingest.models import names, search_aliases
-from caro.ingest.persian import PROVINCE_SPELLINGS, PROVINCES
+from caro.ingest.persian import OTHER_CAPITALS, PROVINCE_SPELLINGS, PROVINCES
 
 # ---------------------------------------------------------------------------
 # Persian text normalisation
@@ -605,10 +605,16 @@ _MILEAGE_FLOOR = 10_000
 #
 # A province named in the query is a constraint (D82). The names are the ones
 # the corpus carries -- `PROVINCES`, and the one spelling `PROVINCE_SPELLINGS`
-# holds -- read as whole words, and nothing else. No city is read: the
-# vocabulary is not a geography (D74), so «مشهد» is still a word the parser did
-# not map. It is no longer dropped without a word, though: after a cue the
-# reader knows it is listed under «نفهمیدیم» (`read_unknown_places`, below).
+# holds -- read as whole words, and the eighteen capitals whose name is not
+# their province's, `OTHER_CAPITALS`, the listing parser's table (D93, the
+# owner's choice of 2026-10-30): «پراید در مشهد» narrows to Razavi Khorasan,
+# by the owner's choice of 2026-11-25 on a measurement (P1). A capital is read
+# where a province's name is and declined where one is, and the page always
+# says which province it was taken for: «مشهد» را استان خراسان رضوی گرفتیم.
+# No other city is read: the vocabulary is not a geography (D74), so «کاشان»
+# is still a word the parser did not map. It is not dropped without a word,
+# though: after a cue the reader knows it is listed under «نفهمیدیم»
+# (`read_unknown_places`, below).
 #
 # This reading is hazardous as no other cue here is, because a wrong one
 # inverts and says nothing: «غیر از تهران» taken for Tehran would answer with
@@ -642,6 +648,8 @@ _MILEAGE_FLOOR = 10_000
 _PROVINCE_BY_TEXT: dict[str, str] = {normalize_fa(p): p for p in PROVINCES}
 _PROVINCE_BY_TEXT.update({normalize_fa(seen): meant
                           for seen, meant in PROVINCE_SPELLINGS.items()})
+_CAPITAL_BY_TEXT: dict[str, str] = {normalize_fa(c): p for c, p in OTHER_CAPITALS.items()}
+_PROVINCE_BY_TEXT.update(_CAPITAL_BY_TEXT)
 _PROVINCE_FAMILIES = frozenset({"خراسان", "آذربایجان"})
 _PLAIN_WORDS = frozenset({"مرکزی", "گلستان"})
 # A name that holds a province's and is not a province. It is matched as one
@@ -723,16 +731,19 @@ def read_provinces(text: str) -> PlaceReading:
                 declined.append(q[begin:e].strip()
                                 if s == first and mode == "in" else name)
             else:
-                read.append((s, e, _PROVINCE_BY_TEXT[name]))
+                read.append((s, e, _PROVINCE_BY_TEXT[name], name in _CAPITAL_BY_TEXT))
         if not read:
             continue
-        for _, _, province in read:
+        for _, _, province, _ in read:
             if province not in provinces:
                 provinces.append(province)
         understood.append(q[begin if mode == "in" else read[0][0]:read[-1][1]]
                           .strip())
-        if mode == "bare":
-            for s, e, province in read:
+        # A province's name with nothing before it is an assumption, and a
+        # capital wherever it stands: the buyer named a city, and the answer
+        # is its whole province.
+        for s, e, province, city in read:
+            if mode == "bare" or city:
                 note = f"«{q[s:e]}» را استان {province} گرفتیم"
                 if note not in assumptions:
                     assumptions.append(note)
@@ -747,24 +758,25 @@ def read_provinces(text: str) -> PlaceReading:
 # A place the reader does not know
 # ---------------------------------------------------------------------------
 #
-# «پراید در مشهد» names a model, so the clause rule counted it understood whole
-# and «مشهد» was dropped without a word: a buyer who named a city was answered
+# «پراید در کاشان» names a model, so the clause rule counted it understood whole
+# and «کاشان» was dropped without a word: a buyer who named a city was answered
 # as if they had not. The reader cannot say so -- it knows the names the corpus
-# carries, and a city is not one (D74). What it does know is the words a place
-# comes after. This lists such a word and the one or two after it under
-# «بخش‌هایی که نفهمیدیم» -- «در مشهد» -- so the page says the city was seen and
-# not used. It reads no city, and changes nothing in the spec but that list.
+# carries and the capitals, and another city is not one (D74). What it does
+# know is the words a place comes after. This lists such a word and the one or
+# two after it under «بخش‌هایی که نفهمیدیم» -- «در کاشان» -- so the page says
+# the city was seen and not used. It reads no city, and changes nothing in the
+# spec but that list; a capital is `read_provinces`'s.
 #
 #   cue       a word of `_CUE_WORDS`, or a pair of `_CUE_PAIRS` side by side:
 #             the reader's own, less «نه» and «بدون», which stand before a
 #             province there and before any word here -- «بدون ایراد فنی» is
 #             no place.
 #   skipped   what follows the cue directly and is «استان», «شهر» or another
-#             cue: «ساکن در شهر مشهد» is one phrase, «پلاک ملی در مشهد» two,
-#             «پلاک ملی» and «در مشهد».
+#             cue: «ساکن در شهر کاشان» is one phrase, «پلاک ملی در کاشان» two,
+#             «پلاک ملی» and «در کاشان».
 #   taken     then up to two words that follow directly, are no cue, are not
 #             one of `_NEVER_A_PLACE` and have two letters or more. Two,
-#             because a city is often two words -- «بندر عباس». If none is
+#             because a city is often two words -- «بندر انزلی». If none is
 #             taken nothing is listed: a cue at the end of a phrase says
 #             nothing.
 #   blanked   before the words are cut, what the parser acted on, the model
@@ -773,20 +785,20 @@ def read_provinces(text: str) -> PlaceReading:
 #             «برای مسافرکشی در اسنپ» list nothing, «در تهران» is the
 #             reader's, and «پلاک ملی تهران» lists the plate and no more.
 #   listed    last in `unparsed`, unless a phrase already there holds it:
-#             «ماشین سفید در مشهد» is listed whole by the clause rule, and
-#             «در مشهد» adds nothing.
+#             «ماشین سفید در کاشان» is listed whole by the clause rule, and
+#             «در کاشان» adds nothing.
 #   after a   the budget clause is taken whole, up to the next «،», and what
 #   budget    it holds after the amount is read as one more clause, for a cue
-#             and no more: «تا ۳۰۰ میلیون در مشهد» lists «در مشهد», and so does
-#             «تا ۳۰۰ میلیون تومان در مشهد». Nothing else in it is listed, as
+#             and no more: «تا ۳۰۰ میلیون در کاشان» lists «در کاشان», and so does
+#             «تا ۳۰۰ میلیون تومان در کاشان». Nothing else in it is listed, as
 #             it never was: «تا ۳۰۰ میلیون سفید» says nothing of «سفید». What
 #             stands between the cue and the amount is not read:
-#             «قیمت در مشهد ۳۰۰ میلیون».
+#             «قیمت در کاشان ۳۰۰ میلیون».
 #
 # What this does not find stays dropped, and the tests pin it so that it
-# changes on purpose: a city no cue stands before («پراید مشهد»); one after
-# « و » or «یا» («در تهران و مشهد»; «یا» is itself taken as the second word of
-# «در مشهد یا شیراز»); and one inside a word that holds a model's name
+# changes on purpose: a city no cue stands before («پراید کاشان»); one after
+# « و » or «یا» («در تهران و کاشان»; «یا» is itself taken as the second word of
+# «در کاشان یا دزفول»); and one inside a word that holds a model's name
 # («تهرانپارس» lists «در تهران», the part before «پارس»). And `_NEVER_A_PLACE`
 # is three words because three put a phrase on the page that is no place --
 # «در حد نو», «در حال حاضر», «توی بودجه ام» -- in the sentences measured; it is
