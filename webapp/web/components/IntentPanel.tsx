@@ -1,6 +1,6 @@
 'use client';
 
-import type { Intent } from '@/lib/api';
+import type { FilterKey, Intent } from '@/lib/api';
 import { MODEL_FA, faNum, faPlain, toman } from '@/lib/format';
 
 /* What CARO understood, what it assumed, and what it did not understand.
@@ -41,36 +41,53 @@ const BREAKER_FA: Record<string, string> = {
 
 export default function IntentPanel({ intent }: { intent: Intent }) {
   const known: [string, string][] = [];
+  // A constraint the filter panel stated says so beside its name: where the
+  // sentence and the panel both state one, the panel's stands (the owner's
+  // choice of 2026-11-25), and the reader must see which they are reading.
+  const from = new Set(intent.from_filter ?? []);
+  const by = (label: string, key: FilterKey) => (from.has(key) ? `${label} — از فیلتر` : label);
 
+  if ((intent.makes ?? []).length) {
+    known.push([by('برند', 'make'), intent.makes
+      .map((m) => MODEL_FA[m.toLowerCase()] ?? m).join('، ')]);
+  }
   if (intent.models.length) {
     // Taxonomy keys are ASCII (`pride`, `206`); the panel shows the buyer
     // what CARO understood, so it shows it in their own script.
-    known.push(['خودرو', intent.models
+    known.push([by('خودرو', 'model'), intent.models
       .map((m) => MODEL_FA[m.toLowerCase()] ?? m).join('، ')]);
   }
   if (intent.budget_max_toman != null) {
     known.push([
-      intent.budget_hard ? 'سقف بودجه' : 'سقف بودجه (انعطاف‌پذیر)',
+      by(intent.budget_hard ? 'سقف بودجه' : 'سقف بودجه (انعطاف‌پذیر)', 'budget'),
       toman(intent.budget_max_toman),
     ]);
   }
   if (intent.budget_min_toman != null) {
-    known.push(['کف بودجه', toman(intent.budget_min_toman)]);
+    known.push([by('کف بودجه', 'budget'), toman(intent.budget_min_toman)]);
   }
   if (intent.year_min != null) {
-    known.push(['حداقل مدل', faPlain(intent.year_min)]);
+    known.push([by('حداقل مدل', 'year'), faPlain(intent.year_min)]);
+  }
+  if (intent.year_max != null) {
+    known.push([by('حداکثر مدل', 'year'), faPlain(intent.year_max)]);
+  }
+  if (intent.min_mileage_km != null) {
+    known.push([by('کف کارکرد', 'mileage'), `${faNum(intent.min_mileage_km)} کیلومتر`]);
   }
   if (intent.max_mileage_km != null) {
-    known.push(['سقف کارکرد', `${faNum(intent.max_mileage_km)} کیلومتر`]);
+    known.push([by('سقف کارکرد', 'mileage'), `${faNum(intent.max_mileage_km)} کیلومتر`]);
   }
   if (intent.provinces.length) {
     // Several are any-of: a car in any of them meets it.
-    known.push(['استان', intent.provinces.join('، ')]);
+    known.push([by('استان', 'province'), intent.provinces.join('، ')]);
   }
   if (intent.use_case && intent.use_case !== 'unspecified') {
     known.push(['کاربرد', USE_CASE_FA[intent.use_case] ?? intent.use_case]);
   }
-  if (intent.risk_profile) {
+  // A risk profile weighs a ranking; the filter page asks for none, so it
+  // is not said there (an intent with no sentence is the filter page's).
+  if (intent.risk_profile && intent.query) {
     known.push(['پروفایل ریسک',
       RISK_FA[intent.risk_profile] ?? intent.risk_profile]);
   }
@@ -81,11 +98,16 @@ export default function IntentPanel({ intent }: { intent: Intent }) {
 
   return (
     <section className="panel">
-      <p className="eyebrow">آنچه از جمله‌ی تو فهمیدیم</p>
+      <p className="eyebrow">
+        {!intent.query ? 'فیلترهایی که به‌کار رفت'
+          : from.size ? 'آنچه از جمله‌ی تو و فیلترها فهمیدیم' : 'آنچه از جمله‌ی تو فهمیدیم'}
+      </p>
 
       {known.length === 0 ? (
         <p className="m-0 text-[13.5px] text-ink-2">
-          هیچ قید مشخصی در جمله پیدا نشد — پس هیچ فیلتری هم اعمال نشده است.
+          {!intent.query
+            ? 'هیچ فیلتری انتخاب نشده — همه‌ی آگهی‌های این پیکره در نظر گرفته شد.'
+            : 'هیچ قید مشخصی در جمله پیدا نشد — پس هیچ فیلتری هم اعمال نشده است.'}
         </p>
       ) : (
         <dl className="m-0 grid tiles

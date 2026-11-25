@@ -22,6 +22,8 @@ export function navItems(sellerListings: string | undefined): NavItem[] {
   return [
     { href: '/', fa: 'خانه' },
     { href: '/search', fa: 'جست‌وجو' },
+    // The filter page, as on Divar (the owner's choice of 2026-11-25).
+    { href: '/filter', fa: 'فیلتر' },
     { href: '/models', fa: 'خودروها' },
     { href: '/compare', fa: 'مقایسه' },
     { href: '/saved', fa: 'نشان‌شده‌ها' },

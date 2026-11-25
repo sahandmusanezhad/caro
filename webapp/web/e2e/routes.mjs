@@ -35,8 +35,12 @@ import { chromium } from 'playwright';
 const SITE = (process.env.CARO_SITE || 'http://127.0.0.1:3000').replace(/\/$/, '');
 const ORIGIN = new URL(SITE).origin;
 const Q = 'سمند زیر ۲ میلیارد';
+// The filter page, bare and with fields set, and the search with the panel
+// set beside the sentence (the owner's choice of 2026-11-25).
+const FILTERED = 'make=IKCO&year_min=1398&year_max=1404&price_max=4000000000&sort=market&k=12';
 const ROUTES = [
-  '/', `/search?q=${encodeURIComponent(Q)}`, '/models', '/model/IKCO/Samand', '/compare', '/saved',
+  '/', `/search?q=${encodeURIComponent(Q)}`, `/search?q=${encodeURIComponent(Q)}&${FILTERED}`,
+  '/filter', `/filter?${FILTERED}`, '/models', '/model/IKCO/Samand', '/compare', '/saved',
   '/how-it-works', '/before-buying', '/about', '/contact', '/login', '/admin',
 ];
 const VIEWS = [

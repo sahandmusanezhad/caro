@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import type { EvidenceItem, SearchResponse, UncheckedItem } from '@/lib/api';
+import type { EvidenceItem, SearchResponse, SortKey, UncheckedItem } from '@/lib/api';
 import {
   UNCHECKED_FA, askingPrice, faNum, faPlain, isAppraisalRow, modelLabel,
   odometer, odometerWhy, provinceLabel,
 } from '@/lib/format';
+import { SORT_FA, middleLabel } from '@/lib/filters';
 
 /* The evidence a refusal can still show, in two tables that never mix.
  *
@@ -21,7 +22,11 @@ import {
  * the listing did not state is never drawn as one it did (D77, D81).
  *
  * The API decides which is which (`webapp/api/constraints.py`); this only
- * draws what it was sent. Each table is the first k of its kind, and the line
+ * draws what it was sent. Where the reader chose an order (the filter
+ * panel, 2026-11-25), the heading says which instead of «بدون ترتیب», and a
+ * column says where each price stands against its make, model and year's
+ * middle asking price in the collection, with how many stand behind it --
+ * the figure «ارزان نسبت به بازار» orders by, and never an estimate. Each table is the first k of its kind, and the line
  * above it says how many there are in all, so eight rows never stand for
  * fifty-one. A pure view, so tests/test_screens.py can draw it with what the
  * API really returns.
@@ -31,9 +36,16 @@ export const MATCHED_FA = 'شواهد — آگهی‌های منطبق، بدو�
 export const APART_FA =
   'جدا — با هیچ قیدی مخالف نیستند، ولی همه‌ی قیدها را نمی‌شود برایشان سنجید';
 export const NONE_FA = 'هیچ آگهی منطبقی پیدا نشد';
+export const MIDDLE_HEAD_FA = 'نسبت به میانه';
+
+/** The matched table's heading where the reader chose an order. */
+export function matchedSortedFa(sort: SortKey): string {
+  return `شواهد — آگهی‌های منطبق، بدون برآورد، به ترتیب «${SORT_FA[sort]}»`;
+}
 
 type Evidence = Pick<SearchResponse, 'considered' | 'evidence'
-  | 'evidence_total' | 'evidence_unchecked' | 'evidence_unchecked_total'>;
+  | 'evidence_total' | 'evidence_unchecked' | 'evidence_unchecked_total'>
+  & { sort?: SortKey | null };
 
 const TH = 'text-right font-normal px-4 py-2.5 border-b border-line';
 const TD = 'px-4 py-2.5 border-b border-line';
@@ -57,6 +69,21 @@ function Facts({ r }: { r: EvidenceItem }) {
       </td>
     </>
   );
+}
+
+/* Where the price stands against its make, model and year's middle; drawn
+   only where the API looked the middle up, which a search's and a filter's
+   listings carry. */
+function Middle({ r }: { r: EvidenceItem }) {
+  return (
+    <td className={`${TD} text-[12.5px] text-ink-2`} data-cell="middle">
+      {middleLabel(r) ?? '—'}
+    </td>
+  );
+}
+
+function looked(rows: EvidenceItem[]): boolean {
+  return rows.some((r) => r.year_middle_priced !== null && r.year_middle_priced !== undefined);
 }
 
 function FileLink({ id }: { id: string }) {
@@ -105,6 +132,8 @@ export function SearchEvidence({ data }: { data: Evidence }) {
   const apart: UncheckedItem[] = data.evidence_unchecked;
   const matchedTotal = data.evidence_total;
   const apartTotal = data.evidence_unchecked_total;
+  const midM = looked(matched);
+  const midA = looked(apart);
 
   return (
     <>
@@ -140,14 +169,15 @@ export function SearchEvidence({ data }: { data: Evidence }) {
         </section>
       ) : (
         <section data-evidence="matched">
-          <p className="eyebrow">{MATCHED_FA}</p>
+          <p className="eyebrow">{data.sort ? matchedSortedFa(data.sort) : MATCHED_FA}</p>
           <OfAll shown={matched.length} total={matchedTotal}
                  noun="آگهی منطبق" />
-          <Table head={['خودرو', ...FACTS, '']}>
+          <Table head={['خودرو', ...FACTS, ...(midM ? [MIDDLE_HEAD_FA] : []), '']}>
             {matched.map((r) => (
               <tr key={r.id} data-listing={r.id}>
                 <Name r={r} />
                 <Facts r={r} />
+                {midM && <Middle r={r} />}
                 <FileLink id={r.id} />
               </tr>
             ))}
@@ -165,7 +195,7 @@ export function SearchEvidence({ data }: { data: Evidence }) {
             است — پس معلوم نیست آن را دارند یا نه.
           </p>
           <OfAll shown={apart.length} total={apartTotal} noun="آگهی جدا" />
-          <Table head={['خودرو', 'چه چیزی ثبت نشده', ...FACTS, '']}>
+          <Table head={['خودرو', 'چه چیزی ثبت نشده', ...FACTS, ...(midA ? [MIDDLE_HEAD_FA] : []), '']}>
             {apart.map((r) => (
               <tr key={r.id} data-listing={r.id}>
                 <Name r={r} />
@@ -175,6 +205,7 @@ export function SearchEvidence({ data }: { data: Evidence }) {
                     : UNCHECKED_FA[k] ?? k)).join('، ')}
                 </td>
                 <Facts r={r} />
+                {midA && <Middle r={r} />}
                 <FileLink id={r.id} />
               </tr>
             ))}
