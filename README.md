@@ -189,6 +189,18 @@ amount is taken for the ceiling — and what it leaves unread is listed under
 constraint stated was checked against it; one that carries no value for a
 constraint is held apart and says which (D65).
 
+Beside the sentence, and alone on `/filter`, a filter panel as on Divar (the
+owner's choice of 2026-11-25): a make and its model, the model year, the
+price and the mileage each between two ends, a province; the order — «ارزان
+نسبت به بازار», each price against the middle asking price of its make, model
+and year in the collection, as a model's page gives it, or «ارزان‌ترین», or
+«کم‌کارکردترین» — and how many listings to see, up to a hundred. Where the
+sentence and the panel state the same end of a constraint, the panel's
+stands, and the panel above says which came from where. The page's address
+carries the panel, so a filtered page can be sent. It is a filter and an
+order, not CARO's ranking, which a real corpus does not serve yet, and no
+middle is an estimate of a car (D36, D50).
+
 ---
 
 ## The data
