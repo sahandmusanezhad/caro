@@ -9695,3 +9695,92 @@ in a browser -- `/filter` among them -- among its steps, and `reached` said
 that no environment is named yet. Nothing was pushed to `Tecso-Dev/caro`.
 The site on Vercel was not read: it runs `b9f9090`, not this merge (D119);
 the filter reaches a site once the server serves `main`.
+
+## D130 — The companies' names the owner chose are no place: «کرمان موتور», «کرمان خودرو» and four of Iran Khodro's plants, declined as «خلیج فارس» is, by the owner's choice on a measurement
+
+«جک کرمان موتور» narrowed to Kerman, the note saying so, and «دنا ایران
+خودرو تبریز» to East Azerbaijan: a province's or a capital's name inside a
+company's was read as a place, the first of what the roadmap's item 3
+leaves. «خلیج فارس» was the one such name the reader knew (D83). Asked on
+2026-11-25, after D128, which round of the parser to take next, the owner
+chose this one; asked which names to measure, of four offered -- the two of
+Kerman, «یزد خودرو», «گیلان خودرو», and Iran Khodro with its plants'
+names -- the owner chose the first and the last.
+
+**Measured** the same day, the predictions written at 10:04Z and locked at
+17:12:01Z (sha256 `79502fc4…`) before anything was measured, the session
+having waited on a usage limit between; on `main` at `cd7bea9`. Three rules:
+K0, today; K1, the six names with a space -- «کرمان موتور», «کرمان خودرو»,
+and «ایران خودرو» with تبریز, مازندران, کرمانشاه and خراسان -- declined as
+«خلیج فارس» is; K2, as K1, and the four plants with «ایرانخودرو» as one word.
+
+    cells, the provinces right                              K0    K1    K2
+    a company's name, 12                                     2    12    12
+    a company's name and a place, the place alone, 4         0     4     4
+    a place before «موتور» or «خودرو», no company's, 4       4     0     0
+    other spellings, 4                                       1     3     4
+    no name of the list, 8                                   8     8     8
+    the suites' 1,296 queries, read differently                    0     0
+
+The two K0 already had right hold «خراسان», a family, declined; under K1 and
+K2 each of the twelve lists the company's name, alone or in the clause, and
+leaves no province's note. The cost is the third row: «پراید کرمان موتور
+سالم» -- Kerman, and an engine in good order -- reads no Kerman, and lists
+«کرمان موتور» as not understood. Every prediction held. Put to the owner,
+the owner chose K2. The owner then asked for the filter (D129), and this
+round waited, decided and not built, until #64 and #65 were merged.
+
+Merged on 2026-11-25 in #66:
+
+    commit    what it does                                            suites    bare
+    8985231   the companies' names declined                             4120    3352
+    4054817   the roadmap's longer names                                4120    3352
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `c32b622`.
+
+**The rule** (`caro.ranking._NOT_PROVINCES`): the ten names beside «خلیج
+فارس», so that `_PLACE` matches each whole and `read_provinces` declines it
+wherever it stands, with what stands before it, and lists it under
+«نفهمیدیم»; a ZWNJ is a space after `normalize_fa`. The parser as built reads
+the measurement's 32 phrasings and the 1,296 queries exactly as the
+measured K2 did: 1,327 readings, no difference.
+
+**Tests**, in `tests/test_ranking.py`: the owner's ten names written out --
+not read from the parser, so that a name dropped from its table turns a
+row red -- each declined and listed with no note; the measurement's 32
+rows; and one that the name is listed inside the clause where no model is
+named.
+
+**Mutants**, bytecode off, 6, all caught: no company's name, «ایرانخودرو»
+as one word not read, the two of Kerman left out, the plant «خراسان» left
+out, the plant «تبریز» left out, and the names declined but never matched.
+
+**Left**, pinned by a test: a place before «موتور» or «خودرو» that are no
+company's reads no province. And «یزد خودرو» and «گیلان خودرو», which the
+owner did not choose, read as their provinces with the note, as any other
+company's name holding one does.
+
+**On `main` after `993e915`**, D129's merge, read on 2026-11-25: `images`
+passed, and `ci` failed once, in the e2e walk: «/filter (desk, light):
+thrown: Minified React error #418», a hydration mismatch, on one of its 60
+page views. Its one re-run passed. It was not seen on #65's own run of the
+same tree, nor on #64's, #66's or main's after #64 or #66, nor in six local
+walks from a cold server (360 page views) and 125 more visits, 70 of them
+to `/filter` and 45 at a sixth of the speed, with the Chromium CI uses.
+It came once more, on #67's own run of `images`, the D-entry for #66:
+«/compare (desk, light)», a page this work did not touch, and that job's one
+re-run passed. Both times it was the first of the four views, at a desk in
+light, where every link in the nav is in sight. `/filter` and `/search` are
+one component and their prerendered pages differ only in their words; the
+last forty runs of `ci` before #64 had passed at the first attempt. Its
+cause was not found; the walks that follow are read for it.
+
+**On `main` after `c32b622`**, read on 2026-11-25: `ci` and `images`
+passed at the first attempt, the e2e walk and the images job's walk of the
+key routes in a browser among their steps, `/filter` among the routes, and
+`reached` said that no environment is named yet. Nothing was pushed to
+`Tecso-Dev/caro`. The site on Vercel was not read: it runs
+`b9f9090`, not this merge (D119); the rule reaches a site once the server
+serves `main`.
