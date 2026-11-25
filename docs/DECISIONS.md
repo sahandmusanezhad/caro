@@ -9507,3 +9507,93 @@ in a browser among its steps, and `reached` said that no environment is
 named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
 not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
 once the server serves `main`.
+
+## D128 — A province's capital named in a query is read as its province, and the page says so, by the owner's choice on a measurement
+
+«پراید در مشهد» narrowed to no province. The search read a province's name
+(D82) and no city, and listed «در مشهد» under «نفهمیدیم» (D84); «پراید
+مشهد», with no cue before the city, was dropped without a word. The listing
+parser has read a province's capital as its province since the owner's
+choice of 2026-10-30 (D93), by the table `OTHER_CAPITALS`: the eighteen
+capitals whose name is not their province's, two of them written with a
+space as well as without. Asked on 2026-11-25 which next round of the
+parser to take, the owner chose the city in the search.
+
+**Measured** the same day, the predictions locked first (sha256
+`5ac22eda…`, 08:57Z), on `main` at `c83f318`. Two input hashes in the file
+had been typed before the command that printed them had run, and were
+wrong; an erratum giving the printed ones was locked sixteen seconds later,
+before anything was measured, and the predictions were left as locked.
+Three rules: P0, today; P1, a capital read wherever a province's name is
+read and declined wherever one is, the page saying which province it was
+taken for; P2, as P1, but a capital with nothing before it declined and
+listed, as «مرکزی» and «گلستان» are.
+
+    cells                                                 P0    P1    P2
+    after «در», the 20 spellings                           0    20    20
+    with nothing before them, 6                            0     6     0
+    declined: a negation, a nearness, a plate, 6           6     6     6
+    a distance from a capital, 2                           2     0     2
+    a capital's letters in another word, 5                 5     5     5
+    two places joined by «یا», 2                           0     2     2
+    the suites' 1,253 queries, provinces changed                69    54
+
+Of the 1,253, 96 hold a capital as a word, and no other query changed. The
+whole reading changed on 71 under each: beyond the provinces, two declined
+phrases are listed whole («غیر از شیراز و مشهد», and «نه مشهد», which was
+dropped without a word), and under P2 the bare capitals are listed. Every
+prediction held. Put to the owner the same day, the owner chose P1.
+
+Merged on 2026-11-25 in #62:
+
+    commit    what it does                                            suites    bare
+    5bed259   a capital read as its province, the page says so          4037    3286
+    3d6af26   the README's requests and parser                          4037    3286
+    63a0a9b   the roadmap's places                                      4037    3286
+    ffe02cc   the README's ranges, out of date since 2026-11-22         4037    3286
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `05c067f`.
+
+**The rule** (`caro.ranking`): `_PROVINCE_BY_TEXT` takes `OTHER_CAPITALS`,
+so `_PLACE` finds a capital where it finds a province's name,
+`read_provinces` reads it or declines it as one, and `read_unknown_places`
+blanks it as one. Wherever a capital is read the page says which province
+it was taken for, after a locative too, where a province's own name still
+says nothing. The parser as built reads the measurement's 41 phrasings and
+the suites' 1,253 queries exactly as the measured P1 did.
+
+**Tests**, in `tests/test_ranking.py`, 43 rows in: every spelling after
+«در», read and said; the measurement's bare, declined, group and false
+cases; «پراید نه مشهد» listing «نه مشهد»; and what is left. The rows of the
+unknown-place reader and the «no province» rows named Mashhad, Shiraz,
+Karaj, Tabriz and Bandar Abbas; 76 lines name Kashan, Dezful, Saveh,
+Maragheh and Bandar Anzali now, cities that are no capital, so that they
+test what they tested.
+
+**Mutants**, bytecode off, 5, all caught: no capital read, a note for a
+bare name alone, no note at all, a capital that needs a locative (P2), and
+the flag that marks a capital never set.
+
+**The README**, brought up to date with it: «Try it»'s requests were asked
+again of this tree's API on run17, offline. «دنا در مشهد» reads Razavi
+Khorasan with the note, and 2 of run17's 40 Dena listings are in it, none
+held apart; the other three answer as printed; and a fifth, «دنا در کاشان»,
+gives the old answer for a city that is no capital. Its paragraph on the
+parser also said «X تا Y» gives both ends only where X has its scale word,
+out of date since 2026-11-22 (D123 to D127); found while the capitals were
+written in, it says now what is read and what is left.
+
+**Left**: a distance from a capital is read as its province («پراید تا ۵۰
+کیلومتر فاصله از کرج» as Alborz), as a distance from a province's own name
+is, pinned by a test; a capital inside a longer name that is no place is
+read as a province's name is («ایران خودرو تبریز» as East Azerbaijan, the
+note shown); and any other city is not read, listed after a cue as before.
+
+**On `main` after `05c067f`**, read on 2026-11-25: `ci` and `images`
+passed, the images job's read of both images and its walk of the key routes
+in a browser among its steps, and `reached` said that no environment is
+named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
+not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
+once the server serves `main`.

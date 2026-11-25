@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D127, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D128, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -315,7 +315,7 @@ names. Durations are for two people part-time.
      space is not matched at all, and «خلیجِ فارس» typed with a kasra is read
      as the province, since a diacritic is not stripped.
    - A province's capital is read as its province since 2026-11-25, the
-     owner's choice on a measurement (P1): the eighteen whose name is not
+     owner's choice on a measurement (P1, D128): the eighteen whose name is not
      their province's, `OTHER_CAPITALS`, the table the listing parser reads
      (D93), read wherever a province's name is read and declined wherever
      one is. The page always says which province it took a capital for
