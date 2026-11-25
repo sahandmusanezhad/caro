@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D129, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D130, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -328,7 +328,7 @@ names. Durations are for two people part-time.
    - A province's name inside a longer name that is not a place is read as
      the province, with the assumption shown: «یزد خودرو», «گیلان خودرو»; so
      is a capital's since 2026-11-25. «خلیج فارس» is not (D83), and since
-     2026-11-25, the owner's choice on a measurement (K2), neither are the
+     2026-11-25, the owner's choice on a measurement (K2, D130), neither are the
      companies' names the owner chose: «کرمان موتور», «کرمان خودرو», and
      Iran Khodro with four of its plants', «ایران خودرو تبریز», «… مازندران»,
      «… کرمانشاه» and «… خراسان», written with a space or as one word. Each
