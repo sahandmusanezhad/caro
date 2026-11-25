@@ -640,12 +640,15 @@ names. Durations are for two people part-time.
    میلیون» from 550 million, «تیگو ۸ تا ۹ میلیارد» from 8 billion); measured
    the same day, the owner's call, it is held back since then where the
    owner's list gives it to the name right before it (M3, D126): «تیگو» 5, 7, 8;
-   «آریزو» 5, 6; «مزدا» 2, 3, 6; «ام وی ام» 110, 315, 530, 550. The list
-   makes no model a query names; of 7 model numbers made for it 6 are a
-   ceiling alone, and of 7 prices' ranges after a word 6 are read as before.
-   Left, each pinned by a test: a model's number after a name the list does
-   not hold is the lower end («هایما ۷ تا ۹ میلیارد»); a listed number meant
-   as a price is held back («مزدا ۲ تا ۳ میلیارد»); and a lower end that is
+   «آریزو» 5, 6; «مزدا» 2, 3, 6; «ام وی ام» 110, 315, 530, 550; and since
+   2026-11-25, the owner's choice on a second measurement, «هایما» 7, 8 and
+   «اس» 3, 5, 7, a series word between a make and its number («جک اس ۵»). The
+   list makes no model a query names; of 7 model numbers made for it 6 are a
+   ceiling alone, and of 7 prices' ranges after a word 6 are read as before;
+   with the two names, 6 of 6 more, and 3 of 5 more ranges. Left, each pinned
+   by a test: a model's number after a name the list does not hold is the
+   lower end; a listed number meant as a price is held back («مزدا ۲ تا ۳
+   میلیارد», «هایما ۷ تا ۸ میلیارد», «اس ۵ تا ۶ میلیارد»); and a lower end that is
    not round, or is also a year, is held back as before, a ceiling alone
    («۳۸۰ تا ۴۲۰ میلیون», «۱۴۰۰ تا ۱۸۰۰ میلیون», «۲۰۰۰ تا ۲۵۰۰ میلیون», «۷۰ تا
    ۹۰ میلیارد»).
