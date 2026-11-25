@@ -208,6 +208,17 @@ class EvidenceItem(BaseModel):
     # appraisal Row, which carries none: a real one exists only after
     # eligibility refused every odometer but a plausible one.
     mileage_status: MileageStatus | None = None
+    # The middle ASKING price of this listing's make, model and year in the
+    # corpus being served, and how many priced listings of that make, model
+    # and year there are: the figure the model's page draws by year
+    # (webapp/api/market.py), set on a search's or a filter's listings so that
+    # «ارزان نسبت به بازار» can say what it compared. It is a fact about the
+    # run's asking prices, not an estimate of this car (D36, D50): no middle
+    # is given where fewer than three priced listings stand behind it, and the
+    # count says so. Null where it was not looked up: an appraisal Row, a
+    # model's page, a car's page.
+    year_middle_toman: int | None = None
+    year_middle_priced: int | None = None
 
 
 # The constraints a listing can fail to be checked against, by the names
@@ -218,6 +229,10 @@ class EvidenceItem(BaseModel):
 # screen as a bare token.
 ConstraintKey = Literal["budget", "year", "mileage", "province",
                         "accident", "unclear_documents", "manual", "repaint"]
+
+# The constraints the filter panel states, by name: the four above it shares
+# with the sentence, and the make and the model.
+FilterKey = Literal["budget", "year", "mileage", "province", "make", "model"]
 
 
 class UncheckedItem(EvidenceItem):
@@ -277,6 +292,11 @@ class Intent(BaseModel):
     models: list[str] = Field(default_factory=list)
     year_min: int | None = None
     max_mileage_km: int | None = None
+    # A filter's other ends, which no sentence states: the latest year, the
+    # least mileage, and the makes (any one meets it).
+    year_max: int | None = None
+    min_mileage_km: int | None = None
+    makes: list[str] = Field(default_factory=list)
     # The provinces named as where the car should be; any one meets it. Empty
     # when none was stated.
     provinces: list[str] = Field(default_factory=list)
@@ -286,6 +306,9 @@ class Intent(BaseModel):
     assumptions: list[str] = Field(default_factory=list)
     unparsed: list[str] = Field(default_factory=list)
     weights: Weights
+    # Which constraints came from the filter panel rather than the sentence.
+    # Where both state one, the filter's stands, and the panel says so.
+    from_filter: list[FilterKey] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -296,8 +319,20 @@ class CorpusResponse(Envelope):
     """`/api/corpus` — the envelope and nothing else. That is the whole point."""
 
 
+# The orders a search's or a filter's listings can be drawn in, the reader's
+# choice (the owner's of 2026-11-25): «ارزان نسبت به بازار», the price against
+# the middle asking price of its make, model and year in the run, lowest
+# first; «ارزان‌ترین», the price; «کم‌کارکردترین», the odometer. Each puts the
+# listings it has nothing to order by last.
+SortKey = Literal["market", "price", "mileage"]
+
+
 class SearchResponse(Envelope):
     intent: Intent
+    # The order the listings below are in: one of `SortKey`, or null for the
+    # corpus's own order, and for a served ranking, whose order is the
+    # ranking's.
+    sort: SortKey | None = None
     considered: int
     appraisable: int
     candidates: int

@@ -77,7 +77,7 @@ reason gives run16's figure, it names it.
 |---|---|---|---|---|---|---|---|---|
 | `listing_id` | `SOURCE_BACKED` | 492/492 | 492 | no | no | no | no | identity; keyed on, never drawn |
 | `source_url` | `SOURCE_BACKED` | 492/492 | 492 | yes | yes | no | no | the source's own statement of where the listing lives |
-| `make` | `SOURCE_BACKED` | 492/492 | 45 | yes | yes | no | no | 45 values here and one on run16; no filter over it is built — see below |
+| `make` | `SOURCE_BACKED` | 492/492 | 45 | yes | yes | no | yes | 45 values here and one on run16; the filter panel offers it since 2026-11-25, the owner's choice — see below |
 | `model` | `SOURCE_BACKED` | 492/492 | 115 | yes | yes | no | yes |  |
 | `trim` | `SOURCE_BACKED` | 492/492 | 71 | yes | yes | no | yes |  |
 | `year_jalali` | `SOURCE_BACKED` | 492/492 | 19 | yes | yes | no | yes |  |
@@ -104,6 +104,8 @@ reason gives run16's figure, it names it.
 | `model_key` | `DERIVED` | — | — | yes | yes | no | no | make, model and trim joined into one key, rendered through `modelLabel`. Drawn by the detail page and by all three card surfaces — the evidence grid, `ListingCard` and `CompareTable` — which is why `card` is `yes`: `derived_title`, which this table meant for the card, is not a key in any published corpus and is not on the payload |
 | `derived_title` | `DERIVED` | — | — | yes | yes | no | no | composed from `make + model + trim + year_jalali` |
 | `observed_at` | `DERIVED` | — | — | yes | yes | no | no | the artifact's `collected_on`, carried onto every row — see below |
+| `year_middle_toman` | `DERIVED` | — | — | yes | no | no | no | the middle asking price of the listing's make, model and year in the run being served, where three priced listings or more stand behind it — the figure a model's page draws by year (`webapp/api/market.py`); on a search's and a filter's listings since 2026-11-25, so that the order «ارزان نسبت به بازار» says what it compared. A fact about the run's asking prices, not an estimate of the car (D36, D50) |
+| `year_middle_priced` | `DERIVED` | — | — | yes | no | no | no | how many priced listings of that make, model and year there are: drawn with the middle, and alone where it is under three and no middle is given |
 | `listing_age` | `EVIDENCE_ONLY` | — | — | yes | yes | no | no | only where the evidence exists; absence renders no claim — see below |
 | `image` | `UNAVAILABLE` | — | — | no | no | no | no | see below |
 
@@ -122,8 +124,8 @@ may be both; none is today.
 
 **None of these four columns is derived from `filled` and `distinct`.**
 Coverage and variety are inputs to the judgement, not the judgement: `make`
-is filled on every row and is still `facet: no`, because one distinct value
-is not a choice. `filled: 73/73` on its own authorises nothing — and
+was filled on every row of run16 and was `facet: no` there, because one
+distinct value is not a choice. `filled: 73/73` on its own authorises nothing — and
 `product_class`, one value on run16 and on run13 and two on run14 and on
 run11, is a gate on all four and would fail the variety condition as a facet
 on run16 and run13, which is the clearest case of why the two are not one
@@ -134,7 +136,8 @@ with `{k: v for k, v in out.items() if v is not None}`, so a key with no value
 does not reach the artifact — and absence has more than one upstream cause,
 which the table keeps apart rather than flattening into "missing":
 
-- `model_key`, `derived_title`, `observed_at` — CARO's own, composed after the
+- `model_key`, `derived_title`, `observed_at`, `year_middle_toman`,
+  `year_middle_priced` — CARO's own, composed after the
   artifact is read, never in it.
 - `document_issue` — a dash again: a value the parser writes only where the
   seller's text has a phrase it knows, an issue or a clean title, and no
@@ -159,8 +162,9 @@ corpus promoted after both repairs, and run14 the first to carry
 On run16, `make` was filled on every one of the 73 rows and had exactly
 **one** value: a brand filter over it would have offered the reader a single
 choice, and a ranking term computed from it would have moved nothing. On
-run17 it has 45, and would pass the variety condition; the `facet` column
-says what the site does, and no brand filter is built. D41 found four of six scoring
+run17 it has 45, and passes the variety condition; the `facet` column says
+what the site does, and since 2026-11-25 the filter panel offers a brand, the
+owner's choice, with the model of it the corpus holds. D41 found four of six scoring
 terms constant on a real corpus and the gate refusing; the same arithmetic
 applies to a filter.
 

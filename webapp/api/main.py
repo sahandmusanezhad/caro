@@ -39,14 +39,19 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from fastapi import FastAPI, Path, Query, Response                 # noqa: E402
+from dataclasses import dataclass, replace                         # noqa: E402
+from typing import Annotated                                       # noqa: E402
+
+from fastapi import Depends, FastAPI, HTTPException, Path, Query, Response  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware                 # noqa: E402
 
 from caro.appraisal import NotBenchmarked                          # noqa: E402
 from caro.ranking import Weights as RankWeights                    # noqa: E402
-from caro.ranking import diversify, retrieve                       # noqa: E402
+from caro.ingest.persian import PROVINCES                          # noqa: E402
+from caro.ranking import IntentSpec, diversify, retrieve           # noqa: E402
 from webapp.api import constraints                                 # noqa: E402
 from webapp.api import corpus as corpus_mod                        # noqa: E402
+from webapp.api import market                                      # noqa: E402
 from webapp.api.accounts import router as accounts_router          # noqa: E402
 from webapp.api.collection import router as collection_router      # noqa: E402
 from webapp.api.contact import router as contact_router            # noqa: E402
@@ -60,7 +65,7 @@ from webapp.api.metrics import router as metrics_router            # noqa: E402
 from webapp.api.schemas import (                                   # noqa: E402
     CompareRequest, CompareResponse, CorpusMeta, CorpusResponse, Envelope,
     EvidenceItem, Fault, HealthResponse, Intent, ListingResponse,
-    ReweightRequest, ScoredItem, SearchResponse, ServingStatus,
+    ReweightRequest, ScoredItem, SearchResponse, ServingStatus, SortKey,
     UncheckedItem, Weights,
 )
 from webapp.api.observability import init_sentry                   # noqa: E402
@@ -115,6 +120,112 @@ app.add_middleware(Measure)
 # An unbounded string is work an attacker chooses the size of.
 MAX_Q = 500
 MAX_ID = 120
+
+# The most listings one answer carries, a search's, a reweight's and a
+# filter's alike (section 14 of tests/test_api_contract.py holds the three to
+# one bound). It was 24 until 2026-11-25, when the owner asked that a reader
+# choose how many to see; run17 holds 492 cars, and a hundred listings are
+# some forty kilobytes.
+MAX_K = 100
+# The longest make or model a filter names, as a model's page bounds it.
+MAX_NAME = market.MAX_NAME
+# The bounds of a filter's numbers: a price in toman, a model year in the
+# Jalali calendar the corpus writes, an odometer in kilometres.
+MAX_TOMAN = 10**12
+YEARS = (1300, 1499)
+MAX_KM = 10_000_000
+
+
+# ---------------------------------------------------------------------------
+# the filter panel — the owner's choice of 2026-11-25
+# ---------------------------------------------------------------------------
+#
+# A reader filters as on Divar: the price between two amounts, the model year
+# between two years, the mileage between two readings, a make and a model, a
+# province; and chooses the order and how many listings to see. The panel
+# stands beside the sentence on the search page, where a constraint both
+# state is the filter's, end by end, and alone on the filter page
+# (`/api/filter`). A filter is judged as a sentence's constraint is
+# (webapp/api/constraints.py): a listing that carries no value for one is
+# held apart and says which, never let through.
+
+@dataclass(frozen=True)
+class Filters:
+    price_min: int | None = None
+    price_max: int | None = None
+    year_min: int | None = None
+    year_max: int | None = None
+    km_min: int | None = None
+    km_max: int | None = None
+    make: str | None = None
+    model: str | None = None
+    province: str | None = None
+
+
+def filters(
+        price_min: int | None = Query(None, ge=0, le=MAX_TOMAN, description="کمترین قیمت، تومان"),
+        price_max: int | None = Query(None, ge=0, le=MAX_TOMAN, description="بیشترین قیمت، تومان"),
+        year_min: int | None = Query(None, ge=YEARS[0], le=YEARS[1], description="از سال ساخت"),
+        year_max: int | None = Query(None, ge=YEARS[0], le=YEARS[1], description="تا سال ساخت"),
+        km_min: int | None = Query(None, ge=0, le=MAX_KM, description="کمترین کارکرد، کیلومتر"),
+        km_max: int | None = Query(None, ge=0, le=MAX_KM, description="بیشترین کارکرد، کیلومتر"),
+        make: str | None = Query(None, max_length=MAX_NAME, description="برند، همان‌طور که پیکره می‌نویسد"),
+        model: str | None = Query(None, max_length=MAX_NAME, description="مدل، همان‌طور که پیکره می‌نویسد"),
+        province: str | None = Query(None, max_length=40, description="استان")) -> Filters:
+    """A filter's fields, each None where the panel left it empty. An empty
+    string is a field left empty. A range whose low end is above its high end
+    asks for nothing that could exist, and a province not of the thirty-one
+    for nothing a listing carries: each is a 422 that says which."""
+    for lo, hi, what in ((price_min, price_max, "price"), (year_min, year_max, "year"),
+                         (km_min, km_max, "km")):
+        if lo is not None and hi is not None and lo > hi:
+            raise HTTPException(422, f"{what}_min ({lo}) is above {what}_max ({hi})")
+    make = (make or "").strip() or None
+    model = (model or "").strip() or None
+    province = (province or "").strip() or None
+    if province is not None and province not in PROVINCES:
+        raise HTTPException(422, f"province {province!r} is not one of the thirty-one")
+    return Filters(price_min, price_max, year_min, year_max, km_min, km_max,
+                   make, model, province)
+
+
+def _with_filters(spec, f: Filters | None):
+    """The spec with the filter's constraints in it, and which came from the
+    filter. An end the filter states replaces the sentence's same end; one it
+    leaves empty keeps the sentence's."""
+    if f is None:
+        return spec, []
+    changes: dict = {}
+    keys: list[str] = []
+    if f.price_min is not None or f.price_max is not None:
+        if f.price_min is not None:
+            changes["budget_min_toman"] = f.price_min
+        if f.price_max is not None:
+            changes["budget_max_toman"] = f.price_max
+        changes["budget_hard"] = True
+        keys.append("budget")
+    if f.year_min is not None or f.year_max is not None:
+        if f.year_min is not None:
+            changes["year_min"] = f.year_min
+        if f.year_max is not None:
+            changes["year_max"] = f.year_max
+        keys.append("year")
+    if f.km_min is not None or f.km_max is not None:
+        if f.km_min is not None:
+            changes["min_mileage_km"] = f.km_min
+        if f.km_max is not None:
+            changes["max_mileage_km"] = f.km_max
+        keys.append("mileage")
+    if f.province is not None:
+        changes["provinces"] = (f.province,)
+        keys.append("province")
+    if f.make is not None:
+        changes["makes"] = (f.make,)
+        keys.append("make")
+    if f.model is not None:
+        changes["model_hints"] = (f.model.lower(),)
+        keys.append("model")
+    return (replace(spec, **changes) if changes else spec), keys
 
 
 # ---------------------------------------------------------------------------
@@ -224,8 +335,63 @@ def _row_evidence(r) -> EvidenceItem:
         asking_price_toman=int(r.asking_price_toman))
 
 
-def _listing_evidence(x) -> EvidenceItem:
-    return EvidenceItem(
+def _middle_key(x) -> tuple | None:
+    y = getattr(x, "year_jalali", None)
+    return (*market._key(getattr(x, "make", None), getattr(x, "model", None)), int(y)) if y else None
+
+
+def _year_middles(c) -> dict:
+    """{(make, model, year): (priced listings, their middle or None)} over the
+    served corpus's cars: the middles a model's page draws by year, by its own
+    rules -- the gate's reading of a price, and no middle under three
+    (webapp/api/market.py)."""
+    by: dict = {}
+    for x in market._vehicles(c):
+        p, key = market.priced(x), _middle_key(x)
+        if p is not None and key is not None:
+            by.setdefault(key, []).append(p)
+    return {key: (len(v), market._middle(v)) for key, v in by.items()}
+
+
+def _vs_middle(x, middles: dict) -> float | None:
+    """How far this listing's price stands from its make, model and year's
+    middle, as a fraction of it: -0.1 is a tenth below. None where either is
+    missing."""
+    p = market.priced(x)
+    mid = middles.get(_middle_key(x), (0, None))[1]
+    return (p - mid) / mid if p is not None and mid else None
+
+
+def _ordered(pairs: list, sort: str | None, middles: dict) -> list:
+    """(listing, missing) pairs in the order the reader chose; the corpus's
+    own order where none was. What a listing has no value for -- a price, a
+    middle, a plausible odometer -- puts it after those that have one, and a
+    tie keeps the corpus's order."""
+    if sort is None:
+        return pairs
+
+    def key(item):
+        i, (x, _) = item
+        price = market.priced(x)
+        if sort == "price":
+            return (price is None, price or 0, i)
+        if sort == "mileage":
+            km = constraints.odometer(x)
+            return (km is None, km or 0, i)
+        # «ارزان نسبت به بازار»: the furthest below its middle first; then the
+        # listings with no middle to compare with, the priced cheapest first.
+        gap = _vs_middle(x, middles)
+        return (gap is None, gap if gap is not None else 0, price is None, price or 0, i)
+
+    return [p for _, p in sorted(enumerate(pairs), key=key)]
+
+
+def _listing_evidence(x, middles: dict | None = None) -> EvidenceItem:
+    extra = {}
+    if middles is not None:
+        n, mid = middles.get(_middle_key(x), (0, None))
+        extra = {"year_middle_toman": mid, "year_middle_priced": n}
+    return EvidenceItem(**extra,
         id=x.listing_id, url=x.url or "",
         model_key="|".join(p or "" for p in (x.make, x.model, x.trim)),
         make=x.make, model=x.model, trim=x.trim,
@@ -259,9 +425,11 @@ def _scored(s, rank: int) -> ScoredItem:
                   if not k.startswith("_") and isinstance(v, (int, float))})
 
 
-def _intent(spec) -> Intent:
+def _intent(spec, from_filter=()) -> Intent:
     w = spec.weights.normalized()
     return Intent(
+        year_max=spec.year_max, min_mileage_km=spec.min_mileage_km,
+        makes=list(spec.makes), from_filter=list(from_filter),
         query=spec.raw_query,
         budget_max_toman=spec.budget_max_toman,
         budget_min_toman=spec.budget_min_toman,
@@ -282,7 +450,7 @@ def _intent(spec) -> Intent:
                             "mileage", "recency")}))
 
 
-def _evidence(c, spec, cands, k: int) -> dict:
+def _evidence(c, spec, cands, k: int, sort: str | None = None) -> dict:
     """What can still be shown when no ranking may be served — the four
     evidence fields of a SearchResponse.
 
@@ -299,11 +467,13 @@ def _evidence(c, spec, cands, k: int) -> dict:
     """
     if cands:
         # Appraisal Rows: eligibility required every value judged here, so
-        # nothing in them is unknown.
+        # nothing in them is unknown. They are in the order retrieval left
+        # them, and the answer says no other.
         return {"evidence": [_row_evidence(r) for r in cands[:k]],
-                "evidence_total": len(cands)}
+                "evidence_total": len(cands), "sort": None}
 
     matched, apart = [], []
+    makes = {market._key(m, None)[0] for m in spec.makes}
     for x in c.listings:
         # The gate (D52): only `vehicle` is shown as a car. `unknown` does
         # not pass — a record whose class was never determined is not a car,
@@ -313,18 +483,26 @@ def _evidence(c, spec, cands, k: int) -> dict:
             continue
         if spec.model_hints and (x.model or "").lower() not in spec.model_hints:
             continue
+        # A make a filter names is a listing's make as the corpus writes it,
+        # as a model's page matches one (market._key); like a model, another
+        # make is not a candidate at all.
+        if makes and market._key(x.make, None)[0] not in makes:
+            continue
         missing = constraints.unchecked(constraints.judge(x, spec))
         if missing is None:
             continue
         (apart if missing else matched).append((x, missing))
 
+    middles = _year_middles(c)
+    matched, apart = _ordered(matched, sort, middles), _ordered(apart, sort, middles)
     return {
-        "evidence": [_listing_evidence(x) for x, _ in matched[:k]],
+        "evidence": [_listing_evidence(x, middles) for x, _ in matched[:k]],
         "evidence_total": len(matched),
         "evidence_unchecked": [
-            UncheckedItem(**_listing_evidence(x).model_dump(), unchecked=m)
+            UncheckedItem(**_listing_evidence(x, middles).model_dump(), unchecked=m)
             for x, m in apart[:k]],
         "evidence_unchecked_total": len(apart),
+        "sort": sort,
     }
 
 
@@ -354,17 +532,40 @@ def which_corpus() -> CorpusResponse:
 
 @app.get("/api/search", response_model=SearchResponse)
 def search(q: str = Query(..., min_length=2, max_length=MAX_Q, description="پرسش فارسی"),
-           k: int = Query(6, ge=1, le=24)) -> SearchResponse:
+           k: int = Query(6, ge=1, le=MAX_K),
+           sort: Annotated[SortKey | None, Query(description="ترتیب آگهی‌ها")] = None,
+           flt: Annotated[Filters | None, Depends(filters)] = None) -> SearchResponse:
     """A Persian sentence in, a defensible ranked decision out — or a refusal.
 
     The refusal path is the interesting one and it returns 200: the estimator
     may not have cleared the gate on this corpus, in which case there is no
     shortlist to serve and the response says so, keeping the parsed intent and
     the evidence that are still true.
+
+    The filter panel's fields ride along (`filters`); where the sentence and
+    the panel state the same end of a constraint, the panel's stands.
     """
     c = corpus_mod.active()
-    spec = c.pipeline.parser.parse(q)
+    spec, keys = _with_filters(c.pipeline.parser.parse(q), flt)
+    return _answer(c, spec, keys, k, sort)
 
+
+@app.get("/api/filter", response_model=SearchResponse)
+def filter_listings(k: Annotated[int, Query(ge=1, le=MAX_K)] = 12,
+                    sort: Annotated[SortKey, Query(description="ترتیب آگهی‌ها")] = "market",
+                    flt: Annotated[Filters | None, Depends(filters)] = None) -> SearchResponse:
+    """The filter page: no sentence, only the panel's fields, the order the
+    reader chose -- «ارزان نسبت به بازار» unless they chose another -- and as
+    many listings as they asked for. It answers as a search does, from the
+    same code: the same gate, the same constraints, the same envelope."""
+    c = corpus_mod.active()
+    spec, keys = _with_filters(IntentSpec(raw_query=""), flt)
+    return _answer(c, spec, keys, k, sort)
+
+
+def _answer(c, spec, keys, k: int, sort: str | None) -> SearchResponse:
+    """A search's answer once its spec is known: a sentence's, a filter's, or
+    both."""
     # The gate is a property of the CORPUS, not of this query, so it is
     # answered before the query is retrieved against — and the retrieval
     # ladder is not run at all.
@@ -380,11 +581,11 @@ def search(q: str = Query(..., min_length=2, max_length=MAX_Q, description="پر
     if not c.gated:
         return SearchResponse(
             **_envelope(c, served=False).model_dump(),
-            intent=_intent(spec),           # as stated, not as relaxed
+            intent=_intent(spec, keys),     # as stated, not as relaxed
             considered=len(c.listings) or len(c.rows),
             appraisable=len(c.rows),
             candidates=0, relaxed=False, relaxation_fa="",
-            items=[], **_evidence(c, spec, [], k))
+            items=[], **_evidence(c, spec, [], k, sort))
 
     cands, used, rep = retrieve(c.rows, spec)
     try:
@@ -395,17 +596,19 @@ def search(q: str = Query(..., min_length=2, max_length=MAX_Q, description="پر
         # the mechanism wins.
         return SearchResponse(
             **_envelope(c, served=False).model_dump(),
-            intent=_intent(used),
+            intent=_intent(used, keys),
             considered=len(c.listings) or len(c.rows),
             appraisable=len(c.rows),
             candidates=len(cands), relaxed=rep.relaxed,
             relaxation_fa=rep.text_fa() if rep.relaxed else "",
-            items=[], **_evidence(c, used, cands, k))
+            items=[], **_evidence(c, used, cands, k, sort))
 
+    # A served ranking is in the ranking's order, whatever order was asked
+    # for: the order is the decision, and the answer says so (`sort` null).
     items = diversify(scored, k=k)
     return SearchResponse(
         **_envelope(c, served=True).model_dump(),
-        intent=_intent(used),
+        intent=_intent(used, keys),
         considered=len(c.listings) or len(c.rows),
         appraisable=len(c.rows),
         candidates=len(cands), relaxed=rep.relaxed,
@@ -416,7 +619,9 @@ def search(q: str = Query(..., min_length=2, max_length=MAX_Q, description="پر
 
 @app.post("/api/search/reweight", response_model=SearchResponse)
 def search_reweight(weights: ReweightRequest, q: str = Query(..., max_length=MAX_Q),
-                    k: int = Query(6, ge=1, le=24)) -> SearchResponse:
+                    k: int = Query(6, ge=1, le=MAX_K),
+                    sort: Annotated[SortKey | None, Query(description="ترتیب آگهی‌ها")] = None,
+                    flt: Annotated[Filters | None, Depends(filters)] = None) -> SearchResponse:
     """The same query with the user's own weights. «بهترین» is a function.
 
     `k` is bounded as `/api/search` bounds it; D60 recorded that it was not.
@@ -425,7 +630,7 @@ def search_reweight(weights: ReweightRequest, q: str = Query(..., max_length=MAX
     silently.
     """
     c = corpus_mod.active()
-    spec = c.pipeline.parser.parse(q)
+    spec, keys = _with_filters(c.pipeline.parser.parse(q), flt)
     given = {f: v for f, v in weights.model_dump().items() if v is not None}
     if given:
         was = spec.weights
@@ -437,11 +642,11 @@ def search_reweight(weights: ReweightRequest, q: str = Query(..., max_length=MAX
     if not c.gated:
         return SearchResponse(
             **_envelope(c, served=False).model_dump(),
-            intent=_intent(spec),
+            intent=_intent(spec, keys),
             considered=len(c.listings) or len(c.rows),
             appraisable=len(c.rows),
             candidates=0, relaxed=False, relaxation_fa="",
-            items=[], **_evidence(c, spec, [], k))
+            items=[], **_evidence(c, spec, [], k, sort))
 
     cands, used, rep = retrieve(c.rows, spec)
     try:
@@ -449,16 +654,16 @@ def search_reweight(weights: ReweightRequest, q: str = Query(..., max_length=MAX
     except NotBenchmarked:
         return SearchResponse(
             **_envelope(c, served=False).model_dump(),
-            intent=_intent(used),
+            intent=_intent(used, keys),
             considered=len(c.listings) or len(c.rows),
             appraisable=len(c.rows),
             candidates=len(cands), relaxed=rep.relaxed,
             relaxation_fa=rep.text_fa() if rep.relaxed else "",
-            items=[], **_evidence(c, used, cands, k))
+            items=[], **_evidence(c, used, cands, k, sort))
 
     return SearchResponse(
         **_envelope(c, served=True).model_dump(),
-        intent=_intent(used),
+        intent=_intent(used, keys),
         considered=len(c.listings) or len(c.rows),
         appraisable=len(c.rows),
         candidates=len(cands), relaxed=rep.relaxed,

@@ -69,7 +69,9 @@ class Eligibility:
 FIELDS: dict[str, Eligibility] = {
     "listing_id": Eligibility("SOURCE_BACKED"),
     "source_url": Eligibility("SOURCE_BACKED", card=True, detail=True),
-    "make": Eligibility("SOURCE_BACKED", card=True, detail=True),
+    # A facet since 2026-11-25, when the owner chose the filter panel: 45
+    # makes on run17 pass the variety condition one make on run16 did not.
+    "make": Eligibility("SOURCE_BACKED", card=True, detail=True, facet=True),
     "model": Eligibility("SOURCE_BACKED", card=True, detail=True, facet=True),
     "trim": Eligibility("SOURCE_BACKED", card=True, detail=True, facet=True),
     "year_jalali": Eligibility("SOURCE_BACKED", card=True, detail=True,
@@ -133,6 +135,13 @@ FIELDS: dict[str, Eligibility] = {
     "model_key": Eligibility("DERIVED", card=True, detail=True),
     "derived_title": Eligibility("DERIVED", card=True, detail=True),
     "observed_at": Eligibility("DERIVED", card=True, detail=True),
+    # The middle asking price of a listing's make, model and year in the
+    # served run, and how many priced listings stand behind it, as a model's
+    # page draws them by year (webapp/api/market.py): on a search's and a
+    # filter's rows since 2026-11-25, beside each price, so that the order
+    # «ارزان نسبت به بازار» says what it compared. Not an estimate (D50).
+    "year_middle_toman": Eligibility("DERIVED", card=True),
+    "year_middle_priced": Eligibility("DERIVED", card=True),
     "listing_age": Eligibility("EVIDENCE_ONLY", card=True, detail=True),
     "image": Eligibility("UNAVAILABLE"),
 }

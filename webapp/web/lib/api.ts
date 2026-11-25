@@ -162,6 +162,13 @@ export interface EvidenceItem {
      says it travels with the number or neither renders. Null on an
      appraisal row, whose odometer eligibility already checked. */
   mileage_status: MileageStatus | null;
+  /* The middle ASKING price of this listing's make, model and year in the
+     corpus being served, and how many priced listings of them there are —
+     the figure the model's page draws by year. Not an estimate of this car
+     (D36, D50): no middle under three priced listings, and the count says
+     so. Null where it was not looked up. */
+  year_middle_toman: number | null;
+  year_middle_priced: number | null;
 }
 
 /** The constraints a listing can fail to be checked against — the names
@@ -172,6 +179,29 @@ export interface EvidenceItem {
 export type ConstraintKey =
   | 'budget' | 'year' | 'mileage' | 'province'
   | 'accident' | 'unclear_documents' | 'manual' | 'repaint';
+
+/** The constraints the filter panel states: the four it shares with the
+ *  sentence, the make and the model. Held to schemas.FilterKey. */
+export type FilterKey =
+  | 'budget' | 'year' | 'mileage' | 'province' | 'make' | 'model';
+
+/** The orders a reader can choose (the owner's choice of 2026-11-25): the
+ *  price against its make, model and year's middle, the price, the
+ *  odometer. Held to schemas.SortKey. */
+export type SortKey = 'market' | 'price' | 'mileage';
+
+/** What the filter panel states; a field left empty is absent. */
+export interface Filters {
+  price_min?: number;
+  price_max?: number;
+  year_min?: number;
+  year_max?: number;
+  km_min?: number;
+  km_max?: number;
+  make?: string;
+  model?: string;
+  province?: string;
+}
 
 /** A listing that breaks none of the buyer's constraints and could not be
  *  checked against at least one: it carries no value for it. Not a match —
@@ -214,6 +244,10 @@ export interface Intent {
   models: string[];
   year_min: number | null;
   max_mileage_km: number | null;
+  /* A filter's other ends, which no sentence states. */
+  year_max: number | null;
+  min_mileage_km: number | null;
+  makes: string[];
   provinces: string[];
   use_case: string | null;
   risk_profile: string | null;
@@ -221,6 +255,8 @@ export interface Intent {
   assumptions: string[];
   unparsed: string[];
   weights: WeightSet;
+  /* Which constraints came from the filter panel rather than the sentence. */
+  from_filter: FilterKey[];
 }
 
 /* ------------------------------------------------------------------ *
@@ -229,6 +265,9 @@ export interface Intent {
 
 export interface SearchResponse extends Envelope {
   intent: Intent;
+  /* The order the listings are in; null for the corpus's own, and for a
+     served ranking, whose order is the ranking's. */
+  sort: SortKey | null;
   considered: number;
   appraisable: number;
   candidates: number;
@@ -379,15 +418,34 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** The filter's fields and the order as query parameters, the empty ones
+ *  left out: the API's names (webapp/api/main.py, `filters`), which the
+ *  page's own address uses too, so that a filtered page can be sent. */
+export function filterParams(f: Filters = {}, sort?: SortKey | null): string {
+  const p = new URLSearchParams();
+  for (const [key, v] of Object.entries(f)) {
+    if (v !== undefined && v !== null && `${v}`.trim() !== '') p.set(key, `${v}`.trim());
+  }
+  if (sort) p.set('sort', sort);
+  const out = p.toString();
+  return out ? `&${out}` : '';
+}
+
 export const api = {
   corpus: () => json<CorpusResponse>('/api/corpus'),
 
-  search: (q: string, k = 6) =>
-    json<SearchResponse>(`/api/search?q=${encodeURIComponent(q)}&k=${k}`),
-
-  reweight: (q: string, weights: Partial<WeightSet>, k = 6) =>
+  search: (q: string, k = 6, f: Filters = {}, sort?: SortKey | null) =>
     json<SearchResponse>(
-      `/api/search/reweight?q=${encodeURIComponent(q)}&k=${k}`,
+      `/api/search?q=${encodeURIComponent(q)}&k=${k}${filterParams(f, sort)}`),
+
+  /* The filter page: no sentence, the panel alone. */
+  filter: (f: Filters = {}, k = 12, sort: SortKey = 'market') =>
+    json<SearchResponse>(`/api/filter?k=${k}${filterParams(f, sort)}`),
+
+  reweight: (q: string, weights: Partial<WeightSet>, k = 6, f: Filters = {},
+             sort?: SortKey | null) =>
+    json<SearchResponse>(
+      `/api/search/reweight?q=${encodeURIComponent(q)}&k=${k}${filterParams(f, sort)}`,
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
