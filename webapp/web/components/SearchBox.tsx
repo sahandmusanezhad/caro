@@ -3,12 +3,16 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-/* The one input on the site.
+/* The sentence box.
  *
- * It takes a Persian sentence, not a grid of dropdowns, and that is the
- * product argument rather than a styling choice: «ماشین برای اسنپ، کم‌مصرف،
- * قطعاتش ارزون باشه، زیر ۸۰۰ میلیون» carries a use case, two constraints and
- * a budget, and a filter panel can represent exactly one of those four.
+ * It takes a Persian sentence, and that is the product argument rather than
+ * a styling choice: «ماشین برای اسنپ، کم‌مصرف، قطعاتش ارزون باشه، زیر ۸۰۰
+ * میلیون» carries a use case, two constraints and a budget, and a filter
+ * panel can represent exactly one of those four. Since 2026-11-25 a filter
+ * panel stands beside it all the same, the owner's choice (FilterPanel.tsx):
+ * a reader who knows the range they want sets it as on Divar, and where the
+ * two state the same end of a constraint the panel's stands. The box keeps
+ * the panel's fields when the sentence changes (`keep`).
  *
  * What the box does NOT do is interpret anything. It hands the raw string to
  * `RuleIntentParser` and the results page prints back everything that was
@@ -46,10 +50,14 @@ export default function SearchBox({
   initial = '',
   autoFocus = false,
   showExamples = true,
+  keep = '',
 }: {
   initial?: string;
   autoFocus?: boolean;
   showExamples?: boolean;
+  /* The filter panel's fields as an address's tail («&price_max=…»), kept
+     when the sentence changes: a new sentence is not a new filter. */
+  keep?: string;
 }) {
   const [q, setQ] = useState(initial);
   const router = useRouter();
@@ -57,7 +65,7 @@ export default function SearchBox({
   function go(text: string) {
     const t = text.trim();
     if (t.length < 2) return;
-    router.push(`/search?q=${encodeURIComponent(t)}`);
+    router.push(`/search?q=${encodeURIComponent(t)}${keep}`);
   }
 
   return (

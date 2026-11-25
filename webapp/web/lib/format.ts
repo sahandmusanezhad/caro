@@ -202,6 +202,10 @@ export const MODEL_FA: Record<string, string> = {
   '206': '۲۰۶', '207': '۲۰۷', '405': '۴۰۵',
   pride: 'پراید', tiba: 'تیبا', quik: 'کوییک', pars: 'پارس',
   dena: 'دنا', shahin: 'شاهین', saina: 'ساینا',
+  // IKCO's three the one table gained on 2026-11-02 (caro/ingest/models.py),
+  // named here on 2026-11-25, when the filter panel listed them in Latin
+  // among Persian names.
+  samand: 'سمند', runna: 'رانا', tara: 'تارا',
   // Manufacturers. The corpus stores `Saipa` and the page was printing it, so
   // a Persian site showed a Latin brand beside a Persian model — «Saipa ·
   // پراید» — in an h1.

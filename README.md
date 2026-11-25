@@ -189,6 +189,18 @@ amount is taken for the ceiling — and what it leaves unread is listed under
 constraint stated was checked against it; one that carries no value for a
 constraint is held apart and says which (D65).
 
+Beside the sentence, and alone on `/filter`, a filter panel as on Divar (the
+owner's choice of 2026-11-25): a make and its model, the model year, the
+price and the mileage each between two ends, a province; the order — «ارزان
+نسبت به بازار», each price against the middle asking price of its make, model
+and year in the collection, as a model's page gives it, or «ارزان‌ترین», or
+«کم‌کارکردترین» — and how many listings to see, up to a hundred. Where the
+sentence and the panel state the same end of a constraint, the panel's
+stands, and the panel above says which came from where. The page's address
+carries the panel, so a filtered page can be sent. It is a filter and an
+order, not CARO's ranking, which a real corpus does not serve yet, and no
+middle is an estimate of a car (D36, D50).
+
 ---
 
 ## The data
@@ -608,7 +620,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 4037 assertions, no API key, no network
+python3 tests/run_all.py            # 4077 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -622,10 +634,10 @@ dependency of `caro/`.** Three of the nineteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 3286 assertions across 16 of 19 suites
+python3 tests/run_all.py            # 3309 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 4037 across all nineteen
+python3 tests/run_all.py            # 4077 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -836,7 +848,7 @@ until the owner deletes it, its open issues made here first
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           4037 assertions across nineteen suites
+tests/           4077 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)

@@ -937,6 +937,13 @@ class IntentSpec:
     model_hints: tuple[str, ...] = ()
     year_min: int | None = None
     max_mileage_km: int | None = None
+    # The ends a filter states and a sentence is not read for: the latest
+    # model year, the least mileage, and the makes, any one of which meets it
+    # (the filter panel, the owner's choice of 2026-11-25). The parser sets
+    # none of them; webapp/api/main.py sets them from a filter's fields.
+    year_max: int | None = None
+    min_mileage_km: int | None = None
+    makes: tuple[str, ...] = ()
     # Where the buyer said the car should be: the provinces named, any one of
     # which meets it. Empty when none was stated. The search over listings
     # judges it (webapp/api/constraints.py); the ranked path does not — an
@@ -1253,6 +1260,16 @@ def _model_matches(model_key: str, hints: Sequence[str]) -> bool:
     return False
 
 
+def _make_matches(model_key: str, makes: Sequence[str]) -> bool:
+    """Is this row's make one of `makes`? The make is the key's first segment,
+    compared stripped and case-folded; a key with no separator (a synthetic
+    corpus) names no make, and so no make a filter asks for."""
+    if "|" not in model_key:
+        return False
+    seg = model_key.split("|")[0].strip().casefold()
+    return any(seg == m.strip().casefold() for m in makes)
+
+
 def _passes(row: Row, spec: IntentSpec) -> bool:
     if spec.budget_max_toman and row.asking_price_toman > spec.budget_max_toman:
         return False
@@ -1260,9 +1277,15 @@ def _passes(row: Row, spec: IntentSpec) -> bool:
         return False
     if spec.model_hints and not _model_matches(row.model_key, spec.model_hints):
         return False
+    if spec.makes and not _make_matches(row.model_key, spec.makes):
+        return False
     if spec.year_min and row.year_jalali < spec.year_min:
         return False
+    if spec.year_max and row.year_jalali > spec.year_max:
+        return False
     if spec.max_mileage_km and row.mileage_km > spec.max_mileage_km:
+        return False
+    if spec.min_mileage_km and row.mileage_km < spec.min_mileage_km:
         return False
     for db in spec.deal_breakers:
         if row.features.get(f"has_{db}", 0.0) > 0.5:

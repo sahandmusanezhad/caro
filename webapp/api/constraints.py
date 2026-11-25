@@ -185,15 +185,25 @@ def judge(x, spec) -> dict[str, Verdict]:
         else:
             out["budget"] = "met"
 
-    if spec.year_min is not None:
+    # A year and a mileage are each one constraint with two ends, a floor and
+    # a ceiling. The sentence states one end of each («مدل ۹۸ به بالا»,
+    # «زیر ۱۰۰ هزار کیلومتر»); the filter panel can state both (the owner's
+    # choice of 2026-11-25), and a value outside either end breaks it.
+    y_lo, y_hi = spec.year_min, getattr(spec, "year_max", None)
+    if y_lo is not None or y_hi is not None:
         y = x.year_jalali
         out["year"] = ("unknown" if y is None
-                       else "broken" if y < spec.year_min else "met")
+                       else "broken" if ((y_lo is not None and y < y_lo)
+                                         or (y_hi is not None and y > y_hi))
+                       else "met")
 
-    if spec.max_mileage_km is not None:
+    m_lo, m_hi = getattr(spec, "min_mileage_km", None), spec.max_mileage_km
+    if m_lo is not None or m_hi is not None:
         m = odometer(x)
         out["mileage"] = ("unknown" if m is None
-                          else "broken" if m > spec.max_mileage_km else "met")
+                          else "broken" if ((m_hi is not None and m > m_hi)
+                                            or (m_lo is not None and m < m_lo))
+                          else "met")
 
     if spec.provinces:
         p = getattr(x, "city", None)

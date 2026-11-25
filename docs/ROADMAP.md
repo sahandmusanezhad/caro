@@ -139,6 +139,22 @@ an item says so.
    of six steps ([SELLER_LISTINGS](SELLER_LISTINGS.md)); what is left of them
    is the owner's — the SMS provider, the Postgres driver in production, and
    the store's address and secret — and is platform phase 2.
+   The filter, as on Divar, the owner's request of 2026-11-25 — built: a
+   make and its model, the model year between two years, the price between
+   two amounts, the mileage between two readings, a province; the order the
+   reader chooses, «ارزان نسبت به بازار» first (the price against the middle
+   asking price of its make, model and year in the collection, as a model's
+   page gives it, three priced or more), «ارزان‌ترین» or «کم‌کارکردترین»; and
+   as many listings as they ask, up to a hundred. It stands beside the
+   sentence on the search page, where the panel's end of a constraint
+   replaces the sentence's, and alone on `/filter`; the address carries it. A
+   listing with no value for a filter is held apart and says which, as for
+   a sentence's constraint. Left: «روز» was the model year by the owner's
+   choice, since no published listing carries the day it was posted — that
+   waits on the daily series (the product gaps, item 1, «Longitudinal
+   collection»); and on run17 225
+   of the 482 priced listings (47%) have a middle of their make, model and
+   year to be ordered by, the rest coming after them.
 7. **The demo** (the end). The last.
 
 ### The platform track

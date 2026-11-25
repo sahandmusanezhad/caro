@@ -1,9 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api, type SearchResponse, type WeightSet } from '@/lib/api';
 import { faNum, faPlain } from '@/lib/format';
+import { countSet, filterHref, filterParamsOf, readFilters, type FilterState } from '@/lib/filters';
+import FilterPanel from '@/components/FilterPanel';
 import IntentPanel from '@/components/IntentPanel';
 import ListingCard from '@/components/ListingCard';
 import SearchBox from '@/components/SearchBox';
@@ -25,11 +28,19 @@ import WeightSliders from '@/components/WeightSliders';
  *
  * The refusal is a 200 from the API and a first-class screen here. Rendering
  * it as an error page would tell the user something broke; nothing has.
+ *
+ * Two pages draw it (the owner's choice of 2026-11-25): the search, where the
+ * filter panel stands beside the sentence, and the filter page, the panel
+ * alone (`mode="filter"`, `/api/filter`). The address carries the panel's
+ * fields, the order and the count, so a filtered page can be sent and opens
+ * as it was.
  */
-export default function SearchResults() {
+export default function SearchResults({ mode = 'search' }: { mode?: 'search' | 'filter' }) {
   const params = useSearchParams();
   const router = useRouter();
-  const q = params.get('q') ?? '';
+  const q = mode === 'search' ? (params.get('q') ?? '') : '';
+  const addr = params.toString();
+  const fs = useMemo(() => readFilters(new URLSearchParams(addr)), [addr]);
 
   const [data, setData] = useState<SearchResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -37,30 +48,34 @@ export default function SearchResults() {
   const [picked, setPicked] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!q) { setData(null); return; }
+    if (mode === 'search' && !q) { setData(null); return; }
     let alive = true;
     setBusy(true); setErr(null);
-    api.search(q, 8)
+    (mode === 'filter' ? api.filter(fs.f, fs.k, fs.sort) : api.search(q, fs.k, fs.f, fs.sort))
       .then((r) => { if (alive) { setData(r); setErr(null); } })
       .catch((e) => { if (alive) { setErr(String(e.message ?? e)); setData(null); } })
       .finally(() => { if (alive) setBusy(false); });
     return () => { alive = false; };
-  }, [q]);
+  }, [mode, q, fs]);
 
   const reweight = useCallback((w: WeightSet) => {
     setBusy(true);
-    api.reweight(q, w, 8)
+    api.reweight(q, w, fs.k, fs.f, fs.sort)
       .then((r) => setData((prev) => (prev ? { ...prev, ...r } : r)))
       .catch((e) => setErr(String(e.message ?? e)))
       .finally(() => setBusy(false));
-  }, [q]);
+  }, [q, fs]);
+
+  const apply = useCallback((next: FilterState) => {
+    router.push(filterHref(mode === 'filter' ? '/filter' : '/search', next, q || undefined));
+  }, [router, mode, q]);
 
   const toggle = useCallback((id: string) => {
     setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id)
       : p.length >= 4 ? p : [...p, id]));
   }, []);
 
-  if (!q) {
+  if (mode === 'search' && !q) {
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -68,7 +83,13 @@ export default function SearchResults() {
           <h2 className="text-[26px] font-bold m-0 mb-5">
             پرسشت را به فارسی بنویس
           </h2>
-          <SearchBox autoFocus />
+          <SearchBox autoFocus keep={filterParamsOf(fs)} />
+          <p className="m-0 mt-4 text-[13px] text-ink-3">
+            یا بدون جمله، فقط با فیلترها:{' '}
+            <Link href="/filter" className="text-accent underline underline-offset-4">
+              صفحه‌ی فیلتر ←
+            </Link>
+          </p>
         </div>
       </div>
     );
@@ -76,9 +97,25 @@ export default function SearchResults() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <SearchBox initial={q} showExamples={false} />
-      </div>
+      {mode === 'search' ? (
+        <div>
+          <SearchBox initial={q} showExamples={false} keep={filterParamsOf(fs)} />
+        </div>
+      ) : (
+        <div>
+          <p className="eyebrow">فیلتر</p>
+          <h2 className="text-[26px] font-bold m-0 mb-2">آگهی‌ها را فیلتر کن</h2>
+          <p className="m-0 text-[13px] text-ink-3 max-w-[62ch]">
+            مثل دیوار: برند و مدل، سال ساخت، قیمت، کارکرد و استان را بگذار، ترتیب را انتخاب کن
+            و بگو چند آگهی ببینی. با جمله هم می‌شود:{' '}
+            <Link href="/search" className="text-accent underline underline-offset-4">جست‌وجوی جمله‌ای ←</Link>
+          </p>
+        </div>
+      )}
+
+      <FilterPanel key={addr} initial={fs} onApply={apply} busy={busy}
+                   heading={mode === 'search' ? 'فیلترها، کنار جمله' : 'فیلتر آگهی‌ها'}
+                   defaultOpen={mode === 'filter' || countSet(fs.f) > 0} />
 
       {err && (
         <div className="panel border-bad">
@@ -161,7 +198,20 @@ export default function SearchResults() {
 
           <IntentPanel intent={data.intent} />
 
-          {!data.status.served ? (
+          {!data.status.served && mode === 'filter' && data.status.kind !== 'UNUSABLE' ? (
+            <>
+              {/* The filter page asked for a filter, not for CARO's ranking,
+                  so the refusal is said in a line, not a panel: what follows
+                  is the listings that meet the filter, in the order chosen,
+                  and no estimate (D50). */}
+              <p className="m-0 text-[12.5px] leading-7 text-ink-3 max-w-[72ch]">
+                این فهرستِ آگهی‌هایی است که با فیلترها جور درمی‌آیند، به ترتیبی که انتخاب کردی؛
+                رتبه‌بندی خود کارو روی این پیکره سرو نمی‌شود و برای هیچ خودرویی برآورد قیمتی
+                ساخته نمی‌شود.
+              </p>
+              <SearchEvidence data={data} />
+            </>
+          ) : !data.status.served ? (
             <>
               <section className="panel border-bad">
                 <div className="flex items-center gap-3 flex-wrap mb-3">

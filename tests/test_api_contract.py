@@ -1487,7 +1487,7 @@ check("  and the phrase is left in view under «نفهمیدیم», on each",
 
 
 # ---------------------------------------------------------------------------
-print("\n14 — reweight bounds k as search does")
+print("\n14 — reweight and the filter bound k as search does")
 # ---------------------------------------------------------------------------
 # D60 recorded that `/api/search` caps k at 24 and `/api/search/reweight` took
 # any k. Measured on run11 with «پراید», 56 matches: reweight answered k=0
@@ -1497,12 +1497,15 @@ print("\n14 — reweight bounds k as search does")
 with corpus_dir(valid_artifact(product_class="vehicle")):
     with contextlib.redirect_stdout(io.StringIO()):
         _c14 = TestClient(api.app, raise_server_exceptions=False)
-    for _k, _want in ((0, 422), (-1, 422), (25, 422), (1, 200), (24, 200)):
+    # The bound was 24 until 2026-11-25, when the owner asked that a reader
+    # choose how many listings to see: 100 since, for the filter too (§34).
+    for _k, _want in ((0, 422), (-1, 422), (101, 422), (1, 200), (100, 200)):
         _s = _c14.get("/api/search", params={"q": "۲۰۶", "k": _k}).status_code
         _w = _c14.post("/api/search/reweight", params={"q": "۲۰۶", "k": _k},
                        json={}).status_code
-        check(f"k={_k}: search {_s}, reweight {_w} — both {_want}",
-              _s == _want and _w == _want)
+        _f = _c14.get("/api/filter", params={"k": _k}).status_code
+        check(f"k={_k}: search {_s}, reweight {_w}, filter {_f} — all {_want}",
+              _s == _want and _w == _want and _f == _want)
 
 
 # ---------------------------------------------------------------------------
@@ -3690,6 +3693,197 @@ check("MT6: where the runs' database is named, each source's last collected run 
       and 'caro_collection_last_listings{source="khodro45"} 492' in _col33
       and _bad33[-1] == "caro_collection_up 0" and not any("a-made-up-word" in l or "nobody" in l for l in _bad33)
       and _unset33 == [], str((_col33, _bad33)))
+
+
+# ---------------------------------------------------------------------------
+print("\n34 — the filter panel: a price, a year and a mileage between two ends, a make, a model, a province, the order and how many")
+# ---------------------------------------------------------------------------
+# The owner's choice of 2026-11-25: a reader filters as on Divar, chooses the
+# order -- «ارزان نسبت به بازار», «ارزان‌ترین», «کم‌کارکردترین» -- and how many
+# listings to see, on the filter page (`/api/filter`) or beside the sentence
+# (`/api/search`), where the panel's end of a constraint replaces the
+# sentence's same end. Over HTTP, from an artifact written to a temporary
+# directory. Every expected list below is worked out by hand from the twelve
+# listings, not by the code under test.
+#
+#   id  make    model year  km        grade       price (M)  province
+#   a1  Peugeot 206   1398  120,000   plausible   400        تهران
+#   a2  Peugeot 206   1398   90,000   plausible   500        فارس
+#   a3  Peugeot 206   1398   60,000   plausible   600        تهران
+#   b1  Peugeot 206   1400   40,000   plausible   700        تهران
+#   b2  Peugeot 206   1400   30,000   plausible   800        --
+#   c1  IKCO    Dena  1400   50,000   plausible   1000       تهران
+#   c2  IKCO    Dena  1400   20,000   plausible   1100       فارس
+#   c3  IKCO    Dena  1400   70,000   plausible   1200       تهران
+#   c4  IKCO    Dena  1400   10,000   plausible   1300       اصفهان
+#   u1  Peugeot 206   1398   80,000   plausible   --         تهران
+#   y0  Peugeot 206   --    100,000   plausible   450        تهران
+#   k0  IKCO    Dena  1400  999,990   suspicious  900        تهران
+#
+# The middles, as a model's page gives them by year (three priced or more):
+# 206 of 1398, a1 a2 a3, 500M of 3; 206 of 1400, two priced, none; Dena of
+# 1400, c1 to c4 and k0, 1100M of 5. Against them: a1 -20%, a2 0, a3 +20%,
+# k0 -18.2%, c1 -9.1%, c2 0, c3 +9.1%, c4 +18.2%.
+_F34 = [
+    ("a1", "Peugeot", "206", 1398, 120_000, "plausible", 400, "تهران"),
+    ("a2", "Peugeot", "206", 1398, 90_000, "plausible", 500, "فارس"),
+    ("a3", "Peugeot", "206", 1398, 60_000, "plausible", 600, "تهران"),
+    ("b1", "Peugeot", "206", 1400, 40_000, "plausible", 700, "تهران"),
+    ("b2", "Peugeot", "206", 1400, 30_000, "plausible", 800, None),
+    ("c1", "IKCO", "Dena", 1400, 50_000, "plausible", 1000, "تهران"),
+    ("c2", "IKCO", "Dena", 1400, 20_000, "plausible", 1100, "فارس"),
+    ("c3", "IKCO", "Dena", 1400, 70_000, "plausible", 1200, "تهران"),
+    ("c4", "IKCO", "Dena", 1400, 10_000, "plausible", 1300, "اصفهان"),
+    ("u1", "Peugeot", "206", 1398, 80_000, "plausible", None, "تهران"),
+    ("y0", "Peugeot", "206", None, 100_000, "plausible", 450, "تهران"),
+    ("k0", "IKCO", "Dena", 1400, 999_990, "suspicious", 900, "تهران"),
+]
+
+
+def _filter_artifact() -> str:
+    rows = []
+    for i, mk, md, y, km, grade, price, prov in _F34:
+        r = {"listing_id": i, "product_class": "vehicle", "make": mk, "model": md,
+             "trim": "base", "mileage_km": km, "mileage_status": grade, "price_kind": "cash"}
+        if y is not None:
+            r["year_jalali"] = y
+        if price is not None:
+            r["asking_price_toman"] = price * 1_000_000
+            r["price_status"] = "display_confirmed"
+        if prov is not None:
+            r["province"] = prov
+        rows.append(r)
+    return json.dumps({"schema": SCHEMA, "run_id": RUN, "source": "bama.ir",
+                       "collected_on": "2026-11-25", "listings": rows}, ensure_ascii=False)
+
+
+def _ids34(j, key="evidence"):
+    return [x["id"] for x in j[key]]
+
+
+with corpus_dir(_filter_artifact()):
+    _c34 = TestClient(api.app, raise_server_exceptions=False)
+
+    def _f34(params, path="/api/filter"):
+        r = _c34.get(path, params={"k": 100, **params})
+        return r.status_code, r.json()
+
+    _st, _j = _f34({})
+    check("FL1: the filter page with nothing set: every car, in «ارزان نسبت به بازار» order -- furthest below "
+          "its middle first, a tie the cheaper first, then the listings with no middle, the priced "
+          "cheapest first, then the unpriced",
+          _st == 200 and _j["sort"] == "market" and _j["evidence_total"] == 12
+          and _ids34(_j) == ["a1", "k0", "c1", "a2", "c2", "c3", "c4", "a3", "y0", "b1", "b2", "u1"],
+          str((_st, _ids34(_j))))
+    _by = {x["id"]: x for x in _j["evidence"]}
+    check("FL2: each listing carries its make, model and year's middle and how many priced listings stand "
+          "behind it; none under three, and none where the year is missing",
+          (_by["a1"]["year_middle_toman"], _by["a1"]["year_middle_priced"]) == (500_000_000, 3)
+          and (_by["u1"]["year_middle_toman"], _by["u1"]["year_middle_priced"]) == (500_000_000, 3)
+          and (_by["b1"]["year_middle_toman"], _by["b1"]["year_middle_priced"]) == (None, 2)
+          and (_by["c1"]["year_middle_toman"], _by["c1"]["year_middle_priced"]) == (1_100_000_000, 5)
+          and (_by["y0"]["year_middle_toman"], _by["y0"]["year_middle_priced"]) == (None, 0),
+          str({i: (x["year_middle_toman"], x["year_middle_priced"]) for i, x in _by.items()}))
+
+    _st, _j = _f34({"sort": "price"})
+    check("FL3: «ارزان‌ترین»: by price, the unpriced last",
+          _ids34(_j) == ["a1", "y0", "a2", "a3", "b1", "b2", "k0", "c1", "c2", "c3", "c4", "u1"],
+          str(_ids34(_j)))
+    _st, _j = _f34({"sort": "mileage"})
+    check("FL4: «کم‌کارکردترین»: by a plausible odometer, a suspicious one last",
+          _ids34(_j) == ["c4", "c2", "b2", "b1", "c1", "a3", "c3", "u1", "a2", "y0", "a1", "k0"],
+          str(_ids34(_j)))
+
+    _st, _j = _f34({"price_min": 500_000_000, "price_max": 1_000_000_000})
+    check("FL5: a price between two amounts, both ends inclusive; a listing with no price is held apart, "
+          "saying the budget could not be checked",
+          _ids34(_j) == ["k0", "c1", "a2", "a3", "b1", "b2"]
+          and _ids34(_j, "evidence_unchecked") == ["u1"]
+          and _j["evidence_unchecked"][0]["unchecked"] == ["budget"]
+          and _j["intent"]["budget_min_toman"] == 500_000_000
+          and _j["intent"]["budget_max_toman"] == 1_000_000_000
+          and _j["intent"]["from_filter"] == ["budget"],
+          str((_ids34(_j), _ids34(_j, "evidence_unchecked"), _j["intent"]["from_filter"])))
+    _st, _j = _f34({"year_min": 1399, "year_max": 1400, "sort": "price"})
+    check("FL6: a year between two years; a listing with no year is held apart",
+          _ids34(_j) == ["b1", "b2", "k0", "c1", "c2", "c3", "c4"]
+          and _ids34(_j, "evidence_unchecked") == ["y0"]
+          and (_j["intent"]["year_min"], _j["intent"]["year_max"]) == (1399, 1400),
+          str((_ids34(_j), _ids34(_j, "evidence_unchecked"))))
+    _st, _j = _f34({"km_min": 20_000, "km_max": 60_000, "sort": "mileage"})
+    check("FL7: a mileage between two readings, both inclusive; a suspicious reading is held apart",
+          _ids34(_j) == ["c2", "b2", "b1", "c1", "a3"]
+          and _ids34(_j, "evidence_unchecked") == ["k0"]
+          and _j["evidence_unchecked"][0]["unchecked"] == ["mileage"]
+          and (_j["intent"]["min_mileage_km"], _j["intent"]["max_mileage_km"]) == (20_000, 60_000),
+          str((_ids34(_j), _ids34(_j, "evidence_unchecked"))))
+    _st, _j = _f34({"make": "IKCO", "sort": "price"})
+    _st2, _j2 = _f34({"make": "IKCO", "model": "Dena", "sort": "price"})
+    _st3, _j3 = _f34({"make": "Peugeot", "model": "Dena"})
+    check("FL8: a make, and a make with its model: another make or model is no candidate at all, not held apart",
+          _ids34(_j) == ["k0", "c1", "c2", "c3", "c4"] and _j["evidence_unchecked_total"] == 0
+          and _ids34(_j2) == _ids34(_j) and _j2["intent"]["from_filter"] == ["make", "model"]
+          and _j3["evidence_total"] == 0 and _j3["evidence_unchecked_total"] == 0,
+          str((_ids34(_j), _ids34(_j2), _j3["evidence_total"])))
+    _st, _j = _f34({"province": "تهران", "sort": "price"})
+    check("FL9: a province: another is left out, a listing with none is held apart",
+          _ids34(_j) == ["a1", "y0", "a3", "b1", "k0", "c1", "c3", "u1"]
+          and _ids34(_j, "evidence_unchecked") == ["b2"],
+          str((_ids34(_j), _ids34(_j, "evidence_unchecked"))))
+    _st, _j = _f34({"k": 3})
+    check("FL10: as many as the reader asked for, and the total of all",
+          _ids34(_j) == ["a1", "k0", "c1"] and _j["evidence_total"] == 12, str((_ids34(_j), _j["evidence_total"])))
+    _st, _j = _f34({"make": "", "model": " ", "province": ""})
+    check("FL11: a field left empty is no filter", _st == 200 and _j["evidence_total"] == 12
+          and _j["intent"]["from_filter"] == [], str((_st, _j.get("evidence_total"))))
+
+    _bad = [({"price_min": 2, "price_max": 1}, "price_min"), ({"year_min": 1401, "year_max": 1400}, "year_min"),
+            ({"km_min": 5, "km_max": 4}, "km_min"), ({"province": "مشهد"}, "province"),
+            ({"year_min": 1299}, None), ({"year_max": 1500}, None), ({"sort": "newest"}, None),
+            ({"price_min": -1}, None)]
+    _got = [(_f34(p)[0], w is None or w in json.dumps(_f34(p)[1])) for p, w in _bad]
+    check("FL12: a range whose low end is above its high end, a province not of the thirty-one, a year out "
+          "of the calendar, an order not offered and a negative price: each a 422, saying which",
+          all(st == 422 and said for st, said in _got), str(_got))
+
+    _st, _j = _f34({"q": "پژو ۲۰۶ زیر ۷۵۰ میلیون", "price_min": 500_000_000, "sort": "price"}, "/api/search")
+    check("FL13: beside a sentence, the panel's floor joins the sentence's ceiling: 500M to 750M, the 206s "
+          "between, the unpriced 206 held apart, and the answer says the budget came from the panel",
+          _st == 200 and (_j["intent"]["budget_min_toman"], _j["intent"]["budget_max_toman"])
+          == (500_000_000, 750_000_000)
+          and _ids34(_j) == ["a2", "a3", "b1"] and _ids34(_j, "evidence_unchecked") == ["u1"]
+          and _j["intent"]["from_filter"] == ["budget"],
+          str((_st, _j.get("intent", {}).get("budget_min_toman"), _ids34(_j))))
+    _st, _j = _f34({"q": "پژو ۲۰۶ زیر ۷۵۰ میلیون", "price_max": 650_000_000, "sort": "price"}, "/api/search")
+    check("FL14: and the panel's ceiling replaces the sentence's",
+          _j["intent"]["budget_max_toman"] == 650_000_000 and _ids34(_j) == ["a1", "y0", "a2", "a3"],
+          str((_j["intent"]["budget_max_toman"], _ids34(_j))))
+    _st, _j = _f34({"q": "پژو ۲۰۶"}, "/api/search")
+    check("FL15: a search that asks for no order is in the corpus's order, as before, and says so",
+          _j["sort"] is None and _ids34(_j) == ["a1", "a2", "a3", "b1", "b2", "u1", "y0"],
+          str((_j["sort"], _ids34(_j))))
+    _rw = _c34.post("/api/search/reweight", params={"q": "پژو ۲۰۶", "k": 100, "price_max": 600_000_000,
+                                                    "sort": "market"}, json={}).json()
+    _sr = _f34({"q": "پژو ۲۰۶", "price_max": 600_000_000, "sort": "market"}, "/api/search")[1]
+    check("FL16: reweight carries the panel and the order as search does",
+          _ids34(_rw) == _ids34(_sr) == ["a1", "a2", "a3", "y0"] and _rw["sort"] == "market",
+          str((_ids34(_rw), _ids34(_sr))))
+
+# The ranked path, where a corpus clears the gate: a filter's other ends are
+# checks there too, never let through.
+from caro.appraisal import Row as _Row34                           # noqa: E402
+from caro.ranking import IntentSpec as _Spec34, retrieve as _retrieve34   # noqa: E402
+
+_rows34 = [_Row34(listing_id=i, cluster_id=i, first_seen_ordinal=0, model_key=k, year_jalali=y,
+                  mileage_km=km, asking_price_toman=p)
+           for i, k, y, km, p in (("r1", "IKCO|Dena|x", 1398, 30_000, 1e9), ("r2", "IKCO|Dena|x", 1402, 30_000, 1e9),
+                                  ("r3", "IKCO|Dena|x", 1400, 5_000, 1e9), ("r4", "Saipa|Pride|x", 1400, 30_000, 1e9),
+                                  ("r5", "IKCO|Dena|x", 1400, 30_000, 1e9), ("r6", "pride", 1400, 30_000, 1e9))]
+_kept34, _, _ = _retrieve34(_rows34, _Spec34(raw_query="", year_max=1401, min_mileage_km=10_000,
+                                             makes=("ikco",)), min_results=1)
+check("FL17: on the ranked path a latest year, a least mileage and a make are checked: of six rows, the "
+      "two IKCOs of 1401 or before with 10,000 km or more stay, and a row whose key names no make is no make's",
+      [r.listing_id for r in _kept34] == ["r1", "r5"], str([r.listing_id for r in _kept34]))
 
 
 print()
