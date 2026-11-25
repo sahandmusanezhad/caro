@@ -9765,13 +9765,17 @@ company's name holding one does.
 **On `main` after `993e915`**, D129's merge, read on 2026-11-25: `images`
 passed, and `ci` failed once, in the e2e walk: «/filter (desk, light):
 thrown: Minified React error #418», a hydration mismatch, on one of its 60
-page views. Its one re-run passed. It was not seen again: not on #65's own
-run of the same tree, nor on #64's, #66's or main's after #64, nor in six
-local walks from a cold server (360 page views) and 125 more visits, 70
-of them to `/filter` and 45 at a sixth of the speed. `/filter` and `/search` are one
-component and their prerendered pages differ only in their words, and the
-last forty runs of `ci` before it had passed at the first attempt. Its cause
-was not found; the walks that follow are read for it.
+page views. Its one re-run passed. It was not seen on #65's own run of the
+same tree, nor on #64's, #66's or main's after #64 or #66, nor in six local
+walks from a cold server (360 page views) and 125 more visits, 70 of them
+to `/filter` and 45 at a sixth of the speed, with the Chromium CI uses.
+It came once more, on #67's own run of `images`, the D-entry for #66:
+«/compare (desk, light)», a page this work did not touch, and that job's one
+re-run passed. Both times it was the first of the four views, at a desk in
+light, where every link in the nav is in sight. `/filter` and `/search` are
+one component and their prerendered pages differ only in their words; the
+last forty runs of `ci` before #64 had passed at the first attempt. Its
+cause was not found; the walks that follow are read for it.
 
 **On `main` after `c32b622`**, read on 2026-11-25: `ci` and `images`
 passed at the first attempt, the e2e walk and the images job's walk of the
