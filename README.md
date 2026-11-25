@@ -460,21 +460,24 @@ floor (an amount of money and «به بالا», with «از» or «بالای»
 none, unless a ceiling's cue such as «تا» stands right before it; or «حداقل»,
 with «قیمت» if it is written, and an amount; or an amount and «و بالاتر», «و
 بیشتر» or «یا بیشتر»), both ends of a range («بین X تا Y», «از X تا Y», «بین X
-و Y», «X الی Y», «X-Y», and «X تا Y» where X has its scale word), the minimum
-year, an odometer cap in five shapes, the province where the car should be
-(by its name, or by its capital's, with the assumption printed: «در مشهد» is
-Razavi Khorasan), the use, the risk profile and the red lines. It lists under
-«نفهمیدیم» what it does not read: another city after a cue it knows («در کاشان»),
-a figure with no scale word, a phrase it cannot place.
+و Y», «X الی Y», «X-Y», and «X تا Y» where X has its scale word, is a decimal,
+or is a whole number taken for no year, no model's number and no engine's
+size: «۵۰۰ تا ۸۰۰ میلیون», D123 to D127), the minimum year, an odometer cap in
+five shapes, the province where the car should be (by its name, or by its
+capital's, with the assumption printed: «در مشهد» is Razavi Khorasan), the
+use, the risk profile and the red lines. It lists under «نفهمیدیم» what it
+does not read: another city after a cue it knows («در کاشان»), a figure with
+no scale word, a phrase it cannot place.
 
 What it does not read yet, each pinned by a test so that it changes on
 purpose, is in the roadmap with the numbers measured for it: a city that is no
 province's capital, «بیشتر از», «بیش از», «بالاتر از» and «حداقل بودجه» as a
-floor, the lower end of «X تا Y» with no «بین» or «از» and no scale word on X,
-a range written upside down, a negated floor, and «بالای X» without «به بالا»,
-which is read as a ceiling by the owner's choice. No log of what buyers type
-exists, so what the parser does is measured on made phrasings, and what buyers
-write is not.
+floor, the lower end of «X تا Y» with no «بین» or «از» and no scale word on X
+where X may be a year, a model's number or an engine's size («۱۴۰۰ تا ۱۸۰۰
+میلیون», «۳۸۰ تا ۴۲۰ میلیون», «تیگو ۸ تا ۹ میلیارد»), a range written upside
+down, a negated floor, and «بالای X» without «به بالا», which is read as a
+ceiling by the owner's choice. No log of what buyers type exists, so what the
+parser does is measured on made phrasings, and what buyers write is not.
 
 ---
 
