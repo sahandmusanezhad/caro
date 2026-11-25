@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D126, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D127, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -641,7 +641,7 @@ names. Durations are for two people part-time.
    the same day, the owner's call, it is held back since then where the
    owner's list gives it to the name right before it (M3, D126): «تیگو» 5, 7, 8;
    «آریزو» 5, 6; «مزدا» 2, 3, 6; «ام وی ام» 110, 315, 530, 550; and since
-   2026-11-25, the owner's choice on a second measurement, «هایما» 7, 8 and
+   2026-11-25, the owner's choice on a second measurement (D127), «هایما» 7, 8 and
    «اس» 3, 5, 7, a series word between a make and its number («جک اس ۵»). The
    list makes no model a query names; of 7 model numbers made for it 6 are a
    ceiling alone, and of 7 prices' ranges after a word 6 are read as before;
