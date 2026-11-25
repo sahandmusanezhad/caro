@@ -9597,3 +9597,101 @@ in a browser among its steps, and `reached` said that no environment is
 named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
 not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
 once the server serves `main`.
+
+## D129 — A filter as on Divar: a model year, a price and a mileage between two ends, a make and its model, a province; the order the reader chooses, and as many listings as they ask for, by the owner's choice
+
+On 2026-11-25 the owner asked, as the most important thing, for filtering as
+on Divar: the day and the price range of a car, and from the listings that
+pass, as many suggestions as the reader asks for. Asked four questions the
+same day, the owner chose: «روز» is the model year, since no published
+listing carries the day it was posted -- each run has only the day it was
+collected; the order is the reader's, from a menu, «ارزان نسبت به بازار»
+first; the make and its model, the mileage and the province as well as the
+year and the price; and the panel both beside the sentence and on a page of
+its own. The round of companies' names (K2) had been decided and not built;
+it waits.
+
+**What was there.** A constraint came from the sentence alone; a year had a
+floor and a mileage a ceiling, and nothing a make; the listings a refusal
+shows came in the corpus's order, under «بدون ترتیب»; k stopped at 24, and
+the search page asked for 8.
+
+Merged on 2026-11-25 in #64:
+
+    commit    what it does                                            suites    bare
+    197ef73   the API: the fields, the three orders, k to 100           4062    3294
+    ac0ff16   the site: the panel, /filter, the tables                  4077    3309
+    ab23198   the README and the roadmap                                4077    3309
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `2e09d86`.
+
+**The API** (`webapp/api/main.py`). `/api/filter`, and the same fields on
+`/api/search` and its reweight: the price, the model year and the mileage
+each from and to, the make and the model as the corpus writes them, a
+province of the thirty-one, the order and k. A range the wrong way round, a
+province not of the thirty-one and an order not offered are each a 422 that
+says which; a field left empty is no filter. Beside a sentence, the panel's
+end of a constraint replaces the sentence's same end and keeps the other,
+and the intent says which came from the panel (`from_filter`). A year and a
+mileage are judged by both ends (`webapp/api/constraints.py`), and a listing
+with no value for a filter is held apart and says which, as for a sentence;
+another make or model is no candidate. k is bounded at 100 for the three
+alike. The ranked path checks a latest year, a least mileage and a make too.
+
+**The orders.** «ارزان نسبت به بازار» sets each price against the middle
+asking price of its make, model and year in the run -- the figure a model's
+page draws by year, three priced listings or more (`webapp/api/market.py`)
+-- the furthest below first, then the listings with no middle, the priced
+cheapest first, then the unpriced; each listing carries the middle and how
+many stand behind it, a fact about the run's asking prices and never an
+estimate (D36, D50). «ارزان‌ترین» orders by the price, «کم‌کارکردترین» by a
+plausible odometer. `/api/filter` orders by the first unless asked
+otherwise; a search asked for no order keeps the corpus's; a served ranking
+keeps its own. On run17, 225 of the 482 priced listings (47%) have a middle
+of their make, model and year.
+
+**The site.** A panel of those fields, the makes and models the served
+corpus's own, the price in millions of toman and the mileage in thousands
+of km, Persian digits shown and either kind read; a range the wrong way
+round is said beside its field and nothing is sent. It stands open on
+`/filter`, a new page in the nav after «جست‌وجو», and folded under the
+sentence on the search page until a filter is set; the address carries it,
+so a filtered page can be sent. The listings' table names the order chosen,
+and a column says where each price stands against its middle; the intent
+panel marks what came from the panel. IKCO's Samand, Runna and Tara have
+Persian names on the site, where the panel's model list showed them in Latin.
+
+**Checked.** Through the API on run17, offline: a price from 1 to 2 billion
+and a year from 1398 to 1402 match 56 and hold 4 apart, the first a 1398
+Peugeot Pars at 1.596 billion, 28% under the middle of its 5. The built site
+and the API side by side, offline: the e2e walk's 60 page views, `/filter`
+bare and set and the filtered search among them, at a desk and on a phone,
+light and dark; on `/filter` the panel applied a price range, an order and a
+count of four and drew four rows, and a floor above the ceiling was said in
+the page and sent nothing. Two pictures of the page went to the owner.
+
+**Tests.** `tests/test_api_contract.py` §34, over HTTP on twelve made
+listings whose expected lists are worked out by hand: each order, each
+filter and both its ends, the held-apart, the count, empty fields, eight
+422s, the panel beside a sentence, reweight, and the ranked path; §14 bounds
+k at 100 for the three. `tests/test_screens.py` holds the nav with «فیلتر»,
+and the e2e walk goes to `/filter` and the filtered search. FIELD_PROVENANCE
+and `eligibility.FIELDS` judge the two middle fields, `DERIVED` and drawn
+on a card, and `make` is a facet.
+
+**Left.** The day a listing was posted waits on the daily series (the
+roadmap's product gaps, item 1, «Longitudinal collection»); 53% of run17's
+priced listings have no middle of their make, model and year and come after
+the rest in «ارزان نسبت به بازار»; and where a corpus clears the gate, the
+ranked path's relaxation ladder can loosen a panel's ceiling of price or
+mileage or its floor of year as it loosens a sentence's, saying so -- no
+real corpus serves a ranking yet.
+
+**On `main` after `2e09d86`**, read on 2026-11-25: `ci` and `images`
+passed, the images job's read of both images and its walk of the key routes
+in a browser -- `/filter` among them -- among its steps, and `reached` said
+that no environment is named yet. Nothing was pushed to `Tecso-Dev/caro`.
+The site on Vercel was not read: it runs `b9f9090`, not this merge (D119);
+the filter reaches a site once the server serves `main`.
