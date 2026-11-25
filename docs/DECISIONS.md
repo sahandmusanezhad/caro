@@ -9443,3 +9443,67 @@ in a browser among its steps, and `reached` said that no environment is
 named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
 not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
 once the server serves `main`.
+
+## D127 — «هایما» 7, 8 and «اس» 3, 5, 7 join the owner's list of model numbers after a name, by the owner's choice on a measurement
+
+«هایما ۷ تا ۹ میلیارد» was a range from 7 billion, a model's number after a
+name M3's list did not hold (D126 pinned it as left), and «جک اس ۵ تا ۸
+میلیارد» one from 5 billion, a model's number after the series word «اس»,
+which stands between a make and its number. Asked on 2026-11-25 which next
+round of the parser to take, the owner chose more names for the list; asked
+which, of four makes and four series words offered, the owner chose
+«هایما» with 7 and 8, and «اس» with 3, 5 and 7.
+
+**Measured** the same day, the predictions locked first (sha256
+`8cd497a8…`, 08:13Z), on `main` at `948cde2`, each rule M3's list with names
+added:
+
+    cells                                          today    «هایما»    both
+    model numbers after the word, 6                    0          2       6
+    prices' ranges, 5                                  5          4       3
+    the suites' 1,242 queries, changed                            1       1
+
+With «هایما» alone, «هایما اس ۷ تا ۹ میلیارد» was still a range, its number
+being after «اس». The ranges lost are «هایما ۷ تا ۸ میلیارد» and «اس ۵ تا ۶
+میلیارد» meant as prices, a listed number each: the cost M3 already bears
+for «مزدا ۲ تا ۳ میلیارد». The suites' query that changed was the row
+«هایما ۷ تا ۹ میلیارد». Every prediction held. Put to the owner the same
+day, the owner chose both.
+
+The session's container was replaced before the measurement, and its
+scratch tools with it; they were rebuilt, and read `main` at `948cde2` as
+before (3983 and 3232 assertions, and the site built) before anything was
+measured.
+
+Merged on 2026-11-25 in #60:
+
+    commit    what it does                                            suites    bare
+    89e9ef7   «هایما» and «اس» in the list                              3994    3243
+    b7959ff   the roadmap's list                                        3994    3243
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head and on `main` after `b4dae67`.
+
+**The rule** (`caro.ranking._NUMBERS_OF`): two entries more, «هایما» 7, 8
+and «اس» 3, 5, 7; `_NAME_BEFORE` is built from it as before. The list as
+built is the measured one, its order and its expression too.
+
+**Tests**, in `tests/test_ranking.py`: the row that pinned «هایما ۷ تا ۹
+میلیارد» as left reads a ceiling alone; rows for the measurement's model
+numbers and ranges; and one written beside them, «بنز اس کلاس ۵ تا ۸
+میلیارد», a price's range, «کلاس» ending in «اس» and being no «اس».
+
+**Mutants**, bytecode off, 9, all caught, among them the one D126 named as
+living, a listed name at the end of a longer word, which the «کلاس» row
+catches.
+
+**Left**, each pinned by a test: a listed number meant as a price is held
+back («هایما ۷ تا ۸ میلیارد», «اس ۵ تا ۶ میلیارد»), and what D126 left.
+
+**On `main` after `b4dae67`**, read on 2026-11-25: `ci` and `images`
+passed, the images job's read of both images and its walk of the key routes
+in a browser among its steps, and `reached` said that no environment is
+named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
+not read: it runs `b9f9090`, not this merge (D119); the rule reaches a site
+once the server serves `main`.
