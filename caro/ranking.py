@@ -469,7 +469,9 @@ _NUMERIC_ALIASES = frozenset(a for als in MODEL_ALIASES.values() for a in als
 # the model table does not hold is written with, a model's and not a price's
 # lower end: «تیگو ۸ تا ۹ میلیارد» is a ceiling of 9 billion, «تیگو ۴ تا ۵
 # میلیارد» a range. The list is the owner's; it makes no model a query names,
-# and holds a number back from a range alone.
+# and holds a number back from a range alone. «هایما» and «اس», a series word
+# between a make and its number («جک اس ۵», «هایما اس ۷»), joined it on
+# 2026-11-25, the owner's choice on a measurement.
 _CC_AFTER_MODEL = re.compile(
     r"(?<!\d)(?:" + "|".join(sorted(_NUMERIC_ALIASES)) + r") (?:سی ?سی|cc)\s*$", re.IGNORECASE)
 _NUMBERS_OF: dict[str, frozenset[int]] = {
@@ -477,6 +479,8 @@ _NUMBERS_OF: dict[str, frozenset[int]] = {
     "آریزو": frozenset({5, 6}),
     "مزدا": frozenset({2, 3, 6}),
     "ام وی ام": frozenset({110, 315, 530, 550}),
+    "هایما": frozenset({7, 8}),
+    "اس": frozenset({3, 5, 7}),
 }
 _NAME_BEFORE = re.compile(r"(?<!\w)(" + "|".join(_NUMBERS_OF) + r")\s*$")
 
