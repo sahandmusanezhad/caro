@@ -326,10 +326,21 @@ names. Durations are for two people part-time.
    It was built and checked on constructed phrasings: no log of what buyers
    write exists, so how they write a place is not measured. Known, and left:
    - A province's name inside a longer name that is not a place is read as
-     the province, with the assumption shown: «کرمان موتور», «یزد خودرو»,
-     «گیلان خودرو»; so is a capital's since 2026-11-25. «خلیجفارس» with no
-     space is not matched at all, and «خلیجِ فارس» typed with a kasra is read
-     as the province, since a diacritic is not stripped.
+     the province, with the assumption shown: «یزد خودرو», «گیلان خودرو»; so
+     is a capital's since 2026-11-25. «خلیج فارس» is not (D83), and since
+     2026-11-25, the owner's choice on a measurement (K2), neither are the
+     companies' names the owner chose: «کرمان موتور», «کرمان خودرو», and
+     Iran Khodro with four of its plants', «ایران خودرو تبریز», «… مازندران»,
+     «… کرمانشاه» and «… خراسان», written with a space or as one word. Each
+     is declined whole and listed under «نفهمیدیم»: of 12 such names 12 read
+     no province where 2 did, and of 4 beside a place 4 read the place alone
+     where none did; none of the suites' 1,296 queries changed. Left: a
+     place before «موتور» or «خودرو» that are no company's reads no province
+     («پراید کرمان موتور سالم», Kerman and an engine in good order), pinned
+     by a test; and the names not chosen read as their provinces, as the
+     first sentence says. «خلیجفارس» with no space is not matched at all,
+     and «خلیجِ فارس» typed with a kasra is read as the province, since a
+     diacritic is not stripped.
    - A province's capital is read as its province since 2026-11-25, the
      owner's choice on a measurement (P1, D128): the eighteen whose name is not
      their province's, `OTHER_CAPITALS`, the table the listing parser reads

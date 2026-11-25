@@ -1414,6 +1414,58 @@ for q in [f"{_Q} در کاشان", f"{_Q} در دزفول", f"{_Q} در ساوه
     check(f"«{q}» → no province: a city, or a word that only holds a name",
           P.parse(q).provinces == (), str(P.parse(q).provinces))
 
+# The names of companies that hold a province's or a capital's, declined as «خلیج فارس» is (K2, the
+# owner's choice of 2026-11-25 on a measurement): «کرمان موتور» and «کرمان خودرو», and Iran Khodro
+# with four of its plants', «ایران خودرو» with a space and as one word. The owner's list is written
+# out here, not read from the parser, so that a name dropped from its table turns a row red.
+_K2 = ["کرمان موتور", "کرمان خودرو"] + [f"{i} {p}" for i in ("ایران خودرو", "ایرانخودرو")
+                                        for p in ("تبریز", "مازندران", "کرمانشاه", "خراسان")]
+for name in _K2:
+    sp = P.parse(f"{_Q} {name}")
+    check(f"«{_Q} {name}» → no province, «{name}» listed as not understood, no note",
+          sp.provinces == () and [t.strip() for t in sp.unparsed] == [name]
+          and not any("را استان" in a for a in sp.assumptions),
+          f"{sp.provinces} {sp.unparsed} {sp.assumptions}")
+for q, want, why in [
+        ("جک J4 کرمان موتور", (), "a company's name"),
+        ("هیوندای اکسنت کرمان موتور زیر ۲ میلیارد", (), "  beside a budget"),
+        ("لیفان X60 کرمان خودرو", (), "  «کرمان خودرو»"),
+        ("محصولات کرمان خودرو تا ۱.۵ میلیارد", (), "  beside a budget"),
+        ("سمند ایران خودرو تبریز", (), "  a plant's"),
+        ("دنا پلاس ایران خودرو تبریز", (), "  the same"),
+        ("پژو ۴۰۵ ایران خودرو مازندران", (), "  another"),
+        ("رانا ایران خودرو مازندران مدل ۹۸ به بالا", (), "  beside a year"),
+        ("سمند ایران خودرو کرمانشاه", (), "  another"),
+        ("پژو پارس ایران خودرو کرمانشاه", (), "  the same"),
+        ("دنا ایران خودرو خراسان", (), "  «خراسان», a family, declined as before"),
+        ("پژو ۲۰۶ ایران خودرو خراسان", (), "  the same"),
+        ("جک کرمان موتور در تهران", ("تهران",), "a company's name and a place: the place alone"),
+        ("دنا ایران خودرو تبریز در مشهد", ("خراسان رضوی",), "  a capital after «در»"),
+        ("لیفان کرمان خودرو، اصفهان", ("اصفهان",), "  after «،»"),
+        ("سمند ایران خودرو مازندران ساکن کرج", ("البرز",), "  after «ساکن»"),
+        ("سمند ایرانخودرو تبریز", (), "«ایرانخودرو» as one word"),
+        ("دنا ایران\u200cخودرو تبریز", (), "  with a ZWNJ, a space after normalising"),
+        ("جک کرمان\u200cموتور", (), "  the same"),
+        ("جک کرمانموتور", (), "  as one word, no «کرمان» in it"),
+        ("پراید در کرمان", ("کرمان",), "no name of the list: as before"),
+        ("ماشین کرمانشاه", ("کرمانشاه",), "  «کرمانشاه», not «کرمان»"),
+        ("سمند تبریز", ("آذربایجان شرقی",), "  a capital"),
+        ("سمند ایران خودرو", (), "  Iran Khodro with no plant"),
+        ("سمند ایران خودرو، تبریز", ("آذربایجان شرقی",), "  a «،» between: a make, then a place"),
+        ("خودرو کرمان زیر ۱ میلیارد", ("کرمان",), "  «خودرو» before the name"),
+        ("پژو ۲۰۶ مازندران", ("مازندران",), "  a province"),
+        ("موتور سالم، کرمان", ("کرمان",), "  «موتور» elsewhere"),
+        ("پراید کرمان موتور سالم", (), "left: Kerman, and an engine in good order, reads no Kerman"),
+        ("پژو ۴۰۵ کرمان موتور تعمیر شده", (), "  the same"),
+        ("سمند در کرمان موتور سالم", (), "  after «در»"),
+        ("پراید در کرمان خودرو بی رنگ", (), "  «خودرو»")]:
+    sp = P.parse(q)
+    check(f"«{q}» → provinces {want}  ({why})", sp.provinces == want, f"{sp.provinces} {sp.unparsed}")
+sp = P.parse("جک J4 کرمان موتور")
+check("«جک J4 کرمان موتور» → «کرمان موتور» is listed, inside the clause, and no note is left",
+      any("کرمان موتور" in t for t in sp.unparsed) and not any("را استان" in a for a in sp.assumptions),
+      f"{sp.unparsed} {sp.assumptions}")
+
 # A province's capital is read as its province (P1, the owner's choice of 2026-11-25 on a
 # measurement): the eighteen whose name is not their province's, `OTHER_CAPITALS`, the listing
 # parser's table, wherever a province's name is read and declined wherever one is; the page says

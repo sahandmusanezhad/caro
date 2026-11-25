@@ -642,6 +642,8 @@ _MILEAGE_FLOOR = 10_000
 #   not read      «خلیج فارس»: it holds a province's name and is not one. It is
 #                 declined wherever it stands, with what stands before it --
 #                 «در خلیج فارس», «غیر از خلیج فارس» -- the way a family is.
+#                 So are two companies and four of Iran Khodro's plants, since
+#                 2026-11-25 (below): «جک کرمان موتور» narrows to no province.
 #
 # What the corpus says to the constraint is `webapp/api/constraints.judge`'s
 # to say; this decides only what the buyer asked.
@@ -652,9 +654,19 @@ _CAPITAL_BY_TEXT: dict[str, str] = {normalize_fa(c): p for c, p in OTHER_CAPITAL
 _PROVINCE_BY_TEXT.update(_CAPITAL_BY_TEXT)
 _PROVINCE_FAMILIES = frozenset({"خراسان", "آذربایجان"})
 _PLAIN_WORDS = frozenset({"مرکزی", "گلستان"})
-# A name that holds a province's and is not a province. It is matched as one
-# name, so the «فارس» inside it is never read on its own.
-_NOT_PROVINCES = frozenset({"خلیج فارس"})
+# A name that holds a province's or a capital's and is no place. It is matched
+# as one name, so the name inside it is never read on its own: «خلیج فارس»
+# (D83); and, by the owner's choice of 2026-11-25 on a measurement (K2), the
+# names the owner chose of companies -- «کرمان موتور» and «کرمان خودرو», and
+# Iran Khodro with four of its plants', «ایران خودرو» written with a space (a
+# ZWNJ is one after `normalize_fa`) and as one word. Not chosen: «یزد خودرو»
+# and «گیلان خودرو», which read as their provinces, the note saying so. The
+# cost, measured: «پراید کرمان موتور سالم» -- Kerman, and an engine in good
+# order -- reads no Kerman, and lists «کرمان موتور» as not understood.
+_IKCO_PLANTS = ("تبریز", "مازندران", "کرمانشاه", "خراسان")
+_NOT_PROVINCES = frozenset({
+    "خلیج فارس", "کرمان موتور", "کرمان خودرو",
+    *(f"{ikco} {plant}" for ikco in ("ایران خودرو", "ایرانخودرو") for plant in _IKCO_PLANTS)})
 _PLACE = re.compile(
     r"(?<!\w)(?:" + "|".join(re.escape(n) for n in sorted(
         [*_PROVINCE_BY_TEXT, *_PROVINCE_FAMILIES, *_NOT_PROVINCES],
