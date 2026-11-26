@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Fragment } from 'react';
 import './globals.css';
 import CorpusBadge from '@/components/CorpusBadge';
 import ErrorReports from '@/components/ErrorReports';
@@ -70,7 +71,18 @@ export default function RootLayout({
         </header>
 
         <main className="mx-auto max-w-[1100px] px-5 py-8 pb-20">
-          {children}
+          {/* The page sits in a keyed fragment, not straight under <main>.
+              The router element that carries it names the error page's
+              module (app/error.tsx) among its props, so where that script
+              has not yet run when React hydrates, the element arrives as a
+              lazy node and suspends the fiber that holds it. The React that
+              Next 15.5 bundles (a 19.2 canary) replays a suspended <main> by
+              claiming its server node again from inside it: that fails as
+              React's error 418, and the whole page is drawn again. A
+              fragment claims no node, so its replay is safe. React 19.3
+              fixes the replay itself; the e2e walk (e2e/routes.mjs) reads
+              every page for such an element straight under an HTML one. */}
+          <Fragment key="page">{children}</Fragment>
         </main>
 
         <footer className="glass-bar border-t mt-10">
