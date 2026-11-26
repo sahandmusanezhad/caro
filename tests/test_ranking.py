@@ -1301,6 +1301,31 @@ for q, want, why in [
 
 
 # ---------------------------------------------------------------------------
+print("\na Latin name is read in capitals too (2026-11-26, the owner's choice on a measurement)")
+# The table writes its Latin names in lower case and `names` compared the text
+# as written: «Pride زیر ۵۰۰ میلیون» named nothing, and its clause was listed as
+# not understood. Measured, the predictions locked first: none of six such
+# queries named its model, all six do; none of the 1,338 queries the suites
+# hand the parser reads differently. A Persian name is not touched.
+for q, want, budget in [
+    ("Pride زیر 500 میلیون", {"pride"}, 500_000_000),
+    ("TIBA 2 مدل 98", {"tiba"}, None),
+    ("Dena Plus زیر 2 میلیارد", {"dena"}, 2_000_000_000),
+    ("QUIK اتوماتیک زیر 1 میلیارد", {"quik"}, 1_000_000_000),
+    ("Saina زیر 600 میلیون", {"saina"}, 600_000_000),
+    ("Shahin تا 1 میلیارد", {"shahin"}, 1_000_000_000),
+]:
+    _sp = P.parse(q)
+    check(f"«{q}» → {sorted(want)}, the budget as written", set(_sp.model_hints) == want
+          and _sp.budget_max_toman == budget, str((_sp.model_hints, _sp.budget_max_toman)))
+_cap, _low = P.parse("Pride سفید خوشگل"), P.parse("pride سفید خوشگل")
+check("a clause that holds a name in capitals is understood as the same name in lower case is: "
+      "«Pride سفید خوشگل» is not listed under «نفهمیدیم»",
+      _cap.unparsed == _low.unparsed == () and _cap.model_hints == _low.model_hints == ("pride",),
+      str((_cap.unparsed, _low.unparsed)))
+
+
+# ---------------------------------------------------------------------------
 print("\na province is read where it is a place the car should be in (D82)")
 # A province named in a query is a constraint. The reading is the hazardous
 # one: a wrong read inverts and says nothing, so a name is read only where it

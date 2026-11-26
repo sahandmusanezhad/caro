@@ -5237,6 +5237,28 @@ check("MD1: the listing parser and the search read one table -- every model of o
 
 
 # ---------------------------------------------------------------------------
+print("\na Latin name is read in capitals too (2026-11-26, the owner's choice on a measurement)")
+# The table's Latin names are lower case, and «TIBA 2» named no model where «tiba
+# 2» named Tiba. Latin letters are compared case-folded; a Persian title reads
+# as it did, and a page's model the table names in capitals («Pars», under its
+# make) is read whole by `structured_make_model` as before.
+from caro.ingest.divar_page import structured_make_model as _lc_structured   # noqa: E402
+
+_lc_rows = [("TIBA 2 مدل ۹۸", ("Saipa", "Tiba")), ("Dena plus توربو", ("IKCO", "Dena")),
+            ("QUIK R دنده ای", ("Saipa", "Quik")), ("Pars", ("Peugeot", "Pars")), ("PRIDE 111", ("Saipa", "Pride")),
+            ("تیبا ۲", ("Saipa", "Tiba"))]
+_lc_got = [_md_extract(t) for t, _ in _lc_rows]
+check("LC1: a Latin name of the table in capitals or with one capital names its model, as in lower case "
+      "-- «TIBA 2», «Dena plus», «QUIK R», «Pars» -- and a Persian one as before",
+      _lc_got == [w for _, w in _lc_rows], str(_lc_got))
+check("LC2: a page's own brand and model the table holds in capitals are the same make and model as before",
+      _lc_structured({"brand": {"name": "Peugeot"}, "model": "Pars"}) == ("Peugeot", "Pars")
+      and _lc_structured({"brand": {"name": "Renault"}, "model": "Pars Tondar"}) == ("Renault", "Pars"),
+      str((_lc_structured({"brand": {"name": "Peugeot"}, "model": "Pars"}),
+           _lc_structured({"brand": {"name": "Renault"}, "model": "Pars Tondar"}))))
+
+
+# ---------------------------------------------------------------------------
 print("\na model's name is a word of its own (2026-11-19, the owner's call)")
 # A name was found anywhere in a text, in the table's order: three of run17's
 # Grand Vitaras were IKCO Taras, «تارا» inside «ویتارا», two Renault Pars

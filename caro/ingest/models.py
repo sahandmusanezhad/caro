@@ -96,10 +96,23 @@ _ENDING = r"(?:ی|یی|م|ت|ش|مو|تو|شو|مون|تون|شون|مان|تا�
 _NOT_A_MODEL_AFTER = re.compile(r"\s*(?:تندر|شهر|آباد)(?!\w)")
 _NOT_A_MODEL_BEFORE = re.compile(r"(?:تهران|تندر)\s*$")
 
+# A LATIN NAME IS READ IN CAPITALS TOO (2026-11-26, the owner's choice on a
+# measurement, M2kc). The table writes its Latin names in lower case and the
+# text was compared as written, so «pride زیر ۵۰۰ میلیون» named Pride and
+# «Pride زیر ۵۰۰ میلیون» nothing, and the listing parser read «tiba 2» and not
+# «TIBA 2». Latin letters are compared case-folded, A-Z as a-z; no other
+# letter is touched. Measured, the predictions locked first: six queries
+# naming the thirteen in capitals, none named today, six so; none of the
+# 1,338 queries the suites hand the search read differently; one of the 178
+# texts they hand the listing parser, «Pars» (Peugeot Pars, a page's model
+# whose make the page gives, which reads as it did).
+_ASCII_LOWER = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
+
 
 def names(text: str, name: str) -> bool:
     """Does `text` hold `name` as a model's name? Both as the reader
-    normalizes them."""
+    normalizes them, Latin letters case-folded."""
+    text, name = text.translate(_ASCII_LOWER), name.translate(_ASCII_LOWER)
     if name.isdigit():
         return name in text
     for m in re.finditer(_BEFORE + re.escape(name) + _ENDING + r"(?!" + _LETTER + ")",
