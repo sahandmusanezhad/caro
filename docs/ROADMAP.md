@@ -125,11 +125,17 @@ an item says so.
    an assembled model's name were measured and left as they are: in run17 no
    model is under two of them. The models a buyer can name: since 2026-11-02 the search
    and the listing parser read one table (`caro/ingest/models.py`), so IKCO's
-   Samand, Tara and Runna are read — 281 of run17's 492 listings are of a
-   model a query can name, from 217. Offered the same day and not chosen: a
-   short unread name listed as unread, and Persian names for the 104 other
-   models run17 holds (211 listings). A session measures and builds; the
-   owner decides each.
+   Samand, Tara and Runna are read — 281 of run17's 492 listings were of a
+   model a query can name, from 217. On 2026-11-26, the owner's choice on a
+   measurement (M2kc), 100 of the 104 other models run17 holds have Persian
+   and Latin names, a Latin name is read in capitals too, and Khodro45 reads
+   every model but the thirteen by its English titles: 471 of the 492 (96%).
+   Left: the four whose model two makes write, «Prime» and «S5» (21
+   listings), since the search keys a model by its model alone; a name
+   that holds another model's names both («x22 پرو» shows the X22s too);
+   and «جنسیس», Hyundai's Genesis, also a make of its own. Offered on
+   2026-11-02 and on 2026-11-26 and not chosen: a short unread name listed
+   as unread. A session measures and builds; the owner decides each.
 5. **An estimator that clears the gate on real data** (the product gaps, item
    2). A session, on the corpus of item 2. It is what reopens the ranked
    path's two items (the parser, items 1 and 2), compare's gated branch, and
