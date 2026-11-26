@@ -66,6 +66,7 @@ from caro.ingest.divar_car import (
     CarListing, extract_body_condition, extract_fuel, extract_gearbox,
     extract_make_model, extract_trim,
 )
+from caro.ingest.models import THIRTEEN
 from caro.ingest.nextjs import page_rows
 from caro.ingest.paging import NextLinkAdapter, url_shape
 from caro.ingest.persian import digits_only, normalize, province_from_city
@@ -586,18 +587,30 @@ def _odometer(data_km: int | None, card_km: int | None):
 
 
 def _make_model(cp: dict) -> tuple[str | None, str | None]:
+    """(make, model): the table's for one of the thirteen, read from the
+    Persian titles, and Khodro45's English titles for every other model.
+
+    Since 2026-11-26 the table also names run17's hundred, by names written
+    for buyers (`caro.ingest.models`). A Persian title of a model the table
+    does not hold can hold one of those names: measured on made results,
+    Fownix's «تیگو ۸ پرو» was read as the Tiggo 8 Pro Max, Chery's «آریزو ۵ تی
+    اف ال» as the Arrizo 5T and Hyundai's «سوناتا هیبرید» as the Sonata, where
+    the English titles say which they are. run17's makes and models for the
+    hundred are those English titles, so they stay the reader for them, and
+    the owner chose so (M2kc); the table's reading of the Persian titles is
+    taken where there is no English one."""
     b = cp.get("brand") if isinstance(cp.get("brand"), dict) else {}
     m = cp.get("model") if isinstance(cp.get("model"), dict) else {}
     fa = " ".join(x for x in (_str(b.get("title")), _str(m.get("title"))) if x)
     mk, md = extract_make_model(fa) if fa else (None, None)
-    if md:
+    if md and (mk, md) in THIRTEEN:
         return mk, md
     en_b, en_m = _category(b.get("title_en")), _category(m.get("title_en"))
     if en_b and en_m:
         if en_m.lower().startswith(en_b.lower() + " "):
             en_m = en_m[len(en_b):].strip()
         return en_b, en_m
-    return None, None
+    return (mk, md) if md else (None, None)
 
 
 def build(r: dict, card: Card | None, trace: Khodro45Trace,

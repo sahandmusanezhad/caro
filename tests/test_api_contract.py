@@ -3189,6 +3189,30 @@ check(f"MD3: on {RUN}, «سمند», «تارا» and «رانا زیر ۲ می�
       all(v[0] for v in _md_rows.values()) and any(v[1] for v in _md_rows.values()), str(_md_rows))
 
 
+# run17's hundred (2026-11-26, the owner's choice on a measurement, M2kc): each
+# asked for by its first Persian name alone shows that model's listings in the
+# served corpus and no other's; the eight whose name holds another model's
+# show the two, as measured. Counted from the served corpus.
+from caro.ingest import models as _rn_models                         # noqa: E402
+
+_RN_ALSO = {"X33 Cross": "X33", "X33s": "X33", "X22 Pro": "X22", "X55 Pro": "X55",
+            "Arrizo 5T Sport FL": "Arrizo 5T", "Tivoli-Assembled": "Tivoli", "Sandero-Stepway": "Sandero", "GL": "G"}
+_rn_ids = {}
+for _x in _md_cars:
+    _rn_ids.setdefault((_x.make, _x.model), set()).add(_x.listing_id)
+_rn_bad = []
+for _mk, _md, _ns in _rn_models.MODELS[13:]:
+    _q = next(n for n in _ns if any("\u0600" <= ch <= "\u06ff" for ch in n))
+    _r = _md_c.get("/api/search", params={"q": _q, "k": 100}).json()
+    _got = {e["id"] for e in _r["evidence"] + _r.get("evidence_unchecked", [])}
+    _want = _rn_ids.get((_mk, _md), set()) | (_rn_ids.get((_mk, _RN_ALSO[_md]), set()) if _md in _RN_ALSO else set())
+    if _got != _want or not _want:
+        _rn_bad.append((_q, len(_got), len(_want)))
+check(f"RN7: on {RUN}, each of the hundred asked for by its first Persian name shows that model's listings "
+      "and none of another model's, but for the eight whose name holds another's, which show the two",
+      len(_rn_models.MODELS) == 113 and not _rn_bad, str(_rn_bad[:6]))
+
+
 # ---------------------------------------------------------------------------
 print("\n28 — the build a process runs")
 # ---------------------------------------------------------------------------
