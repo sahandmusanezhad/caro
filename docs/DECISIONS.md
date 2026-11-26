@@ -9784,3 +9784,80 @@ key routes in a browser among their steps, `/filter` among the routes, and
 `Tecso-Dev/caro`. The site on Vercel was not read: it runs
 `b9f9090`, not this merge (D119); the rule reaches a site once the server
 serves `main`.
+
+## D131 — React's error 418 at random was React replaying `<main>` by claiming its server node again from inside it; the page sits in a keyed fragment, and the e2e walk reads every page for the cause, by the owner's choice
+
+The e2e walk failed at random with React's error 418, a hydration mismatch
+after which the whole page is drawn again in the browser: on `main` after
+`993e915` and on #67's run of `images`, each time passing on its one
+re-run (D130, which left the cause unfound). The cause was found on
+2026-11-25 and 2026-11-26, and put to the owner on 2026-11-26 with two ways
+to remove it: a keyed fragment in the layout, or Next 16, whose React
+carries React's own fix. The owner chose the fragment.
+
+**Found.** Four walkers in parallel, each visit a fresh browser at a desk in
+light, with the Chromium CI uses, met it 4 times in 360 views. It was not
+the scripts in the head that webpack removes once they have run: kept, it
+came once in 360. A diagnostic build -- React's own chunk with its mismatch
+throw and its replays of suspended work marked, never committed -- recorded
+eleven mismatches, each at `<main>`, the document parsed whole, with React
+looking for `<main>` among `<main>`'s own children; the eight recorded with
+the replays marked were each a replay of `<main>`.
+
+The router element that carries every page names the error page's module
+(`app/error.tsx`) among its props. Where that script has not run when React
+reaches `<main>`, the element arrives as a lazy node and suspends `<main>`;
+where the script runs within the one tick React then yields, React replays
+`<main>`. The React that Next 15.5 bundles (19.2.0-canary-0bdb9206-20250818)
+replays a host element by claiming its server node again from where its
+cursor stands, inside it: the claim fails, and the root is drawn again.
+react-dom 19.3.0 rewinds the cursor first; 19.1.10, 19.2.0, 19.2.4 and
+19.2.9 do not, nor the React of Next 15.5.29, 16.0.0 or 16.1.0. The React
+of Next 16.2.0 does, and of 16.4.6.
+
+**Measured**, each script chunk held back 0 to 300 ms at random, four
+walkers in parallel, React's replays while hydrating counted:
+
+    tree            views    <main> replayed    fragment replayed    error 418
+    704469d           240                  3                    -            3
+    the fragment      480                  0                    7            0
+
+Merged on 2026-11-26 in #68:
+
+    commit    what it does                                          suites    bare
+    88aff48   the page in a keyed fragment under <main>               4120    3352
+    1c477c2   the e2e walk reads every page for the cause             4120    3352
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. The e2e walk passed on
+the head, 60 page views and the seller listings from end to end, and CI
+succeeded on it.
+
+**The change** (`webapp/web/app/layout.tsx`): `{children}` in
+`<Fragment key="page">`. The element waits under the fragment, which claims
+no node, so its replay is safe. The HTML of the 15 prerendered pages is the
+same as before, but for the data they hydrate from, which carries the
+fragment, and the build's id.
+
+**The check** (`webapp/web/e2e/routes.mjs`): each route's page as the
+server sends it, read once, in the first view. An element whose props name
+a client module's row, straight under an HTML element, or the row a lazy
+node there names, fails the walk, and the element and the props are named.
+Run on a build without the fragment, it names `<main>` and its prop `error`
+on each of the walk's 15 routes, and nothing else; the walk itself had met
+the error only by chance.
+
+**Left.** Next 16.2 or later carries the fix itself, and the fragment would
+not be needed there; the upgrade is a round of its own, not taken. The
+layout's comment writes the error's number without «#»: the palette's guard
+(`tests/test_palette.py`) reads «#» and three hex digits in a component as
+a colour, and caught the first draft.
+
+**On `main` after `c5f29d6`**, read on 2026-11-26: `ci` and `images` passed
+at the first attempt. The e2e walk said «nothing waiting on a module under
+an HTML element» over its 60 page views, and walked the seller listings
+from end to end; the images job's walk of the key routes in a browser,
+against the two images, passed; `reached` said that no environment is
+named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
+not read: it runs `b9f9090`, not this merge (D119); the fragment reaches a
+site once the server serves `main`.
