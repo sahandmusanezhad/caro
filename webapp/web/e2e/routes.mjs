@@ -13,6 +13,9 @@
 //     where the build drew no Turnstile
 //   no error is thrown, none is printed to the console, and nothing of ours
 //     answers 400 or more -- but the 401 that says nobody is logged in
+//   nothing in what the server sends waits on a module straight under an
+//     HTML element, which made React redraw whole pages at random (React's
+//     error 418)
 //
 // and, once each: the dark scheme is another ground than the light; the
 // panels of the public pages and of the operator's and the seller's are the
@@ -53,6 +56,70 @@ const VIEWS = [
 const failures = [];
 const fail = (where, what) => failures.push(`${where}: ${what}`);
 
+/* What the server sends, read for what made React redraw whole pages at
+   random (React's error 418, about once in some hundreds of views). The
+   data a page hydrates from describes its elements, and an element whose
+   props name a client module waits until that module's script has run: the
+   router element that carries every page names the error page's
+   (app/error.tsx). Where such an element sits straight under an HTML
+   element (<main>, <div>), or a lazy node there names a row that is one,
+   React waits under that element, and the React that Next 15.5 bundles
+   replays the wait by claiming the element's server node again from inside
+   it: error 418, and the whole page drawn again. The layout holds the page
+   in a fragment, which claims no node (app/layout.tsx). This reads the
+   cause on every page; the walk itself meets it only by chance. */
+function waitsUnderAnElement(html) {
+  let data = '';
+  for (const [, push] of html.matchAll(/self\.__next_f\.push\((\[[\s\S]*?\])\)<\/script>/g)) {
+    const [kind, text] = JSON.parse(push);
+    if (kind === 1) data += text;
+  }
+  const rows = new Map();
+  for (const line of data.split('\n')) {
+    const m = line.match(/^([0-9a-f]+):([\s\S]*)$/);
+    if (m) rows.set(m[1], m[2]);
+  }
+  const modules = new Set([...rows].filter(([, row]) => row.startsWith('I[')).map(([id]) => id));
+  const parsed = new Map();
+  const row = (id) => {
+    if (!parsed.has(id)) {
+      let v = null;
+      try { v = JSON.parse(rows.get(id) ?? 'null'); } catch { /* a module's row, or text */ }
+      parsed.set(id, v);
+    }
+    return parsed.get(id);
+  };
+  const element = (x) => Array.isArray(x) && x.length === 4 && x[0] === '$' && x[3] !== null && typeof x[3] === 'object';
+  const waits = (x) => (element(x) ? Object.keys(x[3]).filter((k) => typeof x[3][k] === 'string'
+    && /^\$[0-9a-f]+$/.test(x[3][k]) && modules.has(x[3][k].slice(1))) : []);
+  const found = new Set();
+  const note = (under, x) => {
+    const w = waits(x);
+    if (under && w.length) found.add(`<${under}> holds an element that waits on a module (${w.join(', ')})`);
+  };
+  // `under` is the HTML element a node sits straight under, or null.
+  const read = (x, under) => {
+    if (typeof x === 'string') {
+      const lazy = x.match(/^\$L([0-9a-f]+)$/);
+      if (under && lazy && rows.has(lazy[1])) {
+        const v = row(lazy[1]);
+        for (const e of Array.isArray(v) && !element(v) ? v : [v]) note(under, e);
+      }
+    } else if (element(x)) {
+      note(under, x);
+      const type = x[1];
+      const html = typeof type === 'string' && /^[a-z][a-z0-9-]*$/.test(type) ? type : null;
+      for (const v of Object.values(x[3])) read(v, html);
+    } else if (Array.isArray(x)) {
+      for (const v of x) read(v, under);
+    } else if (x !== null && typeof x === 'object') {
+      for (const v of Object.values(x)) read(v, null);
+    }
+  };
+  for (const id of rows.keys()) read(row(id), null);
+  return [...found];
+}
+
 async function visit(browser, view, path) {
   const context = await browser.newContext({ ...view, locale: 'fa-IR' });
   const page = await context.newPage();
@@ -78,6 +145,8 @@ async function visit(browser, view, path) {
   const where = `${path} (${view.name})`;
   const res = await page.goto(SITE + path, { waitUntil: 'networkidle' });
   if (!res || res.status() !== 200) fail(where, `answered ${res ? res.status() : 'nothing'}`);
+  // The server sends one page whatever the view; it is read once.
+  if (res && view === VIEWS[0]) for (const w of waitsUnderAnElement(await res.text())) fail(where, w);
   const seen = await page.evaluate(() => ({
     dir: document.documentElement.getAttribute('dir'),
     lang: document.documentElement.getAttribute('lang'),
@@ -213,7 +282,8 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`${pages} page views, ${ROUTES.length} routes in ${VIEWS.length} views: right to left, one heading, ` +
-            `nothing wider than the screen, nothing from another origin, no error; the schemes two, ` +
+            `nothing wider than the screen, nothing from another origin, no error, nothing waiting on a module ` +
+            `under an HTML element; the schemes two, ` +
             `the panel one, «${Q}» ${search.articles} listing(s) shown` +
             (walked ? '; a seller logged in by code, posted, was approved in /admin, and the number was shown'
                     : '; the seller listings not walked (no store, or no operator token)'));
