@@ -1301,6 +1301,179 @@ for q, want, why in [
 
 
 # ---------------------------------------------------------------------------
+print("\na Latin name is read in capitals too (2026-11-26, the owner's choice on a measurement)")
+# The table writes its Latin names in lower case and `names` compared the text
+# as written: «Pride زیر ۵۰۰ میلیون» named nothing, and its clause was listed as
+# not understood. Measured, the predictions locked first: none of six such
+# queries named its model, all six do; none of the 1,338 queries the suites
+# hand the parser reads differently. A Persian name is not touched.
+for q, want, budget in [
+    ("Pride زیر 500 میلیون", {"pride"}, 500_000_000),
+    ("TIBA 2 مدل 98", {"tiba"}, None),
+    ("Dena Plus زیر 2 میلیارد", {"dena"}, 2_000_000_000),
+    ("QUIK اتوماتیک زیر 1 میلیارد", {"quik"}, 1_000_000_000),
+    ("Saina زیر 600 میلیون", {"saina"}, 600_000_000),
+    ("Shahin تا 1 میلیارد", {"shahin"}, 1_000_000_000),
+]:
+    _sp = P.parse(q)
+    check(f"«{q}» → {sorted(want)}, the budget as written", set(_sp.model_hints) == want
+          and _sp.budget_max_toman == budget, str((_sp.model_hints, _sp.budget_max_toman)))
+_cap, _low = P.parse("Pride سفید خوشگل"), P.parse("pride سفید خوشگل")
+check("a clause that holds a name in capitals is understood as the same name in lower case is: "
+      "«Pride سفید خوشگل» is not listed under «نفهمیدیم»",
+      _cap.unparsed == _low.unparsed == () and _cap.model_hints == _low.model_hints == ("pride",),
+      str((_cap.unparsed, _low.unparsed)))
+
+
+# ---------------------------------------------------------------------------
+print("\nrun17's hundred, by name (2026-11-26, the owner's choice on a measurement, M2kc)")
+# 211 of run17's 492 listings were of 104 models no table named, and a query
+# could not name them (D98). The owner chose names for 100 of them, written
+# before anything was measured (caro/ingest/models.py). Each model below is
+# written out with its first Persian name and its first Latin one -- not read
+# from the table, so that a name dropped from it turns a row red -- and each
+# is asked for by either, the Latin in capitals, under a ceiling. A name that
+# holds another model's name names both: «x22 پرو» is the X22 Pro's and holds
+# the X22's, as measured.
+_RN_HUNDRED = [
+    ("s7", "هایما اس 7", "haima s7"),
+    ("8s", "هایما 8 اس", "haima 8s"),
+    ("7x", "هایما 7 ایکس", "haima 7x"),
+    ("j7", "کی ام سی j7", "kmc j7"),
+    ("x5", "کی ام سی x5", "kmc x5"),
+    ("eagle", "کی ام سی ایگل", "kmc eagle"),
+    ("t8", "کی ام سی t8", "kmc t8"),
+    ("a5", "کی ام سی a5", "kmc a5"),
+    ("k7", "کی ام سی k7", "kmc k7"),
+    ("eama", "لاماری ایما", "lamari eama"),
+    ("x33 cross", "ام وی ام x33 کراس", "x33 cross"),
+    ("x33s", "ام وی ام x33 اس", "x33s"),
+    ("x33", "ام وی ام x33", "mvm x33"),
+    ("x22 pro", "ام وی ام x22 پرو", "x22 pro"),
+    ("x22", "ام وی ام x22", "mvm x22"),
+    ("x55 pro", "ام وی ام x55 پرو", "x55 pro"),
+    ("x55", "ام وی ام x55", "mvm x55"),
+    ("550", "ام وی ام 550", "mvm 550"),
+    ("hatchback-315", "ام وی ام 315", "mvm 315"),
+    ("h30 cross", "دانگ فنگ h30", "h30 cross"),
+    ("sonata", "سوناتا", "sonata"),
+    ("azera (grandeur)", "آزرا", "azera"),
+    ("i20", "آی 20", "i20"),
+    ("accent assembled", "اکسنت", "accent"),
+    ("avante", "آوانته", "avante"),
+    ("elantra", "النترا", "elantra"),
+    ("genesis", "جنسیس", "genesis"),
+    ("santafe (ix45)", "سانتافه", "santafe"),
+    ("tucson (ix35)", "توسان", "tucson"),
+    ("s3", "جک اس 3", "jac s3"),
+    ("j4", "جک j4", "jac j4"),
+    ("j5", "جک j5", "jac j5"),
+    ("3 sedan-assembled (new)", "مزدا 3", "mazda 3"),
+    ("gl", "اطلس جی ال", "atlas gl"),
+    ("g", "اطلس جی", "atlas g"),
+    ("arrizo 5t sport fl", "آریزو 5 تی اسپرت", "arrizo 5t sport"),
+    ("arrizo 5t", "آریزو 5 تی", "arrizo 5t"),
+    ("arrizo 6", "چری آریزو 6", "chery arrizo 6"),
+    ("tiggo 5", "تیگو 5", "tiggo 5"),
+    ("tiggo 7", "چری تیگو 7", "chery tiggo 7"),
+    ("tiggo8 pro max (f8 max)", "تیگو 8", "tiggo 8"),
+    ("tiggo7pro max", "تیگو 7 پرو مکس", "tiggo 7 pro max"),
+    ("tiggo7pro hybrid", "تیگو 7 پرو هیبرید", "tiggo 7 pro hybrid"),
+    ("arrizo 6 gt (z6)", "آریزو 6 جی تی", "arrizo 6 gt"),
+    ("arrizo6pro", "آریزو 6 پرو", "arrizo 6 pro"),
+    ("arizo 8 (z8)", "آریزو 8", "arrizo 8"),
+    ("fx", "فونیکس fx", "fownix fx"),
+    ("emgrand x7", "امگرند x7", "emgrand x7"),
+    ("emgrand 7", "امگرند 7", "emgrand 7"),
+    ("cerato-assembled", "سراتو", "cerato"),
+    ("sorento", "سورنتو", "sorento"),
+    ("optima", "اپتیما", "optima"),
+    ("soul", "کیا سول", "kia soul"),
+    ("sportage", "اسپورتیج", "sportage"),
+    ("x60", "لیفان x60", "x60"),
+    ("x70", "لیفان x70", "x70"),
+    ("620", "لیفان 620", "lifan 620"),
+    ("820", "لیفان 820", "lifan 820"),
+    ("gs", "ام جی gs", "mg gs"),
+    ("6", "ام جی 6", "mg6"),
+    ("3", "ام جی 3", "mg3"),
+    ("2008", "پژو 2008", "peugeot 2008"),
+    ("tondar 90", "تندر 90", "tondar 90"),
+    ("captur", "کپچر", "captur"),
+    ("sandero-stepway", "ساندرو استپ وی", "sandero stepway"),
+    ("sandero", "ساندرو", "sandero"),
+    ("talisman", "تالیسمان", "talisman"),
+    ("u5 plus", "یو5 پلاس", "u5 plus"),
+    ("cs-55-plus", "cs55 پلاس", "cs55 plus"),
+    ("cs55 assembled", "cs55 مونتاژ", "cs55 assembled"),
+    ("cs35-assembled", "چانگان cs35", "cs35"),
+    ("sx5", "فردا sx5", "sx5"),
+    ("suba m4", "سوبا m4", "suba m4"),
+    ("t5", "فردا t5", "farda t5"),
+    ("elite", "فیدلیتی الیت", "fidelity elite"),
+    ("prestige", "فیدلیتی پرستیژ", "fidelity prestige"),
+    ("s", "سهند اس", "sahand s"),
+    ("ciaz", "سیاز", "ciaz"),
+    ("tissan s05", "تیگارد", "tigard"),
+    ("camry", "کمری", "camry"),
+    ("b30", "بسترن b30", "besturn b30"),
+    ("h320", "برلیانس h320", "h320"),
+    ("c5", "سیتروئن c5", "citroen c5"),
+    ("trumpchi ga3s", "ترامپچی", "ga3s"),
+    ("haval m4", "هاوال m4", "haval m4"),
+    ("accord", "آکورد", "accord"),
+    ("eqm5", "هونگچی", "eqm5"),
+    ("tivoli-assembled", "تیوولی مونتاژ", "tivoli assembled"),
+    ("tivoli", "تیوولی", "tivoli"),
+    ("nx-hybrid", "لکسوس nx", "lexus nx"),
+    ("kalut", "کالوت", "kalut"),
+    ("asx", "میتسوبیشی asx", "asx"),
+    ("lancer", "لنسر", "lancer"),
+    ("ef7p", "ریرا", "reera"),
+    ("g01", "اس دبلیو ام g01", "swm g01"),
+    ("d60 plus", "ونوسیا d60", "d60 plus"),
+    ("golf", "گلف", "golf"),
+    ("passat", "پاسات", "passat"),
+    ("lx (sx)", "اکستریم lx", "xtrim lx"),
+    ("ario", "آریو", "ario"),
+]
+_RN_ALSO_FA = {"x33 cross": "x33", "x33s": "x33", "x22 pro": "x22", "x55 pro": "x55",
+               "arrizo 5t sport fl": "arrizo 5t", "tivoli-assembled": "tivoli", "sandero-stepway": "sandero",
+               "gl": "g"}
+_RN_ALSO_LA = {k: v for k, v in _RN_ALSO_FA.items() if k not in ("x33s", "gl")}
+_rn_bad = []
+for _key, _fa, _la in _RN_HUNDRED:
+    for _name, _also in ((_fa, _RN_ALSO_FA), (_la.upper(), _RN_ALSO_LA)):
+        _sp = P.parse(f"{_name} زیر 5 میلیارد")
+        _want = {_key, _also[_key]} if _key in _also else {_key}
+        if set(_sp.model_hints) != _want or _sp.budget_max_toman != 5_000_000_000 or _sp.budget_min_toman:
+            _rn_bad.append((_name, _sp.model_hints, _sp.budget_max_toman, _sp.budget_min_toman))
+check(f"RN1: each of the {len(_RN_HUNDRED)} is named by its Persian name and by its Latin one in capitals, under "
+      "a ceiling of five billion and no floor; alone, but the eight whose name holds another's, and the six of "
+      "them whose Latin name does", len(_RN_HUNDRED) == 100 and not _rn_bad, str(_rn_bad[:6]))
+check("RN2: the four models two makes write -- «Prime» of Dignity and of Fidelity, «S5» of JAC and of Haima -- "
+      "are left unnamed, the search keying a model by its model alone",
+      all(P.parse(f"{n} زیر 5 میلیارد").model_hints == () for n in ("دیگنیتی پرایم", "فیدلیتی پرایم", "جک اس 5", "هایما اس 5")))
+for q, want, why in [
+    ("مزدا 323 تمیز زیر 1 میلیارد", set(), "«مزدا 3» is not in «مزدا 323», another model"),
+    ("ام جی 350 زیر 2 میلیارد", set(), "  nor «ام جی 3» in «ام جی 350»"),
+    ("پژو۲۰۶۹", {"206"}, "  a name of the thirteen is matched beside a digit, as D83's rows pin"),
+    ("پرستیژ بالا زیر 2 میلیارد", set(), "a trim's word that is a model's only with its make"),
+    ("فردا میرم ماشین بخرم زیر 1 میلیارد", set(), "  a make that is a word, alone"),
+    ("گلفروشی ونک", set(), "a name inside a word"),
+    ("کراس اوور زیر 3 میلیارد", set(), "a name's second word alone"),
+    ("ماشین هیبرید زیر 5 میلیارد", set(), "  the same"),
+    ("تندر پارس زیر 1 میلیارد", set(), "Renault's «تندر پارس» is no Tondar 90 and no Pars"),
+    ("کمربند ایمنی سالم پراید", {"pride"}, "«کمری» is not in «کمربند»"),
+    ("پژو 206 تیپ الیت", {"206"}, "«الیت» names Fidelity's only with its make"),
+    ("تیگو ۸ تا ۹ میلیارد", {"tiggo8 pro max (f8 max)"}, "a model's number after «تیگو» is the model's"),
+    ("چری تیگو ۷ تا ۹ میلیارد", {"tiggo 7"}, "  and «تیگو 7» with its make, Chery's"),
+]:
+    _sp = P.parse(q)
+    check(f"«{q}» → {sorted(want) or 'no model'} ({why})", set(_sp.model_hints) == want, str(_sp.model_hints))
+
+
+# ---------------------------------------------------------------------------
 print("\na province is read where it is a place the car should be in (D82)")
 # A province named in a query is a constraint. The reading is the hazardous
 # one: a wrong read inverts and says nothing, so a name is read only where it

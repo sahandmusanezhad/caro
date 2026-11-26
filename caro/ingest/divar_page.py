@@ -43,9 +43,9 @@ None and no fingerprint is made; nothing here reveals a contact, because there
 is nothing to reveal on a list page.
 
 Not done here, and said so: the province of a city that is no province's
-capital (the 31 give theirs since 2026-10-30), make and model beyond the table of
-thirteen (the nodes carry a brand and a model; their values are counted in the
-report and not used), and the list pagination (`has_next_page` is in the page
+capital (the 31 give theirs since 2026-10-30), make and model beyond the model
+table (`caro.ingest.models`; the nodes carry a brand and a model; their values
+are counted in the report and not used), and the list pagination (`has_next_page` is in the page
 state, but whether `?page=2` is served has not been probed).
 """
 
@@ -505,16 +505,18 @@ def _condition(raw, title: str) -> tuple[str, str]:
     return "unknown", "none"
 
 
-# The model names the table of thirteen already holds, lower-cased. A brand the
-# page gives that is one of them («Pride», «Saina», «Tara») is a model of the
-# table's, whose make is the table's to say, and is left to it.
+# The model names the table holds, lower-cased. A brand the page gives that is
+# one of them («Pride», «Saina», «Tara») is a model of the table's, whose make
+# is the table's to say, and is left to it. Since 2026-11-26 the table holds
+# run17's hundred as well; of their models one is also a make of its own,
+# «Genesis», whose page brand is so left to the table.
 _TABLE_MODELS = frozenset(m.lower() for _, m in MAKE_MODEL)
 
 
 def structured_make_model(node: dict) -> tuple[str | None, str | None]:
     """(make, model) from the page's own brand and model, or (None, None).
 
-    Used only where the table of thirteen found nothing in the title. The
+    Used only where the model table found nothing in the title. The
     brand is the make; the model is the first word of the page's model once
     the brand's own name is taken off its front («Gac Emkoo Hybrid 2.0L Pro»
     under «Gac» is «Emkoo»). A word the table knows for that make is its

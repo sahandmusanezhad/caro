@@ -27,7 +27,7 @@ so a card that carries it is a dealer's (`build`). Every other card's seller
 stays `unknown`.
 
 The title is the seller's own words, and everything read from it is recorded
-as such: make and model by the table of thirteen, the condition by the prose
+as such: make and model by the model table, the condition by the prose
 table (source `description`), the class (a حواله is an assignment), a year
 only where the title states one, an odometer only next to its word.
 

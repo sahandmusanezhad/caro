@@ -5237,6 +5237,70 @@ check("MD1: the listing parser and the search read one table -- every model of o
 
 
 # ---------------------------------------------------------------------------
+print("\na Latin name is read in capitals too (2026-11-26, the owner's choice on a measurement)")
+# The table's Latin names are lower case, and «TIBA 2» named no model where «tiba
+# 2» named Tiba. Latin letters are compared case-folded; a Persian title reads
+# as it did, and a page's model the table names in capitals («Pars», under its
+# make) is read whole by `structured_make_model` as before.
+from caro.ingest.divar_page import structured_make_model as _lc_structured   # noqa: E402
+
+_lc_rows = [("TIBA 2 مدل ۹۸", ("Saipa", "Tiba")), ("Dena plus توربو", ("IKCO", "Dena")),
+            ("QUIK R دنده ای", ("Saipa", "Quik")), ("Pars", ("Peugeot", "Pars")), ("PRIDE 111", ("Saipa", "Pride")),
+            ("تیبا ۲", ("Saipa", "Tiba"))]
+_lc_got = [_md_extract(t) for t, _ in _lc_rows]
+check("LC1: a Latin name of the table in capitals or with one capital names its model, as in lower case "
+      "-- «TIBA 2», «Dena plus», «QUIK R», «Pars» -- and a Persian one as before",
+      _lc_got == [w for _, w in _lc_rows], str(_lc_got))
+check("LC2: a page's own brand and model the table holds in capitals are the same make and model as before",
+      _lc_structured({"brand": {"name": "Peugeot"}, "model": "Pars"}) == ("Peugeot", "Pars")
+      and _lc_structured({"brand": {"name": "Renault"}, "model": "Pars Tondar"}) == ("Renault", "Pars"),
+      str((_lc_structured({"brand": {"name": "Peugeot"}, "model": "Pars"}),
+           _lc_structured({"brand": {"name": "Renault"}, "model": "Pars Tondar"}))))
+
+
+# ---------------------------------------------------------------------------
+print("\nrun17's hundred, by name, in the listing parser (2026-11-26, the owner's choice, M2kc)")
+# The names the owner chose for 100 of run17's models a table did not name
+# (caro/ingest/models.py; the search's rows, written out, are RN1 in the
+# ranking suite). The listing parser takes the first model whose name it finds,
+# so a model whose name holds another's comes first in its make: a made title
+# with each model's first Persian name is read as that model, and none as
+# another, the thirteen's included.
+from caro.ingest import models as _rn_models                         # noqa: E402
+from caro.ingest.khodro45 import _make_model as _rn_k45              # noqa: E402
+
+_rn_fa = lambda ns: next(n for n in ns if any("\u0600" <= ch <= "\u06ff" for ch in n))
+_rn_hundred = _rn_models.MODELS[13:]
+_rn_bad = [(mk, md, t, got) for mk, md, ns in _rn_hundred
+           if (got := _md_extract(t := f"فروش {_rn_fa(ns)} مدل ۱۴۰۰ تمیز")) != (mk, md)]
+check(f"RN3: each of the hundred is read from a made title by its first Persian name, as that model and no "
+      f"other, the X22 Pro before the X22 and the Arrizo 5T Sport FL before the Arrizo 5T -- {len(_rn_hundred)} models",
+      len(_rn_hundred) == 100 and _rn_models.THIRTEEN == frozenset(_md_listing) - frozenset(
+          (mk, md) for mk, md, _ in _rn_hundred) and not _rn_bad, str(_rn_bad[:5]))
+_rn_run = [(t, _md_extract(t)) for t in ("مزدا 323 تمیز", "ام جی 350 سفید", "مزدا ۳ مدل ۱۴۰۰", "ام جی ۳ اتوماتیک",
+                                         "پژو۲۰۶۹")]
+check("RN4: a name of the hundred that ends in a number is no name where the number runs on -- «مزدا 3» is "
+      "not in «مزدا 323», nor «ام جی 3» in «ام جی 350» -- and is where it does not; a name of the thirteen is "
+      "matched beside a digit as before («پژو۲۰۶۹»)",
+      [g for _, g in _rn_run] == [(None, None), (None, None), ("Mazda", "3 Sedan-Assembled (New)"), ("MG", "3"),
+                                 ("Peugeot", "206")], str(_rn_run))
+check("RN5: the four models two makes write are not read: «دیگنیتی پرایم», «فیدلیتی پرایم», «جک اس ۵», «هایما اس ۵»",
+      all(_md_extract(t) == (None, None) for t in ("دیگنیتی پرایم", "فیدلیتی پرایم", "جک اس ۵", "هایما اس ۵")))
+_rn_k = [(r, _rn_k45({"brand": {"title": r[0], "title_en": r[2]}, "model": {"title": r[1], "title_en": r[3]}}))
+         for r in (("پژو", "پارس", "Peugeot", "Pars"), ("هایما", "اس ۷", "Haima", "S7"),
+                   ("ام وی ام", "x22 پرو", "MVM", "X22 Pro"), ("فونیکس", "تیگو ۸ پرو", "Fownix", "Tiggo 8 Pro"),
+                   ("چری", "آریزو ۵ تی اف ال", "Chery", "Arrizo 5T FL"),
+                   ("هیوندای", "سوناتا هیبرید", "Hyundai", "Sonata Hybrid"))]
+_rn_k_only_fa = _rn_k45({"brand": {"title": "هیوندای"}, "model": {"title": "سوناتا"}})
+check("RN6: Khodro45 reads the thirteen by its Persian titles and every other model by its English ones -- "
+      "a model the table does not hold whose Persian title holds a name of the hundred («تیگو ۸ پرو», «آریزو "
+      "۵ تی اف ال», «سوناتا هیبرید») is what its English title says -- and the table's reading where it has "
+      "no English title",
+      all(got == (r[2], r[3]) for r, got in _rn_k) and _rn_k_only_fa == ("Hyundai", "Sonata"),
+      str((_rn_k, _rn_k_only_fa)))
+
+
+# ---------------------------------------------------------------------------
 print("\na model's name is a word of its own (2026-11-19, the owner's call)")
 # A name was found anywhere in a text, in the table's order: three of run17's
 # Grand Vitaras were IKCO Taras, «تارا» inside «ویتارا», two Renault Pars
@@ -5263,7 +5327,9 @@ for _mn_cell, _mn_rows in [
         ("تندر  پارس", _MN_NONE), ("تندر\u200cپارس", _MN_NONE)]),
     ("«تندر» not right before a name leaves the name", [
         ("تندر ۹۰ و پژو پارس", ("Peugeot", "Pars")), ("پژو پارس، تندر هم داریم", ("Peugeot", "Pars")),
-        ("تندر ۹۰", _MN_NONE), ("پارس سفید، معاوضه با تندر", ("Peugeot", "Pars")),
+        # Renault's Tondar 90 is one of run17's hundred since 2026-11-26 (the
+        # owner's choice on a measurement): «تندر ۹۰» names it, and no Pars.
+        ("تندر ۹۰", ("Renault", "Tondar 90")), ("پارس سفید، معاوضه با تندر", ("Peugeot", "Pars")),
         ("تندر، پارس", ("Peugeot", "Pars"))]),
     ("a name inside a place's word is no model: the car the text is about", [
         ("پراید ۱۳۱ مدل ۹۸ تحویل در تهرانپارس", ("Saipa", "Pride")),
