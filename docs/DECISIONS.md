@@ -9861,3 +9861,126 @@ against the two images, passed; `reached` said that no environment is
 named yet. Nothing was pushed to `Tecso-Dev/caro`. The site on Vercel was
 not read: it runs `b9f9090`, not this merge (D119); the fragment reaches a
 site once the server serves `main`.
+
+## D132 — run17's hundred models a table did not name are named, Persian and Latin, a Latin name is read in capitals too, and Khodro45 reads them by its English titles, by the owner's choice on a measurement (M2kc)
+
+211 of run17's 492 listings were of 104 models no table named, so a query
+could not name them (D98): «سوناتا زیر ۳ میلیارد» named no model and showed
+every car under three billion. Persian names for them were offered on
+2026-11-02 and not chosen; asked on 2026-11-26, after D131, which round to
+take next, the owner chose them.
+
+**Found while the inputs were gathered**, before any rule was measured: a
+Latin name was read only in lower case. «pride زیر ۵۰۰ میلیون» named Pride
+and «Pride زیر ۵۰۰ میلیون» nothing, its clause listed as not understood; the
+listing parser read «tiba 2» and not «TIBA 2».
+
+**Measured** the same day on `main` at `aa42d32`, the predictions written and
+locked at 12:47:46Z (sha256 `afa86b43…`) with the names measured (sha256
+`38179d80…`): for 100 of the 104, 190 listings, each make and model as run17
+writes them -- Khodro45's English titles -- and Persian and Latin names. A
+name names one model of run17; a name a buyer writes for more than one is
+given only with the word that tells them apart («چری تیگو 7», since «تیگو 7»
+is Chery's Tiggo 7 and Fownix's two Tiggo 7 Pros); a model's number alone is
+no name; a name of two Latin letters or digits is given only with its make;
+within a make, a model whose name holds another's comes first. Four models
+whose model two makes write, «Prime» and «S5» (21 listings), were left out:
+the search keys a model by its model alone. The rules, each written into a
+copy of the repository of its own:
+
+    M0    today
+    M1    Latin letters compared case-folded, in `names` and in the check
+          that a clause holding a model's name is understood
+    M2    M1, and the hundred after the thirteen; a name ending in a digit
+          no name where a digit follows («مزدا 3» is not in «مزدا 323»)
+    M2k   M2, and Khodro45 reads its English titles first wherever the
+          table's reading of its Persian titles is not one of the thirteen
+
+    cells                                                   M0     M1     M2    M2k
+    the hundred by a Persian name, 100                       0      0    100    100
+      the model alone                                        0      0     92     92
+    the hundred by a Latin name in capitals, 100             0      0    100    100
+      the model alone                                        0      0     94     94
+    the four left out, no model, 4                           4      4      4      4
+    a name's letters or words that are no model, 10         10     10     10     10
+    the thirteen in capitals, 6                              0      6      6      6
+    made titles read right, 100                              0      0    100    100
+    made Khodro45 results as their English titles say, 6     6      6      3      6
+    the API on run17: the model's listings exactly, 100      0      0     92     92
+    the suites' 1,338 queries, read differently                     0     13     13
+    the suites' 178 listing texts, read differently                 1      4      4
+
+The models that are not named alone are the eight whose name holds another
+model's, which they name as well: X33 Cross and X33s (X33), X22 Pro (X22),
+X55 Pro (X55), Arrizo 5T Sport FL (Arrizo 5T), Tivoli-Assembled (Tivoli),
+Sandero-Stepway (Sandero), Atlas GL (Atlas G); six of them by their Latin
+names. The API returns their listings and the shorter-named model's. The
+three Khodro45 results M2 read wrong are of models the table does not hold
+whose Persian title holds a name of the hundred: Fownix's «تیگو ۸ پرو» read
+as the tiggo8 PRO MAX, Chery's «آریزو ۵ تی اف ال» as the Arrizo 5T, Hyundai's
+«سوناتا هیبرید» as the Sonata. Every prediction held but P7: M2 read 13 of
+the suites' queries differently, not 12. The 13th is «پژو۲۰۶۹», 206 on `main`
+and nothing under M2: the rule about a following digit took «پژو206», a name
+of the thirteen that D83's rows pin as matched beside a digit. An addendum,
+locked at 12:53:04Z (sha256 `b32c230f…`) after that measurement and before
+its own, measured M2kc -- M2k with that rule held to the hundred's names --
+and its three predictions held: the 12 queries, and «پژو۲۰۶۹» 206; the 10 of
+the made words; every other cell as M2k, row for row. Put to the owner with
+the names, the owner chose M2kc.
+
+Merged on 2026-11-26 in #70:
+
+    commit    what it does                                          suites    bare
+    70eeca9   a Latin name read in capitals, in both readers          4129    3361
+    1cccb42   the hundred, the run-on rule, Khodro45's English        4149    3380
+    1afdebd   the README and the roadmap's parser item                4149    3380
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head. As built, the code read every cell exactly as measured: M1 after the
+first commit, M2kc after the second.
+
+**The rules** (`caro/ingest/models.py`, `caro/ranking.py`,
+`caro/ingest/khodro45.py`). The table is `_THIRTEEN` and `_RUN17`, one table
+for both readers in that order, and `THIRTEEN` names the first. `names`
+compares Latin letters case-folded, A-Z as a-z, and so does the search's
+check that a clause holding a model's name is understood; a name of the
+hundred that ends in a number is no name where the number runs on.
+`khodro45._make_model` takes the table's reading of a listing's Persian
+titles for the thirteen, Khodro45's English titles for every other model,
+and the table's reading where there is no English title. run17's listings a
+query can name: 281 (57%) to 471 (96%).
+
+**Tests.** In `tests/test_ranking.py`: the six capitals and a clause they
+hold understood; RN1, the hundred written out with their first Persian and
+first Latin names, so that a name dropped from the table turns a row red,
+each asked for by both; RN2, the four left out; thirteen made queries,
+«مزدا 323», «ام جی 350», «پژو۲۰۶۹» among them. In `tests/test_ingest.py`: LC1 and
+LC2, the capitals in the listing parser; RN3, a made title for each of the
+hundred read as its model and no other; RN4, the run-on rule; RN5, the four;
+RN6, Khodro45's six; and the MN row «تندر ۹۰», which named no model and
+names Renault's Tondar 90. In `tests/test_api_contract.py`: RN7, each of the
+hundred asked for by name over HTTP shows its listings in the served corpus
+and no other's, but for the eight.
+
+**Mutants**, bytecode off, 9, all caught: the text not case-folded, a
+clause's name compared as written, no run-on rule, the run-on rule for every
+name, the X22 before the X22 Pro, a model of the hundred dropped, a model of
+the four named, Khodro45 by its Persian titles first for every model, and
+Khodro45 dropping the table's reading where there is no English title.
+
+**Left.** The four models two makes write (21 listings), since the search
+keys a model by its model alone. A name that holds another model's names
+both: «x22 پرو» shows the X22s too. «جنسیس» names Hyundai's Genesis, and
+Genesis is also a make of its own, whose Divar listings the table would read
+as Hyundai's; no such listing is in the repository. Khodro45's own Persian
+titles for the hundred are not in the repository either, which is why its
+English titles read them. And the short unread name listed as unread,
+offered on 2026-11-02 and on 2026-11-26 and not chosen.
+
+**On `main` after `8de59ca`**, read on 2026-11-26: `ci` and `images` passed
+at the first attempt, the e2e walk and the images job's walk of the key
+routes in a browser among their steps, and `reached` said that no
+environment is named yet. Nothing was pushed to `Tecso-Dev/caro`. The site
+on Vercel was not read: it runs `b9f9090`, not this merge (D119); the names
+reach a site once the server serves `main`.
