@@ -1451,9 +1451,12 @@ for _key, _fa, _la in _RN_HUNDRED:
 check(f"RN1: each of the {len(_RN_HUNDRED)} is named by its Persian name and by its Latin one in capitals, under "
       "a ceiling of five billion and no floor; alone, but the eight whose name holds another's, and the six of "
       "them whose Latin name does", len(_RN_HUNDRED) == 100 and not _rn_bad, str(_rn_bad[:6]))
+_rn_four = [P.parse(f"{n} زیر 10 میلیارد").model_hints
+            for n in ("دیگنیتی پرایم", "فیدلیتی پرایم", "جک اس 5", "هایما اس 5", "DIGNITY PRIME", "JAC S5")]
 check("RN2: the four models two makes write -- «Prime» of Dignity and of Fidelity, «S5» of JAC and of Haima -- "
-      "are left unnamed, the search keying a model by its model alone",
-      all(P.parse(f"{n} زیر 5 میلیارد").model_hints == () for n in ("دیگنیتی پرایم", "فیدلیتی پرایم", "جک اس 5", "هایما اس 5")))
+      "are named by their make and model alone, the search keying them so (2026-11-27, the owner's choice)",
+      _rn_four == [("dignity|prime",), ("fidelity|prime",), ("jac|s5",), ("haima|s5",), ("dignity|prime",), ("jac|s5",)],
+      str(_rn_four))
 for q, want, why in [
     ("مزدا 323 تمیز زیر 1 میلیارد", set(), "«مزدا 3» is not in «مزدا 323», another model"),
     ("ام جی 350 زیر 2 میلیارد", set(), "  nor «ام جی 3» in «ام جی 350»"),

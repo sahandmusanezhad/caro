@@ -1263,9 +1263,16 @@ def _model_matches(model_key: str, hints: Sequence[str]) -> bool:
     key's, so they are not matched here. Keys without a separator (the
     synthetic corpora) are their own model segment.
     """
+    parts = [p.strip().casefold() for p in model_key.split("|")]
     seg = model_key.split("|")[1] if "|" in model_key else model_key
     seg = seg.casefold()
     for h in hints:
+        # A hint that names a make and a model («jac|s5», a model two makes
+        # write) is met by a listing of that make and that model.
+        if "|" in h:
+            if len(parts) > 1 and [parts[0], parts[1]] == h.casefold().split("|", 1):
+                return True
+            continue
         if seg == h.casefold():
             return True
         for alias in MODEL_ALIASES.get(h, ()):

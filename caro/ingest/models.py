@@ -179,7 +179,21 @@ _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Zotye", "Ario", ("آریو", "زوتی آریو", "ario")),
 )
 
-MODELS: tuple[tuple[str, str, tuple[str, ...]], ...] = _THIRTEEN + _RUN17
+# THE FOUR WHOSE MODEL TWO MAKES WRITE (2026-11-27, the owner's choice on a
+# measurement, B3): Dignity's and Fidelity's «Prime», JAC's and Haima's «S5»,
+# 21 of run17's listings, left out on 2026-11-26 because the search keyed a
+# model by its model alone. Each name holds its make, and the search keys
+# these four by make and model («jac|s5», `search_aliases`), so «جک اس 5» is
+# JAC's S5 and not Haima's. Measured: each of the four named alone, and the
+# API on run17 returning exactly its listings, where none was named.
+_TWO_MAKES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("Dignity", "Prime", ("دیگنیتی پرایم", "dignity prime")),
+    ("Fidelity", "Prime", ("فیدلیتی پرایم", "fidelity prime")),
+    ("JAC", "S5", ("جک اس 5", "جک اس5", "جک s5", "jac s5")),
+    ("Haima", "S5", ("هایما اس 5", "هایما اس5", "هایما s5", "haima s5")),
+)
+
+MODELS: tuple[tuple[str, str, tuple[str, ...]], ...] = _THIRTEEN + _RUN17 + _TWO_MAKES
 
 # Khodro45 reads a listing's Persian titles by the table for the thirteen and
 # its English titles for every other model (`khodro45._make_model`).
@@ -252,7 +266,7 @@ _ASCII_LOWER = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrst
 # in «ام جی 350», each another model. Held to the hundred's names, measured so:
 # for every name it found «پژو206» in «پژو۲۰۶۹», which D83's rows pin as a name
 # matched beside a digit, and it reads so still.
-_RUNS_ON = frozenset(n for _make, _model, ns in _RUN17 for n in ns if n[-1].isdigit())
+_RUNS_ON = frozenset(n for _make, _model, ns in _RUN17 + _TWO_MAKES for n in ns if n[-1].isdigit())
 
 
 def names(text: str, name: str) -> bool:
@@ -274,5 +288,10 @@ def names(text: str, name: str) -> bool:
 
 def search_aliases() -> dict[str, tuple[str, ...]]:
     """The search's view: a model's name lower-cased, and the names it is
-    written by."""
-    return {model.lower(): names for _make, model, names in MODELS}
+    written by. A model two makes write is keyed by its make and model,
+    «jac|s5», which a listing matches by both (`caro.ranking._model_matches`)."""
+    written: dict[str, int] = {}
+    for _make, model, _names in MODELS:
+        written[model.lower()] = written.get(model.lower(), 0) + 1
+    return {(f"{make}|{model}" if written[model.lower()] > 1 else model).lower(): names
+            for make, model, names in MODELS}

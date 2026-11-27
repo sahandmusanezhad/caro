@@ -3201,16 +3201,17 @@ _rn_ids = {}
 for _x in _md_cars:
     _rn_ids.setdefault((_x.make, _x.model), set()).add(_x.listing_id)
 _rn_bad = []
-for _mk, _md, _ns in _rn_models.MODELS[13:]:
+for _mk, _md, _ns in _rn_models._RUN17 + _rn_models._TWO_MAKES:
     _q = next(n for n in _ns if any("\u0600" <= ch <= "\u06ff" for ch in n))
     _r = _md_c.get("/api/search", params={"q": _q, "k": 100}).json()
     _got = {e["id"] for e in _r["evidence"] + _r.get("evidence_unchecked", [])}
     _want = _rn_ids.get((_mk, _md), set()) | (_rn_ids.get((_mk, _RN_ALSO[_md]), set()) if _md in _RN_ALSO else set())
     if _got != _want or not _want:
         _rn_bad.append((_q, len(_got), len(_want)))
-check(f"RN7: on {RUN}, each of the hundred asked for by its first Persian name shows that model's listings "
-      "and none of another model's, but for the eight whose name holds another's, which show the two",
-      len(_rn_models.MODELS) == 113 and not _rn_bad, str(_rn_bad[:6]))
+check(f"RN7: on {RUN}, each of the hundred, and each of the four two makes write, asked for by its first "
+      "Persian name shows that model's listings -- the four, their make's alone -- and none of another model's, "
+      "but for the eight whose name holds another's, which show the two",
+      len(_rn_models.MODELS) == 117 and not _rn_bad, str(_rn_bad[:6]))
 
 
 # ---------------------------------------------------------------------------
