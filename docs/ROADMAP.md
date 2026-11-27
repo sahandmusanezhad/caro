@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D133, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D134, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -139,7 +139,7 @@ an item says so.
    as makes («کیا دارن ماشین میفروشن»); a name that holds another model's
    names both («x22 پرو» shows the X22s too); and a Divar page whose brand
    is Genesis is left to the table. The same day, the owner's choice on a
-   measurement (G2): «ایران خودرو» reads IKCO, Peugeot and Reera (210 of
+   measurement (G2, D134): «ایران خودرو» reads IKCO, Peugeot and Reera (210 of
    run17's listings, from 104), and «سایپا» Saipa, Atlas and Sahand (81,
    from 75); a filter's make is the corpus's make. Next, by the owner's
    choice: the panel's Persian names for the makes and the hundred's
