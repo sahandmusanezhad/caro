@@ -470,7 +470,8 @@ in capitals too and «آ» as «ا», or by its number where the number stands
 alone; 117 models, run17's hundred among them since 2026-11-26 and the four
 two makes write, by make and model, since 2026-11-27, so all of run17's 492
 listings are of a model a query can name), the make where no model is named
-(each of run17's 45, «هایما زیر ۲ میلیارد»), the ceiling of a budget (after «زیر», «تا», «حداکثر», «کمتر
+(each of run17's 45, «هایما زیر ۲ میلیارد»; «ایران خودرو» reads IKCO, Peugeot
+and Reera, and «سایپا» Saipa, Atlas and Sahand), the ceiling of a budget (after «زیر», «تا», «حداکثر», «کمتر
 از», «بودجه», «قیمت», or a lone amount, with the assumption printed), its
 floor (an amount of money and «به بالا», with «از» or «بالای» before it or
 none, unless a ceiling's cue such as «تا» stands right before it; or «حداقل»,

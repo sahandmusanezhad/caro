@@ -137,11 +137,13 @@ an item says so.
    hundred's names were reviewed («جنسیس» with its make only, «ری را»,
    «هایما x7», «سیتروین»). Left: «کیا» and «سهند» are words too and are read
    as makes («کیا دارن ماشین میفروشن»); a name that holds another model's
-   names both («x22 پرو» shows the X22s too); «ایران خودرو» and «سایپا» are
-   the makes Khodro45 writes so, IKCO's four and Saipa's five models, not
-   the Peugeots IKCO makes, nor Reera, Atlas or Sahand -- the owner chose
-   on 2026-11-27 to have that measured as a round of its own; and a Divar
-   page whose brand is Genesis is left to the table. Offered on 2026-11-02
+   names both («x22 پرو» shows the X22s too); and a Divar page whose brand
+   is Genesis is left to the table. The same day, the owner's choice on a
+   measurement (G2): «ایران خودرو» reads IKCO, Peugeot and Reera (210 of
+   run17's listings, from 104), and «سایپا» Saipa, Atlas and Sahand (81,
+   from 75); a filter's make is the corpus's make. Next, by the owner's
+   choice: the panel's Persian names for the makes and the hundred's
+   models, which it draws in Latin («Haima»). Offered on 2026-11-02
    and on 2026-11-26 and not chosen: a short unread name listed as unread.
    A session measures and builds; the owner decides each.
 5. **An estimator that clears the gate on real data** (the product gaps, item
