@@ -9984,3 +9984,173 @@ routes in a browser among their steps, and `reached` said that no
 environment is named yet. Nothing was pushed to `Tecso-Dev/caro`. The site
 on Vercel was not read: it runs `b9f9090`, not this merge (D119); the names
 reach a site once the server serves `main`.
+
+## D133 — A make the sentence names is read where it names no model, the four models two makes write are named by make and model, «آ» is read as «ا», and the hundred's names were reviewed, by the owner's choice on a measurement (B3)
+
+A make named in a query was read by nothing: «هایما زیر ۲ میلیارد» named no
+model and no make, and showed every car under two billion. The four models
+whose model two makes write, Dignity's and Fidelity's «Prime» and JAC's and
+Haima's «S5» (21 listings), were left unnamed by D132, since the search keyed
+a model by its model alone. Asked on 2026-11-27, after D132, which round to
+take next, the owner chose a make read from the sentence. Asked whether D132's
+names had been checked, the owner asked the session to review them itself.
+The review found «آ» written as «ا» («اریزو», «ازرا», «اوانته», «اکورد», «اریو»,
+«ای 20») read by neither reader. It found «جنسیس» alone naming Hyundai's
+Genesis, though Genesis is also a make of its own. And it found «ری را»
+(Reera, its ZWNJ a space), «هایما x7» (Khodro45's own slug for the 7X) and
+«سیتروین» read by nothing.
+
+**Measured** the same day on `main` at `6723260`. The predictions were
+written and locked at 12:56:22Z (sha256 `7f52d162…`) with the candidates
+(sha256 `c97f31d8…`): 45 makes, every make of run17's 492 listings, by Persian
+and Latin names; the four, with D132's held-back names; and the review's
+corrections. A make's name is a word of its own by `names`, as a model's is.
+Each rule was written into a copy of the repository of its own:
+
+    B0    today
+    B1    the four after the hundred, keyed in the search by make and model
+          («jac|s5»): a hint with a make matches a listing of that make and
+          that model, in the ranked path and in the evidence
+    B2    B1, and a make read where the query names no model, into the
+          intent's makes, which a filter's make already fills (D129); a
+          clause holding a make's name is understood
+    B3a   B2, and «آ» read as «ا» in a name and in the text it is looked
+          for in, by both readers; «آباد» after a name still clears it,
+          written either way
+    B3    B3a, and the corrections: «جنسیس» only with its make; «ری را» for
+          Reera, its model and its make; «هایما x7», «هایما ایکس 7» and
+          «haima x7» for Haima's 7X; «سیتروین» for Citroen and its C5
+
+    cells                                                    B0    B1    B2   B3a    B3
+    the four by their first name, by make and model, 4        0     4     4     4     4
+    the makes by a Persian name, 45: the make alone           0     0    39    39    39
+      the make's one model, as today                          6     6     6     6     6
+    the makes in Latin capitals, 45: the make alone           0     0    41    41    41
+      the make's one model, as today                          4     4     4     4     4
+    a make and a model, 5: a model named, no make read        4     5     5     5     5
+    made sentences read as wanted, 6                          5     5     4     4     4
+    «ا» for «آ», 6: the model named                           0     0     0     6     6
+    the corrections, 5: read as B3 means them                 1     1     1     1     5
+    made titles read right, 10                                0     4     4    10    10
+    made Khodro45 results as their English titles say, 10    10    10    10    10    10
+    the API on run17: the four's listings exactly, 4          0     4     4     4     4
+    the API on run17: a make's listings exactly, 45           6     6    45    45    45
+    the suites' 1,338 queries, read differently                     2    19    19    19
+    the suites' 178 listing texts, read differently                 0     0     0     1
+
+Some makes are read as their one model: those whose make's name is also a
+name of their model, Lamari, Tigard, Besturn, Venucia, Hongqi and Reera by
+a Persian name, and Lamari, Tigard, Xtrim and Reera by a Latin one in
+capitals. In run17 that model's listings are the make's. The two made
+sentences B2 reads otherwise than wanted are the cost of two makes' names
+being words: «کیا دارن ماشین میفروشن» reads Kia, and «یه ماشین برای سهند زیر ۱
+میلیارد» reads Sahand. «پژو یا کیا زیر ۱ میلیارد», which read nothing, reads
+Peugeot and Kia. Where a model is named, no make is read: «پراید با جک و
+زاپاس» stays a Pride. Of the suites' queries, 19 read differently: the two
+«جک اس ۵ …», each now naming «jac|s5», and 17 that name a make alone. Each of
+the 17 now reads that make, and nothing else changes but what is listed as
+not understood.
+
+Every prediction held but R10. Under B3 one of the suites' 178 listing
+texts, the Sheypoor title «ری را، فروش سازمانی» (V1 in `tests/test_ingest.py`),
+reads as Reera's EF7P, where the predictions said that none would read
+differently. The reading is right. The check that found it ran in the same
+command that locked the predictions, and its output was read only after the
+lock; nothing was changed. Put to the owner, the owner chose B3.
+
+Merged on 2026-11-27 in #72:
+
+    commit    what it does                                          suites    bare
+    1f91aef   the four, by make and model                             4150    3380
+    c18caaf   a make the sentence names, where it names no model      4162    3391
+    f315f23   «آ» read as «ا», by both readers                         4171    3400
+    3b3d1f2   the names' corrections                                  4177    3406
+    951075e   the README and the roadmap's parser item                4177    3406
+    8a96104   three comments on the intent's makes                    4177    3406
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head. As built, the code read every cell exactly as measured: B1 after the
+first commit, B2 after the second, B3a after the third and B3 after the
+fourth.
+
+**The rules** (`caro/ingest/models.py`, `caro/ranking.py`,
+`webapp/api/main.py`, `webapp/web/components/IntentPanel.tsx`):
+- `_TWO_MAKES` holds the four, after the hundred. `search_aliases` keys a
+  model that two makes write by its make and model («dignity|prime»,
+  «jac|s5») and every other model by its model, as before. The listing
+  parser reads the four from the same table.
+- `_model_matches` in the ranked path, and the evidence in the API, match a
+  hint with a make only to a listing of that make and that model.
+- `MAKES` names run17's 45 makes, Persian and Latin. `RuleIntentParser.parse`
+  reads them by `names` where no model is named, into the intent's makes.
+  Those narrow the listings as a filter's make does (D129), and a filter's
+  make takes their place. A clause that holds a make's name is understood.
+- `_FOLD` folds Latin capitals, and «آ» to «ا», in `names` and in the check
+  that a clause is understood. «اباد» clears a name as «آباد» does.
+- The site's panel draws a hint with a make as its two words («jac s5»).
+
+run17's listings a query can name: 471 (96%) to 492 (100%).
+
+**Tests.**
+- `tests/test_ranking.py`:
+  - RN1's Genesis row is now «هیوندای جنسیس» and «hyundai genesis».
+  - RN2, the four, each now read by its make and model.
+  - MK1, the 45 makes written out with their Persian and Latin names and
+    what each reads, so that a name dropped from `MAKES` turns a row red.
+  - The made sentences: «کیا» and «سهند» pinned as their cost, and «فردا»
+    alone as no make.
+  - A clause that holds a make's name, understood.
+  - The six «ا» queries, and the five corrections.
+- `tests/test_ingest.py`:
+  - MD1, the one table, keyed by make and model where two makes write a
+    model.
+  - RN3 with the four.
+  - RN5, the four read by their make and model, and «پرایم» and «اس ۵» alone
+    naming none.
+  - RN6, Khodro45's ten.
+  - FA1, the six «ا» titles, «پارس اباد», «ری را، فروش سازمانی» as Reera's,
+    «جنسیس جی ۸۰» as no Hyundai, «هیوندای جنسیس ۲۰۱۴» and «هایما x7 اتوماتیک».
+- `tests/test_api_contract.py`:
+  - RN7 with the four.
+  - MK5: each make asked for over HTTP by its first Persian name shows that
+    make's listings, all of them, and no other's.
+- `tests/test_screens.py`: the panel draws «jac|s5» as «jac s5».
+
+**Mutants**, bytecode off: 12, of which 11 were caught. They were the four
+keyed by their model alone, the evidence ignoring a hint's make, a make
+read beside a model, no make read, a make's clause not understood, Haima
+dropped from `MAKES`, «فردا» alone a make, «آ» not folded, «اباد» not a
+place's word, «جنسیس» alone named again, and «ری را» dropped. One lives: the
+ranked path ignoring a hint's make. No suite ranks a corpus that holds two
+makes' S5, and on run17 the ranked path is not served: the gate refuses,
+and the page shows the evidence, whose mutant is caught. No row was added
+just to catch it.
+
+**Left.**
+- «کیا» and «سهند» are words too, and are read as makes.
+- Where a model is named no make is read. So «سوناتا یا کیا زیر ۳ میلیارد»
+  asks for the Sonata alone, and its «کیا» is not listed as not understood.
+- A name that holds another model's names both: «x22 پرو» shows the X22s
+  too.
+- «ایران خودرو» and «سایپا» are the makes Khodro45 writes so, IKCO's four and
+  Saipa's five models. They are not the Peugeots IKCO makes, nor Reera,
+  Atlas or Sahand. The owner chose on 2026-11-27 to have that measured as a
+  round of its own.
+- The panel draws a make, and a model of the hundred or the four, in the
+  corpus's Latin («Haima», «jac s5»). `MODEL_FA` (`webapp/web/lib/format.ts`)
+  has Persian names for the thirteen and seven makes, and draws a key it
+  has no name for as it is.
+- A Divar page whose brand is Genesis is left to the table; no such listing
+  is in the repository.
+- The ranked path's match of a hint's make is held by no row, since run17
+  does not serve that path.
+- The short unread name listed as unread, offered on 2026-11-02 and on
+  2026-11-26 and not chosen.
+
+**On `main` after `7d20eba`**, read on 2026-11-27: `ci` and `images` passed
+at the first attempt, the e2e walk and the images job's walk of the key
+routes in a browser among their steps, and `reached` said that no
+environment is named yet. Nothing was pushed to `Tecso-Dev/caro`. The site
+on Vercel was not read: it runs `b9f9090`, not this merge (D119); the make
+reading reaches a site once the server serves `main`.
