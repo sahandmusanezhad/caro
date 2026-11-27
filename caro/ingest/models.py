@@ -266,6 +266,21 @@ MAKES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Zotye", ("زوتی", "zotye")),
 )
 
+# A COMPANY'S NAME READS ITS OWN MAKES (2026-11-27, the owner's choice on a
+# measurement, G2). «ایران خودرو» read only the make Khodro45 writes as IKCO
+# (104 of run17's listings), not the Peugeots IKCO makes nor Reera; «سایپا»
+# read only Saipa (75), not Atlas or Sahand. A make read from the sentence is
+# followed by these, each make kept once: «ایران خودرو» reads IKCO, Peugeot and
+# Reera (210), «سایپا» Saipa, Atlas and Sahand (81). It is one way: «پژو» is
+# Peugeot alone. A filter's make is the corpus's make and is not widened.
+# Measured, the predictions locked first: of the 1,818 queries the suites hand
+# the parser, the 6 that name one of the two and no model read differently, in
+# their makes alone.
+MAKE_ALSO: dict[str, tuple[str, ...]] = {
+    "IKCO": ("Peugeot", "Reera"),
+    "Saipa": ("Atlas", "Sahand"),
+}
+
 
 MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
     (make, model): names for make, model, names in MODELS}

@@ -42,7 +42,7 @@ from typing import Protocol, Sequence
 import numpy as np
 
 from caro.appraisal import QUANTILES, MarketEstimator, NotBenchmarked, Row
-from caro.ingest.models import _FOLD, MAKES, names, search_aliases
+from caro.ingest.models import _FOLD, MAKE_ALSO, MAKES, names, search_aliases
 from caro.ingest.persian import OTHER_CAPITALS, PROVINCE_SPELLINGS, PROVINCES
 
 # ---------------------------------------------------------------------------
@@ -953,8 +953,8 @@ class IntentSpec:
     # model year and the least mileage (the filter panel, the owner's choice
     # of 2026-11-25), which webapp/api/main.py sets from a filter's fields.
     # The makes, any one of which meets it, are a filter's make, or else the
-    # makes a sentence names where it names no model (the owner's choice of
-    # 2026-11-27).
+    # makes a sentence names where it names no model, a company's name with
+    # its own makes (the owner's choices of 2026-11-27).
     year_max: int | None = None
     min_mileage_km: int | None = None
     makes: tuple[str, ...] = ()
@@ -1060,8 +1060,11 @@ class RuleIntentParser:
         models = tuple(k for k, al in MODEL_ALIASES.items()
                        if any(_names_model(q, a, bare) for a in al))
         # A make is read where no model is named (2026-11-27, the owner's
-        # choice on a measurement; caro/ingest/models.py, MAKES).
+        # choice on a measurement; caro/ingest/models.py, MAKES), and a
+        # company's name reads its own makes after its own (MAKE_ALSO, the
+        # owner's choice of the same day): «ایران خودرو» IKCO, Peugeot, Reera.
         makes = () if models else tuple(mk for mk, ns in MAKES if any(names(q, n) for n in ns))
+        makes = tuple(dict.fromkeys(m for mk in makes for m in (mk, *MAKE_ALSO.get(mk, ()))))
 
         year_min = None
         # «به بالا» after the year is the same statement — a floor — so it

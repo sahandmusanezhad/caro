@@ -294,7 +294,8 @@ class Intent(BaseModel):
     max_mileage_km: int | None = None
     # A filter's other ends, which no sentence states: the latest year and
     # the least mileage. And the makes (any one meets it): a filter's make,
-    # or else a make the sentence names where it names no model.
+    # or else the makes the sentence names where it names no model, a
+    # company's name with its own makes.
     year_max: int | None = None
     min_mileage_km: int | None = None
     makes: list[str] = Field(default_factory=list)

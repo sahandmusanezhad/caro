@@ -247,8 +247,8 @@ export interface Intent {
   /* A filter's other ends, which no sentence states. */
   year_max: number | null;
   min_mileage_km: number | null;
-  /* A filter's make, or else a make the sentence names where it names no
-     model. */
+  /* A filter's make, or else the makes the sentence names where it names no
+     model, a company's name with its own makes. */
   makes: string[];
   provinces: string[];
   use_case: string | null;

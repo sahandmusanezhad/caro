@@ -1487,8 +1487,8 @@ print("\na make named in the sentence (2026-11-27, the owner's choice on a measu
 # one model's too, the model is read, and the listings are the same.
 _MK_ALL = [
     ("Peugeot", "پژو", "peugeot", ('make', 'Peugeot'), ('make', 'Peugeot')),
-    ("IKCO", "ایران خودرو", "ikco", ('make', 'IKCO'), ('make', 'IKCO')),
-    ("Saipa", "سایپا", "saipa", ('make', 'Saipa'), ('make', 'Saipa')),
+    ("IKCO", "ایران خودرو", "ikco", ('makes', ('IKCO', 'Peugeot', 'Reera')), ('makes', ('IKCO', 'Peugeot', 'Reera'))),
+    ("Saipa", "سایپا", "saipa", ('makes', ('Saipa', 'Atlas', 'Sahand')), ('makes', ('Saipa', 'Atlas', 'Sahand'))),
     ("MVM", "ام وی ام", "mvm", ('make', 'MVM'), ('make', 'MVM')),
     ("KMC", "کی ام سی", "kmc", ('make', 'KMC'), ('make', 'KMC')),
     ("JAC", "جک", "jac", ('make', 'JAC'), ('make', 'JAC')),
@@ -1537,12 +1537,13 @@ for _mk, _fa, _la, _wf, _wl in _MK_ALL:
     for _name, (_kind, _what) in ((_fa, _wf), (_la.upper(), _wl)):
         _sp = P.parse(f"{_name} زیر 20 میلیارد")
         _got = ("model", _sp.model_hints[0]) if _sp.model_hints and not _sp.makes else (
-            ("make", _sp.makes[0]) if _sp.makes and not _sp.model_hints and len(_sp.makes) == 1 else None)
+            ("make", _sp.makes[0]) if _sp.makes and not _sp.model_hints and len(_sp.makes) == 1 else (
+                ("makes", _sp.makes) if _sp.makes and not _sp.model_hints else None))
         if _got != (_kind, _what) or _sp.budget_max_toman != 20_000_000_000:
             _mk_bad.append((_name, _sp.makes, _sp.model_hints))
 check(f"MK1: each of the {len(_MK_ALL)} makes is read by its Persian name and by its Latin one in capitals, under a "
-      "ceiling of twenty billion -- or, where its name is its one model's, the model", len(_MK_ALL) == 45 and not _mk_bad,
-      str(_mk_bad[:6]))
+      "ceiling of twenty billion -- or, where its name is its one model's, the model; IKCO and Saipa with their "
+      "company's makes", len(_MK_ALL) == 45 and not _mk_bad, str(_mk_bad[:6]))
 for q, models, makes, why in [
     ("هیوندای سوناتا زیر 5 میلیارد", ("sonata",), (), "a make beside its model: the model, no make"),
     ("پراید با جک و زاپاس زیر 500 میلیون", ("pride",), (), "  a model and a make's name of another sense: no JAC"),
@@ -1559,6 +1560,36 @@ for q, models, makes, why in [
           _sp.model_hints == models and _sp.makes == makes, str((_sp.model_hints, _sp.makes)))
 check("a clause that holds a make's name is understood: «هایما 7 تا 9 میلیارد» lists nothing under «نفهمیدیم»",
       P.parse("هایما 7 تا 9 میلیارد").unparsed == (), str(P.parse("هایما 7 تا 9 میلیارد").unparsed))
+
+
+# ---------------------------------------------------------------------------
+print("\na company's name reads its own makes (2026-11-27, the owner's choice on a measurement, G2)")
+# «ایران خودرو» read only the make Khodro45 writes as IKCO, not the Peugeots
+# IKCO makes nor Reera; «سایپا» only Saipa, not Atlas or Sahand. The makes a
+# company's name reads are written out here, not read from the table.
+_G2_IKCO, _G2_SAIPA = ("IKCO", "Peugeot", "Reera"), ("Saipa", "Atlas", "Sahand")
+for q, makes, why in [
+    ("ایران خودرو زیر 1 میلیارد", _G2_IKCO, "IKCO, then the Peugeots it makes and its Reera"),
+    ("ایرانخودرو زیر 1 میلیارد", _G2_IKCO, "  written as one word"),
+    ("IRAN KHODRO زیر 1 میلیارد", _G2_IKCO, "  in Latin capitals"),
+    ("سایپا زیر 500 میلیون", _G2_SAIPA, "Saipa, then its Atlas and Sahand"),
+    ("SAIPA زیر 500 میلیون", _G2_SAIPA, "  in Latin capitals"),
+    ("ایران خودرو یا سایپا زیر 1 میلیارد", _G2_IKCO + _G2_SAIPA, "the two companies, each with its own"),
+    ("پژو یا ایران خودرو زیر 1 میلیارد", ("Peugeot", "IKCO", "Reera"), "Peugeot once, where it first comes"),
+    ("سایپا یا اطلس زیر 1 میلیارد", _G2_SAIPA, "  Atlas once"),
+    ("پژو زیر 1 میلیارد", ("Peugeot",), "one way: «پژو» is Peugeot alone"),
+    ("اطلس زیر 1 میلیارد", ("Atlas",), "  and «اطلس» Atlas alone"),
+]:
+    _sp = P.parse(q)
+    check(f"«{q}» → makes {list(makes)} ({why})", _sp.makes == makes and not _sp.model_hints and not _sp.unparsed,
+          str((_sp.makes, _sp.model_hints, _sp.unparsed)))
+for q, models in [("سمند ایران خودرو", ("samand",)), ("سایپا پراید زیر 500 میلیون", ("pride",))]:
+    _sp = P.parse(q)
+    check(f"«{q}» → {list(models)} and no make: where a model is named, a company's name reads no make",
+          _sp.model_hints == models and _sp.makes == (), str((_sp.model_hints, _sp.makes)))
+_sp = P.parse("ایران خودرو تبریز زیر 1 میلیارد")
+check("«ایران خودرو تبریز زیر 1 میلیارد» → IKCO's makes and no province: the plant's name is no place (D130)",
+      _sp.makes == _G2_IKCO and _sp.provinces == (), str((_sp.makes, _sp.provinces)))
 
 
 # ---------------------------------------------------------------------------
