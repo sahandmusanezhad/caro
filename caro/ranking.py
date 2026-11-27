@@ -950,9 +950,11 @@ class IntentSpec:
     year_min: int | None = None
     max_mileage_km: int | None = None
     # The ends a filter states and a sentence is not read for: the latest
-    # model year, the least mileage, and the makes, any one of which meets it
-    # (the filter panel, the owner's choice of 2026-11-25). The parser sets
-    # none of them; webapp/api/main.py sets them from a filter's fields.
+    # model year and the least mileage (the filter panel, the owner's choice
+    # of 2026-11-25), which webapp/api/main.py sets from a filter's fields.
+    # The makes, any one of which meets it, are a filter's make, or else the
+    # makes a sentence names where it names no model (the owner's choice of
+    # 2026-11-27).
     year_max: int | None = None
     min_mileage_km: int | None = None
     makes: tuple[str, ...] = ()
