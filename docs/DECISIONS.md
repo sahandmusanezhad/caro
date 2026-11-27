@@ -10154,3 +10154,100 @@ routes in a browser among their steps, and `reached` said that no
 environment is named yet. Nothing was pushed to `Tecso-Dev/caro`. The site
 on Vercel was not read: it runs `b9f9090`, not this merge (D119); the make
 reading reaches a site once the server serves `main`.
+
+## D134 — «ایران خودرو» reads IKCO, Peugeot and Reera, and «سایپا» Saipa, Atlas and Sahand, by the owner's choice on a measurement (G2)
+
+«ایران خودرو» read only the make Khodro45 writes as IKCO: 104 of run17's 492
+listings, its Dena, Samand, Tara and Runna. It did not read the Peugeots IKCO
+makes, nor its Reera. «سایپا» read only Saipa (75), and not Atlas or Sahand.
+Asked during the make round (D133) whether the two should read more, the
+owner chose to have it measured as a round of its own. The subject proposed
+and agreed was «ایران خودرو» for IKCO, Peugeot and Reera, and «سایپا» for
+Saipa, Atlas and Sahand.
+
+**Measured** the same day on `main` at `c6e28e3`. The predictions were written
+and locked at 16:11:57Z (sha256 `303fc3d7…`), with the candidates (sha256
+`fb368103…`) and the suites' 1,818 queries and 314 listing texts, gathered on
+that commit (sha256 `c1264696…`). Of the 1,818 queries, 28 hold a name of the
+two companies, and 6 of those name no model. Each rule was written into a
+copy of the repository of its own:
+
+    G0    today
+    G1    each make read from the sentence, in the table's order, is
+          followed by its company's own brands: IKCO by Reera, Saipa by
+          Atlas and Sahand; each make is kept once, where it first comes
+    G2    G1, and IKCO is followed by Peugeot, then Reera
+
+    cells                                                    G0     G1     G2
+    «ایران خودرو» on run17, listings                         104    105    210
+    «سایپا» on run17, listings                                75     81     81
+    «ایران خودرو» with the filter's make IKCO                104    104    104
+    the other 43 makes, read and served as today              43     43     43
+    the suites' 1,818 queries, read differently                      6      6
+    the suites' 314 listing texts, read differently                  0      0
+
+Under G1 and G2 the six names of the two companies («ایران خودرو»,
+«ایرانخودرو», «IKCO», «IRAN KHODRO», «سایپا», «SAIPA») read their company's
+makes, with no model, the ceiling as stated, and nothing listed as not
+understood. «پژو یا ایران خودرو» holds Peugeot once. «ایران خودرو تبریز» reads
+no province under any rule (D130). «سایپا پراید» and «سمند ایران خودرو» read
+their model and no make. The suites' six queries that read differently do so
+in their makes alone. The panel's «برند» line under G2 reads «ایران‌خودرو، پژو،
+Reera» and «سایپا، Atlas، Sahand»: the site's Persian names hold IKCO, Saipa
+and Peugeot, and not Reera, Atlas or Sahand. Every prediction held, 8 of 8.
+Put to the owner, the owner chose G2, and chose the panel's Persian names as
+the next round.
+
+Merged on 2026-11-27 in #74:
+
+    commit    what it does                                          suites    bare
+    81344ee   the companies' makes, the rows, the counts              4191    3419
+    053f3e2   the README and the roadmap's parser item                4191    3419
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head. As built, the code read every cell exactly as G2 was measured.
+
+**The rules** (`caro/ingest/models.py`, `caro/ranking.py`):
+- `MAKE_ALSO` names the makes each company's name reads after its own: IKCO
+  Peugeot and Reera, Saipa Atlas and Sahand.
+- The parser follows each make read from the sentence with them, each make
+  kept once, where it first comes. It is one way: «پژو» is Peugeot alone.
+- A filter's make is the corpus's make, and is not widened. Where a model
+  is named no make is read, as before.
+
+**Tests.**
+- `tests/test_ranking.py`:
+  - MK1's IKCO and Saipa rows take their company's makes, written out.
+  - Thirteen rows: the company's names, Persian, as one word and in Latin
+    capitals; the two together; Peugeot and Atlas once; one way; no make
+    beside a model; and no province for the plant's name.
+- `tests/test_api_contract.py`:
+  - MK5 asks for each company over HTTP and finds its makes' listings, all
+    of them, written out.
+  - MK6 holds a filter's make IKCO to IKCO's listings alone.
+
+**Mutants**, bytecode off, in a worktree of their own: 8, all caught, each
+by a row that passes on the clean code. They were no company's makes, IKCO
+without Peugeot, Saipa without Sahand, the company's makes before its own,
+a make kept twice, «پژو» reading IKCO's too, a filter's make widened, and a
+company's makes read beside a model. A first run was not counted. It ran
+in a network namespace whose loopback was down, so three of `test_ingest`'s
+rows (RP1, RP3 and RP5, which open sockets on 127.0.0.1) failed on the clean
+code too, and every mutant read as caught. The runner now takes a baseline
+on the clean code first, and counts only a row that fails under the mutant
+and passes without it.
+
+**Left.**
+- It is one way: «پژو» is Peugeot alone, and «اطلس» Atlas alone.
+- The panel draws Reera, Atlas and Sahand in the corpus's Latin, as it draws
+  38 of the 45 makes and the hundred's models. The owner chose that as the
+  next round.
+- D133's other items stand.
+
+**On `main` after `ac69275`**, read on 2026-11-27: `ci` and `images` passed
+at the first attempt, the e2e walk and the images job's walk of the key
+routes in a browser among their steps, and `reached` said that no
+environment is named yet. Nothing was pushed to `Tecso-Dev/caro`. The site
+on Vercel was not read: it runs `b9f9090`, not this merge (D119); the
+companies' makes reach a site once the server serves `main`.
