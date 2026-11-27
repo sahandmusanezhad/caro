@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D132, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D133, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -130,7 +130,7 @@ an item says so.
    measurement (M2kc, D132), 100 of the 104 other models run17 holds have Persian
    and Latin names, a Latin name is read in capitals too, and Khodro45 reads
    every model but the thirteen by its English titles: 471 of the 492 (96%).
-   On 2026-11-27, the owner's choice on a measurement (B3): the four whose
+   On 2026-11-27, the owner's choice on a measurement (B3, D133): the four whose
    model two makes write, «Prime» and «S5», are named by make and model
    (492 of the 492); a make named where no model is is read, each of
    run17's 45 («هایما زیر ۲ میلیارد»); «آ» is read as «ا» («اریزو»); and the
