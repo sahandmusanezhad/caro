@@ -141,9 +141,11 @@ an item says so.
    is Genesis is left to the table. The same day, the owner's choice on a
    measurement (G2, D134): «ایران خودرو» reads IKCO, Peugeot and Reera (210 of
    run17's listings, from 104), and «سایپا» Saipa, Atlas and Sahand (81,
-   from 75); a filter's make is the corpus's make. Next, by the owner's
-   choice: the panel's Persian names for the makes and the hundred's
-   models, which it draws in Latin («Haima»). Offered on 2026-11-02
+   from 75); a filter's make is the corpus's make. The same day, the owner's
+   choice on a measurement (N3): the site draws every make and model of
+   run17 by a Persian name written for the page («هایما · اس ۷», not «Haima ·
+   S7»), and each label, typed back as a query, names its model again but
+   Farda's T5 («فردا موتورز T5»). Offered on 2026-11-02
    and on 2026-11-26 and not chosen: a short unread name listed as unread.
    A session measures and builds; the owner decides each.
 5. **An estimator that clears the gate on real data** (the product gaps, item
