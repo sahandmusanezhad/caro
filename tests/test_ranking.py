@@ -1362,7 +1362,8 @@ _RN_HUNDRED = [
     ("accent assembled", "اکسنت", "accent"),
     ("avante", "آوانته", "avante"),
     ("elantra", "النترا", "elantra"),
-    ("genesis", "جنسیس", "genesis"),
+    # With its make only since 2026-11-27: Genesis is also a make of its own.
+    ("genesis", "هیوندای جنسیس", "hyundai genesis"),
     ("santafe (ix45)", "سانتافه", "santafe"),
     ("tucson (ix35)", "توسان", "tucson"),
     ("s3", "جک اس 3", "jac s3"),
@@ -1571,6 +1572,23 @@ for q, want in [
 ]:
     _sp = P.parse(q)
     check(f"«{q}» → {list(want)}", _sp.model_hints == want, str(_sp.model_hints))
+
+
+# ---------------------------------------------------------------------------
+print("\nthe hundred's names, reviewed (2026-11-27, the owner's choice on a measurement, B3)")
+# The owner asked the session to review the names of D132's hundred itself;
+# the review's corrections were measured with the round of makes.
+for q, models, makes, why in [
+    ("جنسیس زیر 5 میلیارد", (), (), "Genesis is also a make of its own: «جنسیس» alone names no Hyundai"),
+    ("هیوندای جنسیس زیر 5 میلیارد", ("genesis",), (), "  with its make it does"),
+    ("ری را زیر 3 میلیارد", ("ef7p",), (), "«ری‌را», its ZWNJ a space, is Reera's"),
+    ("هایما x7 زیر 3 میلیارد", ("7x",), (), "Haima's 7X as Khodro45's own address writes it"),
+    ("سیتروین c5 زیر 3 میلیارد", ("c5",), (), "«سیتروین», how «سیتروئن» is often written"),
+    ("سیتروین زیر 3 میلیارد", (), ("Citroen",), "  the make too"),
+]:
+    _sp = P.parse(q)
+    check(f"«{q}» → models {list(models) or 'none'}, makes {list(makes) or 'none'} ({why})",
+          _sp.model_hints == models and _sp.makes == makes, str((_sp.model_hints, _sp.makes)))
 
 
 # ---------------------------------------------------------------------------

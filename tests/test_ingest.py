@@ -5317,9 +5317,15 @@ _fa_rows = [("فروش اریزو 5 تی مدل ۱۴۰۰ تمیز", ("Chery", "A
             ("اوانته ۲۰۱۲", ("Hyundai", "Avante")), ("هوندا اکورد", ("Honda", "Accord")), ("زوتی اریو", ("Zotye", "Ario")),
             ("هیوندای ای 20", ("Hyundai", "i20")), ("تیبا ۲ سفید، پارس آباد", ("Saipa", "Tiba")),
             ("تیبا ۲ سفید، پارس اباد", ("Saipa", "Tiba")), ("پراید ۱۳۱ سند آزاد", ("Saipa", "Pride"))]
+# And the review's corrections in the listing parser (2026-11-27, B3): Reera
+# by «ری را», as one of the suites' Sheypoor titles writes it, which the
+# measurement found read so where its predictions said no text would change.
+_fa_rows += [("ری را، فروش سازمانی", ("Reera", "EF7P")), ("جنسیس جی ۸۰", (None, None)),
+             ("هیوندای جنسیس ۲۰۱۴", ("Hyundai", "Genesis")), ("هایما x7 اتوماتیک", ("Haima", "7X"))]
 _fa_got = [_md_extract(t) for t, _ in _fa_rows]
 check("FA1: a title with «ا» for «آ» names the model as with «آ» -- «اریزو 5 تی», «ازرا», «اوانته», «اکورد», «اریو», "
-      "«ای 20» -- and «پارس آباد» leaves «پارس» unread written either way",
+      "«ای 20» -- and «پارس آباد» leaves «پارس» unread written either way; Reera by «ری را», Genesis only "
+      "with its make, Haima's X7 as Khodro45 writes it",
       _fa_got == [w for _, w in _fa_rows], str(_fa_got))
 
 

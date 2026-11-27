@@ -79,7 +79,8 @@ _THIRTEEN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Haima", "S7", ("هایما اس 7", "هایما اس7", "هایما s7", "haima s7")),
     ("Haima", "8S", ("هایما 8 اس", "هایما 8اس", "هایما 8s", "haima 8s")),
-    ("Haima", "7X", ("هایما 7 ایکس", "هایما 7x", "haima 7x")),
+    # «x7» as well, as Khodro45's own address writes it (haima-x7), 2026-11-27.
+    ("Haima", "7X", ("هایما 7 ایکس", "هایما 7x", "haima 7x", "هایما x7", "هایما ایکس 7", "haima x7")),
     ("KMC", "j7", ("کی ام سی j7", "کی ام سی جی 7", "kmc j7")),
     ("KMC", "X5", ("کی ام سی x5", "کی ام سی ایکس 5", "kmc x5")),
     ("KMC", "Eagle", ("کی ام سی ایگل", "kmc eagle")),
@@ -103,7 +104,9 @@ _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Hyundai", "Accent Assembled", ("اکسنت", "accent")),
     ("Hyundai", "Avante", ("آوانته", "avante")),
     ("Hyundai", "Elantra", ("النترا", "elantra")),
-    ("Hyundai", "Genesis", ("جنسیس", "genesis")),
+    # With its make only, 2026-11-27: Genesis is also a make of its own, whose
+    # «جنسیس جی ۸۰» is no Hyundai.
+    ("Hyundai", "Genesis", ("هیوندای جنسیس", "hyundai genesis")),
     ("Hyundai", "SantaFe (ix45)", ("سانتافه", "سانتا فه", "santafe", "santa fe", "ix45")),
     ("Hyundai", "Tucson (ix35)", ("توسان", "tucson", "ix35")),
     ("JAC", "S3", ("جک اس 3", "جک اس3", "جک s3", "jac s3")),
@@ -159,7 +162,7 @@ _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Toyota", "Camry", ("کمری", "camry")),
     ("Besturn", "B30", ("بسترن b30", "بسترن", "besturn b30", "b30")),
     ("Brilliance", "H320", ("برلیانس h320", "h320", "برلیانس 320")),
-    ("Citroen", "C5", ("سیتروئن c5", "سیتروئن سی 5", "citroen c5")),
+    ("Citroen", "C5", ("سیتروئن c5", "سیتروئن سی 5", "citroen c5", "سیتروین c5")),
     ("GAC", "Trumpchi GA3S", ("ga3s", "ترامپچی", "trumpchi")),
     ("Great Wall", "Haval M4", ("هاوال m4", "هاوال ام 4", "haval m4")),
     ("Honda", "Accord", ("آکورد", "accord")),
@@ -170,7 +173,8 @@ _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Max Motor", "kalut", ("کالوت", "kalut")),
     ("Mitsubishi", "ASX", ("میتسوبیشی asx", "asx")),
     ("Mitsubishi", "Lancer", ("لنسر", "lancer")),
-    ("Reera", "EF7P", ("ریرا", "reera")),
+    # «ری را» as well, how «ری‌را» reads with its ZWNJ a space, 2026-11-27.
+    ("Reera", "EF7P", ("ریرا", "reera", "ری را")),
     ("SWM", "G01", ("swm g01", "اس دبلیو ام g01", "g01")),
     ("Venucia", "D60 plus", ("ونوسیا d60", "d60 پلاس", "d60 plus", "ونوسیا")),
     ("Volkswagen", "Golf", ("گلف", "golf")),
@@ -252,11 +256,11 @@ MAKES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Xtrim", ("اکستریم", "xtrim")),
     ("GAC", ("جی ای سی", "gac")),
     ("Max Motor", ("مکث موتور", "max motor")),
-    ("Reera", ("ریرا", "reera")),
+    ("Reera", ("ریرا", "reera", "ری را")),
     ("Hongqi", ("هونگچی", "hongqi")),
     ("Brilliance", ("برلیانس", "brilliance")),
     ("SWM", ("اس دبلیو ام", "swm")),
-    ("Citroen", ("سیتروئن", "citroen")),
+    ("Citroen", ("سیتروئن", "citroen", "سیتروین")),
     ("Venucia", ("ونوسیا", "venucia")),
     ("Besturn", ("بسترن", "besturn")),
     ("Zotye", ("زوتی", "zotye")),
