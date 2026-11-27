@@ -199,6 +199,70 @@ MODELS: tuple[tuple[str, str, tuple[str, ...]], ...] = _THIRTEEN + _RUN17 + _TWO
 # its English titles for every other model (`khodro45._make_model`).
 THIRTEEN: frozenset[tuple[str, str]] = frozenset((make, model) for make, model, _ in _THIRTEEN)
 
+# A MAKE NAMED IN THE SENTENCE (2026-11-27, the owner's choice on a
+# measurement, B3). «هایما زیر ۲ میلیارد» named no model and no make and showed
+# every car under two billion. Each make below is written as run17 writes it,
+# every make of its 492 listings, with its names; a make's name that is a word
+# of another sense is given only with a word that tells it apart («فردا
+# موتورز», «مکث موتور»). The search reads a make where the query names no
+# model (`caro.ranking`): a JAC is not asked for in «پراید با جک و زاپاس».
+# Measured, the predictions locked first: each of the 45 asked for by its
+# Persian name and by its Latin one, the make read in 39 and 41 and the make's
+# one model in the rest, whose make's name is its model's; the API on run17
+# returning exactly the make's listings for 45 of 45; of the 1,338 queries the
+# suites hand the parser, the 17 that name a make alone read it and nothing
+# else changed. The cost, measured on made sentences: «کیا» and «سهند» are
+# words too, so «کیا دارن ماشین میفروشن» reads Kia and «یه ماشین برای سهند»
+# reads Sahand.
+MAKES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Peugeot", ("پژو", "peugeot")),
+    ("IKCO", ("ایران خودرو", "ایرانخودرو", "ikco", "iran khodro")),
+    ("Saipa", ("سایپا", "saipa")),
+    ("MVM", ("ام وی ام", "mvm")),
+    ("KMC", ("کی ام سی", "kmc")),
+    ("JAC", ("جک", "jac")),
+    ("Hyundai", ("هیوندای", "هیوندا", "hyundai")),
+    ("Haima", ("هایما", "haima")),
+    ("Chery", ("چری", "chery")),
+    ("Fidelity", ("فیدلیتی", "fidelity")),
+    ("Kia", ("کیا", "kia")),
+    ("Fownix", ("فونیکس", "fownix")),
+    ("Lifan", ("لیفان", "lifan")),
+    ("Renault", ("رنو", "renault")),
+    ("Dignity", ("دیگنیتی", "dignity")),
+    ("Lamari", ("لاماری", "lamari")),
+    ("Farda", ("فردا موتورز", "farda")),
+    ("MG", ("ام جی", "mg")),
+    ("Dongfeng", ("دانگ فنگ", "دانگفنگ", "دونگ فنگ", "dongfeng")),
+    ("Geely", ("جیلی", "geely")),
+    ("Changan", ("چانگان", "changan")),
+    ("Atlas", ("اطلس", "atlas")),
+    ("Mazda", ("مزدا", "mazda")),
+    ("Tigard", ("تیگارد", "tigard")),
+    ("Sahand", ("سهند", "sahand")),
+    ("Suzuki", ("سوزوکی", "suzuki")),
+    ("Toyota", ("تویوتا", "toyota")),
+    ("Volkswagen", ("فولکس واگن", "فولکس", "volkswagen")),
+    ("KGM", ("کی جی ام", "سانگ یانگ", "سانگیانگ", "kgm", "ssangyong")),
+    ("Mitsubishi", ("میتسوبیشی", "mitsubishi")),
+    ("Beijing", ("بیجینگ", "بی جینگ", "beijing", "baic")),
+    ("Great Wall", ("گریت وال", "هاوال", "great wall", "haval")),
+    ("Honda", ("هوندا", "honda")),
+    ("Lexus", ("لکسوس", "lexus")),
+    ("Xtrim", ("اکستریم", "xtrim")),
+    ("GAC", ("جی ای سی", "gac")),
+    ("Max Motor", ("مکث موتور", "max motor")),
+    ("Reera", ("ریرا", "reera")),
+    ("Hongqi", ("هونگچی", "hongqi")),
+    ("Brilliance", ("برلیانس", "brilliance")),
+    ("SWM", ("اس دبلیو ام", "swm")),
+    ("Citroen", ("سیتروئن", "citroen")),
+    ("Venucia", ("ونوسیا", "venucia")),
+    ("Besturn", ("بسترن", "besturn")),
+    ("Zotye", ("زوتی", "zotye")),
+)
+
+
 MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
     (make, model): names for make, model, names in MODELS}
 

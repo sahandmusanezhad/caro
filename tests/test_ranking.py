@@ -1477,6 +1477,90 @@ for q, want, why in [
 
 
 # ---------------------------------------------------------------------------
+print("\na make named in the sentence (2026-11-27, the owner's choice on a measurement, B3)")
+# «هایما زیر ۲ میلیارد» named no model and no make. A make is read where the
+# query names no model (caro/ingest/models.py, MAKES). Each of run17's 45
+# makes is written out with its first Persian name and its first Latin one --
+# not read from the table, so that a name dropped from it turns a row red --
+# and asked for by either, the Latin in capitals; where a make's name is its
+# one model's too, the model is read, and the listings are the same.
+_MK_ALL = [
+    ("Peugeot", "پژو", "peugeot", ('make', 'Peugeot'), ('make', 'Peugeot')),
+    ("IKCO", "ایران خودرو", "ikco", ('make', 'IKCO'), ('make', 'IKCO')),
+    ("Saipa", "سایپا", "saipa", ('make', 'Saipa'), ('make', 'Saipa')),
+    ("MVM", "ام وی ام", "mvm", ('make', 'MVM'), ('make', 'MVM')),
+    ("KMC", "کی ام سی", "kmc", ('make', 'KMC'), ('make', 'KMC')),
+    ("JAC", "جک", "jac", ('make', 'JAC'), ('make', 'JAC')),
+    ("Hyundai", "هیوندای", "hyundai", ('make', 'Hyundai'), ('make', 'Hyundai')),
+    ("Haima", "هایما", "haima", ('make', 'Haima'), ('make', 'Haima')),
+    ("Chery", "چری", "chery", ('make', 'Chery'), ('make', 'Chery')),
+    ("Fidelity", "فیدلیتی", "fidelity", ('make', 'Fidelity'), ('make', 'Fidelity')),
+    ("Kia", "کیا", "kia", ('make', 'Kia'), ('make', 'Kia')),
+    ("Fownix", "فونیکس", "fownix", ('make', 'Fownix'), ('make', 'Fownix')),
+    ("Lifan", "لیفان", "lifan", ('make', 'Lifan'), ('make', 'Lifan')),
+    ("Renault", "رنو", "renault", ('make', 'Renault'), ('make', 'Renault')),
+    ("Dignity", "دیگنیتی", "dignity", ('make', 'Dignity'), ('make', 'Dignity')),
+    ("Lamari", "لاماری", "lamari", ('model', 'eama'), ('model', 'eama')),
+    ("Farda", "فردا موتورز", "farda", ('make', 'Farda'), ('make', 'Farda')),
+    ("MG", "ام جی", "mg", ('make', 'MG'), ('make', 'MG')),
+    ("Dongfeng", "دانگ فنگ", "dongfeng", ('make', 'Dongfeng'), ('make', 'Dongfeng')),
+    ("Geely", "جیلی", "geely", ('make', 'Geely'), ('make', 'Geely')),
+    ("Changan", "چانگان", "changan", ('make', 'Changan'), ('make', 'Changan')),
+    ("Atlas", "اطلس", "atlas", ('make', 'Atlas'), ('make', 'Atlas')),
+    ("Mazda", "مزدا", "mazda", ('make', 'Mazda'), ('make', 'Mazda')),
+    ("Tigard", "تیگارد", "tigard", ('model', 'tissan s05'), ('model', 'tissan s05')),
+    ("Sahand", "سهند", "sahand", ('make', 'Sahand'), ('make', 'Sahand')),
+    ("Suzuki", "سوزوکی", "suzuki", ('make', 'Suzuki'), ('make', 'Suzuki')),
+    ("Toyota", "تویوتا", "toyota", ('make', 'Toyota'), ('make', 'Toyota')),
+    ("Volkswagen", "فولکس واگن", "volkswagen", ('make', 'Volkswagen'), ('make', 'Volkswagen')),
+    ("KGM", "کی جی ام", "kgm", ('make', 'KGM'), ('make', 'KGM')),
+    ("Mitsubishi", "میتسوبیشی", "mitsubishi", ('make', 'Mitsubishi'), ('make', 'Mitsubishi')),
+    ("Beijing", "بیجینگ", "beijing", ('make', 'Beijing'), ('make', 'Beijing')),
+    ("Great Wall", "گریت وال", "great wall", ('make', 'Great Wall'), ('make', 'Great Wall')),
+    ("Honda", "هوندا", "honda", ('make', 'Honda'), ('make', 'Honda')),
+    ("Lexus", "لکسوس", "lexus", ('make', 'Lexus'), ('make', 'Lexus')),
+    ("Xtrim", "اکستریم", "xtrim", ('make', 'Xtrim'), ('model', 'lx (sx)')),
+    ("GAC", "جی ای سی", "gac", ('make', 'GAC'), ('make', 'GAC')),
+    ("Max Motor", "مکث موتور", "max motor", ('make', 'Max Motor'), ('make', 'Max Motor')),
+    ("Reera", "ریرا", "reera", ('model', 'ef7p'), ('model', 'ef7p')),
+    ("Hongqi", "هونگچی", "hongqi", ('model', 'eqm5'), ('make', 'Hongqi')),
+    ("Brilliance", "برلیانس", "brilliance", ('make', 'Brilliance'), ('make', 'Brilliance')),
+    ("SWM", "اس دبلیو ام", "swm", ('make', 'SWM'), ('make', 'SWM')),
+    ("Citroen", "سیتروئن", "citroen", ('make', 'Citroen'), ('make', 'Citroen')),
+    ("Venucia", "ونوسیا", "venucia", ('model', 'd60 plus'), ('make', 'Venucia')),
+    ("Besturn", "بسترن", "besturn", ('model', 'b30'), ('make', 'Besturn')),
+    ("Zotye", "زوتی", "zotye", ('make', 'Zotye'), ('make', 'Zotye')),
+]
+_mk_bad = []
+for _mk, _fa, _la, _wf, _wl in _MK_ALL:
+    for _name, (_kind, _what) in ((_fa, _wf), (_la.upper(), _wl)):
+        _sp = P.parse(f"{_name} زیر 20 میلیارد")
+        _got = ("model", _sp.model_hints[0]) if _sp.model_hints and not _sp.makes else (
+            ("make", _sp.makes[0]) if _sp.makes and not _sp.model_hints and len(_sp.makes) == 1 else None)
+        if _got != (_kind, _what) or _sp.budget_max_toman != 20_000_000_000:
+            _mk_bad.append((_name, _sp.makes, _sp.model_hints))
+check(f"MK1: each of the {len(_MK_ALL)} makes is read by its Persian name and by its Latin one in capitals, under a "
+      "ceiling of twenty billion -- or, where its name is its one model's, the model", len(_MK_ALL) == 45 and not _mk_bad,
+      str(_mk_bad[:6]))
+for q, models, makes, why in [
+    ("هیوندای سوناتا زیر 5 میلیارد", ("sonata",), (), "a make beside its model: the model, no make"),
+    ("پراید با جک و زاپاس زیر 500 میلیون", ("pride",), (), "  a model and a make's name of another sense: no JAC"),
+    ("سایپا پراید زیر 500 میلیون", ("pride",), (), "  the same"),
+    ("پژو یا کیا زیر 1 میلیارد", (), ("Peugeot", "Kia"), "two makes, no model: both"),
+    ("هایما 7 تا 9 میلیارد", (), ("Haima",), "a make and a number the owner's list holds back"),
+    ("فردا میرم ماشین بخرم زیر 1 میلیارد", (), (), "«فردا» alone is no make: Farda is «فردا موتورز»"),
+    ("مکث کردم سر خرید پراید", ("pride",), (), "  nor «مکث» alone, Max Motor's «مکث موتور»"),
+    ("کیا دارن ماشین میفروشن", (), ("Kia",), "a make's name that is a word too is read: the cost, measured"),
+    ("یه ماشین برای سهند زیر 1 میلیارد", (), ("Sahand",), "  the same"),
+]:
+    _sp = P.parse(q)
+    check(f"«{q}» → models {list(models) or 'none'}, makes {list(makes) or 'none'} ({why})",
+          _sp.model_hints == models and _sp.makes == makes, str((_sp.model_hints, _sp.makes)))
+check("a clause that holds a make's name is understood: «هایما 7 تا 9 میلیارد» lists nothing under «نفهمیدیم»",
+      P.parse("هایما 7 تا 9 میلیارد").unparsed == (), str(P.parse("هایما 7 تا 9 میلیارد").unparsed))
+
+
+# ---------------------------------------------------------------------------
 print("\na province is read where it is a place the car should be in (D82)")
 # A province named in a query is a constraint. The reading is the hazardous
 # one: a wrong read inverts and says nothing, so a name is read only where it
