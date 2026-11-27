@@ -57,7 +57,7 @@ an item says so.
   two environments; the error reports' DSN set for the API and the site;
   `caro.noxioai.com` behind Cloudflare; UptimeRobot alerting to Telegram.
   The owner, every step written down in [PHASE0_SETUP](PHASE0_SETUP.md).
-  Every merge since D84 has its entry, D85 to D106 and D109 to D134, and
+  Every merge since D84 has its entry, D85 to D106 and D109 to D135, and
   the owner's two decisions after phase 7 theirs, D107 and D108.
 - **Phases 1 to 7 built, merged and closed** on 2026-11-07 (this
   repository's pull requests #18 to #23 and #25; #24, the repository's side
@@ -142,7 +142,7 @@ an item says so.
    measurement (G2, D134): «ایران خودرو» reads IKCO, Peugeot and Reera (210 of
    run17's listings, from 104), and «سایپا» Saipa, Atlas and Sahand (81,
    from 75); a filter's make is the corpus's make. The same day, the owner's
-   choice on a measurement (N3): the site draws every make and model of
+   choice on a measurement (N3, D135): the site draws every make and model of
    run17 by a Persian name written for the page («هایما · اس ۷», not «Haima ·
    S7»), and each label, typed back as a query, names its model again but
    Farda's T5 («فردا موتورز T5»). Offered on 2026-11-02
