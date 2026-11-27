@@ -3217,20 +3217,31 @@ check(f"RN7: on {RUN}, each of the hundred, and each of the four two makes write
 # A make named in the sentence (2026-11-27, the owner's choice on a
 # measurement): each of run17's makes asked for by its first Persian name alone
 # shows that make's listings and none of another make's, as many as the
-# served corpus holds. Counted from the served corpus.
+# served corpus holds -- IKCO's and Saipa's names their company's makes (the
+# owner's choice of the same day, G2), written out here. Counted from the
+# served corpus.
 _mk_count = {}
 for _x in _md_cars:
     _mk_count[_x.make] = _mk_count.get(_x.make, 0) + 1
+_MK_COMPANY = {"IKCO": {"IKCO", "Peugeot", "Reera"}, "Saipa": {"Saipa", "Atlas", "Sahand"}}
 _mk_bad = []
 for _mk, _ns in _rn_models.MAKES:
     _q = next(n for n in _ns if any("\u0600" <= ch <= "\u06ff" for ch in n))
+    _want = _MK_COMPANY.get(_mk, {_mk})
     _r = _md_c.get("/api/search", params={"q": _q, "k": 100}).json()
     _shown = _r["evidence"] + _r.get("evidence_unchecked", [])
-    if (not _shown or any(e["make"] != _mk for e in _shown)
-            or _r["evidence_total"] + _r.get("evidence_unchecked_total", 0) != _mk_count.get(_mk)):
-        _mk_bad.append((_q, len(_shown), _r["evidence_total"], _mk_count.get(_mk)))
+    if (not _shown or any(e["make"] not in _want for e in _shown)
+            or _r["evidence_total"] + _r.get("evidence_unchecked_total", 0) != sum(_mk_count.get(m, 0) for m in _want)):
+        _mk_bad.append((_q, len(_shown), _r["evidence_total"], sum(_mk_count.get(m, 0) for m in _want)))
 check(f"MK5: on {RUN}, each make asked for by its first Persian name shows that make's listings, all of them, "
-      "and none of another make's", len(_rn_models.MAKES) == 45 and not _mk_bad, str(_mk_bad[:6]))
+      "and none of another make's -- «ایران خودرو» IKCO's, Peugeot's and Reera's, «سایپا» Saipa's, Atlas's and "
+      "Sahand's", len(_rn_models.MAKES) == 45 and not _mk_bad, str(_mk_bad[:6]))
+_r = _md_c.get("/api/search", params={"q": "ایران خودرو", "make": "IKCO", "k": 100}).json()
+check(f"MK6: on {RUN}, a filter's make is the corpus's make and is not widened -- «ایران خودرو» with the make IKCO "
+      "shows IKCO's listings alone, all of them",
+      _r["evidence"] and all(e["make"] == "IKCO" for e in _r["evidence"])
+      and _r["evidence_total"] + _r.get("evidence_unchecked_total", 0) == _mk_count.get("IKCO"),
+      str((_r["evidence_total"], _mk_count.get("IKCO"))))
 
 
 # ---------------------------------------------------------------------------
