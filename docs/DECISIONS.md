@@ -10251,3 +10251,97 @@ routes in a browser among their steps, and `reached` said that no
 environment is named yet. Nothing was pushed to `Tecso-Dev/caro`. The site
 on Vercel was not read: it runs `b9f9090`, not this merge (D119); the
 companies' makes reach a site once the server serves `main`.
+
+## D135 — Every make and model of run17 is drawn by a Persian name written for the page, «هایما · اس ۷» not «Haima · S7», by the owner's choice on a measurement (N3)
+
+The site draws a make or a model by `MODEL_FA` (`webapp/web/lib/format.ts`),
+keyed by the corpus's make or model in lower case. A key with no entry falls
+through as the corpus writes it. `MODEL_FA` held the thirteen and seven makes,
+so 38 of run17's 45 makes and its 104 other models were drawn in Latin: on
+the cards, the car page, the comparison, the filter's lists, the models'
+index and the panel («برند: Haima», «خودرو: jac s5»). Asked after G2 (D134)
+which round to take next, the owner chose the site's Persian names.
+
+**Measured** the same day on `main` at `a2cb8e0`. The predictions were written
+and locked at 18:29:28Z (sha256 `3c769c7b…`) with the candidates (sha256
+`26d7db89…`). Before the lock, one check of the measuring harness called the
+site's `modelLabel` on three made keys, and the predictions say what it
+returned. Each rule was written into a copy of the repository of its own,
+as entries added to `MODEL_FA` and nothing else:
+
+    N0    today
+    N1    the 38 makes, each by its first Persian name in the model table
+    N2    N1, and the 102 model keys (the 104 models; «Prime» and «S5»
+          each two makes'), derived from the table: the model's first
+          Persian name with the make's taken off its front, or the model as
+          the corpus writes it where nothing else is left; a number alone
+          in Persian digits, a code in Latin capitals
+    N3    the makes as N1 but nine with a ZWNJ («کی‌ام‌سی»), and the models
+          by names written for the page, by the same conventions, with what
+          the table's names leave out («H30 کراس», «سراتو مونتاژ»)
+
+    cells                                                     N0     N1     N2     N3
+    run17's listings drawn with a Persian make               335    492    492    492
+    run17's listings drawn with a named model                281    281    492    492
+    trims drawn otherwise                                            0      0      0
+    the 117 models' labels, typed back, naming the model     112    104    117    116
+      of those, naming it alone                              107     99    109    110
+
+A label typed back is the make's label and the model's, joined by a space
+and read by the search's parser. N1 alone makes it worse: a Persian make
+before a Latin model is a name in neither script («کیا Soul», «فیدلیتی
+elite»). Under N2 the eight whose name holds another's name that one too,
+and under N3 six of them do: N3 writes X33s and Atlas GL as codes, «X33S» and
+«GL», which hold no other name. N3's one miss is Farda's T5: «فردا موتورز T5»
+holds none of its names, which are «فردا t5», «فردا تی 5» and «farda t5». N2
+and N3 draw 38 of the 117 labels differently. In 15 only N3's ZWNJ differs.
+In the rest N3 keeps what the table's names leave out, writes codes in
+Latin («اطلس GL», «هایما 7X»), and drops the second «فردا» from «فردا موتورز
+فردا SX5». The panel under N3 reads «برند: ایران‌خودرو، پژو، ری‌را» for
+«ایران خودرو …» and «خودرو: جک اس ۵» for «جک اس 5 …». Every prediction held,
+7 of 7. Put to the owner with the 38 labels side by side, the owner chose N3.
+
+Merged on 2026-11-27 in #76:
+
+    commit    what it does                                          suites    bare
+    b2ff55e   the 140 names, the rows, the counts                     4196    3419
+    096342e   the roadmap's parser item                               4196    3419
+
+Each commit was green on its own, with the network off: the suites, the
+bare set, and the site's typecheck, lint and build. CI succeeded on the
+head. As built, the code read every cell exactly as N3 was measured.
+
+**The rule** (`webapp/web/lib/format.ts`). `MODEL_FA` holds the 38 makes and
+the 102 model keys, by names written for the page: a word in Persian, a code
+in Latin capitals («X22 پرو», «اطلس GL»), a number alone in Persian digits,
+and what the search's names leave out kept («H30 کراس», «NX هیبرید», «۳۱۵
+هاچ‌بک»). The API does not change.
+
+**Tests** (`tests/test_screens.py`):
+- PN1: every make and model of the served run has a name on the page.
+- PN2: fifteen labels written out, «پژو · ۲۰۶ · TU5» among them.
+- PN3: the round trip of the 117, with Farda's T5 pinned as the one that
+  names none.
+- PN4: no trim of the run is spelled as a key.
+- PN5: the panel, drawn from the parser's own reading.
+- The panel's row for a model two makes write now reads «جک اس ۵».
+
+**Mutants**, bytecode off, in a worktree of their own and against a baseline
+on the clean code: 8, all caught. They were a make's name dropped, a model's
+name dropped, a name that does not name its model again, Farda's make as
+«فردا», a trim spelled as a key, KMC without its ZWNJ, the panel drawing a
+make as the corpus writes it, and Atlas's GL in Persian letters.
+
+**Left.**
+- Farda's T5 does not name its model again. A name for it in the search's
+  table would fix that, as a round of its own.
+- A model that a later run brings has no name until one is written. PN1
+  turns red for it once that run is the one served.
+- D133's other items stand.
+
+**On `main` after `2229604`**, read on 2026-11-27: `ci` and `images` passed
+at the first attempt, the e2e walk and the images job's walk of the key
+routes in a browser among their steps, and `reached` said that no
+environment is named yet. Nothing was pushed to `Tecso-Dev/caro`. The site
+on Vercel was not read: it runs `b9f9090`, not this merge (D119); the
+names reach a site once the server serves `main`.
