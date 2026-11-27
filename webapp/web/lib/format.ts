@@ -212,6 +212,45 @@ export const MODEL_FA: Record<string, string> = {
   saipa: 'سایپا', ikco: 'ایران‌خودرو', 'iran khodro': 'ایران‌خودرو',
   mvm: 'ام‌وی‌ام', kia: 'کیا', hyundai: 'هیوندای', renault: 'رنو',
   peugeot: 'پژو',
+  // The makes and models run17 holds besides the above (2026-11-27, the
+  // owner's choice on a measurement, N3): 38 makes and the 104 other models
+  // (102 keys, «Prime» and «S5» each two makes'), so that no make or model of
+  // the served corpus is drawn in its Latin. Written for the page, not read
+  // from the search's table: a word in Persian, a code in Latin capitals
+  // («X22 پرو», «اطلس GL»), a number alone in Persian digits, and what the
+  // search's names leave out kept («H30 کراس», «سراتو مونتاژ»). Each label,
+  // typed as a query, names its model again (tests/test_screens.py), but
+  // Farda's T5: «فردا موتورز T5» holds none of its names.
+  kmc: 'کی‌ام‌سی', jac: 'جک', haima: 'هایما', chery: 'چری', fidelity: 'فیدلیتی', fownix: 'فونیکس',
+  lifan: 'لیفان', dignity: 'دیگنیتی', lamari: 'لاماری', farda: 'فردا موتورز', mg: 'ام‌جی',
+  dongfeng: 'دانگ‌فنگ', geely: 'جیلی', changan: 'چانگان', atlas: 'اطلس', mazda: 'مزدا',
+  tigard: 'تیگارد', sahand: 'سهند', suzuki: 'سوزوکی', toyota: 'تویوتا', volkswagen: 'فولکس‌واگن',
+  kgm: 'کی‌جی‌ام', mitsubishi: 'میتسوبیشی', beijing: 'بیجینگ', 'great wall': 'گریت‌وال',
+  honda: 'هوندا', lexus: 'لکسوس', xtrim: 'اکستریم', gac: 'جی‌ای‌سی', 'max motor': 'مکث موتور',
+  reera: 'ری‌را', hongqi: 'هونگچی', brilliance: 'برلیانس', swm: 'اس‌دبلیو‌ام', citroen: 'سیتروئن',
+  venucia: 'ونوسیا', besturn: 'بسترن', zotye: 'زوتی',
+  s7: 'اس ۷', '8s': '8S', '7x': '7X', j7: 'J7', x5: 'X5', eagle: 'ایگل', t8: 'T8', a5: 'A5',
+  k7: 'K7', eama: 'ایما', 'x33 cross': 'X33 کراس', x33s: 'X33S', x33: 'X33', 'x22 pro': 'X22 پرو',
+  x22: 'X22', 'x55 pro': 'X55 پرو', x55: 'X55', '550': '۵۵۰', 'hatchback-315': '۳۱۵ هاچ‌بک',
+  'h30 cross': 'H30 کراس', sonata: 'سوناتا', 'azera (grandeur)': 'آزرا', i20: 'آی ۲۰',
+  'accent assembled': 'اکسنت مونتاژ', avante: 'آوانته', elantra: 'النترا', genesis: 'جنسیس',
+  'santafe (ix45)': 'سانتافه', 'tucson (ix35)': 'توسان', s3: 'اس ۳', j4: 'J4', j5: 'J5',
+  '3 sedan-assembled (new)': '۳ مونتاژ', gl: 'GL', g: 'G',
+  'arrizo 5t sport fl': 'آریزو ۵ تی اسپرت', 'arrizo 5t': 'آریزو ۵ تی', 'arrizo 6': 'آریزو ۶',
+  'tiggo 5': 'تیگو ۵', 'tiggo 7': 'تیگو ۷', 'tiggo8 pro max (f8 max)': 'تیگو ۸ پرو مکس',
+  'tiggo7pro max': 'تیگو ۷ پرو مکس', 'tiggo7pro hybrid': 'تیگو ۷ پرو هیبرید',
+  'arrizo 6 gt (z6)': 'آریزو ۶ GT', arrizo6pro: 'آریزو ۶ پرو', 'arizo 8 (z8)': 'آریزو ۸', fx: 'FX',
+  'emgrand x7': 'امگرند X7', 'emgrand 7': 'امگرند ۷', 'cerato-assembled': 'سراتو مونتاژ',
+  sorento: 'سورنتو', optima: 'اپتیما', soul: 'سول', sportage: 'اسپورتیج', x60: 'X60', x70: 'X70',
+  '620': '۶۲۰', '820': '۸۲۰', gs: 'GS', '6': '۶', '3': '۳', '2008': '۲۰۰۸', 'tondar 90': 'تندر ۹۰',
+  captur: 'کپچر', 'sandero-stepway': 'ساندرو استپ‌وی', sandero: 'ساندرو', talisman: 'تالیسمان',
+  'u5 plus': 'U5 پلاس', 'cs-55-plus': 'CS55 پلاس', 'cs55 assembled': 'CS55 مونتاژ',
+  'cs35-assembled': 'CS35 مونتاژ', sx5: 'SX5', 'suba m4': 'سوبا M4', t5: 'T5', elite: 'الیت',
+  prestige: 'پرستیژ', s: 'S', ciaz: 'سیاز', 'tissan s05': 'تیسان S05', camry: 'کمری', b30: 'B30',
+  h320: 'H320', c5: 'C5', 'trumpchi ga3s': 'ترامپچی GA3S', 'haval m4': 'هاوال M4', accord: 'آکورد',
+  eqm5: 'EQM5', 'tivoli-assembled': 'تیوولی مونتاژ', tivoli: 'تیوولی', 'nx-hybrid': 'NX هیبرید',
+  kalut: 'کالوت', asx: 'ASX', lancer: 'لنسر', ef7p: 'EF7P', g01: 'G01', 'd60 plus': 'D60 پلاس',
+  golf: 'گلف', passat: 'پاسات', 'lx (sx)': 'LX', ario: 'آریو', prime: 'پرایم', s5: 'اس ۵',
 };
 
 /* Trim words, which are NOT the same problem as model names.

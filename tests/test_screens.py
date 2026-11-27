@@ -1117,8 +1117,8 @@ if _p11 is not None:
 _pk11, why = node({"component": "components/IntentPanel.tsx", "export": "default",
                    "props": [{"intent": as_json(_intent11(models=["jac|s5", "pride"]))}]})
 _pk11f = _facts11(_pk11["markup"][0]) if _pk11 is not None else {}
-check("IntentPanel shows a model keyed by its make and model as its two words, «jac s5», beside «پراید»",
-      _pk11f.get("خودرو") == "jac s5، پراید", why if _pk11 is None else str(_pk11f))
+check("IntentPanel shows a model keyed by its make and model as its two words, «جک اس ۵», beside «پراید»",
+      _pk11f.get("خودرو") == "جک اس ۵، پراید", why if _pk11 is None else str(_pk11f))
 
 # And the panel as the parser's own reading draws it: the intent of a real
 # answer, not one built above. The four readings a buyer can get — read as
@@ -1525,6 +1525,78 @@ _on, why_on = call("lib/nav.ts", "sellerListingsOn", [["on"], [None], ["off"], [
 check("F1: sellerListingsOn, the one rule for the nav's seller links and a model page's seller section, "
       "holds for «on» and nothing else -- not for no value, «off», an empty one or «ON»",
       _on == [True, False, False, False, False], why_on or str(_on))
+
+# ---------------------------------------------------------------------------
+print("\nthe site's Persian names for the makes and the models (2026-11-27, the owner's choice on a measurement, N3)")
+# ---------------------------------------------------------------------------
+# lib/format.ts MODEL_FA drew 38 of run17's 45 makes, and its 104 models
+# outside the thirteen, in the corpus's Latin («Haima · S7»). Each has a name
+# written for the page now. Some are written out below, not read from the
+# table, so that a name dropped from it turns a row red.
+from caro.ingest.models import search_aliases                      # noqa: E402
+from caro.ranking import RuleIntentParser                          # noqa: E402
+
+_ZW = "\u200c"
+_pn_rows = json.loads((ROOT / "data" / "corpora" / f"{RUN}.json").read_text(encoding="utf-8"))["listings"]
+_pn_pairs = sorted({(x["make"], x["model"]) for x in _pn_rows})
+_pn_fa, why_pn = node({"consts": {"module": "lib/format.ts", "names": ["MODEL_FA"]}})
+_pn_held = {k.lower() for k in ((_pn_fa or {}).get("consts", {}).get("MODEL_FA") or {})}
+_pn_latin = sorted({m for mk, md in _pn_pairs for m in (mk, md) if m.lower() not in _pn_held})
+check(f"PN1: every make and every model of {RUN} has a name on the page, none drawn in the corpus's Latin for "
+      f"want of one -- {len({mk for mk, _ in _pn_pairs})} makes and {len(_pn_pairs)} models",
+      _pn_fa is not None and not _pn_latin and len(_pn_pairs) == 117, why_pn or str(_pn_latin[:8]))
+
+_PN_LABELS = [
+    ("Haima|S7|", "هایما · اس ۷"), ("KMC|j7|", f"کی{_ZW}ام{_ZW}سی · J7"),
+    ("Dongfeng|H30 Cross|", f"دانگ{_ZW}فنگ · H30 کراس"), ("Kia|Cerato-Assembled|", "کیا · سراتو مونتاژ"),
+    ("Atlas|GL|", "اطلس · GL"), ("Farda|SX5|", "فردا موتورز · SX5"), ("JAC|S5|", "جک · اس ۵"),
+    ("Haima|S5|", "هایما · اس ۵"), ("Reera|EF7P|", f"ری{_ZW}را · EF7P"), ("Hyundai|Sonata|", "هیوندای · سوناتا"),
+    ("Fownix|tiggo8 PRO MAX (F8 Max)|", "فونیکس · تیگو ۸ پرو مکس"),
+    ("MVM|Hatchback-315|", f"ام{_ZW}وی{_ZW}ام · ۳۱۵ هاچ{_ZW}بک"), ("Lexus|NX-Hybrid|", "لکسوس · NX هیبرید"),
+    ("Peugeot|2008|", "پژو · ۲۰۰۸"), ("Peugeot|206|TU5", "پژو · ۲۰۶ · TU5"),
+]
+_pn_got, why_pg = call("lib/format.ts", "modelLabel", [[k] for k, _ in _PN_LABELS])
+check(f"PN2: {len(_PN_LABELS)} labels as the page draws them, written out: «هایما · اس ۷», «دانگ‌فنگ · H30 کراس», "
+      "«کیا · سراتو مونتاژ», «اطلس · GL», «فردا موتورز · SX5», «جک · اس ۵», «پژو · ۲۰۶ · TU5» among them",
+      _pn_got == [w for _, w in _PN_LABELS],
+      why_pg or str([(k, g) for (k, w), g in zip(_PN_LABELS, _pn_got or []) if g != w]))
+
+# A label a buyer reads, typed back as a query, names the model again: the
+# make's label and the model's, joined by a space. The six whose name holds
+# another model's name that one too (D132). Farda's T5 is the one the
+# measurement found naming none: «فردا موتورز T5» holds none of its names.
+_PN_TWO = {"x33 cross": "x33", "x22 pro": "x22", "x55 pro": "x55", "arrizo 5t sport fl": "arrizo 5t",
+           "tivoli-assembled": "tivoli", "sandero-stepway": "sandero"}
+_pn_labels, why_pl = call("lib/format.ts", "modelLabel", [[p] for mk, md in _pn_pairs for p in (mk, md)])
+_pn_al = search_aliases()
+_pn_P = RuleIntentParser()
+_pn_bad, _pn_none = [], []
+for _i, (_mk, _md) in enumerate(_pn_pairs):
+    _q = f"{_pn_labels[2 * _i]} {_pn_labels[2 * _i + 1]}" if _pn_labels else ""
+    _want = f"{_mk}|{_md}".lower() if f"{_mk}|{_md}".lower() in _pn_al else _md.lower()
+    _h = set(_pn_P.parse(_q).model_hints) if _q else set()
+    if _want not in _h:
+        _pn_none.append((_mk, _md, _q))
+    elif _h != ({_want, _PN_TWO[_want]} if _want in _PN_TWO else {_want}):
+        _pn_bad.append((_q, sorted(_h)))
+check(f"PN3: each of the {len(_pn_pairs)} models' labels, its make's and its own typed as a query, names that model "
+      "again, alone but for the six whose name holds another's -- and Farda's T5, «فردا موتورز T5», names none",
+      _pn_labels is not None and not _pn_bad and [(m, d) for m, d, _ in _pn_none] == [("Farda", "T5")],
+      why_pl or str((_pn_bad[:4], _pn_none[:4])))
+
+_pn_trims = sorted({(x.get("trim") or "").lower() for x in _pn_rows} & _pn_held)
+check(f"PN4: no trim of {RUN} is spelled as a key of the names, so none is drawn as a make's or a model's name",
+      _pn_fa is not None and not _pn_trims, str(_pn_trims))
+
+with serving(ART.parent):
+    _pn_real = [api.search(q=q, k=8) for q in ("ایران خودرو زیر 1 میلیارد", "جک اس 5 زیر 3 میلیارد")]
+_pn_panel, why_pp = node({"component": "components/IntentPanel.tsx", "export": "default",
+                          "props": [{"intent": as_json(r.intent)} for r in _pn_real]})
+_pn_pf = [_facts11(h) for h in (_pn_panel or {}).get("markup", [])]
+check("PN5: the panel draws the parser's own reading in Persian: «ایران خودرو زیر 1 میلیارد» «برند: ایران‌خودرو، "
+      "پژو، ری‌را», «جک اس 5 زیر 3 میلیارد» «خودرو: جک اس ۵»",
+      len(_pn_pf) == 2 and _pn_pf[0].get("برند") == f"ایران{_ZW}خودرو، پژو، ری{_ZW}را"
+      and _pn_pf[1].get("خودرو") == "جک اس ۵", why_pp or str(_pn_pf))
 
 print()
 if FAILS:
