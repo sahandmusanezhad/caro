@@ -310,7 +310,7 @@ MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
 _LETTER = r"[^\W\d_]"
 _BEFORE = r"(?:(?<!" + _LETTER + r")|(?<=(?<!" + _LETTER + r")و))"
 _ENDING = r"(?:ی|یی|م|ت|ش|مو|تو|شو|مون|تون|شون|مان|تان|شان|ها|های|هایی|ه|ست)?"
-_NOT_A_MODEL_AFTER = re.compile(r"\s*(?:تندر|شهر|آباد)(?!\w)")
+_NOT_A_MODEL_AFTER = re.compile(r"\s*(?:تندر|شهر|آباد|اباد)(?!\w)")
 _NOT_A_MODEL_BEFORE = re.compile(r"(?:تهران|تندر)\s*$")
 
 # A LATIN NAME IS READ IN CAPITALS TOO (2026-11-26, the owner's choice on a
@@ -323,7 +323,16 @@ _NOT_A_MODEL_BEFORE = re.compile(r"(?:تهران|تندر)\s*$")
 # 1,338 queries the suites hand the search read differently; one of the 178
 # texts they hand the listing parser, «Pars» (Peugeot Pars, a page's model
 # whose make the page gives, which reads as it did).
-_ASCII_LOWER = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
+#
+# «آ» IS READ AS «ا» (2026-11-27, the owner's choice on a measurement, B3).
+# «آریزو», «آزرا», «آوانته», «آکورد», «آریو» and «آی 20» are often typed «اریزو»,
+# «ازرا», «اوانته», «اکورد», «اریو» and «ای 20», and those named no model. «آ» is
+# read as «ا» in a name and in the text it is looked for in, by both readers,
+# and «آباد» after a name still clears it written either way («پارس اباد»).
+# Measured: the six queries named their model, where none did; none of the
+# 1,338 queries the suites hand the search, nor of the 178 texts they hand the
+# listing parser, read differently.
+_FOLD = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZآ", "abcdefghijklmnopqrstuvwxyzا")
 
 # A NAME OF THE HUNDRED THAT ENDS IN A NUMBER IS NO NAME WHERE THE NUMBER RUNS
 # ON (2026-11-26, with the hundred): «مزدا 3» is not in «مزدا 323», nor «ام جی 3»
@@ -335,8 +344,8 @@ _RUNS_ON = frozenset(n for _make, _model, ns in _RUN17 + _TWO_MAKES for n in ns 
 
 def names(text: str, name: str) -> bool:
     """Does `text` hold `name` as a model's name? Both as the reader
-    normalizes them, Latin letters case-folded."""
-    text, name = text.translate(_ASCII_LOWER), name.translate(_ASCII_LOWER)
+    normalizes them, Latin letters case-folded and «آ» read as «ا»."""
+    text, name = text.translate(_FOLD), name.translate(_FOLD)
     if name.isdigit():
         return name in text
     runs_on = r"(?!\d)" if name in _RUNS_ON else ""

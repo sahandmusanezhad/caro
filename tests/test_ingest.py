@@ -5312,6 +5312,18 @@ check("RN6: Khodro45 reads the thirteen by its Persian titles and every other mo
 
 
 # ---------------------------------------------------------------------------
+print("\n«آ» is read as «ا» in a model's name, in the listing parser (2026-11-27, the owner's choice, B3)")
+_fa_rows = [("فروش اریزو 5 تی مدل ۱۴۰۰ تمیز", ("Chery", "Arrizo 5T")), ("ازرا مشکی", ("Hyundai", "Azera (Grandeur)")),
+            ("اوانته ۲۰۱۲", ("Hyundai", "Avante")), ("هوندا اکورد", ("Honda", "Accord")), ("زوتی اریو", ("Zotye", "Ario")),
+            ("هیوندای ای 20", ("Hyundai", "i20")), ("تیبا ۲ سفید، پارس آباد", ("Saipa", "Tiba")),
+            ("تیبا ۲ سفید، پارس اباد", ("Saipa", "Tiba")), ("پراید ۱۳۱ سند آزاد", ("Saipa", "Pride"))]
+_fa_got = [_md_extract(t) for t, _ in _fa_rows]
+check("FA1: a title with «ا» for «آ» names the model as with «آ» -- «اریزو 5 تی», «ازرا», «اوانته», «اکورد», «اریو», "
+      "«ای 20» -- and «پارس آباد» leaves «پارس» unread written either way",
+      _fa_got == [w for _, w in _fa_rows], str(_fa_got))
+
+
+# ---------------------------------------------------------------------------
 print("\na model's name is a word of its own (2026-11-19, the owner's call)")
 # A name was found anywhere in a text, in the table's order: three of run17's
 # Grand Vitaras were IKCO Taras, «تارا» inside «ویتارا», two Renault Pars

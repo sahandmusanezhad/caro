@@ -42,7 +42,7 @@ from typing import Protocol, Sequence
 import numpy as np
 
 from caro.appraisal import QUANTILES, MarketEstimator, NotBenchmarked, Row
-from caro.ingest.models import MAKES, _ASCII_LOWER, names, search_aliases
+from caro.ingest.models import _FOLD, MAKES, names, search_aliases
 from caro.ingest.persian import OTHER_CAPITALS, PROVINCE_SPELLINGS, PROVINCES
 
 # ---------------------------------------------------------------------------
@@ -1169,11 +1169,11 @@ class RuleIntentParser:
             start = sep.end()
         clauses.append((start, len(rest)))
         # A clause that holds a model's name, or a make's, is understood, the
-        # name's Latin letters compared case-folded as `names` compares them
-        # (2026-11-26; a make's since 2026-11-27).
+        # name's Latin letters case-folded and «آ» read as «ا», as `names`
+        # compares them (2026-11-26; a make's, and «آ», since 2026-11-27).
         unparsed = tuple(rest[a:b] for a, b in clauses
                          if len(rest[a:b].strip()) > 6
-                         and not any(al.translate(_ASCII_LOWER) in rest[a:b].translate(_ASCII_LOWER)
+                         and not any(al.translate(_FOLD) in rest[a:b].translate(_FOLD)
                                      for als in (*MODEL_ALIASES.values(), *(ns for _mk, ns in MAKES))
                                      for al in als)
                          and not any(s < b and e > a for s, e in spans))[:4]

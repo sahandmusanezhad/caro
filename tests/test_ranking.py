@@ -1561,6 +1561,19 @@ check("a clause that holds a make's name is understood: «هایما 7 تا 9 م
 
 
 # ---------------------------------------------------------------------------
+print("\n«آ» is read as «ا» in a model's name (2026-11-27, the owner's choice on a measurement, B3)")
+# «اریزو», «ازرا», «اوانته», «اکورد», «اریو» and «ای 20» are how «آریزو», «آزرا»,
+# «آوانته», «آکورد», «آریو» and «آی 20» are often typed, and named no model.
+for q, want in [
+    ("اریزو 5 تی زیر 3 میلیارد", ("arrizo 5t",)), ("ازرا زیر 5 میلیارد", ("azera (grandeur)",)),
+    ("اوانته زیر 2 میلیارد", ("avante",)), ("اکورد زیر 5 میلیارد", ("accord",)), ("اریو زیر 1 میلیارد", ("ario",)),
+    ("ای 20 زیر 2 میلیارد", ("i20",)), ("آریزو 5 تی زیر 3 میلیارد", ("arrizo 5t",)), ("آکورد زیر 5 میلیارد", ("accord",)),
+]:
+    _sp = P.parse(q)
+    check(f"«{q}» → {list(want)}", _sp.model_hints == want, str(_sp.model_hints))
+
+
+# ---------------------------------------------------------------------------
 print("\na province is read where it is a place the car should be in (D82)")
 # A province named in a query is a constraint. The reading is the hazardous
 # one: a wrong read inverts and says nothing, so a name is read only where it
