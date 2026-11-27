@@ -1112,6 +1112,14 @@ if _p11 is not None:
           and list(_phrase11.values()).count(_phrase11.get("province")) == 1,
           str(_phrase11.get("province")))
 
+# A model two makes write is keyed by its make and model («jac|s5»,
+# 2026-11-27, the owner's choice): the panel shows the two words, not the key.
+_pk11, why = node({"component": "components/IntentPanel.tsx", "export": "default",
+                   "props": [{"intent": as_json(_intent11(models=["jac|s5", "pride"]))}]})
+_pk11f = _facts11(_pk11["markup"][0]) if _pk11 is not None else {}
+check("IntentPanel shows a model keyed by its make and model as its two words, «jac s5», beside «پراید»",
+      _pk11f.get("خودرو") == "jac s5، پراید", why if _pk11 is None else str(_pk11f))
+
 # And the panel as the parser's own reading draws it: the intent of a real
 # answer, not one built above. The four readings a buyer can get — read as
 # written, read from a bare name with the assumption said, declined and left

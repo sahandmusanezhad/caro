@@ -3201,16 +3201,36 @@ _rn_ids = {}
 for _x in _md_cars:
     _rn_ids.setdefault((_x.make, _x.model), set()).add(_x.listing_id)
 _rn_bad = []
-for _mk, _md, _ns in _rn_models.MODELS[13:]:
+for _mk, _md, _ns in _rn_models._RUN17 + _rn_models._TWO_MAKES:
     _q = next(n for n in _ns if any("\u0600" <= ch <= "\u06ff" for ch in n))
     _r = _md_c.get("/api/search", params={"q": _q, "k": 100}).json()
     _got = {e["id"] for e in _r["evidence"] + _r.get("evidence_unchecked", [])}
     _want = _rn_ids.get((_mk, _md), set()) | (_rn_ids.get((_mk, _RN_ALSO[_md]), set()) if _md in _RN_ALSO else set())
     if _got != _want or not _want:
         _rn_bad.append((_q, len(_got), len(_want)))
-check(f"RN7: on {RUN}, each of the hundred asked for by its first Persian name shows that model's listings "
-      "and none of another model's, but for the eight whose name holds another's, which show the two",
-      len(_rn_models.MODELS) == 113 and not _rn_bad, str(_rn_bad[:6]))
+check(f"RN7: on {RUN}, each of the hundred, and each of the four two makes write, asked for by its first "
+      "Persian name shows that model's listings -- the four, their make's alone -- and none of another model's, "
+      "but for the eight whose name holds another's, which show the two",
+      len(_rn_models.MODELS) == 117 and not _rn_bad, str(_rn_bad[:6]))
+
+
+# A make named in the sentence (2026-11-27, the owner's choice on a
+# measurement): each of run17's makes asked for by its first Persian name alone
+# shows that make's listings and none of another make's, as many as the
+# served corpus holds. Counted from the served corpus.
+_mk_count = {}
+for _x in _md_cars:
+    _mk_count[_x.make] = _mk_count.get(_x.make, 0) + 1
+_mk_bad = []
+for _mk, _ns in _rn_models.MAKES:
+    _q = next(n for n in _ns if any("\u0600" <= ch <= "\u06ff" for ch in n))
+    _r = _md_c.get("/api/search", params={"q": _q, "k": 100}).json()
+    _shown = _r["evidence"] + _r.get("evidence_unchecked", [])
+    if (not _shown or any(e["make"] != _mk for e in _shown)
+            or _r["evidence_total"] + _r.get("evidence_unchecked_total", 0) != _mk_count.get(_mk)):
+        _mk_bad.append((_q, len(_shown), _r["evidence_total"], _mk_count.get(_mk)))
+check(f"MK5: on {RUN}, each make asked for by its first Persian name shows that make's listings, all of them, "
+      "and none of another make's", len(_rn_models.MAKES) == 45 and not _mk_bad, str(_mk_bad[:6]))
 
 
 # ---------------------------------------------------------------------------

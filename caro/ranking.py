@@ -42,7 +42,7 @@ from typing import Protocol, Sequence
 import numpy as np
 
 from caro.appraisal import QUANTILES, MarketEstimator, NotBenchmarked, Row
-from caro.ingest.models import _ASCII_LOWER, names, search_aliases
+from caro.ingest.models import _FOLD, MAKES, names, search_aliases
 from caro.ingest.persian import OTHER_CAPITALS, PROVINCE_SPELLINGS, PROVINCES
 
 # ---------------------------------------------------------------------------
@@ -950,9 +950,11 @@ class IntentSpec:
     year_min: int | None = None
     max_mileage_km: int | None = None
     # The ends a filter states and a sentence is not read for: the latest
-    # model year, the least mileage, and the makes, any one of which meets it
-    # (the filter panel, the owner's choice of 2026-11-25). The parser sets
-    # none of them; webapp/api/main.py sets them from a filter's fields.
+    # model year and the least mileage (the filter panel, the owner's choice
+    # of 2026-11-25), which webapp/api/main.py sets from a filter's fields.
+    # The makes, any one of which meets it, are a filter's make, or else the
+    # makes a sentence names where it names no model (the owner's choice of
+    # 2026-11-27).
     year_max: int | None = None
     min_mileage_km: int | None = None
     makes: tuple[str, ...] = ()
@@ -1057,6 +1059,9 @@ class RuleIntentParser:
         bare = _MONEY.sub(" ", q)
         models = tuple(k for k, al in MODEL_ALIASES.items()
                        if any(_names_model(q, a, bare) for a in al))
+        # A make is read where no model is named (2026-11-27, the owner's
+        # choice on a measurement; caro/ingest/models.py, MAKES).
+        makes = () if models else tuple(mk for mk, ns in MAKES if any(names(q, n) for n in ns))
 
         year_min = None
         # «به بالا» after the year is the same statement — a floor — so it
@@ -1165,12 +1170,13 @@ class RuleIntentParser:
             clauses.append((start, sep.start()))
             start = sep.end()
         clauses.append((start, len(rest)))
-        # A clause that holds a model's name is understood, the name's Latin
-        # letters compared case-folded as `names` compares them (2026-11-26).
+        # A clause that holds a model's name, or a make's, is understood, the
+        # name's Latin letters case-folded and «آ» read as «ا», as `names`
+        # compares them (2026-11-26; a make's, and «آ», since 2026-11-27).
         unparsed = tuple(rest[a:b] for a, b in clauses
                          if len(rest[a:b].strip()) > 6
-                         and not any(al.translate(_ASCII_LOWER) in rest[a:b].translate(_ASCII_LOWER)
-                                     for als in MODEL_ALIASES.values()
+                         and not any(al.translate(_FOLD) in rest[a:b].translate(_FOLD)
+                                     for als in (*MODEL_ALIASES.values(), *(ns for _mk, ns in MAKES))
                                      for al in als)
                          and not any(s < b and e > a for s, e in spans))[:4]
         # A phrase that names a province and was not taken is listed by hand:
@@ -1205,7 +1211,7 @@ class RuleIntentParser:
         return IntentSpec(
             raw_query=query, budget_max_toman=budget_max,
             budget_min_toman=budget_min, budget_hard=hard,
-            model_hints=models, year_min=year_min, max_mileage_km=max_km,
+            model_hints=models, makes=makes, year_min=year_min, max_mileage_km=max_km,
             provinces=place.provinces,
             use_case=use_case, deal_breakers=breakers,
             weights=w.normalized(), risk_profile=risk,
@@ -1263,9 +1269,16 @@ def _model_matches(model_key: str, hints: Sequence[str]) -> bool:
     key's, so they are not matched here. Keys without a separator (the
     synthetic corpora) are their own model segment.
     """
+    parts = [p.strip().casefold() for p in model_key.split("|")]
     seg = model_key.split("|")[1] if "|" in model_key else model_key
     seg = seg.casefold()
     for h in hints:
+        # A hint that names a make and a model («jac|s5», a model two makes
+        # write) is met by a listing of that make and that model.
+        if "|" in h:
+            if len(parts) > 1 and [parts[0], parts[1]] == h.casefold().split("|", 1):
+                return True
+            continue
         if seg == h.casefold():
             return True
         for alias in MODEL_ALIASES.get(h, ()):

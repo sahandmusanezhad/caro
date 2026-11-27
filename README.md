@@ -466,9 +466,11 @@ in the printout and here.
 `caro/ranking.py` reads a Persian request with rules, not a model; each rule
 added or changed since D82 was measured on phrasings written for it before it
 was built. It reads the model (by name, as a word of its own, a Latin name
-in capitals too, or by its number where the number stands alone; 113
-models, run17's hundred among them since 2026-11-26, so 471 of run17's 492
-listings are of a model a query can name), the ceiling of a budget (after «زیر», «تا», «حداکثر», «کمتر
+in capitals too and «آ» as «ا», or by its number where the number stands
+alone; 117 models, run17's hundred among them since 2026-11-26 and the four
+two makes write, by make and model, since 2026-11-27, so all of run17's 492
+listings are of a model a query can name), the make where no model is named
+(each of run17's 45, «هایما زیر ۲ میلیارد»), the ceiling of a budget (after «زیر», «تا», «حداکثر», «کمتر
 از», «بودجه», «قیمت», or a lone amount, with the assumption printed), its
 floor (an amount of money and «به بالا», with «از» or «بالای» before it or
 none, unless a ceiling's cue such as «تا» stands right before it; or «حداقل»,
@@ -622,7 +624,7 @@ git clone https://github.com/sahandmusanezhad/caro && cd caro
 #                                   add --extras, and npm install in
 #                                   webapp/web, for all nineteen suites
 
-python3 tests/run_all.py            # 4149 assertions, no API key, no network
+python3 tests/run_all.py            # 4177 assertions, no API key, no network
 python3 tests/run_all.py ranking    # one suite by name: here the ranking benchmark
 python3 demo/export_demo.py         # regenerate demo/demo_data.json from live output
 python3 scripts/readme_charts.py    # redraw the README's charts from data/corpora
@@ -636,10 +638,10 @@ dependency of `caro/`.** Three of the nineteen test suites need more, and the
 runner says so rather than failing:
 
 ```
-python3 tests/run_all.py            # 3380 assertions across 16 of 19 suites
+python3 tests/run_all.py            # 3406 assertions across 16 of 19 suites
 ./scripts/setup.sh --extras         # scipy + the API packages
 (cd webapp/web && npm install)      # node packages: the screens suite draws with them
-python3 tests/run_all.py            # 4149 across all nineteen
+python3 tests/run_all.py            # 4177 across all nineteen
 ```
 
 A suite whose extra module or program is absent is skipped by name with the
@@ -850,7 +852,7 @@ until the owner deletes it, its open issues made here first
 ```
 caro/            ingest · tracking (W0) · appraisal (W1) · hierarchical (D32)
                  ranking (W3) · agents (W2) · corpus_reader · synthetic · catalog · sql
-tests/           4149 assertions across nineteen suites
+tests/           4177 assertions across nineteen suites
 webapp/          api (FastAPI, imports caro) · web (Next.js 15, TypeScript, Tailwind) · role.py (the image's roles)
 Dockerfile       the API's image, for the API and the workers; webapp/web/Dockerfile is the site's
 compose*.yml     a laptop (compose.yml); the server's environments (compose.vps.yml) and its edge (compose.edge.yml)

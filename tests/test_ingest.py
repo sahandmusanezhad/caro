@@ -5225,9 +5225,13 @@ from caro.ingest.divar_car import MAKE_MODEL as _md_listing            # noqa: E
 from caro.ingest.divar_car import extract_make_model as _md_extract    # noqa: E402
 from caro.ranking import MODEL_ALIASES as _md_search                   # noqa: E402
 
+# A model two makes write is keyed in the search by its make and model
+# («jac|s5», 2026-11-27, the owner's choice): the same models, one key each.
+_md_twice = {mo.lower() for _mk, mo in _md_listing if sum(m2.lower() == mo.lower() for _k2, m2 in _md_listing) > 1}
+_md_key = lambda mk, mo: f"{mk}|{mo}".lower() if mo.lower() in _md_twice else mo.lower()
 _md_same = (_md_listing is _md_models.MAKE_MODEL
-            and list(_md_search) == [mo.lower() for _mk, mo in _md_listing]
-            and all(_md_search[mo.lower()] is names for (_mk, mo), names in _md_listing.items()))
+            and list(_md_search) == [_md_key(mk, mo) for mk, mo in _md_listing]
+            and all(_md_search[_md_key(mk, mo)] is names for (mk, mo), names in _md_listing.items()))
 _md_read = [_md_extract(t) for t in ("سمند سورن ۱۴۰۰", "quick دنده ای", "دویست و شش تیپ ۲", "پژو207 اتوماتیک")]
 check("MD1: the listing parser and the search read one table -- every model of one is a model of the "
       "other, by the same names, in the listing parser's order -- so the parser reads what the search "
@@ -5270,13 +5274,15 @@ from caro.ingest import models as _rn_models                         # noqa: E40
 from caro.ingest.khodro45 import _make_model as _rn_k45              # noqa: E402
 
 _rn_fa = lambda ns: next(n for n in ns if any("\u0600" <= ch <= "\u06ff" for ch in n))
-_rn_hundred = _rn_models.MODELS[13:]
-_rn_bad = [(mk, md, t, got) for mk, md, ns in _rn_hundred
+_rn_hundred = _rn_models._RUN17
+_rn_bad = [(mk, md, t, got) for mk, md, ns in _rn_hundred + _rn_models._TWO_MAKES
            if (got := _md_extract(t := f"فروش {_rn_fa(ns)} مدل ۱۴۰۰ تمیز")) != (mk, md)]
-check(f"RN3: each of the hundred is read from a made title by its first Persian name, as that model and no "
-      f"other, the X22 Pro before the X22 and the Arrizo 5T Sport FL before the Arrizo 5T -- {len(_rn_hundred)} models",
-      len(_rn_hundred) == 100 and _rn_models.THIRTEEN == frozenset(_md_listing) - frozenset(
-          (mk, md) for mk, md, _ in _rn_hundred) and not _rn_bad, str(_rn_bad[:5]))
+check(f"RN3: each of the hundred, and each of the four two makes write, is read from a made title by its first "
+      f"Persian name, as that model and no other, the X22 Pro before the X22 and the Arrizo 5T Sport FL before "
+      f"the Arrizo 5T -- {len(_rn_hundred)} and {len(_rn_models._TWO_MAKES)} models",
+      len(_rn_hundred) == 100 and len(_rn_models._TWO_MAKES) == 4
+      and _rn_models.THIRTEEN == frozenset(_md_listing) - frozenset(
+          (mk, md) for mk, md, _ in _rn_hundred + _rn_models._TWO_MAKES) and not _rn_bad, str(_rn_bad[:5]))
 _rn_run = [(t, _md_extract(t)) for t in ("مزدا 323 تمیز", "ام جی 350 سفید", "مزدا ۳ مدل ۱۴۰۰", "ام جی ۳ اتوماتیک",
                                          "پژو۲۰۶۹")]
 check("RN4: a name of the hundred that ends in a number is no name where the number runs on -- «مزدا 3» is "
@@ -5284,13 +5290,18 @@ check("RN4: a name of the hundred that ends in a number is no name where the num
       "matched beside a digit as before («پژو۲۰۶۹»)",
       [g for _, g in _rn_run] == [(None, None), (None, None), ("Mazda", "3 Sedan-Assembled (New)"), ("MG", "3"),
                                  ("Peugeot", "206")], str(_rn_run))
-check("RN5: the four models two makes write are not read: «دیگنیتی پرایم», «فیدلیتی پرایم», «جک اس ۵», «هایما اس ۵»",
-      all(_md_extract(t) == (None, None) for t in ("دیگنیتی پرایم", "فیدلیتی پرایم", "جک اس ۵", "هایما اس ۵")))
+_rn_four = [(t, _md_extract(t)) for t in ("دیگنیتی پرایم", "فیدلیتی پرایم", "جک اس ۵", "هایما اس ۵", "پرایم", "اس ۵")]
+check("RN5: the four models two makes write are read by their make and model (2026-11-27, the owner's choice): "
+      "«دیگنیتی پرایم», «فیدلیتی پرایم», «جک اس ۵», «هایما اس ۵»; «پرایم» and «اس ۵» alone name none",
+      [g for _, g in _rn_four] == [("Dignity", "Prime"), ("Fidelity", "Prime"), ("JAC", "S5"), ("Haima", "S5"),
+                                  (None, None), (None, None)], str(_rn_four))
 _rn_k = [(r, _rn_k45({"brand": {"title": r[0], "title_en": r[2]}, "model": {"title": r[1], "title_en": r[3]}}))
          for r in (("پژو", "پارس", "Peugeot", "Pars"), ("هایما", "اس ۷", "Haima", "S7"),
                    ("ام وی ام", "x22 پرو", "MVM", "X22 Pro"), ("فونیکس", "تیگو ۸ پرو", "Fownix", "Tiggo 8 Pro"),
                    ("چری", "آریزو ۵ تی اف ال", "Chery", "Arrizo 5T FL"),
-                   ("هیوندای", "سوناتا هیبرید", "Hyundai", "Sonata Hybrid"))]
+                   ("هیوندای", "سوناتا هیبرید", "Hyundai", "Sonata Hybrid"),
+                   ("دیگنیتی", "پرایم", "Dignity", "Prime"), ("فیدلیتی", "پرایم", "Fidelity", "Prime"),
+                   ("جک", "اس ۵", "JAC", "S5"), ("هایما", "اس ۵", "Haima", "S5"))]
 _rn_k_only_fa = _rn_k45({"brand": {"title": "هیوندای"}, "model": {"title": "سوناتا"}})
 check("RN6: Khodro45 reads the thirteen by its Persian titles and every other model by its English ones -- "
       "a model the table does not hold whose Persian title holds a name of the hundred («تیگو ۸ پرو», «آریزو "
@@ -5298,6 +5309,24 @@ check("RN6: Khodro45 reads the thirteen by its Persian titles and every other mo
       "no English title",
       all(got == (r[2], r[3]) for r, got in _rn_k) and _rn_k_only_fa == ("Hyundai", "Sonata"),
       str((_rn_k, _rn_k_only_fa)))
+
+
+# ---------------------------------------------------------------------------
+print("\n«آ» is read as «ا» in a model's name, in the listing parser (2026-11-27, the owner's choice, B3)")
+_fa_rows = [("فروش اریزو 5 تی مدل ۱۴۰۰ تمیز", ("Chery", "Arrizo 5T")), ("ازرا مشکی", ("Hyundai", "Azera (Grandeur)")),
+            ("اوانته ۲۰۱۲", ("Hyundai", "Avante")), ("هوندا اکورد", ("Honda", "Accord")), ("زوتی اریو", ("Zotye", "Ario")),
+            ("هیوندای ای 20", ("Hyundai", "i20")), ("تیبا ۲ سفید، پارس آباد", ("Saipa", "Tiba")),
+            ("تیبا ۲ سفید، پارس اباد", ("Saipa", "Tiba")), ("پراید ۱۳۱ سند آزاد", ("Saipa", "Pride"))]
+# And the review's corrections in the listing parser (2026-11-27, B3): Reera
+# by «ری را», as one of the suites' Sheypoor titles writes it, which the
+# measurement found read so where its predictions said no text would change.
+_fa_rows += [("ری را، فروش سازمانی", ("Reera", "EF7P")), ("جنسیس جی ۸۰", (None, None)),
+             ("هیوندای جنسیس ۲۰۱۴", ("Hyundai", "Genesis")), ("هایما x7 اتوماتیک", ("Haima", "7X"))]
+_fa_got = [_md_extract(t) for t, _ in _fa_rows]
+check("FA1: a title with «ا» for «آ» names the model as with «آ» -- «اریزو 5 تی», «ازرا», «اوانته», «اکورد», «اریو», "
+      "«ای 20» -- and «پارس آباد» leaves «پارس» unread written either way; Reera by «ری را», Genesis only "
+      "with its make, Haima's X7 as Khodro45 writes it",
+      _fa_got == [w for _, w in _fa_rows], str(_fa_got))
 
 
 # ---------------------------------------------------------------------------

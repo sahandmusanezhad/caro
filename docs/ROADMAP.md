@@ -130,12 +130,20 @@ an item says so.
    measurement (M2kc, D132), 100 of the 104 other models run17 holds have Persian
    and Latin names, a Latin name is read in capitals too, and Khodro45 reads
    every model but the thirteen by its English titles: 471 of the 492 (96%).
-   Left: the four whose model two makes write, «Prime» and «S5» (21
-   listings), since the search keys a model by its model alone; a name
-   that holds another model's names both («x22 پرو» shows the X22s too);
-   and «جنسیس», Hyundai's Genesis, also a make of its own. Offered on
-   2026-11-02 and on 2026-11-26 and not chosen: a short unread name listed
-   as unread. A session measures and builds; the owner decides each.
+   On 2026-11-27, the owner's choice on a measurement (B3): the four whose
+   model two makes write, «Prime» and «S5», are named by make and model
+   (492 of the 492); a make named where no model is is read, each of
+   run17's 45 («هایما زیر ۲ میلیارد»); «آ» is read as «ا» («اریزو»); and the
+   hundred's names were reviewed («جنسیس» with its make only, «ری را»,
+   «هایما x7», «سیتروین»). Left: «کیا» and «سهند» are words too and are read
+   as makes («کیا دارن ماشین میفروشن»); a name that holds another model's
+   names both («x22 پرو» shows the X22s too); «ایران خودرو» and «سایپا» are
+   the makes Khodro45 writes so, IKCO's four and Saipa's five models, not
+   the Peugeots IKCO makes, nor Reera, Atlas or Sahand -- the owner chose
+   on 2026-11-27 to have that measured as a round of its own; and a Divar
+   page whose brand is Genesis is left to the table. Offered on 2026-11-02
+   and on 2026-11-26 and not chosen: a short unread name listed as unread.
+   A session measures and builds; the owner decides each.
 5. **An estimator that clears the gate on real data** (the product gaps, item
    2). A session, on the corpus of item 2. It is what reopens the ranked
    path's two items (the parser, items 1 and 2), compare's gated branch, and

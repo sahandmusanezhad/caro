@@ -54,8 +54,10 @@ export default function IntentPanel({ intent }: { intent: Intent }) {
   if (intent.models.length) {
     // Taxonomy keys are ASCII (`pride`, `206`); the panel shows the buyer
     // what CARO understood, so it shows it in their own script.
+    // A model two makes write is keyed by its make and model («jac|s5»),
+    // shown as the two words.
     known.push([by('خودرو', 'model'), intent.models
-      .map((m) => MODEL_FA[m.toLowerCase()] ?? m).join('، ')]);
+      .map((m) => m.split('|').map((p) => MODEL_FA[p.toLowerCase()] ?? p).join(' ')).join('، ')]);
   }
   if (intent.budget_max_toman != null) {
     known.push([

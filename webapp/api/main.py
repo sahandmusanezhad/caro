@@ -481,7 +481,9 @@ def _evidence(c, spec, cands, k: int, sort: str | None = None) -> dict:
         # scored. Rows above need no check for the same reason.
         if x.product_class != "vehicle":
             continue
-        if spec.model_hints and (x.model or "").lower() not in spec.model_hints:
+        # A model two makes write is named by its make and model («jac|s5»).
+        if spec.model_hints and (x.model or "").lower() not in spec.model_hints \
+                and f"{x.make or ''}|{x.model or ''}".lower() not in spec.model_hints:
             continue
         # A make a filter names is a listing's make as the corpus writes it,
         # as a model's page matches one (market._key); like a model, another

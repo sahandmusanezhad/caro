@@ -79,7 +79,8 @@ _THIRTEEN: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Haima", "S7", ("هایما اس 7", "هایما اس7", "هایما s7", "haima s7")),
     ("Haima", "8S", ("هایما 8 اس", "هایما 8اس", "هایما 8s", "haima 8s")),
-    ("Haima", "7X", ("هایما 7 ایکس", "هایما 7x", "haima 7x")),
+    # «x7» as well, as Khodro45's own address writes it (haima-x7), 2026-11-27.
+    ("Haima", "7X", ("هایما 7 ایکس", "هایما 7x", "haima 7x", "هایما x7", "هایما ایکس 7", "haima x7")),
     ("KMC", "j7", ("کی ام سی j7", "کی ام سی جی 7", "kmc j7")),
     ("KMC", "X5", ("کی ام سی x5", "کی ام سی ایکس 5", "kmc x5")),
     ("KMC", "Eagle", ("کی ام سی ایگل", "kmc eagle")),
@@ -103,7 +104,9 @@ _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Hyundai", "Accent Assembled", ("اکسنت", "accent")),
     ("Hyundai", "Avante", ("آوانته", "avante")),
     ("Hyundai", "Elantra", ("النترا", "elantra")),
-    ("Hyundai", "Genesis", ("جنسیس", "genesis")),
+    # With its make only, 2026-11-27: Genesis is also a make of its own, whose
+    # «جنسیس جی ۸۰» is no Hyundai.
+    ("Hyundai", "Genesis", ("هیوندای جنسیس", "hyundai genesis")),
     ("Hyundai", "SantaFe (ix45)", ("سانتافه", "سانتا فه", "santafe", "santa fe", "ix45")),
     ("Hyundai", "Tucson (ix35)", ("توسان", "tucson", "ix35")),
     ("JAC", "S3", ("جک اس 3", "جک اس3", "جک s3", "jac s3")),
@@ -159,7 +162,7 @@ _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Toyota", "Camry", ("کمری", "camry")),
     ("Besturn", "B30", ("بسترن b30", "بسترن", "besturn b30", "b30")),
     ("Brilliance", "H320", ("برلیانس h320", "h320", "برلیانس 320")),
-    ("Citroen", "C5", ("سیتروئن c5", "سیتروئن سی 5", "citroen c5")),
+    ("Citroen", "C5", ("سیتروئن c5", "سیتروئن سی 5", "citroen c5", "سیتروین c5")),
     ("GAC", "Trumpchi GA3S", ("ga3s", "ترامپچی", "trumpchi")),
     ("Great Wall", "Haval M4", ("هاوال m4", "هاوال ام 4", "haval m4")),
     ("Honda", "Accord", ("آکورد", "accord")),
@@ -170,7 +173,8 @@ _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Max Motor", "kalut", ("کالوت", "kalut")),
     ("Mitsubishi", "ASX", ("میتسوبیشی asx", "asx")),
     ("Mitsubishi", "Lancer", ("لنسر", "lancer")),
-    ("Reera", "EF7P", ("ریرا", "reera")),
+    # «ری را» as well, how «ری‌را» reads with its ZWNJ a space, 2026-11-27.
+    ("Reera", "EF7P", ("ریرا", "reera", "ری را")),
     ("SWM", "G01", ("swm g01", "اس دبلیو ام g01", "g01")),
     ("Venucia", "D60 plus", ("ونوسیا d60", "d60 پلاس", "d60 plus", "ونوسیا")),
     ("Volkswagen", "Golf", ("گلف", "golf")),
@@ -179,11 +183,89 @@ _RUN17: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("Zotye", "Ario", ("آریو", "زوتی آریو", "ario")),
 )
 
-MODELS: tuple[tuple[str, str, tuple[str, ...]], ...] = _THIRTEEN + _RUN17
+# THE FOUR WHOSE MODEL TWO MAKES WRITE (2026-11-27, the owner's choice on a
+# measurement, B3): Dignity's and Fidelity's «Prime», JAC's and Haima's «S5»,
+# 21 of run17's listings, left out on 2026-11-26 because the search keyed a
+# model by its model alone. Each name holds its make, and the search keys
+# these four by make and model («jac|s5», `search_aliases`), so «جک اس 5» is
+# JAC's S5 and not Haima's. Measured: each of the four named alone, and the
+# API on run17 returning exactly its listings, where none was named.
+_TWO_MAKES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("Dignity", "Prime", ("دیگنیتی پرایم", "dignity prime")),
+    ("Fidelity", "Prime", ("فیدلیتی پرایم", "fidelity prime")),
+    ("JAC", "S5", ("جک اس 5", "جک اس5", "جک s5", "jac s5")),
+    ("Haima", "S5", ("هایما اس 5", "هایما اس5", "هایما s5", "haima s5")),
+)
+
+MODELS: tuple[tuple[str, str, tuple[str, ...]], ...] = _THIRTEEN + _RUN17 + _TWO_MAKES
 
 # Khodro45 reads a listing's Persian titles by the table for the thirteen and
 # its English titles for every other model (`khodro45._make_model`).
 THIRTEEN: frozenset[tuple[str, str]] = frozenset((make, model) for make, model, _ in _THIRTEEN)
+
+# A MAKE NAMED IN THE SENTENCE (2026-11-27, the owner's choice on a
+# measurement, B3). «هایما زیر ۲ میلیارد» named no model and no make and showed
+# every car under two billion. Each make below is written as run17 writes it,
+# every make of its 492 listings, with its names; a make's name that is a word
+# of another sense is given only with a word that tells it apart («فردا
+# موتورز», «مکث موتور»). The search reads a make where the query names no
+# model (`caro.ranking`): a JAC is not asked for in «پراید با جک و زاپاس».
+# Measured, the predictions locked first: each of the 45 asked for by its
+# Persian name and by its Latin one, the make read in 39 and 41 and the make's
+# one model in the rest, whose make's name is its model's; the API on run17
+# returning exactly the make's listings for 45 of 45; of the 1,338 queries the
+# suites hand the parser, the 17 that name a make alone read it and nothing
+# else changed. The cost, measured on made sentences: «کیا» and «سهند» are
+# words too, so «کیا دارن ماشین میفروشن» reads Kia and «یه ماشین برای سهند»
+# reads Sahand.
+MAKES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Peugeot", ("پژو", "peugeot")),
+    ("IKCO", ("ایران خودرو", "ایرانخودرو", "ikco", "iran khodro")),
+    ("Saipa", ("سایپا", "saipa")),
+    ("MVM", ("ام وی ام", "mvm")),
+    ("KMC", ("کی ام سی", "kmc")),
+    ("JAC", ("جک", "jac")),
+    ("Hyundai", ("هیوندای", "هیوندا", "hyundai")),
+    ("Haima", ("هایما", "haima")),
+    ("Chery", ("چری", "chery")),
+    ("Fidelity", ("فیدلیتی", "fidelity")),
+    ("Kia", ("کیا", "kia")),
+    ("Fownix", ("فونیکس", "fownix")),
+    ("Lifan", ("لیفان", "lifan")),
+    ("Renault", ("رنو", "renault")),
+    ("Dignity", ("دیگنیتی", "dignity")),
+    ("Lamari", ("لاماری", "lamari")),
+    ("Farda", ("فردا موتورز", "farda")),
+    ("MG", ("ام جی", "mg")),
+    ("Dongfeng", ("دانگ فنگ", "دانگفنگ", "دونگ فنگ", "dongfeng")),
+    ("Geely", ("جیلی", "geely")),
+    ("Changan", ("چانگان", "changan")),
+    ("Atlas", ("اطلس", "atlas")),
+    ("Mazda", ("مزدا", "mazda")),
+    ("Tigard", ("تیگارد", "tigard")),
+    ("Sahand", ("سهند", "sahand")),
+    ("Suzuki", ("سوزوکی", "suzuki")),
+    ("Toyota", ("تویوتا", "toyota")),
+    ("Volkswagen", ("فولکس واگن", "فولکس", "volkswagen")),
+    ("KGM", ("کی جی ام", "سانگ یانگ", "سانگیانگ", "kgm", "ssangyong")),
+    ("Mitsubishi", ("میتسوبیشی", "mitsubishi")),
+    ("Beijing", ("بیجینگ", "بی جینگ", "beijing", "baic")),
+    ("Great Wall", ("گریت وال", "هاوال", "great wall", "haval")),
+    ("Honda", ("هوندا", "honda")),
+    ("Lexus", ("لکسوس", "lexus")),
+    ("Xtrim", ("اکستریم", "xtrim")),
+    ("GAC", ("جی ای سی", "gac")),
+    ("Max Motor", ("مکث موتور", "max motor")),
+    ("Reera", ("ریرا", "reera", "ری را")),
+    ("Hongqi", ("هونگچی", "hongqi")),
+    ("Brilliance", ("برلیانس", "brilliance")),
+    ("SWM", ("اس دبلیو ام", "swm")),
+    ("Citroen", ("سیتروئن", "citroen", "سیتروین")),
+    ("Venucia", ("ونوسیا", "venucia")),
+    ("Besturn", ("بسترن", "besturn")),
+    ("Zotye", ("زوتی", "zotye")),
+)
+
 
 MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
     (make, model): names for make, model, names in MODELS}
@@ -232,7 +314,7 @@ MAKE_MODEL: dict[tuple[str, str], tuple[str, ...]] = {
 _LETTER = r"[^\W\d_]"
 _BEFORE = r"(?:(?<!" + _LETTER + r")|(?<=(?<!" + _LETTER + r")و))"
 _ENDING = r"(?:ی|یی|م|ت|ش|مو|تو|شو|مون|تون|شون|مان|تان|شان|ها|های|هایی|ه|ست)?"
-_NOT_A_MODEL_AFTER = re.compile(r"\s*(?:تندر|شهر|آباد)(?!\w)")
+_NOT_A_MODEL_AFTER = re.compile(r"\s*(?:تندر|شهر|آباد|اباد)(?!\w)")
 _NOT_A_MODEL_BEFORE = re.compile(r"(?:تهران|تندر)\s*$")
 
 # A LATIN NAME IS READ IN CAPITALS TOO (2026-11-26, the owner's choice on a
@@ -245,20 +327,29 @@ _NOT_A_MODEL_BEFORE = re.compile(r"(?:تهران|تندر)\s*$")
 # 1,338 queries the suites hand the search read differently; one of the 178
 # texts they hand the listing parser, «Pars» (Peugeot Pars, a page's model
 # whose make the page gives, which reads as it did).
-_ASCII_LOWER = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz")
+#
+# «آ» IS READ AS «ا» (2026-11-27, the owner's choice on a measurement, B3).
+# «آریزو», «آزرا», «آوانته», «آکورد», «آریو» and «آی 20» are often typed «اریزو»,
+# «ازرا», «اوانته», «اکورد», «اریو» and «ای 20», and those named no model. «آ» is
+# read as «ا» in a name and in the text it is looked for in, by both readers,
+# and «آباد» after a name still clears it written either way («پارس اباد»).
+# Measured: the six queries named their model, where none did; none of the
+# 1,338 queries the suites hand the search, nor of the 178 texts they hand the
+# listing parser, read differently.
+_FOLD = str.maketrans("ABCDEFGHIJKLMNOPQRSTUVWXYZآ", "abcdefghijklmnopqrstuvwxyzا")
 
 # A NAME OF THE HUNDRED THAT ENDS IN A NUMBER IS NO NAME WHERE THE NUMBER RUNS
 # ON (2026-11-26, with the hundred): «مزدا 3» is not in «مزدا 323», nor «ام جی 3»
 # in «ام جی 350», each another model. Held to the hundred's names, measured so:
 # for every name it found «پژو206» in «پژو۲۰۶۹», which D83's rows pin as a name
 # matched beside a digit, and it reads so still.
-_RUNS_ON = frozenset(n for _make, _model, ns in _RUN17 for n in ns if n[-1].isdigit())
+_RUNS_ON = frozenset(n for _make, _model, ns in _RUN17 + _TWO_MAKES for n in ns if n[-1].isdigit())
 
 
 def names(text: str, name: str) -> bool:
     """Does `text` hold `name` as a model's name? Both as the reader
-    normalizes them, Latin letters case-folded."""
-    text, name = text.translate(_ASCII_LOWER), name.translate(_ASCII_LOWER)
+    normalizes them, Latin letters case-folded and «آ» read as «ا»."""
+    text, name = text.translate(_FOLD), name.translate(_FOLD)
     if name.isdigit():
         return name in text
     runs_on = r"(?!\d)" if name in _RUNS_ON else ""
@@ -274,5 +365,10 @@ def names(text: str, name: str) -> bool:
 
 def search_aliases() -> dict[str, tuple[str, ...]]:
     """The search's view: a model's name lower-cased, and the names it is
-    written by."""
-    return {model.lower(): names for _make, model, names in MODELS}
+    written by. A model two makes write is keyed by its make and model,
+    «jac|s5», which a listing matches by both (`caro.ranking._model_matches`)."""
+    written: dict[str, int] = {}
+    for _make, model, _names in MODELS:
+        written[model.lower()] = written.get(model.lower(), 0) + 1
+    return {(f"{make}|{model}" if written[model.lower()] > 1 else model).lower(): names
+            for make, model, names in MODELS}
